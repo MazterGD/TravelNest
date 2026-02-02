@@ -525,7 +525,23 @@ export const getQuotationById = async (
   });
 
   if (!quotation) {
-    throw new Error("Quotation not found");
+    throw ApiError.notFound("Quotation not found");
+  }
+
+  // Check and auto-update expiry status if quotation has expired
+  if (
+    quotation.validUntil &&
+    new Date(quotation.validUntil) < new Date() &&
+    quotation.status !== "EXPIRED" &&
+    quotation.status !== "ACCEPTED" &&
+    quotation.status !== "REJECTED"
+  ) {
+    // Auto-update status to expired
+    await prisma.quotation.update({
+      where: { id: quotationId },
+      data: { status: "EXPIRED" },
+    });
+    quotation.status = "EXPIRED";
   }
 
   // Check authorization
@@ -541,7 +557,7 @@ export const getQuotationById = async (
   const isAdmin = userRole === "admin";
 
   if (!isCustomer && !isOwner && !isAdmin) {
-    throw new Error("Unauthorized to view this quotation");
+    throw ApiError.forbidden("Unauthorized to view this quotation");
   }
 
   // Mark as viewed if customer is viewing for the first time
@@ -654,11 +670,11 @@ export const sendQuotation = async (
   });
 
   if (!quotation) {
-    throw new Error("Quotation not found");
+    throw ApiError.notFound("Quotation not found");
   }
 
   if (quotation.status !== "PENDING") {
-    throw new Error("Can only respond to pending quotations");
+    throw ApiError.badRequest("Can only respond to pending quotations");
   }
 
   // Verify vehicle belongs to owner
@@ -667,7 +683,7 @@ export const sendQuotation = async (
   });
 
   if (!vehicle || vehicle.ownerId !== ownerId) {
-    throw new Error("Invalid vehicle or unauthorized");
+    throw ApiError.forbidden("Invalid vehicle or unauthorized");
   }
 
   // Parse estimated distance for validation
@@ -778,30 +794,32 @@ export const respondToQuotation = async (
     );
   }
 
-  // If accepting, check vehicle availability for the booking dates
+  // If accepting, use transaction to ensure atomicity and prevent race conditions
   if (data.status === "ACCEPTED") {
-    const conflictingBooking = await prisma.booking.findFirst({
-      where: {
-        vehicleId: quotation.vehicleId!,
-        status: { in: ["PENDING", "CONFIRMED", "ONGOING"] },
-        OR: [
-          {
-            // New booking starts during existing booking
-            startDate: { lte: quotation.endDate },
-            endDate: { gte: quotation.startDate },
-          },
-        ],
-      },
-    });
-
-    if (conflictingBooking) {
-      throw ApiError.conflict(
-        "Sorry, this vehicle is no longer available for the selected dates. Please request a new quotation.",
-      );
-    }
-
-    // Use transaction to ensure atomicity - both quotation update and booking creation succeed or fail together
+    // Use transaction to ensure atomicity - availability check, quotation update, and booking creation
+    // all succeed or fail together. This prevents TOCTOU race conditions.
     const result = await prisma.$transaction(async (tx) => {
+      // Check vehicle availability INSIDE the transaction to prevent race conditions
+      const conflictingBooking = await tx.booking.findFirst({
+        where: {
+          vehicleId: quotation.vehicleId!,
+          status: { in: ["PENDING", "CONFIRMED", "ONGOING"] },
+          OR: [
+            {
+              // New booking starts during existing booking
+              startDate: { lte: quotation.endDate },
+              endDate: { gte: quotation.startDate },
+            },
+          ],
+        },
+      });
+
+      if (conflictingBooking) {
+        throw ApiError.conflict(
+          "Sorry, this vehicle is no longer available for the selected dates. Please request a new quotation.",
+        );
+      }
+
       // Update quotation status
       const updated = await tx.quotation.update({
         where: { id: quotationId },
