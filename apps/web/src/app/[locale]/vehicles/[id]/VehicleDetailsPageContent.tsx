@@ -25,6 +25,7 @@ import {
 } from "@/components/ui";
 import { vehicleService, reviewService, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils/cn";
+import { formatDate } from "@/lib/utils/formatters";
 import { VEHICLE_AMENITIES } from "@/constants";
 
 interface VehicleDetailsPageContentProps {
@@ -486,14 +487,7 @@ export default function VehicleDetailsPageContent({
                                 {review.customer?.lastName || ""}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {new Date(review.createdAt).toLocaleDateString(
-                                  "en-LK",
-                                  {
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                  },
-                                )}
+                                {formatDate(review.createdAt, "long")}
                               </p>
                             </div>
                             <StarRating rating={review.rating} size="sm" />

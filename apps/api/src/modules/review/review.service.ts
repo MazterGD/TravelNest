@@ -178,6 +178,13 @@ export const createReview = async (
     throw ApiError.badRequest("This booking has already been reviewed");
   }
 
+  // Validate vehicleId matches the booking's vehicle (data integrity check)
+  if (data.vehicleId !== booking.vehicleId) {
+    throw ApiError.badRequest(
+      "Vehicle ID does not match the booking's vehicle",
+    );
+  }
+
   // Validate rating
   if (data.rating < 1 || data.rating > 5) {
     throw ApiError.badRequest("Rating must be between 1 and 5");

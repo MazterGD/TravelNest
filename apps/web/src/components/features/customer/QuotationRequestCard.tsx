@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, CardContent, Button } from "@/components/ui";
 import type { QuotationRequest } from "@/store";
 import { cn } from "@/lib/utils/cn";
+import { formatDate } from "@/lib/utils/formatters";
 
 interface QuotationRequestCardProps {
   request: QuotationRequest;
@@ -18,15 +19,6 @@ export function QuotationRequestCard({
   locale,
 }: QuotationRequestCardProps) {
   const t = useTranslations("quotation");
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-LK", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   const formatTime = (timeString: string) => {
     return timeString;
@@ -69,7 +61,7 @@ export function QuotationRequestCard({
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              {t("requestedOn")} {formatDate(request.createdAt)}
+              {t("requestedOn")} {formatDate(request.createdAt, "medium")}
             </p>
           </div>
           {request.quotationsCount > 0 && (
@@ -160,7 +152,7 @@ export function QuotationRequestCard({
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <span>{formatDate(request.pickupDate)}</span>
+            <span>{formatDate(request.pickupDate, "medium")}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <svg

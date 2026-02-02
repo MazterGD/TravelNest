@@ -7,6 +7,7 @@ import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { quotationService } from "@/lib/api/services";
+import { formatDate, formatCurrency } from "@/lib/utils/formatters";
 import type { Quotation } from "@/types";
 import {
   FaArrowLeft,
@@ -286,19 +287,9 @@ export default function SentQuotationsPage() {
                   `${quotation.customer?.firstName || ""} ${quotation.customer?.lastName || ""}`.trim() ||
                   "Unknown";
                 const sentDate = quotation.sentAt
-                  ? new Date(quotation.sentAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
+                  ? formatDate(quotation.sentAt, "short")
                   : "Not sent";
-                const startDate = new Date(
-                  quotation.startDate,
-                ).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                });
+                const startDate = formatDate(quotation.startDate, "short");
 
                 // Calculate days remaining from validityDays
                 let daysRemaining = 0;
@@ -406,16 +397,19 @@ export default function SentQuotationsPage() {
                       {quotation.respondedAt && (
                         <div>
                           <span className="font-medium">Responded:</span>{" "}
-                          {new Date(quotation.respondedAt).toLocaleString()}
+                          {formatDate(quotation.respondedAt, "full")}
                         </div>
                       )}
                       {quotation.validityDays && quotation.sentAt && (
                         <div>
                           <span className="font-medium">Expires:</span>{" "}
-                          {new Date(
-                            new Date(quotation.sentAt).getTime() +
-                              quotation.validityDays * 24 * 60 * 60 * 1000,
-                          ).toLocaleDateString()}
+                          {formatDate(
+                            new Date(
+                              new Date(quotation.sentAt).getTime() +
+                                quotation.validityDays * 24 * 60 * 60 * 1000,
+                            ),
+                            "short",
+                          )}
                         </div>
                       )}
                     </div>

@@ -10,6 +10,7 @@ import {
   EmptyState,
   EmptyCalendarIcon,
   SkeletonList,
+  ConfirmDialog,
 } from "@/components/ui";
 import { BookingCard } from "@/components/features/customer";
 import { BookingStatus, PaymentStatus } from "@/types";
@@ -26,6 +27,11 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
   const [error, setError] = useState<string | null>(null);
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
   const [activeTab, setActiveTab] = useState("all");
+
+  // Confirmation dialog state
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // Fetch bookings from API
   const fetchBookings = useCallback(async () => {
@@ -123,16 +129,29 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
   ];
 
   const handleCancelBooking = async (bookingId: string) => {
+    // Open confirmation dialog instead of cancelling directly
+    setBookingToCancel(bookingId);
+    setCancelDialogOpen(true);
+  };
+
+  const confirmCancelBooking = async () => {
+    if (!bookingToCancel) return;
+
+    setIsCancelling(true);
     try {
-      await bookingService.cancel(bookingId, "Cancelled by customer");
+      await bookingService.cancel(bookingToCancel, "Cancelled by customer");
       // Refresh bookings after cancellation
-      fetchBookings();
+      await fetchBookings();
+      setCancelDialogOpen(false);
+      setBookingToCancel(null);
     } catch (err) {
       if (err instanceof ApiError) {
         alert(err.message);
       } else {
         alert("Failed to cancel booking");
       }
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -193,6 +212,22 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
           }
         />
       )}
+
+      {/* Cancel Booking Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={cancelDialogOpen}
+        onClose={() => {
+          setCancelDialogOpen(false);
+          setBookingToCancel(null);
+        }}
+        onConfirm={confirmCancelBooking}
+        title="Cancel Booking"
+        message="Are you sure you want to cancel this booking? This action cannot be undone and may affect your refund eligibility."
+        confirmText="Yes, Cancel Booking"
+        cancelText="Keep Booking"
+        variant="danger"
+        isLoading={isCancelling}
+      />
     </div>
   );
 }

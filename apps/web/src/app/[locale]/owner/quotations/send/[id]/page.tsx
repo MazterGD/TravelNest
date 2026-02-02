@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { quotationService } from "@/lib/api/services";
 import { vehicleService } from "@/lib/api/services";
+import { formatDate, formatCurrency } from "@/lib/utils/formatters";
 import {
   FaArrowLeft,
   FaMapMarkerAlt,
@@ -383,9 +384,7 @@ export default function SendQuotationPage({
                       <div>
                         <div className="text-xs text-gray-500">Date & Time</div>
                         <div className="font-medium text-gray-900">
-                          {new Date(
-                            request.trip.startDate,
-                          ).toLocaleDateString()}
+                          {formatDate(request.trip.startDate, "medium")}
                         </div>
                         <div className="text-xs text-gray-600">
                           {request.trip.startTime}

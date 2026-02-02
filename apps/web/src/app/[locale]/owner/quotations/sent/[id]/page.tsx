@@ -7,6 +7,7 @@ import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { quotationService } from "@/lib/api/services";
+import { formatDate, formatCurrency } from "@/lib/utils/formatters";
 import {
   FaArrowLeft,
   FaMapMarkerAlt,
@@ -430,9 +431,7 @@ export default function QuotationDetailPage({
                       <div>
                         <div className="text-sm text-gray-600">Date & Time</div>
                         <div className="font-medium text-gray-900">
-                          {new Date(
-                            quotation.trip.startDate,
-                          ).toLocaleDateString()}
+                          {formatDate(quotation.trip.startDate, "medium")}
                         </div>
                         <div className="text-sm text-gray-600">
                           {quotation.trip.startTime}
@@ -602,7 +601,7 @@ export default function QuotationDetailPage({
                           }`}
                         >
                           Valid until{" "}
-                          {new Date(quotation.validUntil).toLocaleDateString()}
+                          {formatDate(quotation.validUntil, "short")}
                         </div>
                       </div>
                     </div>

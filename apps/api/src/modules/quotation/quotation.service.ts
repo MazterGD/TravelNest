@@ -543,9 +543,72 @@ export const respondToQuotation = async (
         "Sorry, this vehicle is no longer available for the selected dates. Please request a new quotation.",
       );
     }
+
+    // Use transaction to ensure atomicity - both quotation update and booking creation succeed or fail together
+    const result = await prisma.$transaction(async (tx) => {
+      // Update quotation status
+      const updated = await tx.quotation.update({
+        where: { id: quotationId },
+        data: {
+          status: data.status,
+          rejectionReason: data.rejectionReason,
+          respondedAt: new Date(),
+        },
+        include: {
+          customer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          vehicle: {
+            select: {
+              id: true,
+              licensePlate: true,
+              owner: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Create booking within the same transaction
+      const booking = await tx.booking.create({
+        data: {
+          customerId: quotation.customerId,
+          vehicleId: quotation.vehicleId!,
+          startDate: quotation.startDate,
+          endDate: quotation.endDate,
+          pickupLocation: quotation.pickupLocation,
+          dropoffLocation: quotation.dropoffLocation,
+          totalPassengers: quotation.passengerCount,
+          totalAmount: quotation.totalAmount || 0,
+          status: "CONFIRMED",
+          notes: `Booking created from quotation ${quotation.quotationId}. ${quotation.specialRequests || ""}`,
+        },
+      });
+
+      return {
+        ...updated,
+        booking: {
+          id: booking.id,
+          status: booking.status,
+        },
+      };
+    });
+
+    return result;
   }
 
-  // Update quotation status
+  // For rejection, just update the quotation status (no transaction needed)
   const updated = await prisma.quotation.update({
     where: { id: quotationId },
     data: {
@@ -579,33 +642,6 @@ export const respondToQuotation = async (
       },
     },
   });
-
-  // If accepted, automatically create a booking
-  if (data.status === "ACCEPTED") {
-    const booking = await prisma.booking.create({
-      data: {
-        customerId: quotation.customerId,
-        vehicleId: quotation.vehicleId!,
-        startDate: quotation.startDate,
-        endDate: quotation.endDate,
-        pickupLocation: quotation.pickupLocation,
-        dropoffLocation: quotation.dropoffLocation,
-        totalPassengers: quotation.passengerCount,
-        totalAmount: quotation.totalAmount || 0,
-        status: "CONFIRMED",
-        notes: `Booking created from quotation ${quotation.quotationId}. ${quotation.specialRequests || ""}`,
-      },
-    });
-
-    // Return updated quotation with booking info
-    return {
-      ...updated,
-      booking: {
-        id: booking.id,
-        status: booking.status,
-      },
-    };
-  }
 
   return updated;
 };
