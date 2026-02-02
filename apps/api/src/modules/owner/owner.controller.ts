@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import * as ownerService from "./owner.service.js";
 import { config } from "../../config/index.js";
+import { ResponseHelper } from "../../utils/response.js";
 
 /**
  * Register a new bus owner with vehicles
@@ -17,15 +18,14 @@ export const register = async (req: Request, res: Response) => {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
-  res.status(201).json({
-    success: true,
-    message:
-      "Owner registration successful. Your account is pending verification.",
-    data: {
+  return ResponseHelper.created(
+    res,
+    {
       user: result.user,
       accessToken: result.accessToken,
     },
-  });
+    "Owner registration successful. Your account is pending verification.",
+  );
 };
 
 /**
@@ -36,10 +36,7 @@ export const getProfile = async (req: Request, res: Response) => {
   const ownerId = req.user!.id;
   const profile = await ownerService.getOwnerProfile(ownerId);
 
-  res.json({
-    success: true,
-    data: profile,
-  });
+  return ResponseHelper.success(res, profile);
 };
 
 /**
@@ -57,13 +54,11 @@ export const verifyOwner = async (req: Request, res: Response) => {
     adminId,
   );
 
-  res.json({
-    success: true,
-    message: isVerified
-      ? "Owner verified successfully"
-      : "Owner verification revoked",
-    data: { owner },
-  });
+  return ResponseHelper.success(
+    res,
+    { owner },
+    isVerified ? "Owner verified successfully" : "Owner verification revoked",
+  );
 };
 
 /**
@@ -74,11 +69,7 @@ export const updatePersonalInfo = async (req: Request, res: Response) => {
   const ownerId = req.user!.id;
   const updatedUser = await ownerService.updatePersonalInfo(ownerId, req.body);
 
-  res.json({
-    success: true,
-    message: "Personal information updated successfully",
-    data: updatedUser,
-  });
+  return ResponseHelper.success(res, updatedUser, "Personal information updated successfully");
 };
 
 /**
@@ -89,11 +80,7 @@ export const updateAddress = async (req: Request, res: Response) => {
   const ownerId = req.user!.id;
   const updatedUser = await ownerService.updateAddress(ownerId, req.body);
 
-  res.json({
-    success: true,
-    message: "Address updated successfully",
-    data: updatedUser,
-  });
+  return ResponseHelper.success(res, updatedUser, "Address updated successfully");
 };
 
 /**
@@ -104,8 +91,5 @@ export const getDashboardStats = async (req: Request, res: Response) => {
   const ownerId = req.user!.id;
   const stats = await ownerService.getDashboardStats(ownerId);
 
-  res.json({
-    success: true,
-    data: stats,
-  });
+  return ResponseHelper.success(res, stats);
 };

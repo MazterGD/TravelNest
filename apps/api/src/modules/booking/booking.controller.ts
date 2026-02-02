@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import * as bookingService from "./booking.service.js";
+import { ResponseHelper } from "../../utils/response.js";
 
 /**
  * Get customer's bookings
@@ -15,10 +16,7 @@ export const getMyBookings = async (req: Request, res: Response) => {
     limit: limit ? Number(limit) : undefined,
   });
 
-  res.json({
-    success: true,
-    data: result,
-  });
+  return ResponseHelper.success(res, result);
 };
 
 /**
@@ -32,10 +30,7 @@ export const getBookingById = async (req: Request, res: Response) => {
 
   const booking = await bookingService.getBookingById(id, userId, userRole);
 
-  res.json({
-    success: true,
-    data: booking,
-  });
+  return ResponseHelper.success(res, { booking });
 };
 
 /**
@@ -49,11 +44,7 @@ export const cancelBooking = async (req: Request, res: Response) => {
 
   const booking = await bookingService.cancelBooking(id, customerId, reason);
 
-  res.json({
-    success: true,
-    message: "Booking cancelled successfully",
-    data: { booking },
-  });
+  return ResponseHelper.success(res, { booking }, "Booking cancelled successfully");
 };
 
 /**
@@ -69,11 +60,7 @@ export const createFromQuotation = async (req: Request, res: Response) => {
     quotationId,
   );
 
-  res.status(201).json({
-    success: true,
-    message: "Booking created successfully",
-    data: { booking },
-  });
+  return ResponseHelper.created(res, { booking }, "Booking created successfully");
 };
 
 /**
@@ -91,11 +78,7 @@ export const assignDriver = async (req: Request, res: Response) => {
     driverLicense,
   });
 
-  res.json({
-    success: true,
-    message: "Driver assigned successfully",
-    data: { booking },
-  });
+  return ResponseHelper.success(res, { booking }, "Driver assigned successfully");
 };
 
 /**
@@ -108,10 +91,7 @@ export const getDriverInfo = async (req: Request, res: Response) => {
 
   const driverInfo = await bookingService.getDriverInfo(bookingId, userId);
 
-  res.json({
-    success: true,
-    data: driverInfo,
-  });
+  return ResponseHelper.success(res, driverInfo);
 };
 
 /**
@@ -129,11 +109,7 @@ export const updateTripItinerary = async (req: Request, res: Response) => {
     itinerary,
   );
 
-  res.json({
-    success: true,
-    message: "Trip itinerary updated successfully",
-    data: { itinerary: result },
-  });
+  return ResponseHelper.success(res, { itinerary: result }, "Trip itinerary updated successfully");
 };
 
 /**
@@ -146,8 +122,5 @@ export const getTripItinerary = async (req: Request, res: Response) => {
 
   const itinerary = await bookingService.getTripItinerary(bookingId, userId);
 
-  res.json({
-    success: true,
-    data: itinerary,
-  });
+  return ResponseHelper.success(res, itinerary);
 };

@@ -2,6 +2,7 @@ import { type Request, type Response, type NextFunction } from "express";
 import * as authService from "./auth.service.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
 import { setCSRFToken } from "../../middleware/csrf.js";
+import { ResponseHelper } from "../../utils/response.js";
 
 // Register a new user
 export const register = asyncHandler(async (req: Request, res: Response) => {
@@ -18,12 +19,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   // Set CSRF token
   setCSRFToken(res);
 
-  res.status(201).json({
-    success: true,
-    data: {
-      user: result.user,
-      accessToken: result.accessToken,
-    },
+  return ResponseHelper.created(res, {
+    user: result.user,
+    accessToken: result.accessToken,
   });
 });
 
@@ -42,12 +40,9 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   // Set CSRF token
   setCSRFToken(res);
 
-  res.status(200).json({
-    success: true,
-    data: {
-      user: result.user,
-      accessToken: result.accessToken,
-    },
+  return ResponseHelper.success(res, {
+    user: result.user,
+    accessToken: result.accessToken,
   });
 });
 
@@ -65,11 +60,8 @@ export const refreshToken = asyncHandler(
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
-    res.status(200).json({
-      success: true,
-      data: {
-        accessToken: tokens.accessToken,
-      },
+    return ResponseHelper.success(res, {
+      accessToken: tokens.accessToken,
     });
   },
 );
@@ -83,10 +75,7 @@ export const logout = asyncHandler(async (_req: Request, res: Response) => {
     sameSite: "strict",
   });
 
-  res.status(200).json({
-    success: true,
-    message: "Logged out successfully",
-  });
+  return ResponseHelper.success(res, null, "Logged out successfully");
 });
 
 // Get current user
@@ -94,10 +83,7 @@ export const getCurrentUser = asyncHandler(
   async (req: Request, res: Response) => {
     const user = await authService.getUserById(req.user!.id);
 
-    res.status(200).json({
-      success: true,
-      data: { user },
-    });
+    return ResponseHelper.success(res, { user });
   },
 );
 
@@ -111,10 +97,7 @@ export const changePassword = asyncHandler(
       newPassword,
     );
 
-    res.status(200).json({
-      success: true,
-      ...result,
-    });
+    return ResponseHelper.success(res, null, result.message);
   },
 );
 
@@ -123,10 +106,7 @@ export const forgotPassword = asyncHandler(
   async (req: Request, res: Response) => {
     const result = await authService.generatePasswordResetToken(req.body.email);
 
-    res.status(200).json({
-      success: true,
-      ...result,
-    });
+    return ResponseHelper.success(res, null, result.message);
   },
 );
 
@@ -136,9 +116,6 @@ export const resetPassword = asyncHandler(
     const { token, password } = req.body;
     const result = await authService.resetUserPassword(token, password);
 
-    res.status(200).json({
-      success: true,
-      ...result,
-    });
+    return ResponseHelper.success(res, null, result.message);
   },
 );

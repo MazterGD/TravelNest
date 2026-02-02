@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import * as quotationService from "./quotation.service.js";
+import { ResponseHelper } from "../../utils/response.js";
 
 /**
  * Get owner's quotation requests (PENDING)
@@ -17,10 +18,7 @@ export const getOwnerQuotationRequests = async (
     limit: limit ? Number(limit) : undefined,
   });
 
-  res.json({
-    success: true,
-    data: result,
-  });
+  return ResponseHelper.success(res, result);
 };
 
 /**
@@ -36,10 +34,7 @@ export const getOwnerSentQuotations = async (req: Request, res: Response) => {
     limit: limit ? Number(limit) : undefined,
   });
 
-  res.json({
-    success: true,
-    data: result,
-  });
+  return ResponseHelper.success(res, result);
 };
 
 /**
@@ -55,10 +50,7 @@ export const getCustomerQuotations = async (req: Request, res: Response) => {
     limit: limit ? Number(limit) : undefined,
   });
 
-  res.json({
-    success: true,
-    data: result,
-  });
+  return ResponseHelper.success(res, result);
 };
 
 /**
@@ -75,10 +67,7 @@ export const getQuotationById = async (req: Request, res: Response) => {
     userRole,
   );
 
-  res.json({
-    success: true,
-    data: { quotation },
-  });
+  return ResponseHelper.success(res, { quotation });
 };
 
 /**
@@ -92,11 +81,7 @@ export const createQuotationRequest = async (req: Request, res: Response) => {
     req.body,
   );
 
-  res.status(201).json({
-    success: true,
-    message: "Quotation request submitted successfully",
-    data: { quotation },
-  });
+  return ResponseHelper.created(res, { quotation }, "Quotation request submitted successfully");
 };
 
 /**
@@ -112,11 +97,7 @@ export const sendQuotation = async (req: Request, res: Response) => {
     req.body,
   );
 
-  res.json({
-    success: true,
-    message: "Quotation sent successfully",
-    data: { quotation },
-  });
+  return ResponseHelper.success(res, { quotation }, "Quotation sent successfully");
 };
 
 /**
@@ -132,11 +113,11 @@ export const respondToQuotation = async (req: Request, res: Response) => {
     req.body,
   );
 
-  res.json({
-    success: true,
-    message: `Quotation ${req.body.status.toLowerCase()} successfully`,
-    data: { quotation },
-  });
+  return ResponseHelper.success(
+    res,
+    { quotation },
+    `Quotation ${req.body.status.toLowerCase()} successfully`,
+  );
 };
 
 /**
@@ -151,10 +132,7 @@ export const getAllQuotations = async (req: Request, res: Response) => {
     limit: limit ? Number(limit) : undefined,
   });
 
-  res.json({
-    success: true,
-    data: result,
-  });
+  return ResponseHelper.success(res, result);
 };
 
 /**
@@ -179,8 +157,5 @@ export const getPricingSuggestions = async (req: Request, res: Response) => {
     ownerId,
   );
 
-  res.json({
-    success: true,
-    data: suggestions,
-  });
+  return ResponseHelper.success(res, suggestions);
 };

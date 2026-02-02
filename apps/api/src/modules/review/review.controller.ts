@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import * as reviewService from "./review.service.js";
+import { ResponseHelper } from "../../utils/response.js";
 
 /**
  * Get customer's reviews
@@ -14,10 +15,7 @@ export const getMyReviews = async (req: Request, res: Response) => {
     limit: limit ? Number(limit) : undefined,
   });
 
-  res.json({
-    success: true,
-    data: result,
-  });
+  return ResponseHelper.success(res, result);
 };
 
 /**
@@ -33,10 +31,7 @@ export const getPendingReviews = async (req: Request, res: Response) => {
     limit: limit ? Number(limit) : undefined,
   });
 
-  res.json({
-    success: true,
-    data: result,
-  });
+  return ResponseHelper.success(res, result);
 };
 
 /**
@@ -54,11 +49,7 @@ export const createReview = async (req: Request, res: Response) => {
     comment,
   });
 
-  res.status(201).json({
-    success: true,
-    message: "Review submitted successfully",
-    data: { review },
-  });
+  return ResponseHelper.created(res, { review }, "Review submitted successfully");
 };
 
 /**
@@ -75,11 +66,7 @@ export const updateReview = async (req: Request, res: Response) => {
     comment,
   });
 
-  res.json({
-    success: true,
-    message: "Review updated successfully",
-    data: { review },
-  });
+  return ResponseHelper.success(res, { review }, "Review updated successfully");
 };
 
 /**
@@ -92,10 +79,7 @@ export const deleteReview = async (req: Request, res: Response) => {
 
   const result = await reviewService.deleteReview(id, customerId);
 
-  res.json({
-    success: true,
-    message: result.message,
-  });
+  return ResponseHelper.success(res, null, result.message);
 };
 
 /**
@@ -111,10 +95,7 @@ export const getVehicleReviews = async (req: Request, res: Response) => {
     limit: limit ? Number(limit) : undefined,
   });
 
-  res.json({
-    success: true,
-    data: result,
-  });
+  return ResponseHelper.success(res, result);
 };
 
 /**
@@ -128,9 +109,5 @@ export const respondToReview = async (req: Request, res: Response) => {
 
   const review = await reviewService.respondToReview(id, ownerId, response);
 
-  res.json({
-    success: true,
-    message: "Response added successfully",
-    data: { review },
-  });
+  return ResponseHelper.success(res, { review }, "Response added successfully");
 };

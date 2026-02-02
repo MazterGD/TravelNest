@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as vehicleService from "./vehicle.service.js";
+import { ResponseHelper } from "../../utils/response.js";
 
 /**
  * Get all vehicles with filters
@@ -19,10 +20,7 @@ export const getAllVehicles = async (req: Request, res: Response) => {
 
   const vehicles = await vehicleService.getAllVehicles(filters);
 
-  res.json({
-    success: true,
-    data: { vehicles },
-  });
+  return ResponseHelper.success(res, { vehicles });
 };
 
 /**
@@ -33,10 +31,7 @@ export const getVehicleById = async (req: Request, res: Response) => {
   const { id } = req.params;
   const vehicle = await vehicleService.getVehicleById(String(id));
 
-  res.json({
-    success: true,
-    data: vehicle,
-  });
+  return ResponseHelper.success(res, { vehicle });
 };
 
 /**
@@ -47,10 +42,7 @@ export const getMyVehicles = async (req: Request, res: Response) => {
   const ownerId = req.user!.id;
   const vehicles = await vehicleService.getMyVehicles(ownerId);
 
-  res.json({
-    success: true,
-    data: vehicles,
-  });
+  return ResponseHelper.success(res, { vehicles });
 };
 
 /**
@@ -61,11 +53,7 @@ export const createVehicle = async (req: Request, res: Response) => {
   const ownerId = req.user!.id;
   const vehicle = await vehicleService.createVehicle(ownerId, req.body);
 
-  res.status(201).json({
-    success: true,
-    message: "Vehicle created successfully",
-    data: { vehicle },
-  });
+  return ResponseHelper.created(res, { vehicle }, "Vehicle created successfully");
 };
 
 /**
@@ -81,11 +69,7 @@ export const updateVehicle = async (req: Request, res: Response) => {
     req.body,
   );
 
-  res.json({
-    success: true,
-    message: "Vehicle updated successfully",
-    data: vehicle,
-  });
+  return ResponseHelper.success(res, { vehicle }, "Vehicle updated successfully");
 };
 
 /**
@@ -97,10 +81,7 @@ export const deleteVehicle = async (req: Request, res: Response) => {
   const ownerId = req.user!.id;
   await vehicleService.deleteVehicle(String(id), ownerId);
 
-  res.json({
-    success: true,
-    message: "Vehicle deleted successfully",
-  });
+  return ResponseHelper.success(res, null, "Vehicle deleted successfully");
 };
 
 /**
@@ -118,11 +99,7 @@ export const uploadPhotos = async (req: Request, res: Response) => {
     photos,
   );
 
-  res.status(201).json({
-    success: true,
-    message: "Photos uploaded successfully",
-    data: { photos: uploadedPhotos },
-  });
+  return ResponseHelper.created(res, { photos: uploadedPhotos }, "Photos uploaded successfully");
 };
 
 /**
@@ -140,11 +117,7 @@ export const uploadDocuments = async (req: Request, res: Response) => {
     documents,
   );
 
-  res.json({
-    success: true,
-    message: "Documents uploaded successfully",
-    data: { documents: uploadedDocs },
-  });
+  return ResponseHelper.success(res, { documents: uploadedDocs }, "Documents uploaded successfully");
 };
 
 /**
@@ -162,11 +135,11 @@ export const toggleAvailability = async (req: Request, res: Response) => {
     available,
   );
 
-  res.json({
-    success: true,
-    message: `Vehicle ${available ? "activated" : "deactivated"} successfully`,
-    data: { vehicle },
-  });
+  return ResponseHelper.success(
+    res,
+    { vehicle },
+    `Vehicle ${available ? "activated" : "deactivated"} successfully`,
+  );
 };
 
 /**
@@ -183,9 +156,9 @@ export const toggleStatus = async (req: Request, res: Response) => {
     isActive,
   );
 
-  res.json({
-    success: true,
-    message: `Vehicle ${isActive ? "activated" : "deactivated"} successfully`,
-    data: vehicle,
-  });
+  return ResponseHelper.success(
+    res,
+    { vehicle },
+    `Vehicle ${isActive ? "activated" : "deactivated"} successfully`,
+  );
 };

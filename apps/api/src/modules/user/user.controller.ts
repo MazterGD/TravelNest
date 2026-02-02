@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import * as userService from "./user.service.js";
+import { ResponseHelper } from "../../utils/response.js";
 
 /**
  * Get current user's profile
@@ -9,10 +10,7 @@ export const getProfile = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const profile = await userService.getUserProfile(userId);
 
-  res.json({
-    success: true,
-    data: profile,
-  });
+  return ResponseHelper.success(res, profile);
 };
 
 /**
@@ -23,11 +21,7 @@ export const updatePersonalInfo = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const updatedUser = await userService.updatePersonalInfo(userId, req.body);
 
-  res.json({
-    success: true,
-    message: "Personal information updated successfully",
-    data: updatedUser,
-  });
+  return ResponseHelper.success(res, updatedUser, "Personal information updated successfully");
 };
 
 /**
@@ -38,11 +32,7 @@ export const updateAddress = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const updatedUser = await userService.updateAddress(userId, req.body);
 
-  res.json({
-    success: true,
-    message: "Address updated successfully",
-    data: updatedUser,
-  });
+  return ResponseHelper.success(res, updatedUser, "Address updated successfully");
 };
 
 /**
@@ -53,10 +43,7 @@ export const changePassword = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const result = await userService.changePassword(userId, req.body);
 
-  res.json({
-    success: true,
-    message: result.message,
-  });
+  return ResponseHelper.success(res, null, result.message);
 };
 
 /**
@@ -67,10 +54,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const result = await userService.deleteAccount(userId);
 
-  res.json({
-    success: true,
-    message: result.message,
-  });
+  return ResponseHelper.success(res, null, result.message);
 };
 
 /**
@@ -81,8 +65,5 @@ export const getDashboardStats = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const stats = await userService.getCustomerDashboardStats(userId);
 
-  res.json({
-    success: true,
-    data: stats,
-  });
+  return ResponseHelper.success(res, stats);
 };
