@@ -75,3 +75,79 @@ export const createFromQuotation = async (req: Request, res: Response) => {
     data: { booking },
   });
 };
+
+/**
+ * Assign driver to booking
+ * PATCH /api/v1/bookings/:id/driver
+ */
+export const assignDriver = async (req: Request, res: Response) => {
+  const bookingId = req.params.id as string;
+  const ownerId = req.user!.id;
+  const { driverName, driverPhone, driverLicense } = req.body;
+
+  const booking = await bookingService.assignDriver(bookingId, ownerId, {
+    driverName,
+    driverPhone,
+    driverLicense,
+  });
+
+  res.json({
+    success: true,
+    message: "Driver assigned successfully",
+    data: { booking },
+  });
+};
+
+/**
+ * Get driver information for a booking
+ * GET /api/v1/bookings/:id/driver
+ */
+export const getDriverInfo = async (req: Request, res: Response) => {
+  const bookingId = req.params.id as string;
+  const userId = req.user!.id;
+
+  const driverInfo = await bookingService.getDriverInfo(bookingId, userId);
+
+  res.json({
+    success: true,
+    data: driverInfo,
+  });
+};
+
+/**
+ * Update trip itinerary for a booking
+ * PUT /api/v1/bookings/:id/itinerary
+ */
+export const updateTripItinerary = async (req: Request, res: Response) => {
+  const bookingId = req.params.id as string;
+  const ownerId = req.user!.id;
+  const { itinerary } = req.body;
+
+  const result = await bookingService.updateTripItinerary(
+    bookingId,
+    ownerId,
+    itinerary,
+  );
+
+  res.json({
+    success: true,
+    message: "Trip itinerary updated successfully",
+    data: { itinerary: result },
+  });
+};
+
+/**
+ * Get trip itinerary for a booking
+ * GET /api/v1/bookings/:id/itinerary
+ */
+export const getTripItinerary = async (req: Request, res: Response) => {
+  const bookingId = req.params.id as string;
+  const userId = req.user!.id;
+
+  const itinerary = await bookingService.getTripItinerary(bookingId, userId);
+
+  res.json({
+    success: true,
+    data: itinerary,
+  });
+};

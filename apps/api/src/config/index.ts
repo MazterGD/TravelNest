@@ -94,6 +94,36 @@ export const config = {
     process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || "10",
     10,
   ), // 10 attempts per 15 minutes
+
+  // Sri Lankan Bus Rental Pricing Rules (in LKR)
+  // These are industry standards for validating quotation pricing
+  pricingRules: {
+    // Per-kilometer rates by vehicle type
+    perKmRate: {
+      ORDINARY: { min: 50, max: 80, default: 65 },
+      SEMI_LUXURY: { min: 80, max: 120, default: 100 },
+      LUXURY_AC: { min: 120, max: 180, default: 150 },
+    },
+    // Daily driver allowance (batta)
+    driverAllowance: {
+      min: 2000,
+      max: 5000,
+      default: 3000,
+    },
+    // Minimum booking requirements
+    minimumBooking: {
+      kilometers: 100,
+      hours: 8,
+    },
+    // Fuel cost estimation (LKR per km based on diesel prices)
+    fuelCostPerKm: {
+      ORDINARY: { min: 15, max: 25, default: 20 },
+      SEMI_LUXURY: { min: 18, max: 30, default: 24 },
+      LUXURY_AC: { min: 25, max: 40, default: 32 },
+    },
+    // Tolerance percentage for pricing validation (allow 20% variance)
+    validationTolerance: 0.2,
+  },
 } as const;
 
 // Validate required environment variables in production

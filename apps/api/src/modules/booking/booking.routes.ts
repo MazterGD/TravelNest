@@ -427,4 +427,60 @@ router.get(
   }),
 );
 
+// ==========================================
+// Driver Information Routes
+// ==========================================
+
+/**
+ * @route   PATCH /api/v1/bookings/:id/driver
+ * @desc    Assign/update driver information for a booking
+ * @access  Private (Owner only)
+ */
+router.patch(
+  "/:id/driver",
+  authenticate,
+  authorize("owner", "admin"),
+  csrfProtection,
+  asyncHandler(bookingController.assignDriver),
+);
+
+/**
+ * @route   GET /api/v1/bookings/:id/driver
+ * @desc    Get driver information for a booking
+ * @access  Private (Customer, Owner)
+ */
+router.get(
+  "/:id/driver",
+  authenticate,
+  asyncHandler(bookingController.getDriverInfo),
+);
+
+// ==========================================
+// Trip Itinerary Routes
+// ==========================================
+
+/**
+ * @route   PUT /api/v1/bookings/:id/itinerary
+ * @desc    Add or update trip itinerary for a booking
+ * @access  Private (Owner only)
+ */
+router.put(
+  "/:id/itinerary",
+  authenticate,
+  authorize("owner", "admin"),
+  csrfProtection,
+  asyncHandler(bookingController.updateTripItinerary),
+);
+
+/**
+ * @route   GET /api/v1/bookings/:id/itinerary
+ * @desc    Get trip itinerary for a booking
+ * @access  Private (Customer, Owner)
+ */
+router.get(
+  "/:id/itinerary",
+  authenticate,
+  asyncHandler(bookingController.getTripItinerary),
+);
+
 export default router;

@@ -203,6 +203,12 @@ model Vehicle {
   pricePerHour    Float?
   pricePerKm      Float?           // Price per kilometer
   driverAllowance Float?           // Daily driver allowance
+  
+  // Pricing rules for quotation validation
+  minBookingKm    Int?             // Minimum kilometers per booking (default: 100km)
+  minBookingHours Int?             // Minimum hours per booking (default: 8 hours)
+  fuelCostPerKm   Float?           // Estimated fuel cost per km for validation
+  
   location        String
   latitude        Float?
   longitude       Float?
@@ -299,6 +305,16 @@ model Booking {
   status          BookingStatus @default(PENDING)
   notes           String?
   cancelReason    String?
+  
+  // Driver information
+  driverName      String?
+  driverPhone     String?
+  driverLicense   String?
+  
+  // Trip details from quotation
+  estimatedDistance String?
+  estimatedDuration String?
+  
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -307,6 +323,7 @@ model Booking {
   vehicle         Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   payment         Payment?
   review          Review?
+  itinerary       TripItinerary[]
 
   @@index([customerId])
   @@index([vehicleId])
@@ -434,4 +451,28 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@map("notifications")
+}
+
+// Trip itinerary for multi-day trips
+model TripItinerary {
+  id            String   @id @default(cuid())
+  bookingId     String
+  dayNumber     Int      // Day 1, Day 2, etc.
+  date          DateTime
+  startLocation String
+  endLocation   String
+  overnightStop String?  // Where the vehicle stays overnight
+  description   String?  // Route description or activities
+  estimatedKm   Int?     // Estimated kilometers for this day
+  pickupPoints  Json?    // Array of {location, time} for multiple pickups
+  dropoffPoints Json?    // Array of {location, time} for multiple drop-offs
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, dayNumber])
+  @@index([bookingId])
+  @@map("trip_itineraries")
 }

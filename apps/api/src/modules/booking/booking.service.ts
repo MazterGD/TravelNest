@@ -388,9 +388,311 @@ export const createBookingFromQuotation = async (
         totalAmount: quotation.totalAmount || 0,
         status: "PENDING",
         notes: quotation.specialRequests,
+        // Include trip details from quotation
+        estimatedDistance: quotation.estimatedDistance,
+        estimatedDuration: quotation.estimatedDuration,
       },
     });
   });
 
   return booking;
+};
+
+/**
+ * Assign driver to booking (owner)
+ */
+export interface DriverInfo {
+  driverName: string;
+  driverPhone: string;
+  driverLicense: string;
+}
+
+export const assignDriver = async (
+  bookingId: string,
+  ownerId: string,
+  driverInfo: DriverInfo,
+) => {
+  // Verify booking exists and belongs to owner's vehicle
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: {
+      vehicle: {
+        select: {
+          ownerId: true,
+        },
+      },
+    },
+  });
+
+  if (!booking) {
+    throw ApiError.notFound("Booking not found");
+  }
+
+  if (booking.vehicle.ownerId !== ownerId) {
+    throw ApiError.forbidden("Not authorized to assign driver to this booking");
+  }
+
+  // Validate driver info
+  if (!driverInfo.driverName || driverInfo.driverName.trim().length < 2) {
+    throw ApiError.badRequest("Driver name is required");
+  }
+
+  if (
+    !driverInfo.driverPhone ||
+    !/^[\d+\-\s]{9,15}$/.test(driverInfo.driverPhone.replace(/\s/g, ""))
+  ) {
+    throw ApiError.badRequest("Valid driver phone number is required");
+  }
+
+  if (!driverInfo.driverLicense || driverInfo.driverLicense.trim().length < 5) {
+    throw ApiError.badRequest("Valid driver license number is required");
+  }
+
+  const updatedBooking = await prisma.booking.update({
+    where: { id: bookingId },
+    data: {
+      driverName: driverInfo.driverName.trim(),
+      driverPhone: driverInfo.driverPhone.trim(),
+      driverLicense: driverInfo.driverLicense.trim().toUpperCase(),
+    },
+    include: {
+      customer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+      vehicle: {
+        select: {
+          id: true,
+          name: true,
+          licensePlate: true,
+        },
+      },
+    },
+  });
+
+  return updatedBooking;
+};
+
+/**
+ * Get driver info for a booking (customer view)
+ */
+export const getDriverInfo = async (bookingId: string, userId: string) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    select: {
+      id: true,
+      customerId: true,
+      driverName: true,
+      driverPhone: true,
+      driverLicense: true,
+      status: true,
+      vehicle: {
+        select: {
+          ownerId: true,
+        },
+      },
+    },
+  });
+
+  if (!booking) {
+    throw ApiError.notFound("Booking not found");
+  }
+
+  // Check authorization - customer, owner, or admin can view
+  const isCustomer = booking.customerId === userId;
+  const isOwner = booking.vehicle.ownerId === userId;
+
+  if (!isCustomer && !isOwner) {
+    throw ApiError.forbidden("Not authorized to view driver information");
+  }
+
+  // Only return driver info for confirmed/ongoing bookings
+  if (!["CONFIRMED", "ONGOING"].includes(booking.status)) {
+    return {
+      bookingId: booking.id,
+      driverAssigned: false,
+      message:
+        "Driver information will be available once the booking is confirmed",
+    };
+  }
+
+  if (!booking.driverName) {
+    return {
+      bookingId: booking.id,
+      driverAssigned: false,
+      message:
+        "Driver has not been assigned yet. The owner will update this before your trip.",
+    };
+  }
+
+  return {
+    bookingId: booking.id,
+    driverAssigned: true,
+    driver: {
+      name: booking.driverName,
+      phone: booking.driverPhone,
+      license: booking.driverLicense,
+    },
+  };
+};
+
+/**
+ * Trip Itinerary Management
+ */
+export interface ItineraryDay {
+  dayNumber: number;
+  date: Date | string;
+  startLocation: string;
+  endLocation: string;
+  overnightStop?: string;
+  description?: string;
+  estimatedKm?: number;
+  pickupPoints?: Array<{ location: string; time: string }>;
+  dropoffPoints?: Array<{ location: string; time: string }>;
+}
+
+/**
+ * Add or update trip itinerary (owner)
+ */
+export const updateTripItinerary = async (
+  bookingId: string,
+  ownerId: string,
+  itinerary: ItineraryDay[],
+) => {
+  // Verify booking exists and belongs to owner's vehicle
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: {
+      vehicle: {
+        select: {
+          ownerId: true,
+        },
+      },
+    },
+  });
+
+  if (!booking) {
+    throw ApiError.notFound("Booking not found");
+  }
+
+  if (booking.vehicle.ownerId !== ownerId) {
+    throw ApiError.forbidden(
+      "Not authorized to update itinerary for this booking",
+    );
+  }
+
+  // Validate itinerary
+  if (!itinerary || itinerary.length === 0) {
+    throw ApiError.badRequest("At least one day of itinerary is required");
+  }
+
+  // Calculate trip days
+  const tripDays =
+    Math.ceil(
+      (booking.endDate.getTime() - booking.startDate.getTime()) /
+        (1000 * 60 * 60 * 24),
+    ) + 1;
+
+  if (itinerary.length > tripDays) {
+    throw ApiError.badRequest(
+      `Itinerary has ${itinerary.length} days but trip is only ${tripDays} days`,
+    );
+  }
+
+  // Use transaction to replace all itinerary days
+  const result = await prisma.$transaction(async (tx) => {
+    // Delete existing itinerary
+    await tx.tripItinerary.deleteMany({
+      where: { bookingId },
+    });
+
+    // Create new itinerary days
+    const createdItinerary = await Promise.all(
+      itinerary.map((day) =>
+        tx.tripItinerary.create({
+          data: {
+            bookingId,
+            dayNumber: day.dayNumber,
+            date: new Date(day.date),
+            startLocation: day.startLocation,
+            endLocation: day.endLocation,
+            overnightStop: day.overnightStop,
+            description: day.description,
+            estimatedKm: day.estimatedKm,
+            pickupPoints: day.pickupPoints as any,
+            dropoffPoints: day.dropoffPoints as any,
+          },
+        }),
+      ),
+    );
+
+    return createdItinerary;
+  });
+
+  return result;
+};
+
+/**
+ * Get trip itinerary for a booking
+ */
+export const getTripItinerary = async (bookingId: string, userId: string) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    select: {
+      id: true,
+      customerId: true,
+      startDate: true,
+      endDate: true,
+      vehicle: {
+        select: {
+          ownerId: true,
+        },
+      },
+      itinerary: {
+        orderBy: { dayNumber: "asc" },
+      },
+    },
+  });
+
+  if (!booking) {
+    throw ApiError.notFound("Booking not found");
+  }
+
+  // Check authorization
+  const isCustomer = booking.customerId === userId;
+  const isOwner = booking.vehicle.ownerId === userId;
+
+  if (!isCustomer && !isOwner) {
+    throw ApiError.forbidden("Not authorized to view trip itinerary");
+  }
+
+  const tripDays =
+    Math.ceil(
+      (booking.endDate.getTime() - booking.startDate.getTime()) /
+        (1000 * 60 * 60 * 24),
+    ) + 1;
+
+  return {
+    bookingId: booking.id,
+    tripDays,
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    hasItinerary: booking.itinerary.length > 0,
+    itinerary: booking.itinerary.map((day) => ({
+      id: day.id,
+      dayNumber: day.dayNumber,
+      date: day.date,
+      startLocation: day.startLocation,
+      endLocation: day.endLocation,
+      overnightStop: day.overnightStop,
+      description: day.description,
+      estimatedKm: day.estimatedKm,
+      pickupPoints: day.pickupPoints,
+      dropoffPoints: day.dropoffPoints,
+    })),
+  };
 };

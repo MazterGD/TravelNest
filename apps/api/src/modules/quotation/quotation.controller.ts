@@ -156,3 +156,31 @@ export const getAllQuotations = async (req: Request, res: Response) => {
     data: result,
   });
 };
+
+/**
+ * Get pricing suggestions for a quotation (owner)
+ * Helps owners price their quotations according to industry standards
+ */
+export const getPricingSuggestions = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { vehicleId } = req.query;
+  const ownerId = req.user!.id;
+
+  if (!vehicleId || typeof vehicleId !== "string") {
+    return res.status(400).json({
+      success: false,
+      message: "Vehicle ID is required",
+    });
+  }
+
+  const suggestions = await quotationService.getPricingSuggestions(
+    id as string,
+    vehicleId,
+    ownerId,
+  );
+
+  res.json({
+    success: true,
+    data: suggestions,
+  });
+};

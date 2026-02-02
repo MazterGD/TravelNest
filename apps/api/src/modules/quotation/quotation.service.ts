@@ -1,6 +1,230 @@
 import { prisma } from "@travenest/database";
 import type { QuotationStatus, VehicleType } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { config } from "../../config/index.js";
+
+// Pricing validation types
+interface PricingValidationResult {
+  isValid: boolean;
+  warnings: string[];
+  suggestions: {
+    fuelCost?: { min: number; max: number; suggested: number };
+    driverCost?: { min: number; max: number; suggested: number };
+    vehicleRentalCost?: { min: number; max: number; suggested: number };
+  };
+}
+
+/**
+ * Validate quotation pricing against Sri Lankan bus rental industry standards
+ * Returns warnings but doesn't block submission (owners know their costs better)
+ */
+const validateQuotationPricing = (
+  data: SendQuotationData,
+  vehicleType: VehicleType,
+  estimatedDistanceKm: number,
+  tripDays: number,
+): PricingValidationResult => {
+  const { pricingRules } = config;
+  const warnings: string[] = [];
+  const suggestions: PricingValidationResult["suggestions"] = {};
+
+  // Get rates for this vehicle type
+  const fuelRates =
+    pricingRules.fuelCostPerKm[vehicleType] ||
+    pricingRules.fuelCostPerKm.ORDINARY;
+  const perKmRates =
+    pricingRules.perKmRate[vehicleType] || pricingRules.perKmRate.ORDINARY;
+  const driverRates = pricingRules.driverAllowance;
+  const tolerance = pricingRules.validationTolerance;
+
+  // Validate minimum booking distance
+  if (estimatedDistanceKm < pricingRules.minimumBooking.kilometers) {
+    warnings.push(
+      `Distance (${estimatedDistanceKm}km) is below industry minimum of ${pricingRules.minimumBooking.kilometers}km. Consider applying minimum km charges.`,
+    );
+  }
+
+  // Validate fuel cost
+  if (data.fuelCost && estimatedDistanceKm > 0) {
+    const expectedMinFuel = fuelRates.min * estimatedDistanceKm;
+    const expectedMaxFuel = fuelRates.max * estimatedDistanceKm;
+    const suggestedFuel = fuelRates.default * estimatedDistanceKm;
+
+    suggestions.fuelCost = {
+      min: Math.round(expectedMinFuel),
+      max: Math.round(expectedMaxFuel),
+      suggested: Math.round(suggestedFuel),
+    };
+
+    // Allow tolerance for owner's actual fuel costs
+    if (data.fuelCost < expectedMinFuel * (1 - tolerance)) {
+      warnings.push(
+        `Fuel cost (LKR ${data.fuelCost}) seems low for ${estimatedDistanceKm}km. Suggested: LKR ${Math.round(suggestedFuel)}`,
+      );
+    } else if (data.fuelCost > expectedMaxFuel * (1 + tolerance)) {
+      warnings.push(
+        `Fuel cost (LKR ${data.fuelCost}) is higher than typical for ${estimatedDistanceKm}km. Consider reviewing.`,
+      );
+    }
+  }
+
+  // Validate driver cost (daily allowance * trip days)
+  if (data.driverCost && tripDays > 0) {
+    const expectedMinDriver = driverRates.min * tripDays;
+    const expectedMaxDriver = driverRates.max * tripDays;
+    const suggestedDriver = driverRates.default * tripDays;
+
+    suggestions.driverCost = {
+      min: Math.round(expectedMinDriver),
+      max: Math.round(expectedMaxDriver),
+      suggested: Math.round(suggestedDriver),
+    };
+
+    if (data.driverCost < expectedMinDriver * (1 - tolerance)) {
+      warnings.push(
+        `Driver cost (LKR ${data.driverCost}) seems low for ${tripDays} day(s). Typical range: LKR ${expectedMinDriver}-${expectedMaxDriver}`,
+      );
+    } else if (data.driverCost > expectedMaxDriver * (1 + tolerance)) {
+      warnings.push(
+        `Driver cost (LKR ${data.driverCost}) is higher than typical. Consider reviewing.`,
+      );
+    }
+  }
+
+  // Validate vehicle rental cost (per km rate * distance)
+  if (data.vehicleRentalCost && estimatedDistanceKm > 0) {
+    const expectedMinRental = perKmRates.min * estimatedDistanceKm;
+    const expectedMaxRental = perKmRates.max * estimatedDistanceKm;
+    const suggestedRental = perKmRates.default * estimatedDistanceKm;
+
+    suggestions.vehicleRentalCost = {
+      min: Math.round(expectedMinRental),
+      max: Math.round(expectedMaxRental),
+      suggested: Math.round(suggestedRental),
+    };
+
+    if (data.vehicleRentalCost < expectedMinRental * (1 - tolerance)) {
+      warnings.push(
+        `Vehicle rental (LKR ${data.vehicleRentalCost}) seems low for ${vehicleType} over ${estimatedDistanceKm}km.`,
+      );
+    }
+  }
+
+  return {
+    isValid: true, // We return warnings but don't block - owners know their costs
+    warnings,
+    suggestions,
+  };
+};
+
+/**
+ * Get pricing suggestions for a quotation based on vehicle type and trip details
+ * Used by owners to get recommended pricing before sending a quotation
+ */
+export const getPricingSuggestions = async (
+  quotationId: string,
+  vehicleId: string,
+  ownerId: string,
+) => {
+  const [quotation, vehicle] = await Promise.all([
+    prisma.quotation.findUnique({
+      where: { id: quotationId },
+    }),
+    prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+    }),
+  ]);
+
+  if (!quotation) {
+    throw ApiError.notFound("Quotation not found");
+  }
+
+  if (!vehicle || vehicle.ownerId !== ownerId) {
+    throw ApiError.forbidden("Invalid vehicle or unauthorized");
+  }
+
+  const { pricingRules } = config;
+
+  // Parse estimated distance
+  const estimatedDistanceKm =
+    parseFloat(quotation.estimatedDistance?.replace(/[^\d.]/g, "") || "0") ||
+    pricingRules.minimumBooking.kilometers;
+
+  // Calculate trip days
+  const tripDays = Math.max(
+    1,
+    Math.ceil(
+      (quotation.endDate.getTime() - quotation.startDate.getTime()) /
+        (1000 * 60 * 60 * 24),
+    ) + 1,
+  );
+
+  // Get rates for this vehicle type
+  const fuelRates =
+    pricingRules.fuelCostPerKm[vehicle.type] ||
+    pricingRules.fuelCostPerKm.ORDINARY;
+  const perKmRates =
+    pricingRules.perKmRate[vehicle.type] || pricingRules.perKmRate.ORDINARY;
+  const driverRates = pricingRules.driverAllowance;
+
+  // Calculate suggested values
+  const suggestedFuelCost = Math.round(fuelRates.default * estimatedDistanceKm);
+  const suggestedDriverCost = Math.round(driverRates.default * tripDays);
+  const suggestedVehicleRental = Math.round(
+    perKmRates.default * estimatedDistanceKm,
+  );
+
+  // Use vehicle's configured rates if available
+  const vehicleFuelCost = vehicle.fuelCostPerKm
+    ? Math.round(vehicle.fuelCostPerKm * estimatedDistanceKm)
+    : suggestedFuelCost;
+  const vehicleDriverAllowance = vehicle.driverAllowance
+    ? Math.round(vehicle.driverAllowance * tripDays)
+    : suggestedDriverCost;
+  const vehicleRentalCost = vehicle.pricePerKm
+    ? Math.round(vehicle.pricePerKm * estimatedDistanceKm)
+    : suggestedVehicleRental;
+
+  return {
+    quotationId: quotation.id,
+    vehicleId: vehicle.id,
+    vehicleType: vehicle.type,
+    tripDetails: {
+      estimatedDistanceKm,
+      tripDays,
+      startDate: quotation.startDate,
+      endDate: quotation.endDate,
+    },
+    minimumBooking: {
+      kilometers: pricingRules.minimumBooking.kilometers,
+      hours: pricingRules.minimumBooking.hours,
+      meetsMinimum:
+        estimatedDistanceKm >= pricingRules.minimumBooking.kilometers,
+    },
+    suggestions: {
+      vehicleRentalCost: {
+        min: Math.round(perKmRates.min * estimatedDistanceKm),
+        max: Math.round(perKmRates.max * estimatedDistanceKm),
+        suggested: vehicleRentalCost,
+        perKm: vehicle.pricePerKm || perKmRates.default,
+      },
+      driverCost: {
+        min: Math.round(driverRates.min * tripDays),
+        max: Math.round(driverRates.max * tripDays),
+        suggested: vehicleDriverAllowance,
+        perDay: vehicle.driverAllowance || driverRates.default,
+      },
+      fuelCost: {
+        min: Math.round(fuelRates.min * estimatedDistanceKm),
+        max: Math.round(fuelRates.max * estimatedDistanceKm),
+        suggested: vehicleFuelCost,
+        perKm: vehicle.fuelCostPerKm || fuelRates.default,
+      },
+    },
+    estimatedTotal:
+      vehicleRentalCost + vehicleDriverAllowance + vehicleFuelCost,
+  };
+};
 
 export interface QuotationQuery {
   status?: QuotationStatus;
@@ -418,6 +642,7 @@ export const createQuotationRequest = async (
 
 /**
  * Send quotation (owner responds to request)
+ * Includes pricing validation based on Sri Lankan bus rental standards
  */
 export const sendQuotation = async (
   quotationId: string,
@@ -444,6 +669,30 @@ export const sendQuotation = async (
   if (!vehicle || vehicle.ownerId !== ownerId) {
     throw new Error("Invalid vehicle or unauthorized");
   }
+
+  // Parse estimated distance for validation
+  const estimatedDistanceKm =
+    parseFloat(data.estimatedDistance?.replace(/[^\d.]/g, "") || "0") ||
+    parseFloat(quotation.estimatedDistance?.replace(/[^\d.]/g, "") || "0") ||
+    100; // Default to minimum 100km if not specified
+
+  // Calculate trip days
+  const startDate = quotation.startDate;
+  const endDate = quotation.endDate;
+  const tripDays = Math.max(
+    1,
+    Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+    ) + 1,
+  );
+
+  // Validate pricing against industry standards
+  const pricingValidation = validateQuotationPricing(
+    data,
+    vehicle.type,
+    estimatedDistanceKm,
+    tripDays,
+  );
 
   // Calculate validUntil date
   const validUntil = new Date();
@@ -475,7 +724,14 @@ export const sendQuotation = async (
     },
   });
 
-  return updated;
+  // Return quotation with pricing warnings and suggestions
+  return {
+    ...updated,
+    pricingValidation: {
+      warnings: pricingValidation.warnings,
+      suggestions: pricingValidation.suggestions,
+    },
+  };
 };
 
 /**
@@ -593,6 +849,9 @@ export const respondToQuotation = async (
           totalAmount: quotation.totalAmount || 0,
           status: "CONFIRMED",
           notes: `Booking created from quotation ${quotation.quotationId}. ${quotation.specialRequests || ""}`,
+          // Include trip details from quotation
+          estimatedDistance: quotation.estimatedDistance,
+          estimatedDuration: quotation.estimatedDuration,
         },
       });
 

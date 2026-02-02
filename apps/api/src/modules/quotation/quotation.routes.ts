@@ -54,6 +54,14 @@ router.get(
   asyncHandler(quotationController.getOwnerSentQuotations),
 );
 
+// Get pricing suggestions for a quotation (owner)
+router.get(
+  "/:id/pricing-suggestions",
+  authenticate,
+  authorize("owner", "admin"),
+  asyncHandler(quotationController.getPricingSuggestions),
+);
+
 // Send quotation (owner responds to request)
 router.patch(
   "/:id/send",
