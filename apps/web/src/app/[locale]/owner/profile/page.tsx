@@ -9,7 +9,6 @@ import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { vehicleService, ownerService, authService, ApiError } from "@/lib/api";
 import {
-  FaBuilding,
   FaMapMarkerAlt,
   FaEnvelope,
   FaPhone,
@@ -24,7 +23,7 @@ import {
   FaCheckCircle,
 } from "react-icons/fa";
 
-type ProfileTab = "personal" | "business" | "address" | "vehicles" | "security";
+type ProfileTab = "personal" | "address" | "vehicles" | "security";
 
 interface Vehicle {
   id: string;
@@ -90,15 +89,6 @@ export default function OwnerProfilePage() {
     email: user?.email || "",
     phone: user?.phone || "",
     nicNumber: user?.nicNumber || "",
-  });
-
-  // Business Info State
-  const [showBusinessSection, setShowBusinessSection] = useState(false);
-  const [businessInfo, setBusinessInfo] = useState({
-    businessName: "",
-    businessType: "",
-    registrationNumber: "",
-    taxId: "",
   });
 
   // Address State
@@ -208,31 +198,6 @@ export default function OwnerProfilePage() {
         setError(err.message);
       } else {
         setError("Failed to update personal information");
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleBusinessInfoSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    setError(null);
-
-    try {
-      await ownerService.updateBusinessProfile({
-        businessName: businessInfo.businessName,
-        businessType: businessInfo.businessType,
-        registrationNumber: businessInfo.registrationNumber || undefined,
-        taxId: businessInfo.taxId || undefined,
-      });
-
-      showSuccess("Business information updated successfully!");
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Failed to update business information");
       }
     } finally {
       setIsSaving(false);
@@ -369,11 +334,6 @@ export default function OwnerProfilePage() {
                     id: "personal",
                     label: "Personal Information",
                     icon: FaUser,
-                  },
-                  {
-                    id: "business",
-                    label: "Business Information",
-                    icon: FaBuilding,
                   },
                   { id: "address", label: "Address", icon: FaMapMarkerAlt },
                   { id: "vehicles", label: "Vehicles", icon: FaBus },
@@ -531,133 +491,6 @@ export default function OwnerProfilePage() {
                       </button>
                     </div>
                   </form>
-                </div>
-              )}
-
-              {/* Business Information Tab */}
-              {activeTab === "business" && (
-                <div className="max-w-3xl">
-                  <div className="mb-6">
-                    <h3 className="mb-1 font-semibold text-gray-900">
-                      Business Information
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Optional business details for registered companies
-                    </p>
-                  </div>
-
-                  {/* Business Owner Checkbox */}
-                  <div className="mb-6">
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={showBusinessSection}
-                        onChange={(e) =>
-                          setShowBusinessSection(e.target.checked)
-                        }
-                        className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2"
-                      />
-                      <span className="text-base font-medium text-gray-800">
-                        I am registering as a business entity
-                      </span>
-                    </label>
-                    <p className="text-sm text-gray-500 mt-2 ml-8">
-                      Check this if you have a registered transport company
-                    </p>
-                  </div>
-
-                  {showBusinessSection && (
-                    <form
-                      onSubmit={handleBusinessInfoSubmit}
-                      className="space-y-5"
-                    >
-                      <div className="grid gap-5 md:grid-cols-2">
-                        <Input
-                          label="Business Name"
-                          name="businessName"
-                          required
-                          value={businessInfo.businessName}
-                          onChange={(e) =>
-                            setBusinessInfo({
-                              ...businessInfo,
-                              businessName: e.target.value,
-                            })
-                          }
-                          icon={<FaBuilding />}
-                        />
-
-                        <Select
-                          label="Business Type"
-                          name="businessType"
-                          required
-                          value={businessInfo.businessType}
-                          onChange={(value) =>
-                            setBusinessInfo({
-                              ...businessInfo,
-                              businessType: value,
-                            })
-                          }
-                          options={[
-                            {
-                              value: "sole-proprietorship",
-                              label: "Sole Proprietorship",
-                            },
-                            { value: "partnership", label: "Partnership" },
-                            {
-                              value: "private-limited",
-                              label: "Private Limited Company",
-                            },
-                            { value: "other", label: "Other" },
-                          ]}
-                          placeholder="Select business type"
-                        />
-
-                        <Input
-                          label="Business Registration Number"
-                          name="registrationNumber"
-                          value={businessInfo.registrationNumber}
-                          onChange={(e) =>
-                            setBusinessInfo({
-                              ...businessInfo,
-                              registrationNumber: e.target.value,
-                            })
-                          }
-                        />
-
-                        <Input
-                          label="Tax Identification Number (TIN)"
-                          name="taxId"
-                          value={businessInfo.taxId}
-                          onChange={(e) =>
-                            setBusinessInfo({
-                              ...businessInfo,
-                              taxId: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-
-                      <div className="pt-4">
-                        <button
-                          type="submit"
-                          disabled={isSaving}
-                          className="rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          {isSaving && <LoadingSpinner size="sm" />}
-                          {isSaving ? "Saving..." : "Save Changes"}
-                        </button>
-                      </div>
-                    </form>
-                  )}
-
-                  {!showBusinessSection && (
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
-                      <FaBuilding className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-                      <p className="text-sm text-gray-600">
-                        Enable business registration to add your company details
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
 

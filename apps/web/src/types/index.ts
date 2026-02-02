@@ -33,6 +33,11 @@ export interface User {
   district?: string | null;
   postalCode?: string | null;
   baseLocation?: string | null;
+  // Business fields (for vehicle owners)
+  businessName?: string | null;
+  businessType?: string | null;
+  registrationNumber?: string | null;
+  taxId?: string | null;
   role: UserRole;
   status: UserStatus;
   isVerified: boolean;
