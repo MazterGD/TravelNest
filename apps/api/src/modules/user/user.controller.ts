@@ -21,7 +21,11 @@ export const updatePersonalInfo = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const updatedUser = await userService.updatePersonalInfo(userId, req.body);
 
-  return ResponseHelper.success(res, updatedUser, "Personal information updated successfully");
+  return ResponseHelper.success(
+    res,
+    updatedUser,
+    "Personal information updated successfully",
+  );
 };
 
 /**
@@ -32,7 +36,11 @@ export const updateAddress = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const updatedUser = await userService.updateAddress(userId, req.body);
 
-  return ResponseHelper.success(res, updatedUser, "Address updated successfully");
+  return ResponseHelper.success(
+    res,
+    updatedUser,
+    "Address updated successfully",
+  );
 };
 
 /**

@@ -53,7 +53,11 @@ export const createVehicle = async (req: Request, res: Response) => {
   const ownerId = req.user!.id;
   const vehicle = await vehicleService.createVehicle(ownerId, req.body);
 
-  return ResponseHelper.created(res, { vehicle }, "Vehicle created successfully");
+  return ResponseHelper.created(
+    res,
+    { vehicle },
+    "Vehicle created successfully",
+  );
 };
 
 /**
@@ -69,7 +73,11 @@ export const updateVehicle = async (req: Request, res: Response) => {
     req.body,
   );
 
-  return ResponseHelper.success(res, { vehicle }, "Vehicle updated successfully");
+  return ResponseHelper.success(
+    res,
+    { vehicle },
+    "Vehicle updated successfully",
+  );
 };
 
 /**
@@ -99,7 +107,11 @@ export const uploadPhotos = async (req: Request, res: Response) => {
     photos,
   );
 
-  return ResponseHelper.created(res, { photos: uploadedPhotos }, "Photos uploaded successfully");
+  return ResponseHelper.created(
+    res,
+    { photos: uploadedPhotos },
+    "Photos uploaded successfully",
+  );
 };
 
 /**
@@ -117,7 +129,11 @@ export const uploadDocuments = async (req: Request, res: Response) => {
     documents,
   );
 
-  return ResponseHelper.success(res, { documents: uploadedDocs }, "Documents uploaded successfully");
+  return ResponseHelper.success(
+    res,
+    { documents: uploadedDocs },
+    "Documents uploaded successfully",
+  );
 };
 
 /**

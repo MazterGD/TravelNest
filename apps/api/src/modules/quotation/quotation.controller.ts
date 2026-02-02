@@ -81,7 +81,11 @@ export const createQuotationRequest = async (req: Request, res: Response) => {
     req.body,
   );
 
-  return ResponseHelper.created(res, { quotation }, "Quotation request submitted successfully");
+  return ResponseHelper.created(
+    res,
+    { quotation },
+    "Quotation request submitted successfully",
+  );
 };
 
 /**
@@ -97,7 +101,11 @@ export const sendQuotation = async (req: Request, res: Response) => {
     req.body,
   );
 
-  return ResponseHelper.success(res, { quotation }, "Quotation sent successfully");
+  return ResponseHelper.success(
+    res,
+    { quotation },
+    "Quotation sent successfully",
+  );
 };
 
 /**

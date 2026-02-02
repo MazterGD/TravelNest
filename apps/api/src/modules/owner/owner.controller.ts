@@ -69,7 +69,11 @@ export const updatePersonalInfo = async (req: Request, res: Response) => {
   const ownerId = req.user!.id;
   const updatedUser = await ownerService.updatePersonalInfo(ownerId, req.body);
 
-  return ResponseHelper.success(res, updatedUser, "Personal information updated successfully");
+  return ResponseHelper.success(
+    res,
+    updatedUser,
+    "Personal information updated successfully",
+  );
 };
 
 /**
@@ -80,7 +84,11 @@ export const updateAddress = async (req: Request, res: Response) => {
   const ownerId = req.user!.id;
   const updatedUser = await ownerService.updateAddress(ownerId, req.body);
 
-  return ResponseHelper.success(res, updatedUser, "Address updated successfully");
+  return ResponseHelper.success(
+    res,
+    updatedUser,
+    "Address updated successfully",
+  );
 };
 
 /**

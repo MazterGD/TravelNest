@@ -44,7 +44,11 @@ export const cancelBooking = async (req: Request, res: Response) => {
 
   const booking = await bookingService.cancelBooking(id, customerId, reason);
 
-  return ResponseHelper.success(res, { booking }, "Booking cancelled successfully");
+  return ResponseHelper.success(
+    res,
+    { booking },
+    "Booking cancelled successfully",
+  );
 };
 
 /**
@@ -60,7 +64,11 @@ export const createFromQuotation = async (req: Request, res: Response) => {
     quotationId,
   );
 
-  return ResponseHelper.created(res, { booking }, "Booking created successfully");
+  return ResponseHelper.created(
+    res,
+    { booking },
+    "Booking created successfully",
+  );
 };
 
 /**
@@ -78,7 +86,11 @@ export const assignDriver = async (req: Request, res: Response) => {
     driverLicense,
   });
 
-  return ResponseHelper.success(res, { booking }, "Driver assigned successfully");
+  return ResponseHelper.success(
+    res,
+    { booking },
+    "Driver assigned successfully",
+  );
 };
 
 /**
@@ -109,7 +121,11 @@ export const updateTripItinerary = async (req: Request, res: Response) => {
     itinerary,
   );
 
-  return ResponseHelper.success(res, { itinerary: result }, "Trip itinerary updated successfully");
+  return ResponseHelper.success(
+    res,
+    { itinerary: result },
+    "Trip itinerary updated successfully",
+  );
 };
 
 /**

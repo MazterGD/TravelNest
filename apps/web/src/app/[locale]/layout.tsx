@@ -54,8 +54,9 @@ export default async function LocaleLayout({
                     Something went wrong
                   </h1>
                   <p className="text-gray-600 mb-6">
-                    We apologize for the inconvenience. An unexpected error has occurred.
-                    Please try refreshing the page or contact support if the problem persists.
+                    We apologize for the inconvenience. An unexpected error has
+                    occurred. Please try refreshing the page or contact support
+                    if the problem persists.
                   </p>
                   <div className="space-x-4">
                     <button
@@ -65,13 +66,13 @@ export default async function LocaleLayout({
                       Try again
                     </button>
                     <button
-                      onClick={() => window.location.href = '/'}
+                      onClick={() => (window.location.href = "/")}
                       className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                     >
                       Go to Home
                     </button>
                   </div>
-                  {process.env.NODE_ENV === 'development' && (
+                  {process.env.NODE_ENV === "development" && (
                     <details className="mt-8 text-left">
                       <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
                         Error Details (Development)

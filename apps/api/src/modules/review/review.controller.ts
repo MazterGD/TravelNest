@@ -49,7 +49,11 @@ export const createReview = async (req: Request, res: Response) => {
     comment,
   });
 
-  return ResponseHelper.created(res, { review }, "Review submitted successfully");
+  return ResponseHelper.created(
+    res,
+    { review },
+    "Review submitted successfully",
+  );
 };
 
 /**
