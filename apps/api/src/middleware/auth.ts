@@ -1,5 +1,6 @@
 import { type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import prisma from "@travenest/database";
 import { config } from "../config/index.js";
 import { ApiError } from "./errorHandler.js";
 
@@ -33,6 +34,7 @@ interface JwtPayload {
   id: string;
   email: string;
   role: UserRole;
+  tokenVersion?: number;
   iat: number;
   exp: number;
 }
@@ -44,11 +46,11 @@ interface JwtPayload {
 /**
  * Require authentication - fails if no valid token
  */
-export const authenticate = (
+export const authenticate = async (
   req: Request,
   _res: Response,
   next: NextFunction,
-): void => {
+): Promise<void> => {
   try {
     // Get token from header or cookie
     const authHeader = req.headers.authorization;
@@ -62,6 +64,29 @@ export const authenticate = (
 
     // Verify token
     const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
+
+    // Validate token version against database (ensures token is invalidated after password change)
+    if (decoded.tokenVersion !== undefined) {
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.id },
+        select: { tokenVersion: true, status: true },
+      });
+
+      if (!user) {
+        throw ApiError.unauthorized("User not found");
+      }
+
+      if (user.status !== "ACTIVE") {
+        throw ApiError.forbidden("Account is not active");
+      }
+
+      if (decoded.tokenVersion !== user.tokenVersion) {
+        throw ApiError.unauthorized(
+          "Token has been invalidated. Please login again.",
+          "TOKEN_INVALIDATED",
+        );
+      }
+    }
 
     // Attach user to request
     req.user = {

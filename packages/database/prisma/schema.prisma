@@ -33,11 +33,12 @@ enum BookingStatus {
 }
 
 enum QuotationStatus {
-  PENDING
-  RESPONDED
-  ACCEPTED
-  REJECTED
-  EXPIRED
+  PENDING      // Initial request from customer
+  SENT         // Owner has sent the quotation
+  VIEWED       // Customer has viewed the quotation
+  ACCEPTED     // Customer accepted
+  REJECTED     // Customer rejected
+  EXPIRED      // Validity period has passed
 }
 
 enum PaymentStatus {
@@ -49,12 +50,9 @@ enum PaymentStatus {
 }
 
 enum VehicleType {
-  CAR
-  VAN
-  MINI_BUS
-  SUV
-  BUS
-  MOTORCYCLE
+  ORDINARY
+  SEMI_LUXURY
+  LUXURY_AC
 }
 
 enum VehicleStatus {
@@ -83,7 +81,6 @@ enum DocumentType {
   REGISTRATION_CERTIFICATE
   PROFILE_PHOTO
   VEHICLE_PHOTO
-  BUSINESS_REGISTRATION
 }
 
 enum DocumentStatus {
@@ -135,7 +132,6 @@ model User {
   reviews       Review[]
   notifications Notification[]
   payments      Payment[]
-  businessProfile BusinessProfile?
   passwordResets PasswordResetToken[]
 
   @@map("users")
@@ -180,23 +176,6 @@ model OwnerDocument {
   @@index([ownerId])
   @@index([type])
   @@map("owner_documents")
-}
-
-// Business profile for business owners (optional)
-model BusinessProfile {
-  id                  String   @id @default(cuid())
-  ownerId             String   @unique
-  businessName        String
-  businessType        String   // sole-proprietorship, partnership, private-limited, other
-  registrationNumber  String?
-  taxId               String?  // TIN
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  // Relations
-  owner               User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  @@map("business_profiles")
 }
 
 model Vehicle {
@@ -337,21 +316,48 @@ model Booking {
 
 model Quotation {
   id              String          @id @default(cuid())
+  quotationId     String          @unique // QUO-2026-001 format
   customerId      String
   vehicleId       String?
   vehicleType     VehicleType?
+  
+  // Trip details
   startDate       DateTime
   endDate         DateTime
+  startTime       String?
   pickupLocation  String
   dropoffLocation String?
   passengerCount  Int?
+  estimatedDistance String?
+  estimatedDuration String?
   specialRequests String?
+  
+  // Quotation status
   status          QuotationStatus @default(PENDING)
   
-  // Owner response
-  quotedPrice     Float?
-  ownerMessage    String?
+  // Owner response details
+  vehicleRentalCost Float?
+  driverCost      Float?
+  fuelCost        Float?
+  tollCharges     Float?
+  permitFees      Float?
+  customItems     Json?           // Array of {description, amount}
+  subtotal        Float?
+  tax             Float?
+  totalAmount     Float?
+  
+  // Additional details
+  additionalNotes String?
+  validityDays    Int?            // Number of days quotation is valid
   validUntil      DateTime?
+  
+  // Customer response
+  rejectionReason String?
+  
+  // Tracking dates
+  sentAt          DateTime?       // When owner sent the quotation
+  viewedAt        DateTime?       // When customer viewed it
+  respondedAt     DateTime?       // When customer accepted/rejected
   
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -363,6 +369,7 @@ model Quotation {
   @@index([customerId])
   @@index([vehicleId])
   @@index([status])
+  @@index([quotationId])
   @@map("quotations")
 }
 
@@ -395,8 +402,8 @@ model Payment {
   currency          String        @default("LKR")
   status            PaymentStatus @default(PENDING)
   method            String?
-  stripePaymentId   String?       @unique
-  stripeCustomerId  String?
+  payherePaymentId  String?       @unique  // PayHere order ID
+  payhereCustomerId String?                // PayHere customer reference
   refundAmount      Float?
   refundReason      String?
   createdAt         DateTime      @default(now())

@@ -204,7 +204,7 @@ export function useAuth() {
 
       setLoading(true);
       try {
-        const updatedUser = await userService.updateProfile(data);
+        const updatedUser = await userService.updatePersonalInfo(data);
         setUser(updatedUser);
         return { success: true };
       } catch (error) {

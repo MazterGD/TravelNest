@@ -46,7 +46,7 @@ export function QuotationCard({
         "transition-all duration-200 hover:shadow-md",
         isSelected && "ring-2 ring-primary border-primary",
         isCompact ? "p-3" : "p-0",
-        onViewDetails && "cursor-pointer"
+        onViewDetails && "cursor-pointer",
       )}
       onClick={onViewDetails}
     >
@@ -111,7 +111,7 @@ export function QuotationCard({
         </div>
 
         {/* Actions */}
-        {showActions && quotation.status === QuotationStatus.PENDING && (
+        {showActions && quotation.status === "pending" && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -167,7 +167,7 @@ export function QuotationComparison({
 
   const getPrice = (q: ReceivedQuotation) => q.price ?? q.totalAmount;
   const sortedQuotations = [...quotations].sort(
-    (a, b) => getPrice(a) - getPrice(b)
+    (a, b) => getPrice(a) - getPrice(b),
   );
   const lowestPrice = getPrice(sortedQuotations[0]);
 

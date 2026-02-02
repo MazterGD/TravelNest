@@ -353,7 +353,7 @@ export default function CustomerRegistrationPage() {
                   </div>
 
                   {/* Organization Details (Optional) */}
-                  <div>
+                  {/* <div>
                     <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary/20">
                       Organization Details (Optional)
                     </h2>
@@ -396,7 +396,7 @@ export default function CustomerRegistrationPage() {
                         </select>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Address Section */}
                   <div>

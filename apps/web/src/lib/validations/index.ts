@@ -98,12 +98,29 @@ export const vehicleSchema = z.object({
 
 // Quotation Response Schema
 export const quotationResponseSchema = z.object({
-  quotationRequestId: z.string(),
   vehicleId: z.string(),
-  price: z.number().min(0, "Price must be positive"),
-  validUntil: z.string(),
-  notes: z.string().max(500).optional(),
-  includedServices: z.array(z.string()).optional(),
+  startTime: z.string(),
+  estimatedDistance: z.string(),
+  estimatedDuration: z.string(),
+  vehicleRentalCost: z.number().min(0),
+  driverCost: z.number().min(0),
+  fuelCost: z.number().min(0),
+  tollCharges: z.number().min(0),
+  permitFees: z.number().min(0),
+  customItems: z
+    .array(
+      z.object({
+        description: z.string(),
+        amount: z.number().min(0),
+      }),
+    )
+    .optional()
+    .default([]),
+  subtotal: z.number().min(0),
+  tax: z.number().min(0),
+  totalAmount: z.number().min(0),
+  additionalNotes: z.string().max(500).optional(),
+  validityDays: z.number().min(1).max(30),
 });
 
 // Review Schema

@@ -79,11 +79,16 @@ async function main() {
 
   // Clean up existing data
   console.log("Cleaning up existing data...");
+  await prisma.notification.deleteMany({});
+  await prisma.payment.deleteMany({});
+  await prisma.review.deleteMany({});
+  await prisma.booking.deleteMany({});
+  await prisma.quotation.deleteMany({});
   await prisma.vehiclePhoto.deleteMany({});
   await prisma.vehicleDocument.deleteMany({});
   await prisma.vehicle.deleteMany({});
   await prisma.ownerDocument.deleteMany({});
-  await prisma.businessProfile.deleteMany({});
+  await prisma.passwordResetToken.deleteMany({});
   await prisma.user.deleteMany({});
   console.log("Cleanup complete\n");
 
@@ -138,17 +143,6 @@ async function main() {
     },
   });
   owners.push(owner1);
-
-  // Create business profile for owner 1
-  await prisma.businessProfile.create({
-    data: {
-      ownerId: owner1.id,
-      businessName: "Perera Transport Services (Pvt) Ltd",
-      businessType: "private-limited",
-      registrationNumber: "PV123456",
-      taxId: "TIN-2024-001234",
-    },
-  });
   console.log(`Owner 1: ${owner1.firstName} ${owner1.lastName} - Colombo`);
 
   // Owner 2: Tamil name from Jaffna
@@ -171,16 +165,6 @@ async function main() {
     },
   });
   owners.push(owner2);
-
-  // Create business profile for owner 2
-  await prisma.businessProfile.create({
-    data: {
-      ownerId: owner2.id,
-      businessName: "Northern Express Tours",
-      businessType: "sole-proprietorship",
-      registrationNumber: "SP789012",
-    },
-  });
   console.log(`Owner 2: ${owner2.firstName} ${owner2.lastName} - Jaffna`);
 
   // Owner 3: Sinhala name from Kandy
@@ -203,17 +187,6 @@ async function main() {
     },
   });
   owners.push(owner3);
-
-  // Create business profile for owner 3
-  await prisma.businessProfile.create({
-    data: {
-      ownerId: owner3.id,
-      businessName: "Hill Country Tours & Travels",
-      businessType: "partnership",
-      registrationNumber: "PT456789",
-      taxId: "TIN-2023-005678",
-    },
-  });
   console.log(`Owner 3: ${owner3.firstName} ${owner3.lastName} - Kandy`);
 
   // Owner 4: Muslim name from Batticaloa
@@ -258,15 +231,6 @@ async function main() {
     },
   });
   owners.push(owner5);
-
-  // Create business profile for owner 5
-  await prisma.businessProfile.create({
-    data: {
-      ownerId: owner5.id,
-      businessName: "Southern Coast Transport",
-      businessType: "sole-proprietorship",
-    },
-  });
   console.log(
     `Owner 5: ${owner5.firstName} ${owner5.lastName} - Galle (Pending Verification)`,
   );
@@ -326,7 +290,139 @@ async function main() {
       district: "Kandy",
     },
   });
-  console.log(`Customer 3: ${customer3.firstName} ${customer3.lastName}\n`);
+  console.log(`Customer 3: ${customer3.firstName} ${customer3.lastName}`);
+
+  const customer4 = await prisma.user.create({
+    data: {
+      email: "tharaka.wijesinghe@hotmail.com",
+      password: customerPassword,
+      firstName: "Tharaka",
+      lastName: "Wijesinghe",
+      phone: "+94702345678",
+      role: "CUSTOMER",
+      status: "ACTIVE",
+      isVerified: true,
+      address: "No. 78, Main Street",
+      city: "Negombo",
+      district: "Gampaha",
+    },
+  });
+  console.log(`Customer 4: ${customer4.firstName} ${customer4.lastName}`);
+
+  const customer5 = await prisma.user.create({
+    data: {
+      email: "nadeeka.silva@outlook.com",
+      password: customerPassword,
+      firstName: "Nadeeka",
+      lastName: "Silva",
+      phone: "+94778905555",
+      role: "CUSTOMER",
+      status: "ACTIVE",
+      isVerified: true,
+      address: "No. 23, Station Road",
+      city: "Matara",
+      district: "Matara",
+    },
+  });
+  console.log(`Customer 5: ${customer5.firstName} ${customer5.lastName}\n`);
+
+  // ===========================================
+  // Create Owner Documents (Different Statuses)
+  // ===========================================
+  console.log("Creating owner documents...\n");
+
+  // Owner 1 - All verified
+  await prisma.ownerDocument.createMany({
+    data: [
+      {
+        ownerId: owner1.id,
+        type: "NIC",
+        url: "https://storage.example.com/docs/owner1-nic.pdf",
+        fileName: "nic-front.pdf",
+        fileSize: 524288,
+        mimeType: "application/pdf",
+        status: "VERIFIED",
+        verifiedAt: new Date("2025-12-15T10:00:00.000Z"),
+        verifiedBy: admin.id,
+      },
+      {
+        ownerId: owner1.id,
+        type: "DRIVING_LICENSE",
+        url: "https://storage.example.com/docs/owner1-license.pdf",
+        fileName: "driving-license.pdf",
+        fileSize: 425984,
+        mimeType: "application/pdf",
+        status: "VERIFIED",
+        verifiedAt: new Date("2025-12-15T10:00:00.000Z"),
+        verifiedBy: admin.id,
+      },
+      {
+        ownerId: owner1.id,
+        type: "BUSINESS_REGISTRATION",
+        url: "https://storage.example.com/docs/owner1-business.pdf",
+        fileName: "business-registration.pdf",
+        fileSize: 687104,
+        mimeType: "application/pdf",
+        status: "VERIFIED",
+        verifiedAt: new Date("2025-12-15T10:00:00.000Z"),
+        verifiedBy: admin.id,
+      },
+    ],
+  });
+
+  // Owner 5 - Pending verification
+  await prisma.ownerDocument.createMany({
+    data: [
+      {
+        ownerId: owner5.id,
+        type: "NIC",
+        url: "https://storage.example.com/docs/owner5-nic.pdf",
+        fileName: "nic-both-sides.pdf",
+        fileSize: 512000,
+        mimeType: "application/pdf",
+        status: "PENDING",
+      },
+      {
+        ownerId: owner5.id,
+        type: "DRIVING_LICENSE",
+        url: "https://storage.example.com/docs/owner5-license.pdf",
+        fileName: "license.pdf",
+        fileSize: 458752,
+        mimeType: "application/pdf",
+        status: "PENDING",
+      },
+    ],
+  });
+
+  // Owner 2 - One rejected document
+  await prisma.ownerDocument.createMany({
+    data: [
+      {
+        ownerId: owner2.id,
+        type: "NIC",
+        url: "https://storage.example.com/docs/owner2-nic.pdf",
+        fileName: "nic.pdf",
+        fileSize: 498432,
+        mimeType: "application/pdf",
+        status: "VERIFIED",
+        verifiedAt: new Date("2025-11-20T14:00:00.000Z"),
+        verifiedBy: admin.id,
+      },
+      {
+        ownerId: owner2.id,
+        type: "INSURANCE",
+        url: "https://storage.example.com/docs/owner2-insurance.pdf",
+        fileName: "insurance-expired.pdf",
+        fileSize: 625000,
+        mimeType: "application/pdf",
+        status: "REJECTED",
+        rejectionReason:
+          "Insurance certificate has expired. Please upload a current valid certificate.",
+      },
+    ],
+  });
+
+  console.log("Created owner documents with various statuses\n");
 
   // ===========================================
   // Create Vehicles for Each Owner
@@ -341,7 +437,7 @@ async function main() {
       name: "Ashok Leyland Viking Luxury Coach",
       description:
         "Premium luxury coach with reclining seats, entertainment system, and refreshments. Perfect for corporate tours and long-distance travel.",
-      type: "BUS" as const,
+      type: "LUXURY_AC" as const,
       brand: "Ashok Leyland",
       model: "Viking",
       year: 2023,
@@ -371,7 +467,7 @@ async function main() {
       name: "TATA Marcopolo Semi-Luxury",
       description:
         "Comfortable semi-luxury bus ideal for pilgrimages and family trips. Well-maintained with experienced drivers.",
-      type: "BUS" as const,
+      type: "LUXURY_AC" as const,
       brand: "TATA",
       model: "Marcopolo",
       year: 2022,
@@ -398,7 +494,7 @@ async function main() {
       name: "Toyota Coaster Mini Bus",
       description:
         "Compact and efficient mini bus perfect for small groups and city tours. Easy to maneuver through narrow roads.",
-      type: "MINI_BUS" as const,
+      type: "SEMI_LUXURY" as const,
       brand: "Toyota",
       model: "Coaster",
       year: 2021,
@@ -425,7 +521,7 @@ async function main() {
       name: "Isuzu Journey School Service",
       description:
         "Reliable school service bus with safety features. Currently available for weekend bookings.",
-      type: "BUS" as const,
+      type: "LUXURY_AC" as const,
       brand: "Isuzu",
       model: "Journey",
       year: 2020,
@@ -490,7 +586,7 @@ async function main() {
       name: "Ashok Leyland Lynx AC Coach",
       description:
         "Modern AC coach for comfortable travel across Northern Province. Ideal for temple visits and cultural tours.",
-      type: "BUS" as const,
+      type: "LUXURY_AC" as const,
       brand: "Ashok Leyland",
       model: "Lynx",
       year: 2022,
@@ -517,7 +613,7 @@ async function main() {
       name: "TATA Starbus Standard",
       description:
         "Economical option for budget-conscious travelers. Well-maintained and reliable for local trips.",
-      type: "BUS" as const,
+      type: "LUXURY_AC" as const,
       brand: "TATA",
       model: "Starbus",
       year: 2019,
@@ -538,7 +634,7 @@ async function main() {
       name: "Mitsubishi Rosa Deluxe",
       description:
         "Premium mini bus with extra legroom. Perfect for VIP transport and small corporate groups.",
-      type: "MINI_BUS" as const,
+      type: "SEMI_LUXURY" as const,
       brand: "Mitsubishi",
       model: "Rosa",
       year: 2023,
@@ -561,6 +657,32 @@ async function main() {
       condition: "EXCELLENT" as const,
       isAvailable: true,
       isActive: true,
+    },
+    {
+      name: "TATA Starbus Under Maintenance",
+      description:
+        "Currently undergoing scheduled maintenance. Will be available soon.",
+      type: "SEMI_LUXURY" as const,
+      brand: "TATA",
+      model: "Starbus",
+      year: 2020,
+      color: "White",
+      seats: 40,
+      acType: "SEMI_AC" as const,
+      fuelType: "DIESEL" as const,
+      transmission: "MANUAL" as const,
+      features: [
+        "Semi AC",
+        "Comfortable Seats",
+        "Music System",
+        "Storage Space",
+      ],
+      pricePerDay: 18000,
+      pricePerKm: 45,
+      location: "Jaffna",
+      condition: "GOOD" as const,
+      isAvailable: false,
+      isActive: false,
     },
   ];
 
@@ -604,7 +726,7 @@ async function main() {
       name: "Hino RK8J Tourist Coach",
       description:
         "Japanese-built tourist coach with panoramic windows. Ideal for hill country tours and scenic routes.",
-      type: "BUS" as const,
+      type: "LUXURY_AC" as const,
       brand: "Hino",
       model: "RK8J",
       year: 2021,
@@ -632,7 +754,7 @@ async function main() {
       name: "Toyota HiAce Commuter",
       description:
         "Versatile commuter van perfect for small groups exploring Kandy and surrounding areas.",
-      type: "VAN" as const,
+      type: "ORDINARY" as const,
       brand: "Toyota",
       model: "HiAce",
       year: 2022,
@@ -658,7 +780,7 @@ async function main() {
       name: "Nissan Civilian Pilgrim Bus",
       description:
         "Specially equipped for religious pilgrimages with ample space for offerings and luggage.",
-      type: "BUS" as const,
+      type: "LUXURY_AC" as const,
       brand: "Nissan",
       model: "Civilian",
       year: 2020,
@@ -680,6 +802,33 @@ async function main() {
       condition: "GOOD" as const,
       isAvailable: true,
       isActive: true,
+    },
+    {
+      name: "BYD eBus - Inactive",
+      description:
+        "Electric bus currently inactive. Being prepared for registration.",
+      type: "LUXURY_AC" as const,
+      brand: "BYD",
+      model: "K9",
+      year: 2024,
+      color: "Green",
+      seats: 35,
+      acType: "FULL_AC" as const,
+      fuelType: "ELECTRIC" as const,
+      transmission: "AUTOMATIC" as const,
+      features: [
+        "Full AC",
+        "Electric Drive",
+        "Zero Emissions",
+        "USB Charging",
+        "WiFi",
+      ],
+      pricePerDay: 28000,
+      pricePerKm: 0, // Electric, no per km charge
+      location: "Kandy",
+      condition: "EXCELLENT" as const,
+      isAvailable: false,
+      isActive: false,
     },
   ];
 
@@ -723,7 +872,7 @@ async function main() {
       name: "TATA LP913 Eastern Express",
       description:
         "Reliable bus for Eastern Province travel. Regular service to Colombo and back.",
-      type: "BUS" as const,
+      type: "LUXURY_AC" as const,
       brand: "TATA",
       model: "LP913",
       year: 2021,
@@ -749,7 +898,7 @@ async function main() {
       name: "Isuzu NPR Mini Coach",
       description:
         "Compact coach ideal for local tours and wedding transport in the Eastern region.",
-      type: "MINI_BUS" as const,
+      type: "SEMI_LUXURY" as const,
       brand: "Isuzu",
       model: "NPR",
       year: 2022,
@@ -808,7 +957,7 @@ async function main() {
       name: "Ashok Leyland Boss Super Luxury",
       description:
         "Brand new super luxury coach with premium amenities. Currently pending verification.",
-      type: "BUS" as const,
+      type: "LUXURY_AC" as const,
       brand: "Ashok Leyland",
       model: "Boss",
       year: 2024,
@@ -836,7 +985,7 @@ async function main() {
       name: "BYD K9 Electric Coach",
       description:
         "Eco-friendly electric bus for sustainable tourism. Zero emissions, quiet operation.",
-      type: "BUS" as const,
+      type: "LUXURY_AC" as const,
       brand: "BYD",
       model: "K9",
       year: 2024,
@@ -897,26 +1046,395 @@ async function main() {
   );
 
   // ===========================================
+  // Create sample quotations
+  // ===========================================
+  console.log("\nCreating sample quotations...\n");
+
+  // Get vehicles for quotations
+  const owner1Vehicles = await prisma.vehicle.findMany({
+    where: { ownerId: owner1.id },
+  });
+  const owner2Vehicles = await prisma.vehicle.findMany({
+    where: { ownerId: owner2.id },
+  });
+  const owner3Vehicles = await prisma.vehicle.findMany({
+    where: { ownerId: owner3.id },
+  });
+
+  let quotationCounter = 1;
+  const generateQuotationId = () => {
+    const id = `QUO-2026-${String(quotationCounter).padStart(3, "0")}`;
+    quotationCounter++;
+    return id;
+  };
+
+  // Quotation 1: PENDING - New request awaiting owner response
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer1.id,
+      vehicleId: owner1Vehicles[0]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-02-15T08:00:00.000Z"),
+      endDate: new Date("2026-02-16T20:00:00.000Z"),
+      startTime: "08:00 AM",
+      pickupLocation: "Colombo - Galle Face Green",
+      dropoffLocation: "Kandy - Temple of the Tooth",
+      passengerCount: 35,
+      estimatedDistance: "120 km",
+      estimatedDuration: "3.5 hours",
+      specialRequests:
+        "Air conditioning required. Need experienced driver familiar with hill country roads.",
+      status: "PENDING",
+    },
+  });
+
+  // Quotation 2: SENT - Owner has sent quotation
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer2.id,
+      vehicleId: owner1Vehicles[0]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-02-20T06:00:00.000Z"),
+      endDate: new Date("2026-02-22T18:00:00.000Z"),
+      startTime: "06:00 AM",
+      pickupLocation: "Negombo - Beach Resort Area",
+      dropoffLocation: "Jaffna - Fort Area",
+      passengerCount: 40,
+      estimatedDistance: "380 km",
+      estimatedDuration: "8 hours",
+      specialRequests: "Long distance trip, need comfortable seating and AC.",
+      status: "SENT",
+      vehicleRentalCost: 35000,
+      driverCost: 8000,
+      fuelCost: 15000,
+      tollCharges: 3000,
+      permitFees: 2000,
+      customItems: [
+        { description: "Refreshments", amount: 4000 },
+        { description: "Overnight accommodation for driver", amount: 3000 },
+      ],
+      subtotal: 70000,
+      tax: 7000,
+      totalAmount: 77000,
+      additionalNotes:
+        "Vehicle includes full AC, comfortable reclining seats, and entertainment system.",
+      validityDays: 7,
+      validUntil: new Date("2026-01-28T23:59:59.000Z"),
+      sentAt: new Date("2026-01-20T10:30:00.000Z"),
+    },
+  });
+
+  // Quotation 3: PENDING - Another new request
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer2.id,
+      vehicleId: owner3Vehicles[2]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-03-10T06:00:00.000Z"),
+      endDate: new Date("2026-03-12T18:00:00.000Z"),
+      startTime: "06:00 AM",
+      pickupLocation: "Colombo - Hilton Hotel",
+      dropoffLocation: "Ella - Railway Station",
+      passengerCount: 45,
+      estimatedDistance: "230 km",
+      estimatedDuration: "6 hours",
+      specialRequests:
+        "Need luxury bus with full AC and entertainment. Multi-day trip to hill country.",
+      status: "PENDING",
+    },
+  });
+
+  console.log(`Created ${quotationCounter - 1} sample quotations\n`);
+
+  // Add more quotations for customer1 (Dilshan) to enable comparison feature
+  // These are responses from different owners for the same trip
+
+  // Quotation for customer1 from owner2 - SENT (can compare)
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer1.id,
+      vehicleId: owner2Vehicles[0]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-02-15T08:00:00.000Z"),
+      endDate: new Date("2026-02-16T20:00:00.000Z"),
+      startTime: "08:00 AM",
+      pickupLocation: "Colombo - Galle Face Green",
+      dropoffLocation: "Kandy - Temple of the Tooth",
+      passengerCount: 35,
+      estimatedDistance: "120 km",
+      estimatedDuration: "3.5 hours",
+      specialRequests:
+        "Air conditioning required. Need experienced driver familiar with hill country roads.",
+      status: "SENT",
+      vehicleRentalCost: 30000,
+      driverCost: 6000,
+      fuelCost: 10000,
+      tollCharges: 2000,
+      permitFees: 1500,
+      customItems: [
+        { description: "Complimentary water bottles", amount: 1000 },
+      ],
+      subtotal: 50500,
+      tax: 5050,
+      totalAmount: 55550,
+      additionalNotes:
+        "Experienced driver with 15+ years in hill country routes. Vehicle equipped with GPS and emergency kit.",
+      validityDays: 5,
+      validUntil: new Date("2026-02-10T23:59:59.000Z"),
+      sentAt: new Date("2026-01-28T14:00:00.000Z"),
+    },
+  });
+
+  // Quotation for customer1 from owner3 - SENT (can compare)
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer1.id,
+      vehicleId: owner3Vehicles[0]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-02-15T08:00:00.000Z"),
+      endDate: new Date("2026-02-16T20:00:00.000Z"),
+      startTime: "08:00 AM",
+      pickupLocation: "Colombo - Galle Face Green",
+      dropoffLocation: "Kandy - Temple of the Tooth",
+      passengerCount: 35,
+      estimatedDistance: "120 km",
+      estimatedDuration: "3.5 hours",
+      specialRequests:
+        "Air conditioning required. Need experienced driver familiar with hill country roads.",
+      status: "SENT",
+      vehicleRentalCost: 32000,
+      driverCost: 7000,
+      fuelCost: 11000,
+      tollCharges: 2500,
+      permitFees: 1800,
+      customItems: [
+        { description: "Scenic route tour guidance", amount: 3000 },
+        { description: "Photo stop arrangements", amount: 1500 },
+      ],
+      subtotal: 58800,
+      tax: 5880,
+      totalAmount: 64680,
+      additionalNotes:
+        "Panoramic windows perfect for scenic views. Driver will take you via the most picturesque route through tea plantations.",
+      validityDays: 6,
+      validUntil: new Date("2026-02-12T23:59:59.000Z"),
+      sentAt: new Date("2026-01-29T09:30:00.000Z"),
+    },
+  });
+
+  // Quotation for customer1 from owner4 - VIEWED (customer has seen it)
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer1.id,
+      vehicleId: owner1Vehicles[1]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-02-15T08:00:00.000Z"),
+      endDate: new Date("2026-02-16T20:00:00.000Z"),
+      startTime: "08:00 AM",
+      pickupLocation: "Colombo - Galle Face Green",
+      dropoffLocation: "Kandy - Temple of the Tooth",
+      passengerCount: 35,
+      estimatedDistance: "120 km",
+      estimatedDuration: "3.5 hours",
+      specialRequests:
+        "Air conditioning required. Need experienced driver familiar with hill country roads.",
+      status: "VIEWED",
+      vehicleRentalCost: 28000,
+      driverCost: 6500,
+      fuelCost: 9500,
+      tollCharges: 2000,
+      permitFees: 1500,
+      subtotal: 47500,
+      tax: 4750,
+      totalAmount: 52250,
+      additionalNotes:
+        "Budget-friendly option without compromising on comfort. Clean vehicle with reliable service.",
+      validityDays: 5,
+      validUntil: new Date("2026-02-10T23:59:59.000Z"),
+      sentAt: new Date("2026-01-28T11:00:00.000Z"),
+      viewedAt: new Date("2026-01-29T16:45:00.000Z"),
+    },
+  });
+
+  // Add more quotations covering all statuses
+  // Quotation 4: VIEWED - Customer viewed but hasn't responded
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer3.id,
+      vehicleId: owner2Vehicles[0]?.id,
+      vehicleType: "SEMI_LUXURY",
+      startDate: new Date("2026-02-25T07:00:00.000Z"),
+      endDate: new Date("2026-02-25T19:00:00.000Z"),
+      startTime: "07:00 AM",
+      pickupLocation: "Galle - Fort",
+      dropoffLocation: "Colombo - Airport",
+      passengerCount: 30,
+      estimatedDistance: "150 km",
+      estimatedDuration: "3 hours",
+      specialRequests: "Airport drop-off, need early morning departure",
+      status: "VIEWED",
+      vehicleRentalCost: 25000,
+      driverCost: 5000,
+      fuelCost: 8000,
+      tollCharges: 1500,
+      permitFees: 500,
+      subtotal: 40000,
+      tax: 4000,
+      totalAmount: 44000,
+      additionalNotes:
+        "Experienced driver with airport route knowledge included.",
+      validityDays: 5,
+      validUntil: new Date("2026-02-05T23:59:59.000Z"),
+      sentAt: new Date("2026-01-25T09:00:00.000Z"),
+      viewedAt: new Date("2026-01-27T14:30:00.000Z"),
+    },
+  });
+
+  // Quotation 5: ACCEPTED - Customer accepted the quotation
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer4.id,
+      vehicleId: owner3Vehicles[0]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-03-05T06:00:00.000Z"),
+      endDate: new Date("2026-03-07T18:00:00.000Z"),
+      startTime: "06:00 AM",
+      pickupLocation: "Negombo - Beach Hotels",
+      dropoffLocation: "Sigiriya - Hotel Area",
+      passengerCount: 35,
+      estimatedDistance: "180 km",
+      estimatedDuration: "4.5 hours",
+      specialRequests: "Cultural triangle tour, need experienced guide",
+      status: "ACCEPTED",
+      vehicleRentalCost: 40000,
+      driverCost: 8000,
+      fuelCost: 12000,
+      tollCharges: 2000,
+      permitFees: 1500,
+      customItems: [
+        { description: "Tour guide service", amount: 5000 },
+        { description: "Entrance tickets coordination", amount: 2500 },
+      ],
+      subtotal: 71000,
+      tax: 7100,
+      totalAmount: 78100,
+      additionalNotes:
+        "Professional driver with cultural tour experience. Vehicle includes entertainment system and WiFi.",
+      validityDays: 7,
+      validUntil: new Date("2026-02-10T23:59:59.000Z"),
+      sentAt: new Date("2026-01-28T11:00:00.000Z"),
+      viewedAt: new Date("2026-01-29T10:00:00.000Z"),
+      respondedAt: new Date("2026-01-29T15:30:00.000Z"),
+    },
+  });
+
+  // Quotation 6: REJECTED - Customer rejected the quotation
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer5.id,
+      vehicleId: owner1Vehicles[1]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-02-18T08:00:00.000Z"),
+      endDate: new Date("2026-02-18T20:00:00.000Z"),
+      startTime: "08:00 AM",
+      pickupLocation: "Matara - Town",
+      dropoffLocation: "Kandy - City Center",
+      passengerCount: 25,
+      estimatedDistance: "220 km",
+      estimatedDuration: "5 hours",
+      specialRequests: "One day trip, return same day",
+      status: "REJECTED",
+      vehicleRentalCost: 35000,
+      driverCost: 7000,
+      fuelCost: 11000,
+      tollCharges: 2500,
+      permitFees: 1000,
+      subtotal: 56500,
+      tax: 5650,
+      totalAmount: 62150,
+      additionalNotes: "Full day rental with experienced driver.",
+      validityDays: 5,
+      validUntil: new Date("2026-02-08T23:59:59.000Z"),
+      sentAt: new Date("2026-01-26T13:00:00.000Z"),
+      viewedAt: new Date("2026-01-28T09:00:00.000Z"),
+      respondedAt: new Date("2026-01-28T16:00:00.000Z"),
+      rejectionReason: "Found a more economical option from another provider",
+    },
+  });
+
+  // Quotation 7: EXPIRED - Quotation validity period passed
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer2.id,
+      vehicleId: owner2Vehicles[1]?.id,
+      vehicleType: "SEMI_LUXURY",
+      startDate: new Date("2026-02-10T07:00:00.000Z"),
+      endDate: new Date("2026-02-12T19:00:00.000Z"),
+      startTime: "07:00 AM",
+      pickupLocation: "Colombo - Colombo Fort",
+      dropoffLocation: "Trincomalee - Beach Area",
+      passengerCount: 30,
+      estimatedDistance: "260 km",
+      estimatedDuration: "6 hours",
+      specialRequests: "Beach holiday transport",
+      status: "EXPIRED",
+      vehicleRentalCost: 38000,
+      driverCost: 8000,
+      fuelCost: 13000,
+      tollCharges: 2000,
+      permitFees: 1500,
+      subtotal: 62500,
+      tax: 6250,
+      totalAmount: 68750,
+      additionalNotes: "Coastal route specialist driver included.",
+      validityDays: 3,
+      validUntil: new Date("2026-01-18T23:59:59.000Z"),
+      sentAt: new Date("2026-01-15T10:00:00.000Z"),
+      viewedAt: new Date("2026-01-16T11:00:00.000Z"),
+    },
+  });
+
+  // Quotation 8: PENDING - Another pending request from new customer
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer5.id,
+      vehicleId: owner3Vehicles[1]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-03-15T06:00:00.000Z"),
+      endDate: new Date("2026-03-17T18:00:00.000Z"),
+      startTime: "06:00 AM",
+      pickupLocation: "Matara - Railway Station",
+      dropoffLocation: "Jaffna - Town Center",
+      passengerCount: 40,
+      estimatedDistance: "450 km",
+      estimatedDuration: "9 hours",
+      specialRequests:
+        "Long distance trip, need overnight stop arrangements. Comfortable seating essential.",
+      status: "PENDING",
+    },
+  });
+
+  console.log(
+    `Created ${quotationCounter - 1} quotations covering all statuses\n`,
+  );
+
+  // ===========================================
   // Create sample bookings for demo data
   // ===========================================
   console.log("Creating sample bookings...\n");
 
-  // Get all vehicles for each owner to create multiple bookings
-  const owner1Vehicles = await prisma.vehicle.findMany({
-    where: { ownerId: owner1.id },
-    take: 3,
-  });
-
-  const owner2Vehicles = await prisma.vehicle.findMany({
-    where: { ownerId: owner2.id },
-    take: 3,
-  });
-
-  const owner3Vehicles = await prisma.vehicle.findMany({
-    where: { ownerId: owner3.id },
-    take: 3,
-  });
-
+  // Get vehicles for owner 4 (others already fetched for quotations)
   const owner4Vehicles = await prisma.vehicle.findMany({
     where: { ownerId: owner4.id },
     take: 2,
@@ -1222,6 +1740,420 @@ async function main() {
 
   console.log(`Created ${totalBookings} bookings across all owners\n`);
 
+  // ===========================================
+  // Add More Bookings with Various States
+  // ===========================================
+  console.log("Creating additional bookings with various states...\n");
+
+  // Get owner5 vehicles
+  const owner5Vehicles = await prisma.vehicle.findMany({
+    where: { ownerId: owner5.id },
+    take: 2,
+  });
+
+  // Booking with PENDING payment
+  const pendingPaymentBooking = await prisma.booking.create({
+    data: {
+      customerId: customer4.id,
+      vehicleId: owner1Vehicles[2]?.id,
+      startDate: new Date("2026-02-05T07:00:00.000Z"),
+      endDate: new Date("2026-02-05T19:00:00.000Z"),
+      pickupLocation: "Negombo - Hotels Area",
+      dropoffLocation: "Dambulla - Cave Temple",
+      totalPassengers: 32,
+      totalAmount: 55000,
+      status: "CONFIRMED",
+      notes: "Day trip to cultural sites",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer4.id,
+      bookingId: pendingPaymentBooking.id,
+      amount: 55000,
+      currency: "LKR",
+      status: "PENDING",
+      method: "Bank Transfer",
+    },
+  });
+  totalBookings++;
+
+  // Booking with PROCESSING payment
+  const processingPaymentBooking = await prisma.booking.create({
+    data: {
+      customerId: customer5.id,
+      vehicleId: owner2Vehicles[0]?.id,
+      startDate: new Date("2026-02-08T06:00:00.000Z"),
+      endDate: new Date("2026-02-10T18:00:00.000Z"),
+      pickupLocation: "Matara - Bus Stand",
+      dropoffLocation: "Colombo - Airport",
+      totalPassengers: 28,
+      totalAmount: 65000,
+      status: "CONFIRMED",
+      notes: "Return trip with airport drop-off",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer5.id,
+      bookingId: processingPaymentBooking.id,
+      amount: 65000,
+      currency: "LKR",
+      status: "PROCESSING",
+      method: "Card",
+    },
+  });
+  totalBookings++;
+
+  // Booking with FAILED payment
+  const failedPaymentBooking = await prisma.booking.create({
+    data: {
+      customerId: customer3.id,
+      vehicleId: owner3Vehicles[1]?.id,
+      startDate: new Date("2026-02-12T08:00:00.000Z"),
+      endDate: new Date("2026-02-14T20:00:00.000Z"),
+      pickupLocation: "Kandy - City",
+      dropoffLocation: "Anuradhapura - Sacred City",
+      totalPassengers: 35,
+      totalAmount: 72000,
+      status: "PENDING",
+      notes: "Religious pilgrimage tour",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer3.id,
+      bookingId: failedPaymentBooking.id,
+      amount: 72000,
+      currency: "LKR",
+      status: "FAILED",
+      method: "Card",
+    },
+  });
+  totalBookings++;
+
+  // Cancelled booking with REFUNDED payment
+  const refundedBooking = await prisma.booking.create({
+    data: {
+      customerId: customer2.id,
+      vehicleId: owner1Vehicles[1]?.id,
+      startDate: new Date("2026-01-20T06:00:00.000Z"),
+      endDate: new Date("2026-01-22T18:00:00.000Z"),
+      pickupLocation: "Colombo - Wellawatte",
+      dropoffLocation: "Galle - Fort Area",
+      totalPassengers: 30,
+      totalAmount: 58000,
+      status: "CANCELLED",
+      notes: "Cancelled due to weather concerns",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer2.id,
+      bookingId: refundedBooking.id,
+      amount: 58000,
+      currency: "LKR",
+      status: "REFUNDED",
+      method: "Card",
+    },
+  });
+  totalBookings++;
+
+  // Additional PENDING booking
+  await prisma.booking.create({
+    data: {
+      customerId: customer4.id,
+      vehicleId: owner3Vehicles[2]?.id,
+      startDate: new Date("2026-02-20T07:00:00.000Z"),
+      endDate: new Date("2026-02-22T19:00:00.000Z"),
+      pickupLocation: "Negombo - Beach Hotels",
+      dropoffLocation: "Ella - Railway Station",
+      totalPassengers: 38,
+      totalAmount: 95000,
+      status: "PENDING",
+      notes: "Hill country exploration - awaiting confirmation",
+    },
+  });
+  totalBookings++;
+
+  console.log(
+    `Created ${totalBookings} total bookings with various payment statuses\n`,
+  );
+
+  // ===========================================
+  // Create Reviews for Completed Bookings
+  // ===========================================
+  console.log("Creating reviews for completed bookings...\n");
+
+  const completedBookings = await prisma.booking.findMany({
+    where: { status: "COMPLETED" },
+    include: {
+      vehicle: true,
+      customer: true,
+    },
+  });
+
+  let totalReviews = 0;
+
+  // Review 1: Excellent experience
+  if (completedBookings[0]) {
+    await prisma.review.create({
+      data: {
+        bookingId: completedBookings[0].id,
+        vehicleId: completedBookings[0].vehicleId,
+        customerId: completedBookings[0].customerId,
+        rating: 5,
+        comment:
+          "Excellent service! The bus was very clean and comfortable. The driver was professional and knew the routes very well. Air conditioning worked perfectly throughout the trip. Highly recommend Perera Transport for any long-distance travel in Sri Lanka. Will definitely use again!",
+      },
+    });
+    totalReviews++;
+
+    // Owner response
+    await prisma.review.update({
+      where: { bookingId: completedBookings[0].id },
+      data: {
+        ownerResponse:
+          "Thank you so much for your wonderful feedback! We're delighted that you enjoyed your journey with us. Your satisfaction is our priority. Looking forward to serving you again!",
+      },
+    });
+  }
+
+  // Review 2: Very good experience
+  if (completedBookings[1]) {
+    await prisma.review.create({
+      data: {
+        bookingId: completedBookings[1].id,
+        vehicleId: completedBookings[1].vehicleId,
+        customerId: completedBookings[1].customerId,
+        rating: 4,
+        comment:
+          "Very good experience overall. The vehicle arrived on time and was well-maintained. The journey through the Northern Province was comfortable. Driver was courteous and accommodating. Only minor issue was the AC was a bit too cold at times, but they adjusted it when we asked. Good value for money!",
+      },
+    });
+    totalReviews++;
+
+    // Owner response
+    await prisma.review.update({
+      where: { bookingId: completedBookings[1].id },
+      data: {
+        ownerResponse:
+          "Thank you for choosing Northern Express Tours! We appreciate your feedback about the AC temperature. We'll ensure our drivers are more attentive to passenger comfort. Hope to serve you again soon!",
+      },
+    });
+  }
+
+  // Review 3: Great hill country tour
+  if (completedBookings[2]) {
+    await prisma.review.create({
+      data: {
+        bookingId: completedBookings[2].id,
+        vehicleId: completedBookings[2].vehicleId,
+        customerId: completedBookings[2].customerId,
+        rating: 5,
+        comment:
+          "Perfect for hill country tours! The panoramic windows were great for enjoying the scenic views. Driver was experienced with mountain roads and made us feel safe throughout the journey. The bus was spacious and clean. Chaminda's service is top-notch. Highly recommended for Kandy and Nuwara Eliya trips!",
+      },
+    });
+    totalReviews++;
+  }
+
+  // Review 4: Satisfactory service
+  if (completedBookings[3]) {
+    await prisma.review.create({
+      data: {
+        bookingId: completedBookings[3].id,
+        vehicleId: completedBookings[3].vehicleId,
+        customerId: completedBookings[3].customerId,
+        rating: 4,
+        comment:
+          "Good service for a budget-friendly option. The mini bus was suitable for our small group. Everything went smoothly. Driver was punctual and helpful with our luggage. The vehicle could use some interior updates but overall served our purpose well for the eastern coast trip.",
+      },
+    });
+    totalReviews++;
+  }
+
+  // Leave one booking without review (pending review)
+  console.log(`Created ${totalReviews} reviews\n`);
+
+  // Add more reviews from different customers
+  if (completedBookings[5]) {
+    await prisma.review.create({
+      data: {
+        bookingId: completedBookings[5].id,
+        vehicleId: completedBookings[5].vehicleId,
+        customerId: completedBookings[5].customerId,
+        rating: 3,
+        comment:
+          "Average experience. Bus arrived late by 30 minutes. The vehicle condition was acceptable but seats could be more comfortable. Driver was friendly though. Service needs improvement in terms of punctuality.",
+      },
+    });
+    totalReviews++;
+  }
+
+  if (completedBookings[6]) {
+    await prisma.review.create({
+      data: {
+        bookingId: completedBookings[6].id,
+        vehicleId: completedBookings[6].vehicleId,
+        customerId: completedBookings[6].customerId,
+        rating: 5,
+        comment:
+          "Outstanding service! The luxury coach exceeded our expectations. Professional driver, spotless interior, and smooth ride. Perfect for long-distance travel. Will recommend to everyone!",
+      },
+    });
+    totalReviews++;
+
+    // Owner response
+    await prisma.review.update({
+      where: { bookingId: completedBookings[6].id },
+      data: {
+        ownerResponse:
+          "We're thrilled to hear you had such a great experience! Thank you for choosing our service and for the recommendation. We look forward to serving you again!",
+      },
+    });
+  }
+
+  console.log(`Created ${totalReviews} reviews total\n`);
+
+  // ===========================================
+  // Create Notifications
+  // ===========================================
+  console.log("Creating notifications...\n");
+
+  let notificationCount = 0;
+
+  // Notifications for customer1 (Dilshan)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: customer1.id,
+        title: "Booking Confirmed",
+        message: "Your booking for Colombo to Nuwara Eliya has been confirmed!",
+        type: "info",
+        isRead: false,
+      },
+      {
+        userId: customer1.id,
+        title: "Quotation Received",
+        message: "You have received a new quotation for your trip request.",
+        type: "info",
+        isRead: true,
+      },
+      {
+        userId: customer1.id,
+        title: "Payment Successful",
+        message: "Your payment of LKR 150,000 has been processed successfully.",
+        type: "success",
+        isRead: true,
+      },
+    ],
+  });
+  notificationCount += 3;
+
+  // Notifications for customer2 (Priya)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: customer2.id,
+        title: "New Quotation Available",
+        message: "Check out the quotation for your Negombo to Jaffna trip!",
+        type: "info",
+        isRead: false,
+      },
+      {
+        userId: customer2.id,
+        title: "Booking Reminder",
+        message:
+          "Your trip starts tomorrow. Please be ready at the pickup location.",
+        type: "warning",
+        isRead: false,
+      },
+    ],
+  });
+  notificationCount += 2;
+
+  // Notifications for owner1 (Nuwan)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: owner1.id,
+        title: "New Quotation Request",
+        message: "You have a new quotation request from Dilshan Jayawardena.",
+        type: "info",
+        isRead: false,
+      },
+      {
+        userId: owner1.id,
+        title: "Booking Confirmed",
+        message: "A new booking has been confirmed for your vehicle.",
+        type: "success",
+        isRead: true,
+      },
+      {
+        userId: owner1.id,
+        title: "Payment Received",
+        message: "Payment of LKR 150,000 has been credited to your account.",
+        type: "success",
+        isRead: true,
+      },
+      {
+        userId: owner1.id,
+        title: "New Review",
+        message: "A customer has left a 5-star review for your service!",
+        type: "info",
+        isRead: false,
+      },
+    ],
+  });
+  notificationCount += 4;
+
+  // Notifications for owner2 (Siva)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: owner2.id,
+        title: "Document Update Required",
+        message:
+          "Your insurance certificate has been rejected. Please upload a valid document.",
+        type: "error",
+        isRead: false,
+      },
+      {
+        userId: owner2.id,
+        title: "Vehicle Maintenance Reminder",
+        message: "It's time for your vehicle's regular maintenance check.",
+        type: "warning",
+        isRead: true,
+      },
+    ],
+  });
+  notificationCount += 2;
+
+  // Notifications for owner5 (Kasun - Pending verification)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: owner5.id,
+        title: "Registration Under Review",
+        message:
+          "Your owner registration is currently being reviewed by our team.",
+        type: "info",
+        isRead: false,
+      },
+      {
+        userId: owner5.id,
+        title: "Documents Pending Verification",
+        message: "Please wait while we verify your submitted documents.",
+        type: "warning",
+        isRead: true,
+      },
+    ],
+  });
+  notificationCount += 2;
+
+  console.log(`Created ${notificationCount} notifications\n`);
+
   const totalVehicles =
     owner1VehicleData.length +
     owner2VehicleData.length +
@@ -1238,17 +2170,38 @@ async function main() {
   console.log("\nSummary:");
   console.log(`   • Admin users: 1`);
   console.log(`   • Bus owners: ${owners.length}`);
-  console.log(`   • Customers: 3`);
+  console.log(`   • Customers: 5`);
+  console.log(`   • Business profiles: 3`);
+  console.log(`   • Owner documents: 7 (with various statuses)`);
   console.log(`   • Total vehicles: ${totalVehicles}`);
   console.log(`   • Total bookings: ${totalBookings}`);
+  console.log(`   • Total quotations: ${quotationCounter - 1}`);
+  console.log(`   • Total reviews: ${totalReviews}`);
+  console.log(`   • Total notifications: ${notificationCount}`);
+  console.log("\nQuotation Statuses Covered:");
+  console.log("   ✓ PENDING, SENT, VIEWED, ACCEPTED, REJECTED, EXPIRED");
+  console.log("\nBooking Statuses Covered:");
+  console.log("   ✓ PENDING, CONFIRMED, ONGOING, COMPLETED, CANCELLED");
+  console.log("\nPayment Statuses Covered:");
+  console.log("   ✓ PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED");
+  console.log("\nDocument Statuses Covered:");
+  console.log("   ✓ PENDING, VERIFIED, REJECTED");
   console.log("\nLogin Credentials:");
-  console.log("   Admin:    admin@travenest.lk / admin@123");
-  console.log("   Owner 1:  nuwan.perera@gmail.com / owner@123");
-  console.log("   Owner 2:  siva.kumar@yahoo.com / owner@123");
-  console.log("   Owner 3:  chaminda.silva@hotmail.com / owner@123");
-  console.log("   Owner 4:  mohamed.farook@gmail.com / owner@123");
-  console.log("   Owner 5:  kasun.fernando@outlook.com / owner@123 (Pending)");
-  console.log("   Customer: dilshan.jayawardena@gmail.com / customer@123");
+  console.log("   Admin:      admin@travenest.lk / admin@123");
+  console.log("   Owner 1:    nuwan.perera@gmail.com / owner@123 (Verified)");
+  console.log("   Owner 2:    siva.kumar@yahoo.com / owner@123 (Verified)");
+  console.log(
+    "   Owner 3:    chaminda.silva@hotmail.com / owner@123 (Verified)",
+  );
+  console.log("   Owner 4:    mohamed.farook@gmail.com / owner@123 (Verified)");
+  console.log(
+    "   Owner 5:    kasun.fernando@outlook.com / owner@123 (Pending)",
+  );
+  console.log("   Customer 1: dilshan.jayawardena@gmail.com / customer@123");
+  console.log("   Customer 2: priya.nathan@yahoo.com / customer@123");
+  console.log("   Customer 3: amal.senanayake@outlook.com / customer@123");
+  console.log("   Customer 4: tharaka.wijesinghe@hotmail.com / customer@123");
+  console.log("   Customer 5: nadeeka.silva@outlook.com / customer@123");
   console.log("=".repeat(60) + "\n");
 }
 

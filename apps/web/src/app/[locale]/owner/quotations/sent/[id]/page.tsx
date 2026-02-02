@@ -6,6 +6,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
+import { quotationService } from "@/lib/api/services";
 import {
   FaArrowLeft,
   FaMapMarkerAlt,
@@ -82,51 +83,71 @@ export default function QuotationDetailPage({
   useEffect(() => {
     const fetchQuotation = async () => {
       try {
-        // TODO: Replace with actual API call
+        const response = await quotationService.getById(id);
+        const data = response.data.quotation;
+
+        // Calculate days remaining
+        const validUntil = data.validUntil ? new Date(data.validUntil) : null;
+        const today = new Date();
+        const daysRemaining = validUntil
+          ? Math.max(
+              0,
+              Math.ceil(
+                (validUntil.getTime() - today.getTime()) /
+                  (1000 * 60 * 60 * 24),
+              ),
+            )
+          : 0;
+
         setQuotation({
-          id: id,
-          quotationId: "QUO-2026-001",
+          id: data.id,
+          quotationId: data.quotationId,
           customer: {
-            name: "Nimal Perera",
-            email: "nimal@example.com",
-            phone: "+94 77 123 4567",
+            name: `${data.customer?.firstName || ""} ${data.customer?.lastName || ""}`.trim(),
+            email: data.customer?.email || "",
+            phone: data.customer?.phone || "",
           },
           trip: {
-            pickupLocation: "Colombo Fort Railway Station",
-            dropoffLocation: "Kandy City Center",
-            startDate: "2026-02-15",
-            endDate: "2026-02-16",
-            startTime: "08:00 AM",
-            estimatedDistance: "115 km",
-            estimatedDuration: "3.5 hours",
+            pickupLocation: data.pickupLocation,
+            dropoffLocation: data.dropoffLocation,
+            startDate: new Date(data.startDate).toISOString().split("T")[0],
+            endDate: new Date(data.endDate).toISOString().split("T")[0],
+            startTime: data.startTime || "",
+            estimatedDistance: data.estimatedDistance || "",
+            estimatedDuration: data.estimatedDuration || "",
           },
-          passengers: 35,
+          passengers: data.passengerCount,
           vehicle: {
-            name: "Luxury Coach 001",
-            type: "Luxury Coach",
-            capacity: 40,
+            name: data.vehicle?.licensePlate || data.vehicleType,
+            type: data.vehicleType,
+            capacity: 0,
           },
           pricing: {
-            vehicleRentalCost: 25000,
-            driverCost: 5000,
-            fuelCost: 5750,
-            tollCharges: 2000,
-            permitFees: 1500,
-            customItems: [
-              { description: "Refreshments", amount: 3500 },
-              { description: "Tour Guide", amount: 2000 },
-            ],
-            subtotal: 44750,
-            tax: 4475,
-            total: 49225,
+            vehicleRentalCost: data.vehicleRentalCost || 0,
+            driverCost: data.driverCost || 0,
+            fuelCost: data.fuelCost || 0,
+            tollCharges: data.tollCharges || 0,
+            permitFees: data.permitFees || 0,
+            customItems: data.customItems || [],
+            subtotal: data.subtotal || 0,
+            tax: data.tax || 0,
+            total: data.totalAmount || 0,
           },
-          status: "viewed",
-          sentDate: "2026-01-20T10:30:00",
-          viewedDate: "2026-01-20T14:15:00",
-          validUntil: "2026-01-27",
-          daysRemaining: 6,
-          additionalNotes:
-            "Vehicle includes air conditioning, comfortable seating, and entertainment system. Driver has 15+ years of experience with excellent customer reviews.",
+          status: data.status.toLowerCase() as
+            | "sent"
+            | "viewed"
+            | "accepted"
+            | "rejected"
+            | "expired",
+          sentDate: (data.sentAt || data.createdAt).toString(),
+          viewedDate: data.viewedAt?.toString(),
+          respondedDate: data.respondedAt?.toString(),
+          validUntil: data.validUntil
+            ? new Date(data.validUntil).toISOString().split("T")[0]
+            : "",
+          daysRemaining,
+          additionalNotes: data.additionalNotes,
+          rejectionReason: data.rejectionReason,
         });
       } catch (error) {
         console.error("Failed to fetch quotation:", error);
@@ -135,7 +156,7 @@ export default function QuotationDetailPage({
       }
     };
 
-    if (isAuthorized) {
+    if (isAuthorized && id) {
       fetchQuotation();
     }
   }, [id, isAuthorized]);

@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
-import type { Request, Response } from "express";
+import { csrfProtection } from "../../middleware/csrf.js";
+import * as quotationController from "./quotation.controller.js";
 
 const router = Router();
 
@@ -10,146 +11,65 @@ const router = Router();
 router.get(
   "/my-requests",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { status, page = 1, limit = 10 } = req.query;
-
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: {
-        quotations: [],
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: 0,
-          totalPages: 0,
-        },
-      },
-    });
-  })
+  asyncHandler(quotationController.getCustomerQuotations),
 );
 
 // Create a quotation request
 router.post(
   "/",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    // TODO: Implement with database
-    res.status(201).json({
-      success: true,
-      message: "Quotation request submitted successfully",
-      data: { quotation: req.body },
-    });
-  })
+  csrfProtection,
+  asyncHandler(quotationController.createQuotationRequest),
 );
 
 // Get quotation by ID
 router.get(
   "/:id",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database (check ownership)
-    res.json({
-      success: true,
-      data: { quotation: { id } },
-    });
-  })
+  asyncHandler(quotationController.getQuotationById),
 );
 
-// Accept a quotation
+// Respond to a quotation (accept/reject)
 router.patch(
-  "/:id/accept",
+  "/:id/respond",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database (check ownership)
-    res.json({
-      success: true,
-      message: `Quotation ${id} accepted`,
-    });
-  })
-);
-
-// Reject a quotation
-router.patch(
-  "/:id/reject",
-  authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database (check ownership)
-    res.json({
-      success: true,
-      message: `Quotation ${id} rejected`,
-    });
-  })
+  csrfProtection,
+  asyncHandler(quotationController.respondToQuotation),
 );
 
 // Owner routes
-// Get quotation requests for owner
+// Get quotation requests for owner (PENDING)
 router.get(
   "/owner/requests",
   authenticate,
   authorize("owner", "admin"),
-  asyncHandler(async (req: Request, res: Response) => {
-    const { status, page = 1, limit = 10 } = req.query;
-
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: {
-        quotations: [],
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: 0,
-          totalPages: 0,
-        },
-      },
-    });
-  })
+  asyncHandler(quotationController.getOwnerQuotationRequests),
 );
 
-// Respond to a quotation request
-router.patch(
-  "/:id/respond",
+// Get sent quotations by owner
+router.get(
+  "/owner/sent",
   authenticate,
   authorize("owner", "admin"),
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { price, message, validUntil } = req.body;
+  asyncHandler(quotationController.getOwnerSentQuotations),
+);
 
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      message: `Response sent for quotation ${id}`,
-    });
-  })
+// Send quotation (owner responds to request)
+router.patch(
+  "/:id/send",
+  authenticate,
+  csrfProtection,
+  authorize("owner", "admin"),
+  asyncHandler(quotationController.sendQuotation),
 );
 
 // Admin routes
 // Get all quotations
 router.get(
-  "/",
+  "/admin/all",
   authenticate,
   authorize("admin"),
-  asyncHandler(async (req: Request, res: Response) => {
-    const { status, page = 1, limit = 10 } = req.query;
-
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: {
-        quotations: [],
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: 0,
-          totalPages: 0,
-        },
-      },
-    });
-  })
+  asyncHandler(quotationController.getAllQuotations),
 );
 
 export default router;

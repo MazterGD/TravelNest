@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import {
   PageHeader,
   Card,
@@ -12,44 +13,29 @@ import {
   EmptyState,
   EmptyBoxIcon,
   SkeletonList,
+  Button,
 } from "@/components/ui";
-import { ReviewDisplay } from "@/components/features/customer";
+import { ReviewDisplay, ReviewForm } from "@/components/features/customer";
+import { reviewService, ApiError } from "@/lib/api";
 
-// Mock data
-const mockReviews = [
-  {
-    id: "r1",
-    rating: 5,
-    comment:
-      "Excellent service! The vehicle was clean and the driver was very professional. Highly recommend for airport transfers.",
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    customerName: "You",
-    vehicleName: "Toyota KDH Van",
-    ownerName: "Kamal Perera",
-    ownerResponse:
-      "Thank you so much for your kind words! It was a pleasure serving you. Looking forward to your next trip!",
-    ownerResponseDate: new Date(Date.now() - 86400000 * 4).toISOString(),
-  },
-  {
-    id: "r2",
-    rating: 4,
-    comment:
-      "Good experience overall. Vehicle arrived on time and the trip was comfortable. Minor delay on return but driver communicated well.",
-    createdAt: new Date(Date.now() - 86400000 * 15).toISOString(),
-    customerName: "You",
-    vehicleName: "Toyota Prius",
-    ownerName: "Nimal Silva",
-  },
-];
+interface Review {
+  id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  customerName: string;
+  vehicleName: string;
+  ownerName: string;
+  ownerResponse?: string;
+  ownerResponseDate?: string;
+}
 
-const pendingReviews = [
-  {
-    bookingId: "b2",
-    vehicleName: "Honda Vezel",
-    ownerName: "Saman Kumara",
-    tripDate: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-];
+interface PendingReview {
+  bookingId: string;
+  vehicleName: string;
+  ownerName: string;
+  tripDate: string;
+}
 
 interface ReviewsPageContentProps {
   locale: string;
@@ -57,13 +43,105 @@ interface ReviewsPageContentProps {
 
 export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
   const t = useTranslations("review");
-  const [isLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const bookingParam = searchParams.get("booking");
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [pendingReviews, setPendingReviews] = useState<PendingReview[]>([]);
+  const [showReviewForm, setShowReviewForm] = useState<string | null>(
+    bookingParam,
+  );
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchReviews = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [reviewsResponse, pendingResponse] = await Promise.all([
+        reviewService.getMyReviews(),
+        reviewService.getPendingReviews(),
+      ]);
+
+      const reviewsData = reviewsResponse as any;
+      const pendingData = pendingResponse as any;
+
+      // Transform my reviews
+      const transformedReviews: Review[] = (
+        reviewsData.reviews ||
+        reviewsData ||
+        []
+      ).map((r: any) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt,
+        customerName: "You",
+        vehicleName: r.vehicleName || r.vehicle?.name || "Vehicle",
+        ownerName: r.ownerName || r.owner?.name || "Owner",
+        ownerResponse: r.ownerResponse,
+        ownerResponseDate: r.ownerResponseDate,
+      }));
+
+      // Transform pending reviews
+      const transformedPending: PendingReview[] = (
+        pendingData.pendingReviews ||
+        pendingData.bookings ||
+        pendingData ||
+        []
+      ).map((b: any) => ({
+        bookingId: b.bookingId || b.id,
+        vehicleName: b.vehicleName || b.vehicle?.name || "Vehicle",
+        ownerName: b.ownerName || b.owner?.name || "Owner",
+        tripDate: b.tripDate || b.endDate,
+      }));
+
+      setReviews(transformedReviews);
+      setPendingReviews(transformedPending);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to fetch reviews");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
+
+  const handleSubmitReview = async (
+    bookingId: string,
+    data: { bookingId: string; rating: number; comment: string },
+  ): Promise<{ success: boolean; error?: string }> => {
+    setSubmitting(true);
+    try {
+      await reviewService.create({
+        bookingId: data.bookingId,
+        rating: data.rating,
+        comment: data.comment,
+      });
+      setShowReviewForm(null);
+      fetchReviews(); // Refresh the list
+      return { success: true };
+    } catch (err) {
+      const errorMsg =
+        err instanceof ApiError ? err.message : "Failed to submit review";
+      return { success: false, error: errorMsg };
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const tabContent = {
     myReviews: (
       <div className="space-y-4">
-        {mockReviews.length > 0 ? (
-          mockReviews.map((review) => (
+        {reviews.length > 0 ? (
+          reviews.map((review) => (
             <Card key={review.id}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -97,20 +175,37 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
           pendingReviews.map((pending) => (
             <Card key={pending.bookingId}>
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-foreground">
-                      {pending.vehicleName}
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      {t("by")} {pending.ownerName} •{" "}
-                      {new Date(pending.tripDate).toLocaleDateString()}
-                    </p>
+                {showReviewForm === pending.bookingId ? (
+                  <ReviewForm
+                    bookingId={pending.bookingId}
+                    vehicleName={pending.vehicleName}
+                    ownerName={pending.ownerName}
+                    onSubmit={(data) =>
+                      handleSubmitReview(pending.bookingId, data)
+                    }
+                    onCancel={() => setShowReviewForm(null)}
+                    isLoading={submitting}
+                  />
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-foreground">
+                        {pending.vehicleName}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {t("by")} {pending.ownerName} •{" "}
+                        {new Date(pending.tripDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowReviewForm(pending.bookingId)}
+                    >
+                      {t("writeReview")}
+                    </Button>
                   </div>
-                  <button className="px-4 py-2 text-sm font-medium text-primary bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors">
-                    {t("writeReview")}
-                  </button>
-                </div>
+                )}
               </CardContent>
             </Card>
           ))
@@ -129,7 +224,7 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
     {
       id: "myReviews",
       label: t("myReviews"),
-      badge: mockReviews.length,
+      badge: reviews.length,
       content: tabContent.myReviews,
     },
     {
@@ -147,10 +242,23 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
         description={t("reviewsDescription")}
       />
 
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+          {error}
+          <Button variant="link" onClick={fetchReviews} className="ml-2">
+            Retry
+          </Button>
+        </div>
+      )}
+
       {isLoading ? (
         <SkeletonList count={3} />
       ) : (
-        <Tabs tabs={tabs} defaultTab="myReviews" variant="default" />
+        <Tabs
+          tabs={tabs}
+          defaultTab={bookingParam ? "pending" : "myReviews"}
+          variant="default"
+        />
       )}
     </div>
   );

@@ -148,7 +148,8 @@ export interface Payment {
   currency: string;
   status: PaymentStatus;
   method?: string;
-  stripePaymentId?: string;
+  payherePaymentId?: string; // PayHere order ID
+  payhereCustomerId?: string; // PayHere customer reference
   refundAmount?: number;
   refundReason?: string;
   createdAt: Date;

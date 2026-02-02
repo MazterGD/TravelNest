@@ -121,10 +121,33 @@ export const userService = {
   getProfile: () => api.get<User>("/users/profile"),
 
   /**
-   * Update current user's profile
+   * Update personal information
    */
-  updateProfile: (data: ProfileUpdateInput) =>
-    api.patch<User>("/users/profile", data),
+  updatePersonalInfo: (data: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    nicNumber?: string;
+  }) => api.patch<User>("/users/profile/personal", data),
+
+  /**
+   * Update address information
+   */
+  updateAddress: (data: {
+    address?: string;
+    city?: string;
+    district?: string;
+    postalCode?: string;
+  }) => api.patch<User>("/users/profile/address", data),
+
+  /**
+   * Change password
+   */
+  changePassword: (data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) => api.post<{ message: string }>("/users/change-password", data),
 
   /**
    * Upload avatar image
@@ -143,7 +166,20 @@ export const userService = {
   /**
    * Delete user account
    */
-  deleteAccount: () => api.delete<MessageResponse>("/users/account"),
+  deleteAccount: () => api.delete<{ message: string }>("/users/account"),
+
+  /**
+   * Get customer dashboard statistics
+   */
+  getDashboardStats: () =>
+    api.get<{
+      totalBookings: number;
+      completedBookings: number;
+      pendingBookings: number;
+      pendingQuotations: number;
+      totalReviews: number;
+      totalSpent: number;
+    }>("/users/dashboard/stats"),
 };
 
 // ============================================
@@ -293,61 +329,88 @@ export const quotationService = {
    * Request a quotation for a trip
    */
   requestQuotation: (data: QuotationRequestInput) =>
-    api.post<Quotation>("/quotations/request", data),
+    api.post<{
+      success: boolean;
+      message: string;
+      data: { quotation: Quotation };
+    }>("/quotations", data),
 
   /**
    * Get all quotation requests by current user
    */
-  getMyRequests: (params?: PaginationParams) => {
+  getMyRequests: (params?: PaginationParams & { status?: string }) => {
     const query = params ? `?${buildQueryString(params)}` : "";
-    return api.get<Quotation[]>(`/quotations/my-requests${query}`);
-  },
-
-  /**
-   * Get all quotes received for a request
-   */
-  getQuotesForRequest: (requestId: string) =>
-    api.get<Quotation[]>(`/quotations/request/${requestId}/quotes`),
-
-  /**
-   * Accept a quotation (creates booking)
-   */
-  acceptQuotation: (id: string) =>
-    api.post<Booking>(`/quotations/${id}/accept`),
-
-  /**
-   * Reject a quotation
-   */
-  rejectQuotation: (id: string, reason?: string) =>
-    api.post<MessageResponse>(`/quotations/${id}/reject`, { reason }),
-
-  // Owner endpoints
-  /**
-   * Get pending quotation requests for owner's area
-   */
-  getPendingRequests: (params?: PaginationParams) => {
-    const query = params ? `?${buildQueryString(params)}` : "";
-    return api.get<Quotation[]>(`/quotations/pending${query}`);
-  },
-
-  /**
-   * Submit a quote for a request
-   */
-  submitQuote: (data: QuotationResponseInput) =>
-    api.post<Quotation>("/quotations/submit", data),
-
-  /**
-   * Get all quotes submitted by current owner
-   */
-  getMyQuotes: (params?: PaginationParams) => {
-    const query = params ? `?${buildQueryString(params)}` : "";
-    return api.get<Quotation[]>(`/quotations/my-quotes${query}`);
+    return api.get<{
+      success: boolean;
+      data: PaginatedResponse<Quotation>;
+    }>(`/quotations/my-requests${query}`);
   },
 
   /**
    * Get quotation by ID
    */
-  getById: (id: string) => api.get<Quotation>(`/quotations/${id}`),
+  getById: (id: string) =>
+    api.get<{ success: boolean; data: { quotation: Quotation } }>(
+      `/quotations/${id}`,
+    ),
+
+  /**
+   * Respond to a quotation (accept/reject)
+   */
+  respondToQuotation: (
+    id: string,
+    data: { status: "ACCEPTED" | "REJECTED"; rejectionReason?: string },
+  ) =>
+    api.patch<{
+      success: boolean;
+      message: string;
+      data: { quotation: Quotation };
+    }>(`/quotations/${id}/respond`, data),
+
+  // Owner endpoints
+  /**
+   * Get pending quotation requests for owner
+   */
+  getOwnerRequests: (params?: PaginationParams & { status?: string }) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<{
+      success: boolean;
+      data: PaginatedResponse<Quotation>;
+    }>(`/quotations/owner/requests${query}`);
+  },
+
+  /**
+   * Get sent quotations by owner
+   */
+  getOwnerSentQuotations: (params?: PaginationParams & { status?: string }) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<{
+      success: boolean;
+      data: PaginatedResponse<Quotation>;
+    }>(`/quotations/owner/sent${query}`);
+  },
+
+  /**
+   * Send quotation (owner responds to request)
+   */
+  sendQuotation: (id: string, data: QuotationResponseInput) =>
+    api.patch<{
+      success: boolean;
+      message: string;
+      data: { quotation: Quotation };
+    }>(`/quotations/${id}/send`, data),
+
+  // Admin endpoints
+  /**
+   * Get all quotations (admin only)
+   */
+  getAllQuotations: (params?: PaginationParams & { status?: string }) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<{
+      success: boolean;
+      data: PaginatedResponse<Quotation>;
+    }>(`/quotations/admin/all${query}`);
+  },
 
   /**
    * Withdraw a submitted quote
@@ -378,6 +441,12 @@ export const bookingService = {
    * Get booking by ID
    */
   getById: (id: string) => api.get<Booking>(`/bookings/${id}`),
+
+  /**
+   * Create booking from accepted quotation
+   */
+  createFromQuotation: (quotationId: string) =>
+    api.post<Booking>("/bookings/from-quotation", { quotationId }),
 
   /**
    * Get current user's bookings as customer
@@ -437,7 +506,20 @@ export const reviewService = {
    */
   getByVehicle: (vehicleId: string, params?: PaginationParams) => {
     const query = params ? `?${buildQueryString(params)}` : "";
-    return api.get<Review[]>(`/reviews/vehicle/${vehicleId}${query}`);
+    return api.get<{
+      reviews: Review[];
+      stats: {
+        averageRating: number;
+        totalReviews: number;
+        ratingDistribution: Record<number, number>;
+      };
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/reviews/vehicle/${vehicleId}${query}`);
   },
 
   /**
@@ -451,13 +533,56 @@ export const reviewService = {
   /**
    * Get reviews by current user
    */
-  getMyReviews: () => api.get<Review[]>("/reviews/my"),
+  getMyReviews: (params?: PaginationParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<{
+      reviews: Array<{
+        id: string;
+        rating: number;
+        comment: string | null;
+        createdAt: string;
+        vehicleName: string;
+        ownerName: string;
+        ownerResponse: string | null;
+        ownerResponseDate: string | null;
+        tripDate: string;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/reviews/my-reviews${query}`);
+  },
+
+  /**
+   * Get bookings pending review
+   */
+  getPendingReviews: (params?: PaginationParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<{
+      pendingReviews: Array<{
+        bookingId: string;
+        vehicleId: string;
+        vehicleName: string;
+        ownerName: string;
+        tripDate: string;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/reviews/pending${query}`);
+  },
 
   /**
    * Update a review
    */
   update: (id: string, data: Partial<ReviewInput>) =>
-    api.patch<Review>(`/reviews/${id}`, data),
+    api.put<Review>(`/reviews/${id}`, data),
 
   /**
    * Delete a review
@@ -468,7 +593,7 @@ export const reviewService = {
    * Owner responds to a review
    */
   respond: (id: string, response: string) =>
-    api.post<Review>(`/reviews/${id}/respond`, { response }),
+    api.post<Review>(`/reviews/${id}/response`, { response }),
 };
 
 // ============================================
@@ -701,12 +826,6 @@ export const ownerRegistrationService = {
   getProfile: () =>
     api.get<{
       profile: User & {
-        businessProfile?: {
-          businessName: string;
-          businessType: string;
-          registrationNumber?: string;
-          taxId?: string;
-        };
         documents?: Array<{
           id: string;
           type: string;
@@ -756,23 +875,6 @@ export const ownerService = {
     postalCode?: string;
     baseLocation?: string;
   }) => api.patch<User>("/owner/profile/address", data),
-
-  /**
-   * Update or create business profile
-   */
-  updateBusinessProfile: (data: {
-    businessName: string;
-    businessType: string;
-    registrationNumber?: string;
-    taxId?: string;
-  }) =>
-    api.patch<{
-      businessProfile: {
-        id: string;
-        businessName: string;
-        businessType: string;
-      };
-    }>("/owner/profile/business", data),
 
   /**
    * Get owner dashboard stats

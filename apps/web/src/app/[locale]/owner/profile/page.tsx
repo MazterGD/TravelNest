@@ -772,7 +772,7 @@ export default function OwnerProfilePage() {
                       </p>
                     </div>
                     <Link
-                      href="/owner/fleet/add"
+                      href={`/${locale}/owner/fleet/add`}
                       className="rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
                     >
                       + Add Vehicle
@@ -827,7 +827,7 @@ export default function OwnerProfilePage() {
                               </div>
                             </div>
                             <Link
-                              href={`/owner/fleet/${vehicle.id}`}
+                              href={`/${locale}/owner/fleet/${vehicle.id}/edit`}
                               className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                             >
                               <FaEdit className="h-4 w-4" />
@@ -847,7 +847,7 @@ export default function OwnerProfilePage() {
                             Add your first vehicle to start receiving bookings
                           </p>
                           <Link
-                            href="/owner/fleet/add"
+                            href={`/${locale}/owner/fleet/add`}
                             className="inline-block rounded-lg bg-[#20B0E9] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
                           >
                             Add Your First Vehicle

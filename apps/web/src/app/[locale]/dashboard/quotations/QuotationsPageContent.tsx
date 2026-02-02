@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
@@ -12,67 +12,8 @@ import {
   SkeletonList,
 } from "@/components/ui";
 import { QuotationRequestCard } from "@/components/features/customer";
+import { quotationService, ApiError } from "@/lib/api";
 import type { QuotationRequest } from "@/store";
-
-// Mock data
-const mockRequests: QuotationRequest[] = [
-  {
-    id: "req1",
-    customerId: "c1",
-    pickupLocation: {
-      address: "Bandaranaike Airport",
-      city: "Katunayake",
-      district: "Gampaha",
-    },
-    dropoffLocation: {
-      address: "Galle Face Hotel",
-      city: "Colombo",
-      district: "Colombo",
-    },
-    pickupDate: new Date(Date.now() + 86400000 * 7).toISOString().split("T")[0],
-    pickupTime: "14:00",
-    isRoundTrip: false,
-    passengerCount: 4,
-    vehicleType: "sedan",
-    luggageCount: 3,
-    needsAC: true,
-    status: "pending",
-    quotationsCount: 5,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "req2",
-    customerId: "c1",
-    pickupLocation: {
-      address: "Colombo Fort",
-      city: "Colombo",
-      district: "Colombo",
-    },
-    dropoffLocation: {
-      address: "Sigiriya Rock",
-      city: "Sigiriya",
-      district: "Matale",
-    },
-    pickupDate: new Date(Date.now() + 86400000 * 14)
-      .toISOString()
-      .split("T")[0],
-    pickupTime: "06:00",
-    returnDate: new Date(Date.now() + 86400000 * 15)
-      .toISOString()
-      .split("T")[0],
-    returnTime: "18:00",
-    isRoundTrip: true,
-    passengerCount: 6,
-    vehicleType: "van",
-    luggageCount: 4,
-    needsAC: true,
-    status: "active",
-    quotationsCount: 3,
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
 
 interface QuotationsPageContentProps {
   locale: string;
@@ -80,30 +21,120 @@ interface QuotationsPageContentProps {
 
 export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
   const t = useTranslations("quotation");
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [requests, setRequests] = useState<QuotationRequest[]>([]);
   const [activeTab, setActiveTab] = useState("all");
 
-  const filteredRequests = mockRequests.filter((req) => {
+  const fetchRequests = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await quotationService.getMyRequests();
+      const data = response as any;
+      const requestsList = data.data?.quotations || data.quotations || [];
+
+      // Group quotations by trip details and count responses
+      const tripMap = new Map<string, any[]>();
+
+      requestsList.forEach((req: any) => {
+        const tripKey = `${req.pickupLocation}|${req.dropoffLocation}|${req.startDate?.split("T")[0] || req.pickupDate}`;
+        if (!tripMap.has(tripKey)) {
+          tripMap.set(tripKey, []);
+        }
+        tripMap.get(tripKey)!.push(req);
+      });
+
+      // Transform to QuotationRequest format
+      // For each trip, use the PENDING request as the main request
+      // and count SENT/VIEWED/ACCEPTED quotations with vehicles as responses
+      const transformedRequests: QuotationRequest[] = [];
+
+      tripMap.forEach((quotations) => {
+        // Find the base request (PENDING status, no vehicle assigned)
+        const baseRequest =
+          quotations.find(
+            (q: any) => q.status?.toUpperCase() === "PENDING" && !q.vehicleId,
+          ) || quotations[0]; // Fallback to first quotation if no PENDING found
+
+        // Count owner responses (quotations with vehicles assigned and sent status)
+        const responsesCount = quotations.filter(
+          (q: any) =>
+            q.vehicleId &&
+            ["SENT", "VIEWED", "ACCEPTED"].includes(q.status?.toUpperCase()),
+        ).length;
+
+        transformedRequests.push({
+          id: baseRequest.id,
+          customerId: baseRequest.customerId,
+          pickupLocation:
+            typeof baseRequest.pickupLocation === "string"
+              ? {
+                  address: baseRequest.pickupLocation,
+                  city: baseRequest.pickupLocation.split(",")[0]?.trim() || "",
+                }
+              : baseRequest.pickupLocation,
+          dropoffLocation:
+            typeof baseRequest.dropoffLocation === "string"
+              ? {
+                  address: baseRequest.dropoffLocation,
+                  city: baseRequest.dropoffLocation.split(",")[0]?.trim() || "",
+                }
+              : baseRequest.dropoffLocation,
+          pickupDate: baseRequest.pickupDate || baseRequest.startDate,
+          pickupTime: baseRequest.pickupTime || baseRequest.startTime,
+          returnDate: baseRequest.returnDate,
+          returnTime: baseRequest.returnTime,
+          isRoundTrip: baseRequest.isRoundTrip || false,
+          passengerCount: baseRequest.passengerCount,
+          vehicleType:
+            baseRequest.vehicleType || baseRequest.preferredVehicleType,
+          luggageCount: baseRequest.luggageCount,
+          needsAC: baseRequest.needsAC ?? true,
+          status: baseRequest.status?.toLowerCase() || "pending",
+          quotationsCount: responsesCount,
+          createdAt: baseRequest.createdAt,
+          updatedAt: baseRequest.updatedAt,
+        });
+      });
+
+      setRequests(transformedRequests);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to fetch quotation requests");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  const filteredRequests = requests.filter((req) => {
     if (activeTab === "all") return true;
     return req.status === activeTab;
   });
 
   const tabs = [
-    { id: "all", label: t("all"), badge: mockRequests.length },
+    { id: "all", label: t("all"), badge: requests.length },
     {
       id: "pending",
       label: t("pending"),
-      badge: mockRequests.filter((r) => r.status === "pending").length,
+      badge: requests.filter((r) => r.status === "pending").length,
     },
     {
       id: "active",
       label: t("active"),
-      badge: mockRequests.filter((r) => r.status === "active").length,
+      badge: requests.filter((r) => r.status === "active").length,
     },
     {
       id: "completed",
       label: t("completed"),
-      badge: mockRequests.filter((r) => r.status === "completed").length,
+      badge: requests.filter((r) => r.status === "completed").length,
     },
   ];
 
@@ -143,6 +174,15 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
         onChange={setActiveTab}
         variant="pills"
       />
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+          {error}
+          <Button variant="link" onClick={fetchRequests} className="ml-2">
+            Retry
+          </Button>
+        </div>
+      )}
 
       {isLoading ? (
         <SkeletonList count={3} />

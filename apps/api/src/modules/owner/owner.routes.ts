@@ -6,7 +6,6 @@ import {
   ownerRegistrationSchema,
   updatePersonalInfoSchema,
   updateAddressSchema,
-  updateBusinessProfileSchema,
 } from "./owner.schemas.js";
 import * as ownerController from "./owner.controller.js";
 
@@ -71,19 +70,6 @@ router.patch(
   authorize("owner"),
   validate(updateAddressSchema),
   asyncHandler(ownerController.updateAddress),
-);
-
-/**
- * @route   PATCH /api/v1/owner/profile/business
- * @desc    Update or create business profile
- * @access  Private (Owner only)
- */
-router.patch(
-  "/profile/business",
-  authenticate,
-  authorize("owner"),
-  validate(updateBusinessProfileSchema),
-  asyncHandler(ownerController.updateBusinessProfile),
 );
 
 /**

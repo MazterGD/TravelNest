@@ -1,7 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import { useState, useEffect } from "react";
 import {
   FaFilter,
   FaStar,
@@ -13,66 +15,49 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { PageHeader, Button, Card, Input } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
 import { VEHICLE_AMENITIES, SRI_LANKAN_DISTRICTS } from "@/constants";
+import { vehicleService, ApiError } from "@/lib/api";
 
-// Mock data for demonstration
-const MOCK_BUSES = [
-  {
-    id: "1",
-    name: "Luxury Coach - 45 Seater",
-    type: "luxury_bus",
-    capacity: 45,
-    acType: "ac",
-    pricePerDay: 25000,
-    rating: 4.8,
-    totalReviews: 124,
-    image: "/placeholder-bus.jpg",
-    amenities: ["wifi", "ac", "usb_charging", "entertainment"],
-    owner: "Colombo Tours",
-  },
-  {
-    id: "2",
-    name: "Semi-Luxury Bus - 35 Seater",
-    type: "semi_luxury_bus",
-    capacity: 35,
-    acType: "ac",
-    pricePerDay: 18000,
-    rating: 4.5,
-    totalReviews: 89,
-    image: "/placeholder-bus.jpg",
-    amenities: ["ac", "usb_charging", "reclining_seats"],
-    owner: "Lanka Express",
-  },
-  {
-    id: "3",
-    name: "Mini Bus - 15 Seater",
-    type: "mini_bus",
-    capacity: 15,
-    acType: "non_ac",
-    pricePerDay: 8000,
-    rating: 4.2,
-    totalReviews: 56,
-    image: "/placeholder-bus.jpg",
-    amenities: ["gps", "first_aid"],
-    owner: "Quick Travels",
-  },
-];
+interface Vehicle {
+  id: string;
+  name: string;
+  type: string;
+  brand: string;
+  model: string;
+  seats: number;
+  acType: string;
+  pricePerDay: number;
+  pricePerKm?: number;
+  location: string;
+  amenities: string[];
+  images: string[];
+  owner: {
+    firstName: string;
+    lastName: string;
+  };
+}
 
 const VEHICLE_TYPES = [
-  { value: "mini_bus", label: "Mini Bus" },
-  { value: "standard_bus", label: "Standard Bus" },
-  { value: "semi_luxury_bus", label: "Semi-Luxury Bus" },
-  { value: "luxury_bus", label: "Luxury Bus" },
+  { value: "ORDINARY", label: "Ordinary" },
+  { value: "SEMI_LUXURY", label: "Semi-Luxury" },
+  { value: "LUXURY_AC", label: "Luxury AC" },
 ];
 
 const AC_TYPES = [
-  { value: "ac", label: "AC" },
-  { value: "non_ac", label: "Non-AC" },
+  { value: "FULL_AC", label: "Full AC" },
+  { value: "AC", label: "AC" },
+  { value: "NON_AC", label: "Non-AC" },
 ];
 
 export default function SearchPage() {
   const t = useTranslations("search");
   const tCommon = useTranslations("common");
+  const params = useParams();
+  const locale = (params?.locale as string) || "en";
 
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]); // Store unfiltered list
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     vehicleType: "",
@@ -82,6 +67,82 @@ export default function SearchPage() {
     district: "",
     amenities: [] as string[],
   });
+
+  // Fetch vehicles on mount
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+
+  // Apply filters whenever they change
+  useEffect(() => {
+    applyFilters();
+  }, [filters, allVehicles]);
+
+  const fetchVehicles = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await vehicleService.getAll();
+      const data = response as any;
+      const vehiclesList = data.data?.vehicles || data.vehicles || [];
+      setAllVehicles(vehiclesList);
+      setVehicles(vehiclesList);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to fetch vehicles");
+      }
+      console.error("Error fetching vehicles:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...allVehicles];
+
+    // Filter by vehicle type
+    if (filters.vehicleType) {
+      filtered = filtered.filter((v) => v.type === filters.vehicleType);
+    }
+
+    // Filter by minimum capacity
+    if (filters.minCapacity) {
+      const minSeats = parseInt(filters.minCapacity, 10);
+      filtered = filtered.filter((v) => v.seats >= minSeats);
+    }
+
+    // Filter by maximum capacity
+    if (filters.maxCapacity) {
+      const maxSeats = parseInt(filters.maxCapacity, 10);
+      filtered = filtered.filter((v) => v.seats <= maxSeats);
+    }
+
+    // Filter by AC type
+    if (filters.acType) {
+      filtered = filtered.filter((v) => {
+        const vehicleAcType = v.acType?.toUpperCase().replace(/[- ]/g, "_");
+        return vehicleAcType === filters.acType;
+      });
+    }
+
+    // Filter by district/location
+    if (filters.district) {
+      filtered = filtered.filter((v) =>
+        v.location?.toLowerCase().includes(filters.district.toLowerCase()),
+      );
+    }
+
+    // Filter by amenities
+    if (filters.amenities.length > 0) {
+      filtered = filtered.filter((v) =>
+        filters.amenities.every((amenity) => v.amenities?.includes(amenity)),
+      );
+    }
+
+    setVehicles(filtered);
+  };
 
   const toggleAmenity = (amenityId: string) => {
     setFilters((prev) => ({
@@ -126,7 +187,7 @@ export default function SearchPage() {
             <aside
               className={cn(
                 "lg:col-span-1",
-                showFilters ? "block" : "hidden lg:block"
+                showFilters ? "block" : "hidden lg:block",
               )}
             >
               <Card className="sticky top-24">
@@ -217,7 +278,7 @@ export default function SearchPage() {
                             "flex-1 px-3 py-2 text-sm rounded-md border transition-colors",
                             filters.acType === type.value
                               ? "border-primary bg-primary/10 text-primary"
-                              : "border-border hover:border-muted-foreground"
+                              : "border-border hover:border-muted-foreground",
                           )}
                         >
                           {type.label}
@@ -261,7 +322,7 @@ export default function SearchPage() {
                             "px-3 py-1.5 text-xs rounded-full border transition-colors",
                             filters.amenities.includes(amenity.id)
                               ? "border-primary bg-primary/10 text-primary"
-                              : "border-border hover:border-muted-foreground"
+                              : "border-border hover:border-muted-foreground",
                           )}
                         >
                           {amenity.label}
@@ -279,7 +340,7 @@ export default function SearchPage() {
               <div className="flex items-center justify-between mb-6">
                 <p className="text-muted-foreground">
                   <span className="font-semibold text-foreground">
-                    {MOCK_BUSES.length}
+                    {vehicles.length}
                   </span>{" "}
                   {t("results")}
                 </p>
@@ -292,91 +353,129 @@ export default function SearchPage() {
                 </select>
               </div>
 
-              {/* Bus Cards */}
-              <div className="space-y-4">
-                {MOCK_BUSES.map((bus) => (
-                  <Card key={bus.id} hover className="p-0 overflow-hidden">
-                    <div className="flex flex-col sm:flex-row">
-                      {/* Image placeholder */}
-                      <div className="sm:w-64 h-48 sm:h-auto bg-muted flex items-center justify-center">
-                        <FaMapMarkerAlt className="h-12 w-12 text-muted-foreground/30" />
+              {/* Loading State */}
+              {isLoading && (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i} className="p-0 overflow-hidden">
+                      <div className="flex flex-col sm:flex-row">
+                        <div className="sm:w-64 h-48 bg-muted animate-pulse" />
+                        <div className="flex-1 p-6 space-y-3">
+                          <div className="h-6 bg-muted animate-pulse rounded w-3/4" />
+                          <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
+                          <div className="h-4 bg-muted animate-pulse rounded w-2/3" />
+                        </div>
                       </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
 
-                      {/* Content */}
-                      <div className="flex-1 p-6">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                          <div>
-                            <h3 className="text-lg font-semibold text-foreground">
-                              {bus.name}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {bus.owner}
-                            </p>
+              {/* Error State */}
+              {error && !isLoading && (
+                <Card className="text-center py-12">
+                  <p className="text-destructive mb-4">{error}</p>
+                  <Button onClick={fetchVehicles}>Retry</Button>
+                </Card>
+              )}
 
-                            {/* Rating */}
-                            <div className="flex items-center mt-2">
-                              <FaStar className="h-4 w-4 text-accent" />
-                              <span className="ml-1 text-sm font-medium text-foreground">
-                                {bus.rating}
-                              </span>
-                              <span className="ml-1 text-sm text-muted-foreground">
-                                ({bus.totalReviews} reviews)
-                              </span>
-                            </div>
+              {/* Bus Cards */}
+              {!isLoading && !error && vehicles.length > 0 && (
+                <div className="space-y-4">
+                  {vehicles.map((bus) => (
+                    <Card key={bus.id} hover className="p-0 overflow-hidden">
+                      <div className="flex flex-col sm:flex-row">
+                        {/* Image */}
+                        <div className="sm:w-64 h-48 sm:h-auto bg-muted flex items-center justify-center overflow-hidden">
+                          {bus.images && bus.images.length > 0 ? (
+                            <img
+                              src={bus.images[0]}
+                              alt={bus.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <FaMapMarkerAlt className="h-12 w-12 text-muted-foreground/30" />
+                          )}
+                        </div>
 
-                            {/* Features */}
-                            <div className="flex flex-wrap gap-3 mt-3">
-                              <div className="flex items-center text-sm text-muted-foreground">
-                                <FaUsers className="mr-1.5 h-4 w-4" />
-                                {bus.capacity} {tCommon("passengers")}
-                              </div>
-                              {bus.acType === "ac" && (
+                        {/* Content */}
+                        <div className="flex-1 p-6">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                            <div>
+                              <h3 className="text-lg font-semibold text-foreground">
+                                {bus.name}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {`${bus.owner.firstName} ${bus.owner.lastName}`}
+                              </p>
+
+                              {/* Features */}
+                              <div className="flex flex-wrap gap-3 mt-3">
                                 <div className="flex items-center text-sm text-muted-foreground">
-                                  <FaSnowflake className="mr-1.5 h-4 w-4" />
-                                  AC
+                                  <FaUsers className="mr-1.5 h-4 w-4" />
+                                  {bus.seats} Seats
+                                </div>
+                                {bus.acType && (
+                                  <div className="flex items-center text-sm text-muted-foreground">
+                                    <FaSnowflake className="mr-1.5 h-4 w-4" />
+                                    {bus.acType.replace(/_/g, " ")}
+                                  </div>
+                                )}
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                  <FaMapMarkerAlt className="mr-1.5 h-4 w-4" />
+                                  {bus.location}
+                                </div>
+                              </div>
+
+                              {/* Amenities */}
+                              {bus.amenities && bus.amenities.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-3">
+                                  {bus.amenities.slice(0, 4).map((amenity) => {
+                                    const amenityInfo = VEHICLE_AMENITIES.find(
+                                      (a) => a.id === amenity,
+                                    );
+                                    return amenityInfo ? (
+                                      <span
+                                        key={amenity}
+                                        className="px-2 py-1 text-xs rounded-full bg-muted text-muted-foreground"
+                                      >
+                                        {amenityInfo.label}
+                                      </span>
+                                    ) : null;
+                                  })}
                                 </div>
                               )}
                             </div>
 
-                            {/* Amenities */}
-                            <div className="flex flex-wrap gap-1.5 mt-3">
-                              {bus.amenities.slice(0, 4).map((amenity) => {
-                                const amenityInfo = VEHICLE_AMENITIES.find(
-                                  (a) => a.id === amenity
-                                );
-                                return (
-                                  <span
-                                    key={amenity}
-                                    className="px-2 py-1 text-xs rounded-full bg-muted text-muted-foreground"
-                                  >
-                                    {amenityInfo?.label}
-                                  </span>
-                                );
-                              })}
+                            {/* Price & Action */}
+                            <div className="text-right">
+                              <p className="text-2xl font-bold text-primary">
+                                Rs. {bus.pricePerDay.toLocaleString()}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                per day
+                              </p>
+                              {bus.pricePerKm && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Rs. {bus.pricePerKm}/km
+                                </p>
+                              )}
+                              <Link href={`/${locale}/vehicles/${bus.id}`}>
+                                <Button className="mt-4" size="sm">
+                                  View Details
+                                </Button>
+                              </Link>
                             </div>
-                          </div>
-
-                          {/* Price & Action */}
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-primary">
-                              Rs. {bus.pricePerDay.toLocaleString()}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {tCommon("perDay")}
-                            </p>
-                            <Button className="mt-4" size="sm">
-                              {tCommon("view")}
-                            </Button>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
 
               {/* Empty State */}
-              {MOCK_BUSES.length === 0 && (
+              {!isLoading && !error && vehicles.length === 0 && (
                 <Card className="text-center py-12">
                   <FaMapMarkerAlt className="mx-auto h-12 w-12 text-muted-foreground/30" />
                   <h3 className="mt-4 text-lg font-semibold text-foreground">

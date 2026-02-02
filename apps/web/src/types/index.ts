@@ -57,10 +57,9 @@ export const isAdmin = (user: User): boolean => user.role === UserRole.ADMIN;
 
 // Vehicle Types
 export enum VehicleType {
-  MINI_BUS = "mini_bus",
-  STANDARD_BUS = "standard_bus",
-  LUXURY_BUS = "luxury_bus",
-  SEMI_LUXURY_BUS = "semi_luxury_bus",
+  ORDINARY = "ORDINARY",
+  SEMI_LUXURY = "SEMI_LUXURY",
+  LUXURY_AC = "LUXURY_AC",
 }
 
 export enum ACType {
@@ -158,33 +157,53 @@ export interface Booking {
 
 // Quotation Types
 export enum QuotationStatus {
-  PENDING = "pending",
-  SENT = "sent",
-  VIEWED = "viewed",
-  ACCEPTED = "accepted",
-  REJECTED = "rejected",
-  EXPIRED = "expired",
+  PENDING = "PENDING",
+  SENT = "SENT",
+  VIEWED = "VIEWED",
+  ACCEPTED = "ACCEPTED",
+  REJECTED = "REJECTED",
+  EXPIRED = "EXPIRED",
 }
 
 export interface Quotation {
   id: string;
-  requestId: string;
-  ownerId: string;
-  vehicleId: string;
+  quotationId: string;
+  customerId: string;
+  vehicleId?: string | null;
+  vehicleType: string;
+  startDate: Date;
+  endDate: Date;
+  startTime?: string;
+  pickupLocation: string;
+  dropoffLocation: string;
+  passengerCount: number;
+  estimatedDistance?: string;
+  estimatedDuration?: string;
+  specialRequests?: string;
   status: QuotationStatus;
-  vehicleRentalCost: number;
-  driverCost: number;
-  fuelCost: number;
-  tollCharges: number;
-  permitFees: number;
-  otherCharges: number;
-  tax: number;
-  totalAmount: number;
-  validityDays: number;
-  expiryDate: Date;
-  notes?: string;
+  // Pricing fields (nullable for PENDING status)
+  vehicleRentalCost?: number;
+  driverCost?: number;
+  fuelCost?: number;
+  tollCharges?: number;
+  permitFees?: number;
+  customItems?: Array<{ description: string; amount: number }>;
+  subtotal?: number;
+  tax?: number;
+  totalAmount?: number;
+  additionalNotes?: string;
+  validityDays?: number;
+  validUntil?: Date;
+  rejectionReason?: string;
+  // Timestamps
+  sentAt?: Date;
+  viewedAt?: Date;
+  respondedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  // Relations
+  customer?: Partial<User>;
+  vehicle?: Partial<Vehicle>;
 }
 
 // Location Type
@@ -227,11 +246,17 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  quotations?: T[];
+  vehicles?: T[];
+  bookings?: T[];
+  users?: T[];
+  data?: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 // Language Type
@@ -276,17 +301,6 @@ export interface OwnerRegistrationDocument {
   url?: string;
 }
 
-export interface OwnerRegistrationBusinessProfile {
-  businessName: string;
-  businessType:
-    | "sole-proprietorship"
-    | "partnership"
-    | "private-limited"
-    | "other";
-  registrationNumber?: string;
-  taxId?: string;
-}
-
 export interface OwnerRegistrationAddress {
   address: string;
   city: string;
@@ -304,7 +318,6 @@ export interface OwnerRegistrationInput {
   password: string;
   confirmPassword: string;
   address: OwnerRegistrationAddress;
-  businessProfile?: OwnerRegistrationBusinessProfile;
   ownerDocuments?: OwnerRegistrationDocument[];
   vehicles: OwnerRegistrationVehicle[];
 }

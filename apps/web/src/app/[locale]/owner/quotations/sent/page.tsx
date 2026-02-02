@@ -6,6 +6,8 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
+import { quotationService } from "@/lib/api/services";
+import type { Quotation } from "@/types";
 import {
   FaArrowLeft,
   FaMapMarkerAlt,
@@ -24,36 +26,11 @@ import { useParams } from "next/navigation";
 
 type QuotationStatus =
   | "all"
-  | "sent"
-  | "viewed"
-  | "accepted"
-  | "rejected"
-  | "expired";
-
-interface SentQuotation {
-  id: string;
-  quotationId: string;
-  customer: {
-    name: string;
-    email: string;
-  };
-  trip: {
-    pickupLocation: string;
-    dropoffLocation: string;
-    startDate: string;
-  };
-  vehicle: {
-    name: string;
-    type: string;
-  };
-  totalAmount: number;
-  status: QuotationStatus;
-  sentDate: string;
-  viewedDate?: string;
-  respondedDate?: string;
-  validUntil: string;
-  daysRemaining: number;
-}
+  | "SENT"
+  | "VIEWED"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "EXPIRED";
 
 export default function SentQuotationsPage() {
   const { user } = useAuthStore();
@@ -62,138 +39,23 @@ export default function SentQuotationsPage() {
   const [activeTab, setActiveTab] = useState<QuotationStatus>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Protect this route
+  // Protect this route - only vehicle owners can access
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
-
-  // Sample data - will be replaced with API data
-  const [quotations, setQuotations] = useState<SentQuotation[]>([]);
 
   useEffect(() => {
     const fetchQuotations = async () => {
       try {
-        // TODO: Replace with actual API call
-        setQuotations([
-          {
-            id: "1",
-            quotationId: "QUO-2026-001",
-            customer: {
-              name: "Nimal Perera",
-              email: "nimal@example.com",
-            },
-            trip: {
-              pickupLocation: "Colombo",
-              dropoffLocation: "Kandy",
-              startDate: "2026-02-15",
-            },
-            vehicle: {
-              name: "Luxury Coach 001",
-              type: "Luxury",
-            },
-            totalAmount: 45000,
-            status: "sent",
-            sentDate: "2026-01-20T10:30:00",
-            validUntil: "2026-01-27",
-            daysRemaining: 6,
-          },
-          {
-            id: "2",
-            quotationId: "QUO-2026-002",
-            customer: {
-              name: "Kamal Silva",
-              email: "kamal@example.com",
-            },
-            trip: {
-              pickupLocation: "Galle",
-              dropoffLocation: "Colombo",
-              startDate: "2026-02-20",
-            },
-            vehicle: {
-              name: "Semi-Luxury 002",
-              type: "Semi-Luxury",
-            },
-            totalAmount: 32000,
-            status: "viewed",
-            sentDate: "2026-01-19T14:20:00",
-            viewedDate: "2026-01-20T09:15:00",
-            validUntil: "2026-01-26",
-            daysRemaining: 5,
-          },
-          {
-            id: "3",
-            quotationId: "QUO-2026-003",
-            customer: {
-              name: "Saman Fernando",
-              email: "saman@example.com",
-            },
-            trip: {
-              pickupLocation: "Negombo",
-              dropoffLocation: "Jaffna",
-              startDate: "2026-03-01",
-            },
-            vehicle: {
-              name: "Standard Bus 003",
-              type: "Standard",
-            },
-            totalAmount: 55000,
-            status: "accepted",
-            sentDate: "2026-01-18T11:00:00",
-            viewedDate: "2026-01-18T15:30:00",
-            respondedDate: "2026-01-19T10:00:00",
-            validUntil: "2026-01-25",
-            daysRemaining: 4,
-          },
-          {
-            id: "4",
-            quotationId: "QUO-2026-004",
-            customer: {
-              name: "Priya Jayawardena",
-              email: "priya@example.com",
-            },
-            trip: {
-              pickupLocation: "Kandy",
-              dropoffLocation: "Nuwara Eliya",
-              startDate: "2026-02-25",
-            },
-            vehicle: {
-              name: "Luxury Coach 001",
-              type: "Luxury",
-            },
-            totalAmount: 38000,
-            status: "rejected",
-            sentDate: "2026-01-17T09:30:00",
-            viewedDate: "2026-01-17T16:00:00",
-            respondedDate: "2026-01-18T08:00:00",
-            validUntil: "2026-01-24",
-            daysRemaining: 3,
-          },
-          {
-            id: "5",
-            quotationId: "QUO-2026-005",
-            customer: {
-              name: "Rajesh Kumar",
-              email: "rajesh@example.com",
-            },
-            trip: {
-              pickupLocation: "Colombo",
-              dropoffLocation: "Trincomalee",
-              startDate: "2026-02-10",
-            },
-            vehicle: {
-              name: "Semi-Luxury 002",
-              type: "Semi-Luxury",
-            },
-            totalAmount: 48000,
-            status: "expired",
-            sentDate: "2026-01-10T10:00:00",
-            viewedDate: "2026-01-11T12:00:00",
-            validUntil: "2026-01-17",
-            daysRemaining: -4,
-          },
-        ]);
+        setLoading(true);
+        const response = await quotationService.getOwnerSentQuotations({
+          status: activeTab !== "all" ? activeTab : undefined,
+        });
+        const data = response as any;
+        setQuotations(data.data?.data || data.quotations || []);
       } catch (error) {
-        console.error("Failed to fetch quotations:", error);
+        console.error("Failed to fetch sent quotations:", error);
       } finally {
         setLoading(false);
       }
@@ -202,57 +64,56 @@ export default function SentQuotationsPage() {
     if (isAuthorized) {
       fetchQuotations();
     }
-  }, [isAuthorized]);
+  }, [isAuthorized, activeTab]);
 
   const filteredQuotations = quotations.filter((quot) => {
-    const matchesTab = activeTab === "all" || quot.status === activeTab;
+    const matchesTab =
+      activeTab === "all" || quot.status === activeTab.toUpperCase();
     const matchesSearch =
       searchQuery === "" ||
-      quot.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quot.quotationId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quot.trip.pickupLocation
+      `${quot.customer?.firstName || ""} ${quot.customer?.lastName || ""}`
         .toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      quot.trip.dropoffLocation
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+      quot.quotationId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      quot.pickupLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      quot.dropoffLocation.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
-  const tabCounts = {
+  const tabCounts: Record<QuotationStatus, number> = {
     all: quotations.length,
-    sent: quotations.filter((q) => q.status === "sent").length,
-    viewed: quotations.filter((q) => q.status === "viewed").length,
-    accepted: quotations.filter((q) => q.status === "accepted").length,
-    rejected: quotations.filter((q) => q.status === "rejected").length,
-    expired: quotations.filter((q) => q.status === "expired").length,
+    SENT: quotations.filter((q) => q.status === "SENT").length,
+    VIEWED: quotations.filter((q) => q.status === "VIEWED").length,
+    ACCEPTED: quotations.filter((q) => q.status === "ACCEPTED").length,
+    REJECTED: quotations.filter((q) => q.status === "REJECTED").length,
+    EXPIRED: quotations.filter((q) => q.status === "EXPIRED").length,
   };
 
   const getStatusBadge = (status: QuotationStatus) => {
-    const styles = {
-      sent: "bg-blue-100 text-blue-800",
-      viewed: "bg-purple-100 text-purple-800",
-      accepted: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
-      expired: "bg-gray-100 text-gray-800",
+    const styles: Record<QuotationStatus, string> = {
+      SENT: "bg-blue-100 text-blue-800",
+      VIEWED: "bg-purple-100 text-purple-800",
+      ACCEPTED: "bg-green-100 text-green-800",
+      REJECTED: "bg-red-100 text-red-800",
+      EXPIRED: "bg-gray-100 text-gray-800",
       all: "bg-gray-100 text-gray-800",
     };
 
-    const icons = {
-      sent: <FaFileAlt className="h-3 w-3" />,
-      viewed: <FaEye className="h-3 w-3" />,
-      accepted: <FaCheckCircle className="h-3 w-3" />,
-      rejected: <FaTimesCircle className="h-3 w-3" />,
-      expired: <FaClock className="h-3 w-3" />,
+    const icons: Record<QuotationStatus, React.JSX.Element> = {
+      SENT: <FaFileAlt className="h-3 w-3" />,
+      VIEWED: <FaEye className="h-3 w-3" />,
+      ACCEPTED: <FaCheckCircle className="h-3 w-3" />,
+      REJECTED: <FaTimesCircle className="h-3 w-3" />,
+      EXPIRED: <FaClock className="h-3 w-3" />,
       all: <FaFileAlt className="h-3 w-3" />,
     };
 
-    const labels = {
-      sent: "Sent",
-      viewed: "Viewed",
-      accepted: "Accepted",
-      rejected: "Rejected",
-      expired: "Expired",
+    const labels: Record<QuotationStatus, string> = {
+      SENT: "Sent",
+      VIEWED: "Viewed",
+      ACCEPTED: "Accepted",
+      REJECTED: "Rejected",
+      EXPIRED: "Expired",
       all: "All",
     };
 
@@ -327,12 +188,12 @@ export default function SentQuotationsPage() {
               <div className="flex flex-wrap gap-2">
                 {(
                   [
-                    { id: "all", label: "All" },
-                    { id: "sent", label: "Sent" },
-                    { id: "viewed", label: "Viewed" },
-                    { id: "accepted", label: "Accepted" },
-                    { id: "rejected", label: "Rejected" },
-                    { id: "expired", label: "Expired" },
+                    { id: "all" as QuotationStatus, label: "All" },
+                    { id: "SENT" as QuotationStatus, label: "Sent" },
+                    { id: "VIEWED" as QuotationStatus, label: "Viewed" },
+                    { id: "ACCEPTED" as QuotationStatus, label: "Accepted" },
+                    { id: "REJECTED" as QuotationStatus, label: "Rejected" },
+                    { id: "EXPIRED" as QuotationStatus, label: "Expired" },
                   ] as const
                 ).map((tab) => (
                   <button
@@ -420,134 +281,173 @@ export default function SentQuotationsPage() {
             </div>
           ) : filteredQuotations.length > 0 ? (
             <div className="space-y-4">
-              {filteredQuotations.map((quotation) => (
-                <div
-                  key={quotation.id}
-                  className="rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300"
-                >
-                  <div className="mb-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                    <div className="flex-1">
-                      <div className="mb-2 flex flex-wrap items-center gap-3">
-                        <h3 className="font-semibold text-gray-900">
-                          {quotation.customer.name}
-                        </h3>
-                        {getStatusBadge(quotation.status)}
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        {quotation.quotationId}
-                      </p>
-                    </div>
+              {filteredQuotations.map((quotation) => {
+                const customerName =
+                  `${quotation.customer?.firstName || ""} ${quotation.customer?.lastName || ""}`.trim() ||
+                  "Unknown";
+                const sentDate = quotation.sentAt
+                  ? new Date(quotation.sentAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : "Not sent";
+                const startDate = new Date(
+                  quotation.startDate,
+                ).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                });
 
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-gray-900">
-                        LKR {quotation.totalAmount.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {quotation.vehicle.name}
-                      </div>
-                    </div>
-                  </div>
+                // Calculate days remaining from validityDays
+                let daysRemaining = 0;
+                if (quotation.sentAt && quotation.validityDays) {
+                  const sentTime = new Date(quotation.sentAt).getTime();
+                  const validUntil =
+                    sentTime + quotation.validityDays * 24 * 60 * 60 * 1000;
+                  const now = Date.now();
+                  daysRemaining = Math.ceil(
+                    (validUntil - now) / (24 * 60 * 60 * 1000),
+                  );
+                }
 
-                  {/* Trip Summary */}
-                  <div className="mb-4 grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-3">
-                    <div className="flex items-start gap-2">
-                      <FaMapMarkerAlt className="mt-0.5 h-4 w-4 text-gray-400" />
-                      <div>
-                        <div className="text-xs text-gray-500">Route</div>
-                        <div className="font-medium text-gray-900">
-                          {quotation.trip.pickupLocation} →{" "}
-                          {quotation.trip.dropoffLocation}
+                return (
+                  <div
+                    key={quotation.id}
+                    className="rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300"
+                  >
+                    <div className="mb-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+                      <div className="flex-1">
+                        <div className="mb-2 flex flex-wrap items-center gap-3">
+                          <h3 className="font-semibold text-gray-900">
+                            {customerName}
+                          </h3>
+                          {getStatusBadge(quotation.status as QuotationStatus)}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {quotation.quotationId}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Sent: {sentDate}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-gray-900">
+                          LKR {(quotation.totalAmount || 0).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {quotation.vehicleType}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-2">
-                      <FaCalendarAlt className="mt-0.5 h-4 w-4 text-gray-400" />
-                      <div>
-                        <div className="text-xs text-gray-500">Trip Date</div>
-                        <div className="font-medium text-gray-900">
+                    {/* Trip Summary */}
+                    <div className="mb-4 grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-3">
+                      <div className="flex items-start gap-2">
+                        <FaMapMarkerAlt className="mt-0.5 h-4 w-4 text-gray-400" />
+                        <div>
+                          <div className="text-xs text-gray-500">Route</div>
+                          <div className="font-medium text-gray-900">
+                            {quotation.pickupLocation} →{" "}
+                            {quotation.dropoffLocation}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <FaCalendarAlt className="mt-0.5 h-4 w-4 text-gray-400" />
+                        <div>
+                          <div className="text-xs text-gray-500">Trip Date</div>
+                          <div className="font-medium text-gray-900">
+                            {startDate}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <FaClock className="mt-0.5 h-4 w-4 text-gray-400" />
+                        <div>
+                          <div className="text-xs text-gray-500">Validity</div>
+                          <div
+                            className={`font-medium ${
+                              daysRemaining < 0
+                                ? "text-red-600"
+                                : daysRemaining <= 2
+                                  ? "text-yellow-600"
+                                  : "text-gray-900"
+                            }`}
+                          >
+                            {daysRemaining < 0
+                              ? "Expired"
+                              : daysRemaining === 0
+                                ? "Expires today"
+                                : `${daysRemaining} days left`}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dates Timeline */}
+                    <div className="mb-4 flex flex-wrap gap-4 border-t border-gray-200 pt-4 text-xs text-gray-600">
+                      {quotation.sentAt && (
+                        <div>
+                          <span className="font-medium">Sent:</span>{" "}
+                          {new Date(quotation.sentAt).toLocaleString()}
+                        </div>
+                      )}
+                      {quotation.viewedAt && (
+                        <div>
+                          <span className="font-medium">Viewed:</span>{" "}
+                          {new Date(quotation.viewedAt).toLocaleString()}
+                        </div>
+                      )}
+                      {quotation.respondedAt && (
+                        <div>
+                          <span className="font-medium">Responded:</span>{" "}
+                          {new Date(quotation.respondedAt).toLocaleString()}
+                        </div>
+                      )}
+                      {quotation.validityDays && quotation.sentAt && (
+                        <div>
+                          <span className="font-medium">Expires:</span>{" "}
                           {new Date(
-                            quotation.trip.startDate,
+                            new Date(quotation.sentAt).getTime() +
+                              quotation.validityDays * 24 * 60 * 60 * 1000,
                           ).toLocaleDateString()}
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    <div className="flex items-start gap-2">
-                      <FaClock className="mt-0.5 h-4 w-4 text-gray-400" />
-                      <div>
-                        <div className="text-xs text-gray-500">Validity</div>
-                        <div
-                          className={`font-medium ${
-                            quotation.daysRemaining < 0
-                              ? "text-red-600"
-                              : quotation.daysRemaining <= 2
-                                ? "text-yellow-600"
-                                : "text-gray-900"
-                          }`}
-                        >
-                          {quotation.daysRemaining < 0
-                            ? "Expired"
-                            : `${quotation.daysRemaining} days left`}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dates Timeline */}
-                  <div className="mb-4 flex flex-wrap gap-4 border-t border-gray-200 pt-4 text-xs text-gray-600">
-                    <div>
-                      <span className="font-medium">Sent:</span>{" "}
-                      {new Date(quotation.sentDate).toLocaleString()}
-                    </div>
-                    {quotation.viewedDate && (
-                      <div>
-                        <span className="font-medium">Viewed:</span>{" "}
-                        {new Date(quotation.viewedDate).toLocaleString()}
-                      </div>
-                    )}
-                    {quotation.respondedDate && (
-                      <div>
-                        <span className="font-medium">Responded:</span>{" "}
-                        {new Date(quotation.respondedDate).toLocaleString()}
-                      </div>
-                    )}
-                    <div>
-                      <span className="font-medium">Expires:</span>{" "}
-                      {new Date(quotation.validUntil).toLocaleDateString()}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-3">
-                    <Link
-                      href={`/${locale}/owner/quotations/sent/${quotation.id}`}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                    >
-                      View Details
-                    </Link>
-
-                    {quotation.status === "expired" && (
-                      <button
-                        onClick={() => handleResend(quotation.quotationId)}
-                        className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-                      >
-                        <FaRedo className="h-3 w-3" />
-                        Resend
-                      </button>
-                    )}
-
-                    {quotation.status === "accepted" && (
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-3">
                       <Link
-                        href={`/${locale}/owner/bookings/create?quotation=${quotation.id}`}
-                        className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+                        href={`/${locale}/owner/quotations/sent/${quotation.id}`}
+                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                       >
-                        Create Booking
+                        View Details
                       </Link>
-                    )}
+
+                      {quotation.status === "EXPIRED" && (
+                        <button
+                          onClick={() => handleResend(quotation.quotationId)}
+                          className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+                        >
+                          <FaRedo className="h-3 w-3" />
+                          Resend
+                        </button>
+                      )}
+
+                      {quotation.status === "ACCEPTED" && (
+                        <div className="rounded-lg bg-green-100 px-4 py-2 text-sm font-medium text-green-800">
+                          Booking Created
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             /* Empty State */

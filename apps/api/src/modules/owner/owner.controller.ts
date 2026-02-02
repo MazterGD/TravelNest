@@ -97,24 +97,6 @@ export const updateAddress = async (req: Request, res: Response) => {
 };
 
 /**
- * Update business profile
- * PATCH /api/v1/owner/profile/business
- */
-export const updateBusinessProfile = async (req: Request, res: Response) => {
-  const ownerId = req.user!.id;
-  const businessProfile = await ownerService.updateBusinessProfile(
-    ownerId,
-    req.body,
-  );
-
-  res.json({
-    success: true,
-    message: "Business profile updated successfully",
-    data: { businessProfile },
-  });
-};
-
-/**
  * Get dashboard statistics
  * GET /api/v1/owner/dashboard/stats
  */

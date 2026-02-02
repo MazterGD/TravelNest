@@ -7,6 +7,8 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
+import { quotationService } from "@/lib/api/services";
+import { vehicleService } from "@/lib/api/services";
 import {
   FaArrowLeft,
   FaMapMarkerAlt,
@@ -88,55 +90,44 @@ export default function SendQuotationPage({
   const TAX_RATE = 0.1; // 10% tax
 
   useEffect(() => {
-    // Simulate fetching request data and vehicles
     const fetchData = async () => {
       try {
-        // TODO: Replace with actual API call
+        // Fetch quotation request
+        const quotationResponse = await quotationService.getById(id);
+        const responseData = quotationResponse as any;
+        const data = responseData.data?.quotation || responseData.quotation;
+
         setRequest({
-          id: id,
+          id: data.id,
           customer: {
-            name: "Nimal Perera",
-            email: "nimal@example.com",
-            phone: "+94 77 123 4567",
+            name: `${data.customer?.firstName || ""} ${data.customer?.lastName || ""}`.trim(),
+            email: data.customer?.email || "",
+            phone: data.customer?.phone || "",
           },
           trip: {
-            pickupLocation: "Colombo",
-            dropoffLocation: "Kandy",
-            startDate: "2026-02-15",
-            endDate: "2026-02-16",
-            startTime: "08:00 AM",
-            estimatedDuration: "3.5 hours",
-            estimatedDistance: "115 km",
+            pickupLocation: data.pickupLocation,
+            dropoffLocation: data.dropoffLocation,
+            startDate: new Date(data.startDate).toISOString().split("T")[0],
+            endDate: new Date(data.endDate).toISOString().split("T")[0],
+            startTime: data.startTime || "",
+            estimatedDuration: data.estimatedDuration || "",
+            estimatedDistance: data.estimatedDistance || "",
           },
-          passengers: 35,
-          vehicleType: "Luxury Coach",
-          specialRequirements:
-            "Air conditioning required. Experienced driver needed.",
+          passengers: data.passengerCount,
+          vehicleType: data.vehicleType,
+          specialRequirements: data.specialRequests || "",
         });
 
-        setVehicles([
-          {
-            id: "1",
-            name: "Luxury Coach 001",
-            type: "Luxury",
-            capacity: 40,
-            baseRate: 25000,
-          },
-          {
-            id: "2",
-            name: "Semi-Luxury 002",
-            type: "Semi-Luxury",
-            capacity: 35,
-            baseRate: 18000,
-          },
-          {
-            id: "3",
-            name: "Standard Bus 003",
-            type: "Standard",
-            capacity: 50,
-            baseRate: 15000,
-          },
-        ]);
+        // Fetch owner's vehicles
+        const vehiclesResponse = await vehicleService.getMyVehicles();
+        const vehicleList = vehiclesResponse.map((v: any) => ({
+          id: v.id,
+          name: `${v.make} ${v.model} (${v.registrationNumber})`,
+          type: v.hasAC ? "Luxury" : "Standard",
+          capacity: v.passengerCapacity,
+          baseRate: v.pricePerDay || 0,
+        }));
+        setVehicles(vehicleList);
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -235,15 +226,45 @@ export default function SendQuotationPage({
       return;
     }
 
+    if (!request?.trip.estimatedDistance || !request?.trip.estimatedDuration) {
+      alert("Please ensure trip details have estimated distance and duration");
+      return;
+    }
+
+    const subtotal = calculateSubtotal();
+    const tax = calculateTax();
+    const total = calculateTotal();
+
     setSubmitting(true);
     try {
-      // TODO: Implement send quotation API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("Quotation sent successfully");
-      router.push(`/${locale}/owner/quotations/sent`);
-    } catch (error) {
+      const response = await quotationService.sendQuotation(id, {
+        vehicleId: selectedVehicle,
+        startTime: request.trip.startTime || "08:00 AM",
+        estimatedDistance: request.trip.estimatedDistance,
+        estimatedDuration: request.trip.estimatedDuration,
+        vehicleRentalCost,
+        driverCost,
+        fuelCost,
+        tollCharges,
+        permitFees,
+        customItems: customLineItems.map((item) => ({
+          description: item.description,
+          amount: item.amount,
+        })),
+        subtotal,
+        tax,
+        totalAmount: total,
+        additionalNotes,
+        validityDays,
+      });
+
+      alert("Quotation sent successfully!");
+      router.push(
+        `/${locale}/owner/quotations/sent/${response.data.quotation.id}`,
+      );
+    } catch (error: any) {
       console.error("Failed to send quotation:", error);
-      alert("Failed to send quotation");
+      alert(error.message || "Failed to send quotation");
     } finally {
       setSubmitting(false);
     }
@@ -410,7 +431,7 @@ export default function SendQuotationPage({
               </div>
 
               {/* Vehicle Selection */}
-              <div className="rounded-lg border border-gray-200 bg-white p-6">
+              {/* <div className="rounded-lg border border-gray-200 bg-white p-6">
                 <h2 className="mb-4 text-lg font-semibold text-gray-900">
                   Select Vehicle
                 </h2>
@@ -445,7 +466,7 @@ export default function SendQuotationPage({
                     </div>
                   ))}
                 </div>
-              </div>
+              </div> */}
 
               {/* Pricing Breakdown */}
               {selectedVehicle && (

@@ -1,148 +1,100 @@
 import { Router } from "express";
-import { authenticate, optionalAuth } from "../../middleware/auth.js";
+import { authenticate, authorize } from "../../middleware/auth.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
-import type { Request, Response } from "express";
+import { csrfProtection } from "../../middleware/csrf.js";
+import * as reviewController from "./review.controller.js";
 
 const router = Router();
 
+// ==========================================
 // Public routes
-// Get reviews for a vehicle
+// ==========================================
+
+/**
+ * @route   GET /api/v1/reviews/vehicle/:vehicleId
+ * @desc    Get reviews for a vehicle
+ * @access  Public
+ */
 router.get(
   "/vehicle/:vehicleId",
-  asyncHandler(async (req: Request, res: Response) => {
-    const { vehicleId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: {
-        reviews: [],
-        stats: {
-          averageRating: 0,
-          totalReviews: 0,
-          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-        },
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: 0,
-          totalPages: 0,
-        },
-      },
-    });
-  })
+  asyncHandler(reviewController.getVehicleReviews),
 );
 
-// Get reviews for an owner
-router.get(
-  "/owner/:ownerId",
-  asyncHandler(async (req: Request, res: Response) => {
-    const { ownerId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+// ==========================================
+// Customer routes
+// ==========================================
 
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: {
-        reviews: [],
-        stats: {
-          averageRating: 0,
-          totalReviews: 0,
-        },
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: 0,
-          totalPages: 0,
-        },
-      },
-    });
-  })
-);
-
-// Protected routes
-// Get my reviews
+/**
+ * @route   GET /api/v1/reviews/my-reviews
+ * @desc    Get customer's reviews
+ * @access  Private
+ */
 router.get(
   "/my-reviews",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { page = 1, limit = 10 } = req.query;
-
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: {
-        reviews: [],
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: 0,
-          totalPages: 0,
-        },
-      },
-    });
-  })
+  asyncHandler(reviewController.getMyReviews),
 );
 
-// Create a review (after completed booking)
+/**
+ * @route   GET /api/v1/reviews/pending
+ * @desc    Get bookings pending review
+ * @access  Private
+ */
+router.get(
+  "/pending",
+  authenticate,
+  asyncHandler(reviewController.getPendingReviews),
+);
+
+/**
+ * @route   POST /api/v1/reviews
+ * @desc    Create a review
+ * @access  Private
+ */
 router.post(
   "/",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { bookingId, vehicleId, rating, comment } = req.body;
-
-    // TODO: Implement with database (verify completed booking)
-    res.status(201).json({
-      success: true,
-      message: "Review submitted successfully",
-      data: { review: req.body },
-    });
-  })
+  csrfProtection,
+  asyncHandler(reviewController.createReview),
 );
 
-// Update a review
+/**
+ * @route   PUT /api/v1/reviews/:id
+ * @desc    Update a review
+ * @access  Private
+ */
 router.put(
   "/:id",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database (check ownership)
-    res.json({
-      success: true,
-      message: `Review ${id} updated`,
-    });
-  })
+  csrfProtection,
+  asyncHandler(reviewController.updateReview),
 );
 
-// Delete a review
+/**
+ * @route   DELETE /api/v1/reviews/:id
+ * @desc    Delete a review
+ * @access  Private
+ */
 router.delete(
   "/:id",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database (check ownership)
-    res.json({
-      success: true,
-      message: `Review ${id} deleted`,
-    });
-  })
+  asyncHandler(reviewController.deleteReview),
 );
 
-// Owner response to a review
+// ==========================================
+// Owner routes
+// ==========================================
+
+/**
+ * @route   POST /api/v1/reviews/:id/response
+ * @desc    Owner responds to a review
+ * @access  Private (Owner)
+ */
 router.post(
   "/:id/response",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { response } = req.body;
-
-    // TODO: Implement with database (verify owner)
-    res.json({
-      success: true,
-      message: `Response added to review ${id}`,
-    });
-  })
+  authorize("owner", "admin"),
+  asyncHandler(reviewController.respondToReview),
 );
 
 export default router;

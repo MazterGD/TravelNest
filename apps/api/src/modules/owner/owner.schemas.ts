@@ -44,21 +44,6 @@ const vehicleSchema = z.object({
   documents: z.array(vehicleDocumentSchema).optional().default([]),
 });
 
-// Business profile schema (optional)
-const businessProfileSchema = z
-  .object({
-    businessName: z.string().min(1, "Business name is required").max(100),
-    businessType: z.enum([
-      "sole-proprietorship",
-      "partnership",
-      "private-limited",
-      "other",
-    ]),
-    registrationNumber: z.string().optional(),
-    taxId: z.string().optional(),
-  })
-  .optional();
-
 // Owner document schema
 const ownerDocumentSchema = z.object({
   type: z.enum(["NIC", "PROFILE_PHOTO"]),
@@ -110,9 +95,6 @@ export const ownerRegistrationSchema = z.object({
     // Address
     address: addressSchema,
 
-    // Business profile (optional)
-    businessProfile: businessProfileSchema,
-
     // Owner documents (NIC, Profile Photo)
     ownerDocuments: z.array(ownerDocumentSchema).optional().default([]),
 
@@ -129,7 +111,6 @@ export type VehicleInput = z.infer<typeof vehicleSchema>;
 export type VehicleDocumentInput = z.infer<typeof vehicleDocumentSchema>;
 export type VehiclePhotoInput = z.infer<typeof vehiclePhotoSchema>;
 export type OwnerDocumentInput = z.infer<typeof ownerDocumentSchema>;
-export type BusinessProfileInput = z.infer<typeof businessProfileSchema>;
 export type AddressInput = z.infer<typeof addressSchema>;
 
 // Update profile schemas
@@ -150,10 +131,6 @@ export const updateAddressSchema = z.object({
     postalCode: z.string().optional(),
     baseLocation: z.string().min(1).max(100).optional(),
   }),
-});
-
-export const updateBusinessProfileSchema = z.object({
-  body: businessProfileSchema,
 });
 
 export type UpdatePersonalInfoInput = z.infer<

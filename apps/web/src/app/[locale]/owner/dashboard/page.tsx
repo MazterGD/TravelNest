@@ -136,11 +136,15 @@ export default function OwnerDashboardPage() {
 
         // Try to fetch quotations and bookings (may not have endpoints yet)
         try {
-          const quotes = await quotationService.getMyQuotes();
+          const response = await quotationService.getOwnerRequests({
+            status: "pending",
+          });
+          const data = response as any;
+          const quotes = data.data?.data || [];
           setQuotationRequests([]);
           setMetrics((prev) => ({
             ...prev,
-            pendingQuotes: (quotes as any[]).length,
+            pendingQuotes: quotes.length,
           }));
         } catch {
           // Quotation endpoints may not be implemented yet

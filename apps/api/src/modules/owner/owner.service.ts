@@ -51,14 +51,15 @@ const validateFileSize = (fileSize: number, fileName: string) => {
 };
 
 // Map vehicle type to database enum
+// Valid VehicleType enum values: ORDINARY, SEMI_LUXURY, LUXURY_AC
 const mapVehicleType = (type: string) => {
   const typeMap: Record<string, string> = {
-    luxury: "BUS",
-    "semi-luxury": "BUS",
-    standard: "BUS",
-    mini: "MINI_BUS",
+    luxury: "LUXURY_AC",
+    "semi-luxury": "SEMI_LUXURY",
+    standard: "ORDINARY",
+    mini: "ORDINARY",
   };
-  return typeMap[type] || "BUS";
+  return typeMap[type] || "ORDINARY";
 };
 
 // Map document type string to database enum
@@ -172,23 +173,6 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
       },
     });
 
-    // Create business profile if provided
-    if (data.businessProfile && data.businessProfile.businessName) {
-      await tx.businessProfile.create({
-        data: {
-          ownerId: user.id,
-          businessName: xss(data.businessProfile.businessName.trim()),
-          businessType: data.businessProfile.businessType,
-          registrationNumber: data.businessProfile.registrationNumber
-            ? xss(data.businessProfile.registrationNumber.trim())
-            : null,
-          taxId: data.businessProfile.taxId
-            ? xss(data.businessProfile.taxId.trim())
-            : null,
-        },
-      });
-    }
-
     // Create owner documents (if provided - optional for registration)
     if (data.ownerDocuments && data.ownerDocuments.length > 0) {
       for (const doc of data.ownerDocuments) {
@@ -289,7 +273,6 @@ export const getOwnerProfile = async (ownerId: string) => {
   const owner = await prisma.user.findUnique({
     where: { id: ownerId },
     include: {
-      businessProfile: true,
       documents: true,
       vehicles: {
         include: {
@@ -437,49 +420,6 @@ export const updateAddress = async (
 
   const { password, ...userWithoutPassword } = updatedUser;
   return userWithoutPassword;
-};
-
-/**
- * Update or create business profile
- */
-export const updateBusinessProfile = async (
-  ownerId: string,
-  data: {
-    businessName: string;
-    businessType: string;
-    registrationNumber?: string;
-    taxId?: string;
-  },
-) => {
-  // Check if business profile exists
-  const existingProfile = await prisma.businessProfile.findUnique({
-    where: { ownerId },
-  });
-
-  const sanitizedData = {
-    businessName: xss(data.businessName.trim()),
-    businessType: data.businessType,
-    registrationNumber: data.registrationNumber
-      ? xss(data.registrationNumber.trim())
-      : null,
-    taxId: data.taxId ? xss(data.taxId.trim()) : null,
-  };
-
-  if (existingProfile) {
-    // Update existing profile
-    return await prisma.businessProfile.update({
-      where: { ownerId },
-      data: sanitizedData,
-    });
-  } else {
-    // Create new profile
-    return await prisma.businessProfile.create({
-      data: {
-        ownerId,
-        ...sanitizedData,
-      },
-    });
-  }
 };
 
 /**

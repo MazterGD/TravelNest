@@ -29,7 +29,7 @@ apps/api/
 │       ├── booking/       # Booking management
 │       ├── quotation/     # Custom quotation requests
 │       ├── review/        # Reviews & ratings
-│       ├── payment/       # Stripe payment integration
+│       ├── payment/       # PayHere payment integration
 │       └── notification/  # User notifications
 ├── .env.example           # Environment variables template
 ├── package.json
@@ -84,11 +84,11 @@ apps/api/
 
 ### Reviews & Payments
 
-| Method | Endpoint                         | Description                  |
-| ------ | -------------------------------- | ---------------------------- |
-| GET    | `/api/v1/reviews/vehicle/:id`    | Get vehicle reviews          |
-| POST   | `/api/v1/reviews`                | Create review                |
-| POST   | `/api/v1/payments/create-intent` | Create Stripe payment intent |
+| Method | Endpoint                         | Description                   |
+| ------ | -------------------------------- | ----------------------------- |
+| GET    | `/api/v1/reviews/vehicle/:id`    | Get vehicle reviews           |
+| POST   | `/api/v1/reviews`                | Create review                 |
+| POST   | `/api/v1/payments/create-intent` | Create PayHere payment intent |
 
 ## Environment Variables
 
@@ -99,7 +99,8 @@ NODE_ENV=development
 PORT=5000
 DATABASE_URL=postgresql://...
 JWT_SECRET=your-secret
-STRIPE_SECRET_KEY=sk_test_...
+PAYHERE_MERCHANT_ID=your_merchant_id
+PAYHERE_MERCHANT_SECRET=your_merchant_secret
 ```
 
 ## Database

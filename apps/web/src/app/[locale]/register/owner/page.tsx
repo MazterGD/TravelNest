@@ -12,7 +12,6 @@ import {
   FaLock,
   FaEye,
   FaEyeSlash,
-  FaBuilding,
   FaCheckCircle,
   FaChevronLeft,
   FaChevronRight,
@@ -54,7 +53,7 @@ interface VehicleData {
   };
 }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 5;
 
 const VEHICLE_TYPES = [
   { value: "luxury", label: "Luxury Coach" },
@@ -127,7 +126,6 @@ export default function OwnerRegistrationPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [isBusinessOwner, setIsBusinessOwner] = useState(false);
 
   // Personal Information (including NIC moved from vehicle)
   const [personalInfo, setPersonalInfo] = useState({
@@ -143,14 +141,6 @@ export default function OwnerRegistrationPage() {
 
   // Owner NIC document
   const [nicDocument, setNicDocument] = useState<UploadedFile | null>(null);
-
-  // Business Information (Optional)
-  const [businessInfo, setBusinessInfo] = useState({
-    businessName: "",
-    businessType: "",
-    registrationNumber: "",
-    tin: "",
-  });
 
   // Address Information
   const [addressInfo, setAddressInfo] = useState({
@@ -250,18 +240,7 @@ export default function OwnerRegistrationPage() {
         // Documents are optional - can be uploaded later
         return true;
 
-      case 2: // Business Information (Optional but if provided, validate)
-        if (isBusinessOwner) {
-          if (!businessInfo.businessName || !businessInfo.businessType) {
-            setError(
-              "Please fill in required business fields or skip this step",
-            );
-            return false;
-          }
-        }
-        return true;
-
-      case 3: // Address
+      case 2: // Address
         if (
           !addressInfo.address ||
           !addressInfo.city ||
@@ -273,7 +252,7 @@ export default function OwnerRegistrationPage() {
         }
         return true;
 
-      case 4: // Vehicle Information
+      case 3: // Vehicle Information
         for (let i = 0; i < vehicles.length; i++) {
           const vehicle = vehicles[i];
           if (
@@ -292,7 +271,7 @@ export default function OwnerRegistrationPage() {
         }
         return true;
 
-      case 5: // Password
+      case 4: // Password
         if (!passwordData.password || !passwordData.confirmPassword) {
           setError("Please enter and confirm your password");
           return false;
@@ -307,7 +286,7 @@ export default function OwnerRegistrationPage() {
         }
         return true;
 
-      case 6: // Terms
+      case 5: // Terms
         if (
           !termsData.termsAccepted ||
           !termsData.privacyAccepted ||
@@ -497,18 +476,6 @@ export default function OwnerRegistrationPage() {
           postalCode: addressInfo.postalCode || undefined,
           baseLocation: addressInfo.baseLocation,
         },
-        businessProfile: isBusinessOwner
-          ? {
-              businessName: businessInfo.businessName,
-              businessType: businessInfo.businessType as
-                | "sole-proprietorship"
-                | "partnership"
-                | "private-limited"
-                | "other",
-              registrationNumber: businessInfo.registrationNumber || undefined,
-              taxId: businessInfo.tin || undefined,
-            }
-          : undefined,
         ownerDocuments: ownerDocs,
         vehicles: vehiclesData,
       };
@@ -566,7 +533,7 @@ export default function OwnerRegistrationPage() {
 
               <div className="relative">
                 <div className="flex justify-between mb-2">
-                  {[1, 2, 3, 4, 5, 6].map((step) => (
+                  {[1, 2, 3, 4, 5].map((step) => (
                     <div
                       key={step}
                       className="flex flex-col items-center flex-1"
@@ -594,11 +561,10 @@ export default function OwnerRegistrationPage() {
                         )}
                       >
                         {step === 1 && "Personal"}
-                        {step === 2 && "Business"}
-                        {step === 3 && "Address"}
-                        {step === 4 && "Vehicle"}
-                        {step === 5 && "Password"}
-                        {step === 6 && "Terms"}
+                        {step === 2 && "Address"}
+                        {step === 3 && "Vehicle"}
+                        {step === 4 && "Password"}
+                        {step === 5 && "Terms"}
                       </span>
                     </div>
                   ))}
@@ -913,131 +879,8 @@ export default function OwnerRegistrationPage() {
                     </div>
                   )}
 
-                  {/* Step 2: Business Information (Optional) */}
+                  {/* Step 2: Address & Base Location */}
                   {currentStep === 2 && (
-                    <div className="space-y-6">
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                          Business Information
-                        </h2>
-                        <p className="text-gray-600 mb-6">
-                          Optional - Skip if you&apos;re an individual bus owner
-                        </p>
-                      </div>
-
-                      {/* Toggle for business owner */}
-                      <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6 mb-6">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={isBusinessOwner}
-                            onChange={(e) =>
-                              setIsBusinessOwner(e.target.checked)
-                            }
-                            className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                          <span className="text-lg font-semibold text-gray-800">
-                            I am registering as a business entity
-                          </span>
-                        </label>
-                        <p className="text-sm text-gray-500 mt-2 ml-8">
-                          Check this if you have a registered transport company
-                        </p>
-                      </div>
-
-                      {isBusinessOwner && (
-                        <div className="space-y-6">
-                          <div>
-                            <label className="block text-lg font-semibold text-gray-800 mb-2">
-                              Business Name *
-                            </label>
-                            <div className="relative group">
-                              <FaBuilding className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
-                              <input
-                                type="text"
-                                value={businessInfo.businessName}
-                                onChange={(e) =>
-                                  setBusinessInfo({
-                                    ...businessInfo,
-                                    businessName: e.target.value,
-                                  })
-                                }
-                                placeholder="Your business name"
-                                className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-lg font-semibold text-gray-800 mb-2">
-                              Business Type *
-                            </label>
-                            <select
-                              value={businessInfo.businessType}
-                              onChange={(e) =>
-                                setBusinessInfo({
-                                  ...businessInfo,
-                                  businessType: e.target.value,
-                                })
-                              }
-                              className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none bg-gray-50 focus:bg-white cursor-pointer"
-                            >
-                              <option value="">Select business type</option>
-                              <option value="sole-proprietorship">
-                                Sole Proprietorship
-                              </option>
-                              <option value="partnership">Partnership</option>
-                              <option value="private-limited">
-                                Private Limited Company
-                              </option>
-                              <option value="other">Other</option>
-                            </select>
-                          </div>
-
-                          <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                              <label className="block text-lg font-semibold text-gray-800 mb-2">
-                                Business Registration Number
-                              </label>
-                              <input
-                                type="text"
-                                value={businessInfo.registrationNumber}
-                                onChange={(e) =>
-                                  setBusinessInfo({
-                                    ...businessInfo,
-                                    registrationNumber: e.target.value,
-                                  })
-                                }
-                                placeholder="Registration number"
-                                className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-lg font-semibold text-gray-800 mb-2">
-                                Tax Identification Number (TIN)
-                              </label>
-                              <input
-                                type="text"
-                                value={businessInfo.tin}
-                                onChange={(e) =>
-                                  setBusinessInfo({
-                                    ...businessInfo,
-                                    tin: e.target.value,
-                                  })
-                                }
-                                placeholder="TIN number"
-                                className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Step 3: Address & Base Location */}
-                  {currentStep === 3 && (
                     <div className="space-y-6">
                       <div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -1161,8 +1004,8 @@ export default function OwnerRegistrationPage() {
                     </div>
                   )}
 
-                  {/* Step 4: Vehicle Information & Documents */}
-                  {currentStep === 4 && (
+                  {/* Step 3: Vehicle Information & Documents */}
+                  {currentStep === 3 && (
                     <div className="space-y-6">
                       <div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -1682,8 +1525,8 @@ export default function OwnerRegistrationPage() {
                     </div>
                   )}
 
-                  {/* Step 5: Create Password */}
-                  {currentStep === 5 && (
+                  {/* Step 4: Create Password */}
+                  {currentStep === 4 && (
                     <div className="space-y-6">
                       <div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -1851,8 +1694,8 @@ export default function OwnerRegistrationPage() {
                     </div>
                   )}
 
-                  {/* Step 6: Terms and Conditions */}
-                  {currentStep === 6 && (
+                  {/* Step 5: Terms and Conditions */}
+                  {currentStep === 5 && (
                     <div className="space-y-6">
                       <div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">

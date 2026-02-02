@@ -57,7 +57,7 @@ export function QuotationRequestCard({
               <span
                 className={cn(
                   "px-2 py-0.5 text-xs font-medium rounded-full",
-                  getStatusColor(request.status)
+                  getStatusColor(request.status),
                 )}
               >
                 {t(request.status)}
@@ -217,31 +217,60 @@ export function QuotationRequestCard({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2">
-          {request.status === "pending" && onCancel && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCancel}
-              className="flex-1 text-destructive hover:bg-destructive/10"
-            >
-              {t("cancelRequest")}
-            </Button>
-          )}
-          {request.quotationsCount > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            {request.status === "pending" && onCancel && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCancel}
+                className="flex-1 text-destructive hover:bg-destructive/10"
+              >
+                Cancel Request
+              </Button>
+            )}
+            {request.quotationsCount > 0 && (
+              <Link
+                href={`/${locale}/dashboard/quotations/${request.id}`}
+                className="flex-1"
+              >
+                <Button size="sm" className="w-full">
+                  View Quotations ({request.quotationsCount})
+                </Button>
+              </Link>
+            )}
+            {request.quotationsCount === 0 && request.status === "pending" && (
+              <div className="flex-1 text-center py-2 text-sm text-muted-foreground">
+                Waiting for quotations
+              </div>
+            )}
+          </div>
+          {request.quotationsCount >= 2 && (
             <Link
-              href={`/${locale}/dashboard/quotations/${request.id}`}
-              className="flex-1"
+              href={`/${locale}/dashboard/quotations/compare?requestId=${request.id}`}
+              className="w-full"
             >
-              <Button size="sm" className="w-full">
-                {t("viewQuotations")} ({request.quotationsCount})
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-[#20B0E9] text-[#20B0E9] hover:bg-blue-50"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
+                Compare Quotations
               </Button>
             </Link>
-          )}
-          {request.quotationsCount === 0 && request.status === "pending" && (
-            <div className="flex-1 text-center py-2 text-sm text-muted-foreground">
-              {t("waitingForQuotations")}
-            </div>
           )}
         </div>
       </CardContent>

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
+import { quotationService } from "@/lib/api/services";
+import type { Quotation } from "@/types";
 import {
   FaArrowLeft,
   FaClock,
@@ -18,48 +20,54 @@ import {
 } from "react-icons/fa";
 import { useParams } from "next/navigation";
 
-type QuotationStatus = "new" | "quoted" | "expired" | "declined";
-
-interface QuotationRequest {
-  id: string;
-  customer: string;
-  route: string;
-  date: string;
-  passengers: number;
-  vehicleType: string;
-  status: QuotationStatus;
-  requestTime: string;
-  expiresIn: string;
-}
-
 export default function QuotationRequestsPage() {
   const { user } = useAuthStore();
   const params = useParams();
   const locale = params.locale as string;
-  const [activeTab, setActiveTab] = useState<QuotationStatus>("new");
+  const [activeTab, setActiveTab] = useState<"PENDING" | "all">("PENDING");
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [requests, setRequests] = useState<Quotation[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Protect this route - only vehicle owners can access
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
-  // Sample data - will be replaced with API data
-  const requests: QuotationRequest[] = [];
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        setLoading(true);
+        const response = await quotationService.getOwnerRequests({
+          status: activeTab === "PENDING" ? "PENDING" : undefined,
+        });
+        const data = response as any;
+        setRequests(data.data?.data || data.quotations || []);
+      } catch (error) {
+        console.error("Failed to fetch quotation requests:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isAuthorized) {
+      fetchRequests();
+    }
+  }, [isAuthorized, activeTab]);
 
   const filteredRequests = requests.filter((req) => {
-    const matchesTab = req.status === activeTab;
     const matchesSearch =
       searchQuery === "" ||
-      req.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.route.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTab && matchesSearch;
+      `${req.customer?.firstName || ""} ${req.customer?.lastName || ""}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      req.pickupLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      req.dropoffLocation.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
   });
 
   const tabCounts = {
-    new: requests.filter((r) => r.status === "new").length,
-    quoted: requests.filter((r) => r.status === "quoted").length,
-    expired: requests.filter((r) => r.status === "expired").length,
-    declined: requests.filter((r) => r.status === "declined").length,
+    PENDING: requests.filter((r) => r.status === "PENDING").length,
+    all: requests.length,
   };
 
   // Show loading while checking auth state
@@ -104,9 +112,9 @@ export default function QuotationRequestsPage() {
                   <FaFileAlt className="h-4 w-4" />
                   Sent Quotations
                 </Link>
-                {tabCounts.new > 0 && (
+                {tabCounts.PENDING > 0 && (
                   <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-white">
-                    {tabCounts.new} New
+                    {tabCounts.PENDING} New
                   </span>
                 )}
               </div>
@@ -119,26 +127,26 @@ export default function QuotationRequestsPage() {
           <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
             <div className="mb-4 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
               <div className="flex gap-2">
-                {(
-                  [
-                    { id: "new", label: "New" },
-                    { id: "quoted", label: "Quoted" },
-                    { id: "expired", label: "Expired" },
-                    { id: "declined", label: "Declined" },
-                  ] as const
-                ).map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                      activeTab === tab.id
-                        ? "bg-gray-900 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    {tab.label} ({tabCounts[tab.id]})
-                  </button>
-                ))}
+                <button
+                  onClick={() => setActiveTab("PENDING")}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    activeTab === "PENDING"
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  Pending ({tabCounts.PENDING})
+                </button>
+                <button
+                  onClick={() => setActiveTab("all")}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    activeTab === "all"
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  All ({tabCounts.all})
+                </button>
               </div>
 
               <button
@@ -204,95 +212,108 @@ export default function QuotationRequestsPage() {
           </div>
 
           {/* Request Cards */}
-          {filteredRequests.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : filteredRequests.length > 0 ? (
             <div className="space-y-4">
-              {filteredRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300"
-                >
-                  <div className="mb-4 flex items-start justify-between">
-                    <div>
-                      <div className="mb-2 flex items-center gap-3">
-                        <h3 className="font-semibold text-gray-900">
-                          {request.customer}
-                        </h3>
-                        <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-white">
-                          New
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600">{request.id}</p>
-                    </div>
-                    <div className="text-right text-sm">
-                      <div className="mb-1 text-gray-500">
-                        {request.requestTime}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-yellow-600">
-                        <FaClock className="h-4 w-4" />
-                        <span className="font-medium">
-                          Expires in {request.expiresIn}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+              {filteredRequests.map((request) => {
+                const customerName =
+                  `${request.customer?.firstName || ""} ${request.customer?.lastName || ""}`.trim() ||
+                  "Unknown";
+                const startDate = new Date(
+                  request.startDate,
+                ).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                });
+                const createdTime = new Date(
+                  request.createdAt,
+                ).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                });
 
-                  <div className="mb-5 grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
-                    <div className="flex items-center gap-2">
-                      <FaMapMarkerAlt className="h-4 w-4 text-gray-400" />
+                return (
+                  <div
+                    key={request.id}
+                    className="rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300"
+                  >
+                    <div className="mb-4 flex items-start justify-between">
                       <div>
-                        <div className="text-xs text-gray-500">Route</div>
+                        <div className="mb-2 flex items-center gap-3">
+                          <h3 className="font-semibold text-gray-900">
+                            {customerName}
+                          </h3>
+                          <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-white">
+                            {request.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {request.quotationId}
+                        </p>
+                      </div>
+                      <div className="text-right text-sm">
+                        <div className="mb-1 text-gray-500">{createdTime}</div>
+                      </div>
+                    </div>
+
+                    <div className="mb-5 grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
+                      <div className="flex items-center gap-2">
+                        <FaMapMarkerAlt className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <div className="text-xs text-gray-500">Route</div>
+                          <div className="font-medium text-gray-900">
+                            {request.pickupLocation} → {request.dropoffLocation}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <FaCalendarAlt className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <div className="text-xs text-gray-500">Date</div>
+                          <div className="font-medium text-gray-900">
+                            {startDate}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <FaUsers className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <div className="text-xs text-gray-500">
+                            Passengers
+                          </div>
+                          <div className="font-medium text-gray-900">
+                            {request.passengerCount}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="mb-1 text-xs text-gray-500">
+                          Vehicle Type
+                        </div>
                         <div className="font-medium text-gray-900">
-                          {request.route}
+                          {request.vehicleType}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <FaCalendarAlt className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <div className="text-xs text-gray-500">Date</div>
-                        <div className="font-medium text-gray-900">
-                          {request.date}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <FaUsers className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <div className="text-xs text-gray-500">Passengers</div>
-                        <div className="font-medium text-gray-900">
-                          {request.passengers}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="mb-1 text-xs text-gray-500">
-                        Vehicle Preference
-                      </div>
-                      <div className="font-medium text-gray-900">
-                        {request.vehicleType}
-                      </div>
+                    <div className="flex gap-3">
+                      <Link
+                        href={`/${locale}/owner/quotations/send/${request.id}`}
+                        className="flex-1 rounded-lg bg-gray-900 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-gray-800"
+                      >
+                        Send Quotation
+                      </Link>
                     </div>
                   </div>
-
-                  <div className="flex gap-3">
-                    <Link
-                      href={`/${locale}/owner/quotations/send/${request.id}`}
-                      className="flex-1 rounded-lg bg-gray-900 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-gray-800"
-                    >
-                      Send Quotation
-                    </Link>
-                    <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
-                      View Details
-                    </button>
-                    <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
-                      Decline
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             /* Empty State */
@@ -302,12 +323,12 @@ export default function QuotationRequestsPage() {
                   <FaClock className="h-8 w-8 text-gray-400" />
                 </div>
                 <h3 className="mb-2 font-semibold text-gray-900">
-                  No {activeTab} requests
+                  No {activeTab === "PENDING" ? "pending" : ""} requests
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {activeTab === "new"
+                  {activeTab === "PENDING"
                     ? "You're all caught up! New quotation requests will appear here."
-                    : `No ${activeTab} quotation requests at the moment.`}
+                    : "No quotation requests at the moment."}
                 </p>
               </div>
             </div>

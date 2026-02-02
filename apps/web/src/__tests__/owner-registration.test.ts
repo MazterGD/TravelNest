@@ -244,25 +244,24 @@ describe("Owner Registration Page", () => {
 
   describe("Step Navigation", () => {
     it("should have correct number of steps", () => {
-      const TOTAL_STEPS = 6;
+      const TOTAL_STEPS = 5;
 
-      expect(TOTAL_STEPS).toBe(6);
+      expect(TOTAL_STEPS).toBe(5);
     });
 
     it("should have correct step labels", () => {
       const stepLabels = [
         "Personal",
-        "Business",
         "Address",
         "Vehicle",
         "Password",
         "Terms",
       ];
 
-      expect(stepLabels.length).toBe(6);
+      expect(stepLabels.length).toBe(5);
       expect(stepLabels[0]).toBe("Personal");
-      expect(stepLabels[3]).toBe("Vehicle");
-      expect(stepLabels[5]).toBe("Terms");
+      expect(stepLabels[2]).toBe("Vehicle");
+      expect(stepLabels[4]).toBe("Terms");
     });
   });
 });

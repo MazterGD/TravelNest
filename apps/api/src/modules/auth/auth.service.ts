@@ -407,10 +407,13 @@ export const generatePasswordResetToken = async (email: string) => {
   });
 
   // TODO: Send email with rawToken (not hashedToken)
-  // For now, log token in development
+  // In development, log a masked token for debugging
   if (config.env === "development") {
-    console.log(`Password reset token for ${email}: ${rawToken}`);
-    console.log(`Reset URL: ${config.appUrl}/reset-password?token=${rawToken}`);
+    const maskedToken = `${rawToken.substring(0, 8)}...${rawToken.substring(rawToken.length - 8)}`;
+    console.log(
+      `Password reset requested for ${email}. Token (masked): ${maskedToken}`,
+    );
+    console.log(`Reset URL: ${config.appUrl}/reset-password?token=<token>`);
   }
 
   return { message: "If the email exists, a reset link will be sent" };

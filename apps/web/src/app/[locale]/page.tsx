@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import {
   FaCheckCircle,
@@ -15,6 +15,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 export default function Home() {
   const t = useTranslations("home");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
 
   const features = [
     {
@@ -76,13 +77,13 @@ export default function Home() {
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link
-                href="/en/search"
+                href={`/${locale}/search`}
                 className="rounded-md bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-secondary transition-colors"
               >
                 {t("hero.searchButton")}
               </Link>
               <Link
-                href="/en/how-it-works"
+                href={`/${locale}/how-it-works`}
                 className="text-base font-semibold leading-7 text-foreground hover:text-accent transition-colors"
               >
                 {tCommon("learnMore")} <span aria-hidden="true">→</span>
@@ -173,7 +174,7 @@ export default function Home() {
           </p>
           <div className="mt-10">
             <Link
-              href="/en/search"
+              href={`/${locale}/search`}
               className="inline-flex items-center justify-center rounded-md bg-accent px-8 py-4 text-base font-semibold text-primary shadow-sm hover:bg-accent/90 transition-colors"
             >
               {t("cta.customer.button")}

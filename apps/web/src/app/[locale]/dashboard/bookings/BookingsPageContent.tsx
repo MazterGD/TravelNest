@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
@@ -13,89 +13,8 @@ import {
 } from "@/components/ui";
 import { BookingCard } from "@/components/features/customer";
 import { BookingStatus, PaymentStatus } from "@/types";
+import { bookingService, ApiError } from "@/lib/api";
 import type { BookingWithDetails } from "@/store";
-
-// Mock data
-const mockBookings: BookingWithDetails[] = [
-  {
-    id: "b1",
-    vehicleId: "v1",
-    customerId: "c1",
-    ownerId: "o1",
-    quotationId: "q1",
-    bookingReference: "BK-001",
-    startDate: new Date(Date.now() + 86400000 * 3),
-    endDate: new Date(Date.now() + 86400000 * 3 + 3600000 * 8),
-    startTime: "08:00",
-    passengerCount: 4,
-    stops: [],
-    paidAmount: 15000,
-    totalAmount: 15000,
-    status: BookingStatus.CONFIRMED,
-    paymentStatus: PaymentStatus.PAID,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    vehicleName: "Toyota KDH Van",
-    vehicleImage: "/images/vehicles/kdh-van.jpg",
-    ownerName: "Kamal Perera",
-    ownerPhone: "+94 77 123 4567",
-    driverName: "Sunil Fernando",
-    driverPhone: "+94 76 987 6543",
-    pickupLocation: {
-      address: "Colombo Fort Railway Station",
-      city: "Colombo",
-      district: "Colombo",
-    },
-    destination: {
-      address: "Kandy City Centre",
-      city: "Kandy",
-      district: "Kandy",
-    },
-    dropoffLocation: {
-      address: "Kandy City Centre",
-      city: "Kandy",
-      district: "Kandy",
-    },
-  },
-  {
-    id: "b2",
-    vehicleId: "v2",
-    customerId: "c1",
-    ownerId: "o2",
-    quotationId: "q2",
-    bookingReference: "BK-002",
-    startDate: new Date(Date.now() - 86400000 * 7),
-    endDate: new Date(Date.now() - 86400000 * 7 + 3600000 * 10),
-    startTime: "09:00",
-    passengerCount: 2,
-    stops: [],
-    paidAmount: 22000,
-    totalAmount: 22000,
-    status: BookingStatus.COMPLETED,
-    paymentStatus: PaymentStatus.PAID,
-    createdAt: new Date(Date.now() - 86400000 * 10),
-    updatedAt: new Date(Date.now() - 86400000 * 7),
-    vehicleName: "Toyota Prius",
-    ownerName: "Nimal Silva",
-    ownerPhone: "+94 71 234 5678",
-    pickupLocation: {
-      address: "Galle Face Hotel",
-      city: "Colombo",
-      district: "Colombo",
-    },
-    destination: {
-      address: "Bentota Beach",
-      city: "Bentota",
-      district: "Galle",
-    },
-    dropoffLocation: {
-      address: "Bentota Beach",
-      city: "Bentota",
-      district: "Galle",
-    },
-    hasReview: false,
-  },
-];
 
 interface BookingsPageContentProps {
   locale: string;
@@ -103,11 +22,79 @@ interface BookingsPageContentProps {
 
 export function BookingsPageContent({ locale }: BookingsPageContentProps) {
   const t = useTranslations("booking");
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
   const [activeTab, setActiveTab] = useState("all");
 
+  // Fetch bookings from API
+  const fetchBookings = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await bookingService.getMyBookings();
+      const data = response as any;
+      const bookingsList = data.bookings || data || [];
+
+      // Transform API response to BookingWithDetails format
+      const transformedBookings: BookingWithDetails[] = bookingsList.map(
+        (booking: any) => ({
+          id: booking.id,
+          vehicleId: booking.vehicleId,
+          customerId: booking.customerId,
+          ownerId: booking.ownerId,
+          bookingReference: booking.bookingReference || booking.bookingRef,
+          startDate: new Date(booking.startDate),
+          endDate: new Date(booking.endDate),
+          startTime: booking.startTime,
+          passengerCount: booking.passengerCount,
+          stops: [],
+          paidAmount: booking.paidAmount || 0,
+          totalAmount: booking.totalAmount,
+          status: booking.status as BookingStatus,
+          paymentStatus: (booking.paymentStatus || "pending") as PaymentStatus,
+          createdAt: new Date(booking.createdAt),
+          updatedAt: new Date(booking.updatedAt),
+          vehicleName: booking.vehicleName || "Vehicle",
+          vehicleImage: booking.vehicleImage,
+          ownerName: booking.ownerName || "Owner",
+          ownerPhone: booking.ownerPhone || "",
+          hasReview: booking.hasReview,
+          pickupLocation:
+            typeof booking.pickupLocation === "string"
+              ? {
+                  address: booking.pickupLocation,
+                  city: booking.pickupLocation.split(",")[0]?.trim() || "",
+                }
+              : booking.pickupLocation,
+          dropoffLocation:
+            typeof booking.dropoffLocation === "string"
+              ? {
+                  address: booking.dropoffLocation,
+                  city: booking.dropoffLocation.split(",")[0]?.trim() || "",
+                }
+              : booking.dropoffLocation,
+        }),
+      );
+
+      setBookings(transformedBookings);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to fetch bookings");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
+
   const now = new Date();
-  const filteredBookings = mockBookings.filter((booking) => {
+  const filteredBookings = bookings.filter((booking) => {
     if (activeTab === "upcoming") return new Date(booking.startDate) > now;
     if (activeTab === "past") return new Date(booking.endDate) < now;
     if (activeTab === "cancelled")
@@ -116,32 +103,45 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
   });
 
   const tabs = [
-    { id: "all", label: t("all"), badge: mockBookings.length },
+    { id: "all", label: t("all"), badge: bookings.length },
     {
       id: "upcoming",
       label: t("upcoming"),
-      badge: mockBookings.filter((b) => new Date(b.startDate) > now).length,
+      badge: bookings.filter((b) => new Date(b.startDate) > now).length,
     },
     {
       id: "past",
       label: t("past"),
-      badge: mockBookings.filter((b) => new Date(b.endDate) < now).length,
+      badge: bookings.filter((b) => new Date(b.endDate) < now).length,
     },
     {
       id: "cancelled",
       label: t("cancelled"),
-      badge: mockBookings.filter((b) => b.status === "cancelled").length,
+      badge: bookings.filter((b) => b.status === BookingStatus.CANCELLED)
+        .length,
     },
   ];
 
-  const handleCancelBooking = (bookingId: string) => {
-    // TODO: Implement cancel booking API call
-    void bookingId;
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      await bookingService.cancel(bookingId, "Cancelled by customer");
+      // Refresh bookings after cancellation
+      fetchBookings();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        alert(err.message);
+      } else {
+        alert("Failed to cancel booking");
+      }
+    }
   };
 
   const handleReview = (bookingId: string) => {
-    // TODO: Navigate to review page
-    void bookingId;
+    window.location.href = `/${locale}/dashboard/reviews?booking=${bookingId}`;
+  };
+
+  const handleViewDetails = (bookingId: string) => {
+    window.location.href = `/${locale}/dashboard/bookings/${bookingId}`;
   };
 
   return (
@@ -158,6 +158,15 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
         variant="pills"
       />
 
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+          {error}
+          <Button variant="link" onClick={fetchBookings} className="ml-2">
+            Retry
+          </Button>
+        </div>
+      )}
+
       {isLoading ? (
         <SkeletonList count={3} />
       ) : filteredBookings.length > 0 ? (
@@ -168,7 +177,7 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
               booking={booking}
               onCancel={() => handleCancelBooking(booking.id)}
               onReview={() => handleReview(booking.id)}
-              onViewDetails={() => {}}
+              onViewDetails={() => handleViewDetails(booking.id)}
             />
           ))}
         </div>

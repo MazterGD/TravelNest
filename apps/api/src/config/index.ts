@@ -62,10 +62,14 @@ export const config = {
     from: process.env.EMAIL_FROM || "noreply@travenest.com",
   },
 
-  // Stripe
-  stripe: {
-    secretKey: process.env.STRIPE_SECRET_KEY || "",
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
+  // PayHere Payment Gateway
+  payhere: {
+    merchantId: process.env.PAYHERE_MERCHANT_ID || "",
+    merchantSecret: process.env.PAYHERE_MERCHANT_SECRET || "",
+    mode: process.env.PAYHERE_MODE || "sandbox", // 'sandbox' or 'live'
+    notifyUrl: process.env.PAYHERE_NOTIFY_URL || "",
+    returnUrl: process.env.PAYHERE_RETURN_URL || "",
+    cancelUrl: process.env.PAYHERE_CANCEL_URL || "",
   },
 
   // File Upload
@@ -80,6 +84,16 @@ export const config = {
     process.env.RATE_LIMIT_MAX_REQUESTS || "100",
     10,
   ),
+
+  // Auth-specific Rate Limiting (stricter for login/register)
+  authRateLimitWindowMs: parseInt(
+    process.env.AUTH_RATE_LIMIT_WINDOW_MS || "900000",
+    10,
+  ), // 15 minutes
+  authRateLimitMaxRequests: parseInt(
+    process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || "10",
+    10,
+  ), // 10 attempts per 15 minutes
 } as const;
 
 // Validate required environment variables in production

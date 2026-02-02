@@ -6,6 +6,7 @@ import {
 } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
+import { csrfProtection } from "../../middleware/csrf.js";
 import * as vehicleController from "./vehicle.controller.js";
 import {
   createVehicleSchema,
@@ -43,6 +44,7 @@ router.get(
 router.post(
   "/",
   authenticate,
+  csrfProtection,
   authorize("owner", "admin"),
   validate(createVehicleSchema),
   asyncHandler(vehicleController.createVehicle),
@@ -52,6 +54,7 @@ router.post(
 router.patch(
   "/:id",
   authenticate,
+  csrfProtection,
   authorize("owner", "admin"),
   validate(updateVehicleSchema),
   asyncHandler(vehicleController.updateVehicle),
@@ -61,6 +64,7 @@ router.patch(
 router.delete(
   "/:id",
   authenticate,
+  csrfProtection,
   authorize("owner", "admin"),
   validate(deleteVehicleSchema),
   asyncHandler(vehicleController.deleteVehicle),
@@ -70,6 +74,7 @@ router.delete(
 router.post(
   "/:id/photos",
   authenticate,
+  csrfProtection,
   authorize("owner", "admin"),
   validate(uploadPhotosSchema),
   asyncHandler(vehicleController.uploadPhotos),
@@ -79,6 +84,7 @@ router.post(
 router.post(
   "/:id/documents",
   authenticate,
+  csrfProtection,
   authorize("owner", "admin"),
   validate(uploadDocumentsSchema),
   asyncHandler(vehicleController.uploadDocuments),
@@ -88,6 +94,7 @@ router.post(
 router.patch(
   "/:id/availability",
   authenticate,
+  csrfProtection,
   authorize("owner", "admin"),
   asyncHandler(vehicleController.toggleAvailability),
 );
@@ -96,6 +103,7 @@ router.patch(
 router.patch(
   "/:id/status",
   authenticate,
+  csrfProtection,
   authorize("owner", "admin"),
   asyncHandler(vehicleController.toggleStatus),
 );
