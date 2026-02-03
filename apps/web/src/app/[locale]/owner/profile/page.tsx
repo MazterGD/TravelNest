@@ -120,7 +120,7 @@ export default function OwnerProfilePage() {
 
       try {
         const response = await vehicleService.getMyVehicles();
-        setVehicles(response as Vehicle[]);
+        setVehicles((response?.vehicles || []) as Vehicle[]);
       } catch (err) {
         console.error("Failed to fetch vehicles:", err);
         if (err instanceof ApiError) {

@@ -53,19 +53,23 @@ const validateFileSize = (fileSize: number, fileName: string) => {
 };
 
 interface VehicleCreateInput {
-  registrationNumber: string;
+  name: string;
+  licensePlate: string;
   type: string;
-  make: string;
+  brand: string;
   model: string;
   year: number;
-  capacity: number;
-  color: string;
+  seats: number;
+  color?: string;
   acType: string;
-  condition: string;
+  condition?: string;
+  fuelType?: string;
+  transmission?: string;
   description?: string;
-  pricePerKm: number;
+  pricePerKm?: number;
   pricePerDay: number;
   driverAllowance?: number;
+  location: string;
   amenities?: string[];
   features?: Record<string, boolean>;
 }
@@ -77,18 +81,22 @@ interface VehicleUpdateInput extends Partial<VehicleCreateInput> {
 
 /**
  * Map frontend vehicle type to database enum
+ * Now uses direct Prisma enum values: ORDINARY, SEMI_LUXURY, LUXURY_AC
  */
-const mapVehicleType = (type: string) => {
+const mapVehicleType = (type: string): string => {
+  // Validate and return the type directly (schema ensures valid values)
+  const validTypes = ["ORDINARY", "SEMI_LUXURY", "LUXURY_AC"];
+  if (validTypes.includes(type)) {
+    return type;
+  }
+  // Fallback mapping for legacy values
   const mapping: Record<string, string> = {
-    luxury: "BUS",
-    "semi-luxury": "BUS",
-    standard: "BUS",
-    mini: "MINI_BUS",
-    car: "CAR",
-    van: "VAN",
-    suv: "SUV",
+    luxury: "LUXURY_AC",
+    "semi-luxury": "SEMI_LUXURY",
+    standard: "ORDINARY",
+    ordinary: "ORDINARY",
   };
-  return mapping[type.toLowerCase()] || "BUS";
+  return mapping[type.toLowerCase()] || "ORDINARY";
 };
 
 /**
@@ -287,12 +295,12 @@ export const createVehicle = async (
 ) => {
   // Check if registration number already exists
   const existing = await prisma.vehicle.findUnique({
-    where: { licensePlate: data.registrationNumber },
+    where: { licensePlate: data.licensePlate.toUpperCase() },
   });
 
   if (existing) {
     throw ApiError.conflict(
-      `Vehicle with registration number ${data.registrationNumber} already exists`,
+      `Vehicle with license plate ${data.licensePlate} already exists`,
     );
   }
 
@@ -311,15 +319,15 @@ export const createVehicle = async (
   const vehicle = await prisma.vehicle.create({
     data: {
       ownerId,
-      name: `${xss(data.make)} ${xss(data.model)}`,
+      name: xss(data.name),
       type: mapVehicleType(data.type) as any,
-      brand: xss(data.make),
+      brand: xss(data.brand),
       model: xss(data.model),
       year: data.year,
-      licensePlate: xss(data.registrationNumber.toUpperCase()),
-      seats: data.capacity,
+      licensePlate: xss(data.licensePlate.toUpperCase()),
+      seats: data.seats,
       doors: 2, // Default for buses
-      color: xss(data.color),
+      color: data.color ? xss(data.color) : null,
       acType: mapACType(data.acType),
       fuelType: "DIESEL", // Default for buses
       transmission: "MANUAL", // Default for buses
@@ -327,7 +335,7 @@ export const createVehicle = async (
       pricePerDay: data.pricePerDay,
       pricePerKm: data.pricePerKm || null,
       driverAllowance: data.driverAllowance || null,
-      location: "Colombo", // Default location
+      location: xss(data.location),
       amenities: data.amenities || [],
       features: [],
       isAvailable: owner.isVerified, // Auto-available if owner is verified
@@ -367,14 +375,16 @@ export const updateVehicle = async (
   // Prepare update data
   const updateData: any = {};
 
-  if (data.make || data.model) {
-    updateData.name = `${data.make || existing.brand} ${data.model || existing.model}`;
+  if (data.name) updateData.name = xss(data.name);
+  if (data.brand || data.model) {
+    updateData.name = `${data.brand || existing.brand} ${data.model || existing.model}`;
   }
   if (data.type) updateData.type = mapVehicleType(data.type) as any;
-  if (data.make) updateData.brand = xss(data.make);
+  if (data.licensePlate) updateData.licensePlate = xss(data.licensePlate);
+  if (data.brand) updateData.brand = xss(data.brand);
   if (data.model) updateData.model = xss(data.model);
   if (data.year) updateData.year = data.year;
-  if (data.capacity) updateData.seats = data.capacity;
+  if (data.seats) updateData.seats = data.seats;
   if (data.color) updateData.color = xss(data.color);
   if (data.acType) updateData.acType = mapACType(data.acType);
   if (data.condition) updateData.condition = xss(data.condition);
@@ -384,6 +394,7 @@ export const updateVehicle = async (
   if (data.pricePerKm) updateData.pricePerKm = data.pricePerKm;
   if (data.driverAllowance !== undefined)
     updateData.driverAllowance = data.driverAllowance;
+  if (data.location) updateData.location = xss(data.location);
   if (data.amenities) updateData.amenities = data.amenities;
   if (data.features) updateData.features = data.features;
   if (data.isAvailable !== undefined) updateData.isAvailable = data.isAvailable;

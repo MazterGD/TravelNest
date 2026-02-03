@@ -40,8 +40,7 @@ export default function QuotationRequestsPage() {
         const response = await quotationService.getOwnerRequests({
           status: activeTab === "PENDING" ? "PENDING" : undefined,
         });
-        const data = response as any;
-        setRequests(data.data?.data || data.quotations || []);
+        setRequests(response.quotations || []);
       } catch (error) {
         console.error("Failed to fetch quotation requests:", error);
       } finally {

@@ -85,7 +85,7 @@ export default function QuotationDetailPage({
     const fetchQuotation = async () => {
       try {
         const response = await quotationService.getById(id);
-        const data = response.data.quotation;
+        const data = response.quotation;
 
         // Calculate days remaining
         const validUntil = data.validUntil ? new Date(data.validUntil) : null;

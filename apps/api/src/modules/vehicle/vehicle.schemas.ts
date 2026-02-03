@@ -53,12 +53,12 @@ const vehicleDocumentSchema = z.object({
   expiryDate: z.string().datetime().optional(),
 });
 
-// Create vehicle schema
+// Create vehicle schema - Bus rental platform only
 export const createVehicleSchema = z.object({
   body: z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
     description: z.string().optional(),
-    type: z.enum(["CAR", "VAN", "MINI_BUS", "SUV", "BUS", "MOTORCYCLE"]),
+    type: z.enum(["ORDINARY", "SEMI_LUXURY", "LUXURY_AC"]),
     brand: z.string().min(2, "Brand is required"),
     model: z.string().min(1, "Model is required"),
     year: z
@@ -74,15 +74,13 @@ export const createVehicleSchema = z.object({
         "Invalid license plate format (e.g., WP-1234)",
       ),
     color: z.string().optional(),
-    seats: z.number().int().min(1).max(100, "Invalid seat count"),
-    doors: z.number().int().min(2).max(10).optional(),
-    fuelType: z.enum(["PETROL", "DIESEL", "ELECTRIC", "HYBRID"]),
-    transmission: z.enum(["AUTOMATIC", "MANUAL"]),
+    seats: z.number().int().min(10).max(100, "Buses must have 10-100 seats"),
+    fuelType: z.enum(["DIESEL"]).default("DIESEL"),
+    transmission: z.enum(["MANUAL"]).default("MANUAL"),
     acType: z.enum(["full-ac", "ac", "non-ac"]),
     condition: z.enum(["excellent", "good", "fair"]).optional(),
     mileage: z.number().int().min(0).optional(),
     pricePerDay: z.number().positive("Price per day must be positive"),
-    pricePerHour: z.number().positive().optional(),
     pricePerKm: z.number().positive().optional(),
     driverAllowance: z.number().min(0).optional(),
     location: z.string().min(2, "Location is required"),
@@ -93,14 +91,12 @@ export const createVehicleSchema = z.object({
   }),
 });
 
-// Update vehicle schema
+// Update vehicle schema - Bus rental platform only
 export const updateVehicleSchema = z.object({
   body: z.object({
     name: z.string().min(2).optional(),
     description: z.string().optional(),
-    type: z
-      .enum(["CAR", "VAN", "MINI_BUS", "SUV", "BUS", "MOTORCYCLE"])
-      .optional(),
+    type: z.enum(["ORDINARY", "SEMI_LUXURY", "LUXURY_AC"]).optional(),
     brand: z.string().min(2).optional(),
     model: z.string().min(1).optional(),
     year: z
@@ -109,16 +105,22 @@ export const updateVehicleSchema = z.object({
       .min(1990)
       .max(new Date().getFullYear() + 1)
       .optional(),
+    licensePlate: z
+      .string()
+      .min(3, "License plate is required")
+      .regex(
+        /^[A-Z]{2,3}-\d{4}$/,
+        "Invalid license plate format (e.g., WP-1234)",
+      )
+      .optional(),
     color: z.string().optional(),
-    seats: z.number().int().min(1).max(100).optional(),
-    doors: z.number().int().min(2).max(10).optional(),
-    fuelType: z.enum(["PETROL", "DIESEL", "ELECTRIC", "HYBRID"]).optional(),
-    transmission: z.enum(["AUTOMATIC", "MANUAL"]).optional(),
+    seats: z.number().int().min(10).max(100).optional(),
+    fuelType: z.enum(["DIESEL"]).optional(),
+    transmission: z.enum(["MANUAL"]).optional(),
     acType: z.enum(["full-ac", "ac", "non-ac"]).optional(),
     condition: z.enum(["excellent", "good", "fair"]).optional(),
     mileage: z.number().int().min(0).optional(),
     pricePerDay: z.number().positive().optional(),
-    pricePerHour: z.number().positive().optional(),
     pricePerKm: z.number().positive().optional(),
     driverAllowance: z.number().min(0).optional(),
     location: z.string().min(2).optional(),

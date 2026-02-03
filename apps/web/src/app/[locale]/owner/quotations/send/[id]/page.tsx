@@ -95,8 +95,13 @@ export default function SendQuotationPage({
       try {
         // Fetch quotation request
         const quotationResponse = await quotationService.getById(id);
-        const responseData = quotationResponse as any;
-        const data = responseData.data?.quotation || responseData.quotation;
+        const data = quotationResponse.quotation;
+
+        if (!data) {
+          console.error("Quotation not found");
+          setLoading(false);
+          return;
+        }
 
         setRequest({
           id: data.id,
@@ -121,13 +126,18 @@ export default function SendQuotationPage({
 
         // Fetch owner's vehicles
         const vehiclesResponse = await vehicleService.getMyVehicles();
-        const vehicleList = vehiclesResponse.map((v: any) => ({
-          id: v.id,
-          name: `${v.make} ${v.model} (${v.registrationNumber})`,
-          type: v.hasAC ? "Luxury" : "Standard",
-          capacity: v.passengerCapacity,
-          baseRate: v.pricePerDay || 0,
-        }));
+        const vehicleList = (vehiclesResponse?.vehicles || []).map(
+          (v: any) => ({
+            id: v.id,
+            name: `${v.brand || v.make || ""} ${v.model} (${v.licensePlate || v.registrationNumber || ""})`,
+            type:
+              v.acType === "FULL_AC" || v.acType === "SEMI_AC"
+                ? "Luxury"
+                : "Standard",
+            capacity: v.seats || v.passengerCapacity || 0,
+            baseRate: v.pricePerDay || 0,
+          }),
+        );
         setVehicles(vehicleList);
       } catch (error) {
         console.error("Failed to fetch data:", error);

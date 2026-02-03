@@ -53,8 +53,7 @@ export default function SentQuotationsPage() {
         const response = await quotationService.getOwnerSentQuotations({
           status: activeTab !== "all" ? activeTab : undefined,
         });
-        const data = response as any;
-        setQuotations(data.data?.data || data.quotations || []);
+        setQuotations(response.quotations || []);
       } catch (error) {
         console.error("Failed to fetch sent quotations:", error);
       } finally {

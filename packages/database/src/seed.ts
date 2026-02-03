@@ -358,9 +358,9 @@ async function main() {
       },
       {
         ownerId: owner1.id,
-        type: "BUSINESS_REGISTRATION",
-        url: "https://storage.example.com/docs/owner1-business.pdf",
-        fileName: "business-registration.pdf",
+        type: "INSURANCE",
+        url: "https://storage.example.com/docs/owner1-insurance.pdf",
+        fileName: "insurance-certificate.pdf",
         fileSize: 687104,
         mimeType: "application/pdf",
         status: "VERIFIED",

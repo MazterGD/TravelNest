@@ -2,17 +2,19 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner, FileUpload } from "@/components/ui";
 import type { UploadedFile } from "@/components/ui/FileUpload";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
+import { vehicleService, ApiError } from "@/lib/api";
 import { FaArrowLeft, FaUpload, FaCheckCircle, FaTimes } from "react-icons/fa";
 
 type FormSection = "basic" | "pricing" | "photos" | "documents" | "amenities";
 
 interface FormData {
+  name: string;
   registration: string;
   type: string;
   make: string;
@@ -25,13 +27,14 @@ interface FormData {
   description: string;
   pricePerKm: string;
   pricePerDay: string;
-  driverAllowance?: string;
-  gpsEnabled: boolean;
+  driverAllowance: string;
+  location: string;
 }
 
 export default function EditVehiclePage() {
   const { user } = useAuthStore();
   const params = useParams();
+  const router = useRouter();
   const vehicleId = params.id as string;
   const [activeSection, setActiveSection] = useState<FormSection>("basic");
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -47,8 +50,11 @@ export default function EditVehiclePage() {
     registrationCertificate: null,
   });
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
+    name: "",
     registration: "",
     type: "",
     make: "",
@@ -62,7 +68,7 @@ export default function EditVehiclePage() {
     pricePerKm: "",
     pricePerDay: "",
     driverAllowance: "",
-    gpsEnabled: false,
+    location: "",
   });
 
   // Protect this route - only vehicle owners can access
@@ -70,28 +76,46 @@ export default function EditVehiclePage() {
   const locale = params.locale as string;
 
   useEffect(() => {
-    // TODO: Fetch vehicle data from API
-    // Mock data for now
-    setTimeout(() => {
-      setFormData({
-        registration: "ABC-1234",
-        type: "luxury",
-        make: "Ashok Leyland",
-        model: "2820",
-        year: "2022",
-        capacity: "45",
-        color: "White",
-        acType: "full-ac",
-        condition: "excellent",
-        description: "Well-maintained luxury coach with modern amenities",
-        pricePerKm: "85",
-        pricePerDay: "25000",
-        driverAllowance: "2500",
-        gpsEnabled: true,
-      });
-      setSelectedAmenities(["wifi", "ac", "usb", "gps"]);
-      setLoading(false);
-    }, 500);
+    const fetchVehicle = async () => {
+      try {
+        setLoading(true);
+        const response = await vehicleService.getById(vehicleId);
+        const vehicle = (response as any)?.vehicle || response;
+
+        // Map API response to form data
+        setFormData({
+          name: vehicle.name || "",
+          registration: vehicle.licensePlate || "",
+          type: vehicle.type || "",
+          make: vehicle.brand || "",
+          model: vehicle.model || "",
+          year: vehicle.year?.toString() || "",
+          capacity: vehicle.seats?.toString() || "",
+          color: vehicle.color || "",
+          acType: vehicle.acType || "",
+          condition: vehicle.condition || "",
+          description: vehicle.description || "",
+          pricePerKm: vehicle.pricePerKm?.toString() || "",
+          pricePerDay: vehicle.pricePerDay?.toString() || "",
+          driverAllowance: vehicle.driverAllowance?.toString() || "",
+          location: vehicle.location || "",
+        });
+        setSelectedAmenities(vehicle.amenities || []);
+      } catch (err) {
+        console.error("Failed to fetch vehicle:", err);
+        if (err instanceof ApiError) {
+          setError(err.message);
+        } else {
+          setError("Failed to load vehicle data");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (vehicleId) {
+      fetchVehicle();
+    }
   }, [vehicleId]);
 
   const handleChange = (
@@ -137,14 +161,48 @@ export default function EditVehiclePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission
-    console.log({
-      vehicleId,
-      formData,
-      selectedAmenities,
-      primaryPhoto,
-      additionalPhotos,
-    });
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Map form data to API format
+      const updateData = {
+        name: formData.name,
+        licensePlate: formData.registration,
+        type: formData.type,
+        brand: formData.make,
+        model: formData.model,
+        year: parseInt(formData.year),
+        seats: parseInt(formData.capacity),
+        color: formData.color || undefined,
+        acType: formData.acType,
+        condition: formData.condition || undefined,
+        description: formData.description || undefined,
+        pricePerDay: parseFloat(formData.pricePerDay),
+        pricePerKm: formData.pricePerKm
+          ? parseFloat(formData.pricePerKm)
+          : undefined,
+        driverAllowance: formData.driverAllowance
+          ? parseFloat(formData.driverAllowance)
+          : undefined,
+        location: formData.location,
+        amenities: selectedAmenities,
+      };
+
+      console.log("Updating vehicle with data:", updateData);
+      const result = await vehicleService.update(vehicleId, updateData);
+      console.log("Update result:", result);
+      router.push(`/${locale}/owner/fleet`);
+    } catch (err) {
+      console.error("Failed to update vehicle:", err);
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to update vehicle");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Show loading while checking auth state or fetching data
@@ -218,6 +276,21 @@ export default function EditVehiclePage() {
                     <div className="grid gap-5 md:grid-cols-2">
                       <div>
                         <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Bus Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          required
+                          value={formData.name}
+                          onChange={handleChange}
+                          placeholder="e.g., Luxury Coach 54-Seater"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
                           Registration Number *
                         </label>
                         <input
@@ -226,14 +299,14 @@ export default function EditVehiclePage() {
                           required
                           value={formData.registration}
                           onChange={handleChange}
-                          placeholder="ABC-1234"
+                          placeholder="WP-1234"
                           className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         />
                       </div>
 
                       <div>
                         <label className="mb-2 block text-sm font-medium text-gray-700">
-                          Vehicle Type *
+                          Bus Type *
                         </label>
                         <select
                           name="type"
@@ -242,11 +315,10 @@ export default function EditVehiclePage() {
                           onChange={handleChange}
                           className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
                         >
-                          <option value="">Select type</option>
-                          <option value="luxury">Luxury Coach</option>
-                          <option value="semi-luxury">Semi-Luxury</option>
-                          <option value="standard">Standard Bus</option>
-                          <option value="mini">Mini Bus</option>
+                          <option value="">Select bus type</option>
+                          <option value="LUXURY_AC">Luxury AC</option>
+                          <option value="SEMI_LUXURY">Semi-Luxury</option>
+                          <option value="ORDINARY">Ordinary</option>
                         </select>
                       </div>
 
@@ -359,6 +431,21 @@ export default function EditVehiclePage() {
                           <option value="good">Good</option>
                           <option value="fair">Fair</option>
                         </select>
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Location *
+                        </label>
+                        <input
+                          type="text"
+                          name="location"
+                          required
+                          value={formData.location}
+                          onChange={handleChange}
+                          placeholder="e.g., Colombo, Sri Lanka"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 transition-all focus:border-[#20B0E9] focus:outline-none focus:ring-2 focus:ring-[#20B0E9]/20"
+                        />
                       </div>
 
                       <div className="md:col-span-2">
@@ -600,24 +687,14 @@ export default function EditVehiclePage() {
                         </button>
                       ))}
                     </div>
+                  </div>
+                )}
 
-                    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-4 transition-colors hover:border-gray-300">
-                      <input
-                        type="checkbox"
-                        name="gpsEnabled"
-                        checked={formData.gpsEnabled}
-                        onChange={handleChange}
-                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#20B0E9] focus:ring-[#20B0E9]/20"
-                      />
-                      <div>
-                        <div className="mb-0.5 font-medium text-gray-900">
-                          GPS Tracking
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          Real-time tracking for safety
-                        </div>
-                      </div>
-                    </label>
+                {/* Error Message */}
+                {error && (
+                  <div className="mt-6 max-w-3xl rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-600">
+                    <p className="font-medium">Error</p>
+                    <p>{error}</p>
                   </div>
                 )}
 
@@ -631,10 +708,20 @@ export default function EditVehiclePage() {
                   </Link>
                   <button
                     type="submit"
-                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
+                    disabled={isSubmitting}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Save Changes
-                    <FaCheckCircle className="h-4 w-4" />
+                    {isSubmitting ? (
+                      <>
+                        <LoadingSpinner size="sm" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        Save Changes
+                        <FaCheckCircle className="h-4 w-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

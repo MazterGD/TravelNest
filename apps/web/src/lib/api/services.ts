@@ -246,7 +246,7 @@ export const vehicleService = {
   /**
    * Get current user's vehicles
    */
-  getMyVehicles: () => api.get<Vehicle[]>("/vehicles/my"),
+  getMyVehicles: () => api.get<{ vehicles: Vehicle[] }>("/vehicles/my"),
 
   /**
    * Set vehicle availability
@@ -350,9 +350,7 @@ export const quotationService = {
    * Get quotation by ID
    */
   getById: (id: string) =>
-    api.get<{ success: boolean; data: { quotation: Quotation } }>(
-      `/quotations/${id}`,
-    ),
+    api.get<{ quotation: Quotation }>(`/quotations/${id}`),
 
   /**
    * Respond to a quotation (accept/reject)
@@ -374,8 +372,13 @@ export const quotationService = {
   getOwnerRequests: (params?: PaginationParams & { status?: string }) => {
     const query = params ? `?${buildQueryString(params)}` : "";
     return api.get<{
-      success: boolean;
-      data: PaginatedResponse<Quotation>;
+      quotations: Quotation[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
     }>(`/quotations/owner/requests${query}`);
   },
 
@@ -385,8 +388,13 @@ export const quotationService = {
   getOwnerSentQuotations: (params?: PaginationParams & { status?: string }) => {
     const query = params ? `?${buildQueryString(params)}` : "";
     return api.get<{
-      success: boolean;
-      data: PaginatedResponse<Quotation>;
+      quotations: Quotation[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
     }>(`/quotations/owner/sent${query}`);
   },
 
@@ -440,7 +448,7 @@ export const bookingService = {
   /**
    * Get booking by ID
    */
-  getById: (id: string) => api.get<Booking>(`/bookings/${id}`),
+  getById: (id: string) => api.get<{ booking: Booking }>(`/bookings/${id}`),
 
   /**
    * Create booking from accepted quotation

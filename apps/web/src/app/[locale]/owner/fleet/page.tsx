@@ -76,7 +76,9 @@ export default function FleetManagementPage() {
 
       try {
         const response = await vehicleService.getMyVehicles();
-        setVehicles(response as Vehicle[]);
+        // Extract vehicles array from response
+        const vehiclesData = response?.vehicles || [];
+        setVehicles(vehiclesData as Vehicle[]);
       } catch (err) {
         console.error("Failed to fetch vehicles:", err);
         if (err instanceof ApiError) {
@@ -84,6 +86,7 @@ export default function FleetManagementPage() {
         } else {
           setError("Failed to load vehicles");
         }
+        setVehicles([]); // Set empty array on error
       } finally {
         setIsLoadingVehicles(false);
       }
@@ -103,16 +106,18 @@ export default function FleetManagementPage() {
     return "active";
   };
 
-  const filteredVehicles = vehicles.filter((v) => {
-    const status = getVehicleStatus(v);
-    const matchesTab = activeTab === "all" || status === activeTab;
-    const matchesSearch =
-      searchQuery === "" ||
-      v.licensePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.brand.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
+  const filteredVehicles = Array.isArray(vehicles)
+    ? vehicles.filter((v) => {
+        const status = getVehicleStatus(v);
+        const matchesTab = activeTab === "all" || status === activeTab;
+        const matchesSearch =
+          searchQuery === "" ||
+          v.licensePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          v.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          v.brand.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesTab && matchesSearch;
+      })
+    : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -575,13 +580,13 @@ export default function FleetManagementPage() {
                             <td className="whitespace-nowrap px-6 py-4 text-right">
                               <div className="flex items-center justify-end gap-2">
                                 <Link
-                                  href={`/owner/fleet/${vehicle.id}/edit`}
+                                  href={`/${locale}/owner/fleet/${vehicle.id}/edit`}
                                   className="rounded p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
                                 >
                                   <FaEdit className="h-4 w-4" />
                                 </Link>
                                 <Link
-                                  href={`/owner/fleet/${vehicle.id}`}
+                                  href={`/${locale}/owner/fleet/${vehicle.id}`}
                                   className="rounded p-1.5 text-[#20B0E9] transition-colors hover:bg-blue-50"
                                 >
                                   <FaEye className="h-4 w-4" />

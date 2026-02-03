@@ -307,6 +307,22 @@ class ApiClient {
   }
 
   /**
+   * Get CSRF token from cookie
+   */
+  private getCSRFToken(): string | null {
+    if (typeof document === "undefined") return null;
+
+    const cookies = document.cookie.split(";");
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split("=");
+      if (name === "csrf-token") {
+        return decodeURIComponent(value);
+      }
+    }
+    return null;
+  }
+
+  /**
    * Create AbortController with timeout
    */
   private createAbortController(timeout: number): {
@@ -345,6 +361,14 @@ class ApiClient {
 
     if (token) {
       requestHeaders["Authorization"] = `Bearer ${token}`;
+    }
+
+    // Add CSRF token for state-changing methods
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+      const csrfToken = this.getCSRFToken();
+      if (csrfToken) {
+        requestHeaders["x-csrf-token"] = csrfToken;
+      }
     }
 
     // Generate request ID for tracing

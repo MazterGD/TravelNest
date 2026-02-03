@@ -45,8 +45,9 @@ export default function BookingDetailsPage({
     const load = async () => {
       setIsLoading(true);
       try {
-        const data = await bookingService.getById(id);
-        setBooking(data as any);
+        const response = await bookingService.getById(id);
+        const data = (response as any)?.booking || response;
+        setBooking(data);
       } catch (err) {
         if (err instanceof ApiError) setError(err.message);
         else setError("Failed to load booking");
@@ -159,25 +160,26 @@ export default function BookingDetailsPage({
                   <div>
                     <div className="mb-1 text-sm text-gray-500">Name</div>
                     <div className="font-medium text-gray-900">
-                      {booking.customer.name}
+                      {`${booking.customer?.firstName || ""} ${booking.customer?.lastName || ""}`.trim() ||
+                        "N/A"}
                     </div>
                   </div>
                   <div>
                     <div className="mb-1 text-sm text-gray-500">Phone</div>
                     <a
-                      href={`tel:${booking.customer.phone}`}
+                      href={`tel:${booking.customer?.phone || ""}`}
                       className="font-medium text-[#20B0E9] hover:underline"
                     >
-                      {booking.customer.phone}
+                      {booking.customer?.phone || "N/A"}
                     </a>
                   </div>
                   <div>
                     <div className="mb-1 text-sm text-gray-500">Email</div>
                     <a
-                      href={`mailto:${booking.customer.email}`}
+                      href={`mailto:${booking.customer?.email || ""}`}
                       className="font-medium text-[#20B0E9] hover:underline"
                     >
-                      {booking.customer.email}
+                      {booking.customer?.email || "N/A"}
                     </a>
                   </div>
                 </div>
@@ -196,21 +198,24 @@ export default function BookingDetailsPage({
                         Trip Dates
                       </div>
                       <div className="font-medium text-gray-900">
-                        {new Date(booking.trip.startDate).toLocaleDateString()}
+                        {booking.startDate
+                          ? new Date(booking.startDate).toLocaleDateString()
+                          : "N/A"}
                       </div>
                       <div className="text-xs text-gray-600">
-                        to {new Date(booking.trip.endDate).toLocaleDateString()}
+                        to{" "}
+                        {booking.endDate
+                          ? new Date(booking.endDate).toLocaleDateString()
+                          : "N/A"}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <FaClock className="mt-0.5 h-4 w-4 text-gray-400" />
                     <div>
-                      <div className="mb-1 text-xs text-gray-500">
-                        Start Time
-                      </div>
+                      <div className="mb-1 text-xs text-gray-500">Duration</div>
                       <div className="font-medium text-gray-900">
-                        {booking.trip.startTime || "N/A"}
+                        {booking.estimatedDuration || "N/A"}
                       </div>
                     </div>
                   </div>
@@ -221,7 +226,7 @@ export default function BookingDetailsPage({
                         Passengers
                       </div>
                       <div className="font-medium text-gray-900">
-                        {booking.trip.passengers}
+                        {booking.totalPassengers || "N/A"}
                       </div>
                     </div>
                   </div>
@@ -231,43 +236,48 @@ export default function BookingDetailsPage({
                 <div className="mb-5 rounded-lg bg-gray-100 p-8 text-center">
                   <FaMapMarked className="mx-auto mb-2 h-8 w-8 text-gray-400" />
                   <p className="text-sm text-gray-600">Route Map</p>
-                  <p className="text-xs text-gray-500">{booking.trip.route}</p>
+                  <p className="text-xs text-gray-500">
+                    {booking.pickupLocation && booking.dropoffLocation
+                      ? `${booking.pickupLocation} → ${booking.dropoffLocation}`
+                      : "Route information not available"}
+                  </p>
                 </div>
 
                 {/* Stops/Itinerary */}
                 <div>
                   <h3 className="mb-3 font-medium text-gray-900">Itinerary</h3>
                   <div className="space-y-3">
-                    {booking.trip.stops?.map((stop: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex items-start gap-3 rounded-lg border border-gray-200 p-4"
-                      >
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#20B0E9] text-sm font-medium text-white">
-                          {index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <div className="mb-1 flex items-center justify-between">
-                            <div className="font-medium text-gray-900">
-                              {stop.name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {stop.time}
-                            </div>
+                    {booking.itinerary && booking.itinerary.length > 0 ? (
+                      booking.itinerary.map((stop: any, index: number) => (
+                        <div
+                          key={index}
+                          className="flex items-start gap-3 rounded-lg border border-gray-200 p-4"
+                        >
+                          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#20B0E9] text-sm font-medium text-white">
+                            {index + 1}
                           </div>
-                          {stop.notes && (
-                            <div className="text-sm text-gray-600">
-                              {stop.notes}
+                          <div className="flex-1">
+                            <div className="mb-1 flex items-center justify-between">
+                              <div className="font-medium text-gray-900">
+                                {stop.location || stop.name || "N/A"}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {stop.time || stop.arrivalTime || "N/A"}
+                              </div>
                             </div>
-                          )}
-                          {stop.actualTime && (
-                            <div className="mt-2 text-xs text-green-600">
-                              Actual: {stop.actualTime}
-                            </div>
-                          )}
+                            {stop.notes && (
+                              <div className="text-sm text-gray-600">
+                                {stop.notes}
+                              </div>
+                            )}
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="rounded-lg border border-gray-200 p-4 text-center text-sm text-gray-500">
+                        No itinerary stops available
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -284,13 +294,15 @@ export default function BookingDetailsPage({
                       Assigned Vehicle
                     </div>
                     <div className="mb-1 font-medium text-gray-900">
-                      {booking.vehicle.registration}
+                      {booking.vehicle?.licensePlate ||
+                        booking.vehicle?.name ||
+                        "N/A"}
                     </div>
                     <div className="text-sm text-gray-600">
-                      {booking.vehicle.type}
+                      {booking.vehicle?.type || "N/A"}
                     </div>
                     <div className="mt-2 text-xs text-gray-500">
-                      Capacity: {booking.vehicle.capacity || "N/A"} seats
+                      Capacity: {booking.vehicle?.seats || "N/A"} seats
                     </div>
                   </div>
 
@@ -299,14 +311,19 @@ export default function BookingDetailsPage({
                       <FaUser className="h-4 w-4" />
                       Driver Assignment
                     </div>
-                    {booking.driver ? (
+                    {booking.driverName ? (
                       <div>
                         <div className="mb-1 font-medium text-gray-900">
-                          Driver Assigned
+                          {booking.driverName}
                         </div>
                         <div className="text-sm text-gray-600">
-                          Driver details not available
+                          {booking.driverPhone || "No phone provided"}
                         </div>
+                        {booking.driverLicense && (
+                          <div className="mt-1 text-xs text-gray-500">
+                            License: {booking.driverLicense}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="text-sm text-gray-600">

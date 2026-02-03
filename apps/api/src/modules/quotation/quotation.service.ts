@@ -326,7 +326,8 @@ export const getOwnerQuotationRequests = async (
   };
 
   if (status) {
-    where.status = status;
+    // Convert status to uppercase to match Prisma enum (PENDING, SENT, etc.)
+    where.status = (status as string).toUpperCase();
   }
 
   const [quotations, total] = await Promise.all([
@@ -385,7 +386,8 @@ export const getOwnerSentQuotations = async (
   };
 
   if (status) {
-    where.status = status;
+    // Convert status to uppercase to match Prisma enum (PENDING, SENT, etc.)
+    where.status = (status as string).toUpperCase();
   }
 
   const [quotations, total] = await Promise.all([
@@ -439,7 +441,8 @@ export const getCustomerQuotations = async (
   const where: any = { customerId };
 
   if (status) {
-    where.status = status;
+    // Convert status to uppercase to match Prisma enum (PENDING, SENT, etc.)
+    where.status = (status as string).toUpperCase();
   }
 
   const [quotations, total] = await Promise.all([
@@ -933,7 +936,8 @@ export const getAllQuotations = async (query: QuotationQuery) => {
   const where: any = {};
 
   if (status) {
-    where.status = status;
+    // Convert status to uppercase to match Prisma enum (PENDING, SENT, etc.)
+    where.status = (status as string).toUpperCase();
   }
 
   const [quotations, total] = await Promise.all([

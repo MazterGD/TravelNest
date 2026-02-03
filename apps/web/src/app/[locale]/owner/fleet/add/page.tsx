@@ -20,6 +20,7 @@ import { vehicleService } from "@/lib/api/services";
 type FormSection = "basic" | "pricing" | "photos" | "documents" | "amenities";
 
 interface FormData {
+  name: string;
   registration: string;
   type: string;
   make: string;
@@ -33,7 +34,7 @@ interface FormData {
   pricePerKm: string;
   pricePerDay: string;
   driverAllowance: string;
-  gpsEnabled: boolean;
+  location: string;
 }
 
 export default function AddVehiclePage() {
@@ -57,6 +58,7 @@ export default function AddVehiclePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<FormData>({
+    name: "",
     registration: "",
     type: "",
     make: "",
@@ -70,7 +72,7 @@ export default function AddVehiclePage() {
     pricePerKm: "",
     pricePerDay: "",
     driverAllowance: "",
-    gpsEnabled: false,
+    location: "",
   });
 
   // Protect this route - only vehicle owners can access
@@ -130,48 +132,49 @@ export default function AddVehiclePage() {
     setErrors({});
 
     try {
-      // Validate required fields
-      if (!photos.length) {
-        setErrors({ photos: "At least one photo is required" });
-        setActiveSection("photos");
-        return;
-      }
+      // Photo validation temporarily disabled - storage bucket not implemented yet
+      // if (!photos.length) {
+      //   setErrors({ photos: "At least one photo is required" });
+      //   setActiveSection("photos");
+      //   return;
+      // }
 
       // Map form data to API format
       const vehicleData = {
-        registrationNumber: formData.registration,
-        type: formData.type as
-          | "mini_bus"
-          | "standard_bus"
-          | "luxury_bus"
-          | "coach",
+        name: formData.name,
+        licensePlate: formData.registration.toUpperCase(),
+        type: formData.type as "ORDINARY" | "SEMI_LUXURY" | "LUXURY_AC",
         brand: formData.make,
         model: formData.model,
         year: parseInt(formData.year),
-        seatingCapacity: parseInt(formData.capacity),
-        hasAC: formData.acType !== "non-ac",
-        hasWifi: selectedAmenities.includes("wifi"),
-        hasTV: selectedAmenities.includes("tv"),
-        hasToilet: false, // Add this to amenities if needed
-        pricePerKm: parseFloat(formData.pricePerKm),
+        seats: parseInt(formData.capacity),
+        color: formData.color || undefined,
+        acType: formData.acType as "full-ac" | "ac" | "non-ac",
+        condition:
+          (formData.condition as "excellent" | "good" | "fair") || undefined,
+        fuelType: "DIESEL" as const,
+        transmission: "MANUAL" as const,
+        pricePerKm: parseFloat(formData.pricePerKm) || undefined,
         pricePerDay: parseFloat(formData.pricePerDay),
-        images: photos.map((photo, index) => `vehicle_${index}_${photo.name}`), // Placeholder
-        description: formData.description,
+        driverAllowance: parseFloat(formData.driverAllowance) || undefined,
+        location: formData.location,
+        description: formData.description || undefined,
+        amenities: selectedAmenities,
       };
 
       // Create vehicle
       const vehicle = await vehicleService.create(vehicleData);
 
-      // Upload photos
-      if (photos.length > 0) {
-        await vehicleService.uploadPhotos(
-          vehicle.id,
-          photos.map((photo, index) => ({
-            file: photo,
-            isPrimary: index === 0,
-          })),
-        );
-      }
+      // Photo upload temporarily disabled - storage bucket not implemented yet
+      // if (photos.length > 0) {
+      //   await vehicleService.uploadPhotos(
+      //     vehicle.id,
+      //     photos.map((photo, index) => ({
+      //       file: photo,
+      //       isPrimary: index === 0,
+      //     })),
+      //   );
+      // }
 
       // Redirect to fleet page
       router.push(`/${locale}/owner/fleet`);
@@ -250,37 +253,46 @@ export default function AddVehiclePage() {
                   <div className="max-w-3xl space-y-6">
                     <div>
                       <h3 className="mb-1 font-semibold text-gray-900">
-                        Vehicle Details
+                        Bus Details
                       </h3>
                       <p className="mb-6 text-sm text-gray-600">
-                        Enter the basic information about your vehicle
+                        Enter the basic information about your bus
                       </p>
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
+                      <Input
+                        label="Bus Name"
+                        name="name"
+                        required
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="e.g., Luxury Coach 54-Seater"
+                        error={errors.name}
+                      />
+
                       <Input
                         label="Registration Number"
                         name="registration"
                         required
                         value={formData.registration}
                         onChange={handleChange}
-                        placeholder="ABC-1234"
+                        placeholder="WP-1234"
                         error={errors.registration}
                       />
 
                       <Select
-                        label="Vehicle Type"
+                        label="Bus Type"
                         name="type"
                         required
                         value={formData.type}
                         onChange={(value) => handleSelectChange("type", value)}
                         options={[
-                          { value: "luxury", label: "Luxury Coach" },
-                          { value: "semi-luxury", label: "Semi-Luxury" },
-                          { value: "standard", label: "Standard Bus" },
-                          { value: "mini", label: "Mini Bus" },
+                          { value: "LUXURY_AC", label: "Luxury AC" },
+                          { value: "SEMI_LUXURY", label: "Semi-Luxury" },
+                          { value: "ORDINARY", label: "Ordinary" },
                         ]}
-                        placeholder="Select type"
+                        placeholder="Select bus type"
                         error={errors.type}
                       />
 
@@ -370,6 +382,16 @@ export default function AddVehiclePage() {
                         error={errors.condition}
                       />
 
+                      <Input
+                        label="Location"
+                        name="location"
+                        required
+                        value={formData.location}
+                        onChange={handleChange}
+                        placeholder="e.g., Colombo, Sri Lanka"
+                        error={errors.location}
+                      />
+
                       <div className="md:col-span-2">
                         <TextArea
                           label="Description"
@@ -377,7 +399,7 @@ export default function AddVehiclePage() {
                           value={formData.description}
                           onChange={(e) => handleChange(e)}
                           rows={4}
-                          placeholder="Describe your vehicle, seating layout, and any special features..."
+                          placeholder="Describe your bus, seating layout, and any special features..."
                           maxLength={500}
                         />
                       </div>

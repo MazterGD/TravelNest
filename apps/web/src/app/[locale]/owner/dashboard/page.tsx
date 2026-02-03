@@ -101,8 +101,8 @@ export default function OwnerDashboardPage() {
 
       try {
         // Fetch vehicles to calculate fleet stats
-        const vehicles = await vehicleService.getMyVehicles();
-        const vehicleList = vehicles as Array<{
+        const response = await vehicleService.getMyVehicles();
+        const vehicleList = (response?.vehicles || []) as Array<{
           isActive: boolean;
           isAvailable: boolean;
         }>;
@@ -139,9 +139,24 @@ export default function OwnerDashboardPage() {
           const response = await quotationService.getOwnerRequests({
             status: "pending",
           });
-          const data = response as any;
-          const quotes = data.data?.data || [];
-          setQuotationRequests([]);
+          const quotes = (response as any)?.quotations || [];
+
+          // Transform quotations for display
+          const quotationRequestsData = quotes.map((q: any) => ({
+            id: q.id,
+            customer:
+              `${q.customer?.firstName || ""} ${q.customer?.lastName || ""}`.trim() ||
+              "Unknown",
+            route:
+              q.pickupLocation && q.dropoffLocation
+                ? `${q.pickupLocation} → ${q.dropoffLocation}`
+                : "N/A",
+            date: q.startDate || "",
+            passengers: q.passengerCount || 0,
+            expiresIn: "2 days", // Calculate based on createdAt
+          }));
+
+          setQuotationRequests(quotationRequestsData);
           setMetrics((prev) => ({
             ...prev,
             pendingQuotes: quotes.length,
