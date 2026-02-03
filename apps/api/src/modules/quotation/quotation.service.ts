@@ -717,14 +717,31 @@ export const sendQuotation = async (
   const validUntil = new Date();
   validUntil.setDate(validUntil.getDate() + data.validityDays);
 
+  // Build update data explicitly to ensure proper Prisma format
+  const updateData: any = {
+    vehicleId: data.vehicleId,
+    startTime: data.startTime,
+    estimatedDistance: data.estimatedDistance,
+    estimatedDuration: data.estimatedDuration,
+    vehicleRentalCost: data.vehicleRentalCost,
+    driverCost: data.driverCost,
+    fuelCost: data.fuelCost,
+    tollCharges: data.tollCharges,
+    permitFees: data.permitFees,
+    customItems: data.customItems || [],
+    subtotal: data.subtotal,
+    tax: data.tax,
+    totalAmount: data.totalAmount,
+    additionalNotes: data.additionalNotes || null,
+    validityDays: data.validityDays,
+    validUntil,
+    status: "SENT",
+    sentAt: new Date(),
+  };
+
   const updated = await prisma.quotation.update({
     where: { id: quotationId },
-    data: {
-      ...data,
-      validUntil,
-      status: "SENT",
-      sentAt: new Date(),
-    },
+    data: updateData,
     include: {
       customer: {
         select: {

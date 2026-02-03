@@ -363,9 +363,9 @@ export default function SendQuotationPage({
       });
 
       alert("Quotation sent successfully!");
-      router.push(
-        `/${locale}/owner/quotations/sent/${response.data.quotation.id}`,
-      );
+      // Response is auto-unwrapped by API client, so quotation is directly on response
+      const quotation = (response as any)?.quotation || response;
+      router.push(`/${locale}/owner/quotations/sent/${quotation.id || id}`);
     } catch (error: any) {
       console.error("Failed to send quotation:", error);
       alert(error.message || "Failed to send quotation");

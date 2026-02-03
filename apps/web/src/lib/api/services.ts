@@ -402,11 +402,7 @@ export const quotationService = {
    * Send quotation (owner responds to request)
    */
   sendQuotation: (id: string, data: QuotationResponseInput) =>
-    api.patch<{
-      success: boolean;
-      message: string;
-      data: { quotation: Quotation };
-    }>(`/quotations/${id}/send`, data),
+    api.patch<{ quotation: Quotation }>(`/quotations/${id}/send`, data),
 
   // Admin endpoints
   /**
