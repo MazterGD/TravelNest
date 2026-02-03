@@ -305,7 +305,7 @@ export default function QuotationRequestsPage() {
                     <div className="flex gap-3">
                       <Link
                         href={`/${locale}/owner/quotations/send/${request.id}`}
-                        className="flex-1 rounded-lg bg-gray-900 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-gray-800"
+                        className="flex-1 rounded-lg bg-[#20B0E9] px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:[#1a8fc4]"
                       >
                         Send Quotation
                       </Link>

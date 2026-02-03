@@ -49,8 +49,10 @@ interface Vehicle {
   id: string;
   name: string;
   type: string;
+  rawType: string; // Original type from API (ORDINARY, SEMI_LUXURY, LUXURY_AC)
   capacity: number;
   baseRate: number;
+  acType: string;
 }
 
 interface CustomLineItem {
@@ -130,12 +132,11 @@ export default function SendQuotationPage({
           (v: any) => ({
             id: v.id,
             name: `${v.brand || v.make || ""} ${v.model} (${v.licensePlate || v.registrationNumber || ""})`,
-            type:
-              v.acType === "FULL_AC" || v.acType === "SEMI_AC"
-                ? "Luxury"
-                : "Standard",
+            type: mapVehicleTypeToDisplay(v.type),
+            rawType: v.type, // Keep original type for matching
             capacity: v.seats || v.passengerCapacity || 0,
             baseRate: v.pricePerDay || 0,
+            acType: v.acType || "",
           }),
         );
         setVehicles(vehicleList);
@@ -150,6 +151,98 @@ export default function SendQuotationPage({
       fetchData();
     }
   }, [id, isAuthorized]);
+
+  // Helper function to map vehicle type to display name
+  const mapVehicleTypeToDisplay = (type: string): string => {
+    const typeMap: Record<string, string> = {
+      ORDINARY: "Ordinary",
+      SEMI_LUXURY: "Semi-Luxury",
+      LUXURY_AC: "Luxury AC",
+    };
+    return typeMap[type] || type;
+  };
+
+  // Helper function to check if vehicle matches customer's preference
+  const isVehicleTypeMatch = (
+    vehicleRawType: string,
+    customerPreference: string,
+  ): boolean => {
+    const preferenceNormalized = customerPreference
+      .toUpperCase()
+      .replace(/[\s-]/g, "_");
+
+    // Direct match
+    if (vehicleRawType === preferenceNormalized) return true;
+
+    // Handle common variations
+    const matchMap: Record<string, string[]> = {
+      LUXURY_AC: ["LUXURY", "LUXURY_AC", "AC", "FULL_AC"],
+      SEMI_LUXURY: ["SEMI_LUXURY", "SEMI", "SEMILUXURY"],
+      ORDINARY: ["ORDINARY", "STANDARD", "NORMAL", "BASIC"],
+    };
+
+    for (const [dbType, aliases] of Object.entries(matchMap)) {
+      if (
+        vehicleRawType === dbType &&
+        aliases.some((a) => preferenceNormalized.includes(a))
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  // Check if vehicle meets requirements
+  const getVehicleSuitability = (
+    vehicle: Vehicle,
+  ): { suitable: boolean; issues: string[] } => {
+    const issues: string[] = [];
+
+    // Check passenger capacity
+    if (request && vehicle.capacity < request.passengers) {
+      issues.push(
+        `Insufficient capacity (${vehicle.capacity} seats for ${request.passengers} passengers)`,
+      );
+    }
+
+    // Check vehicle type preference
+    if (
+      request &&
+      request.vehicleType &&
+      !isVehicleTypeMatch(vehicle.rawType, request.vehicleType)
+    ) {
+      issues.push(`Type mismatch (Customer requested: ${request.vehicleType})`);
+    }
+
+    return {
+      suitable: issues.length === 0,
+      issues,
+    };
+  };
+
+  // Get filtered and sorted vehicles
+  const getSortedVehicles = (): Vehicle[] => {
+    return [...vehicles].sort((a, b) => {
+      const aSuitability = getVehicleSuitability(a);
+      const bSuitability = getVehicleSuitability(b);
+
+      // Suitable vehicles first
+      if (aSuitability.suitable && !bSuitability.suitable) return -1;
+      if (!aSuitability.suitable && bSuitability.suitable) return 1;
+
+      // Then sort by capacity (closest to passenger count first)
+      if (request) {
+        const aCapacityDiff = Math.abs(a.capacity - request.passengers);
+        const bCapacityDiff = Math.abs(b.capacity - request.passengers);
+        if (aCapacityDiff !== bCapacityDiff)
+          return aCapacityDiff - bCapacityDiff;
+      }
+
+      // Finally sort by price
+      return a.baseRate - b.baseRate;
+    });
+  };
 
   useEffect(() => {
     // Auto-calculate suggested pricing when vehicle is selected
@@ -440,42 +533,149 @@ export default function SendQuotationPage({
               </div>
 
               {/* Vehicle Selection */}
-              {/* <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <div className="rounded-lg border border-gray-200 bg-white p-6">
                 <h2 className="mb-4 text-lg font-semibold text-gray-900">
                   Select Vehicle
                 </h2>
 
-                <div className="space-y-3">
-                  {vehicles.map((vehicle) => (
-                    <div
-                      key={vehicle.id}
-                      className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
-                        selectedVehicle === vehicle.id
-                          ? "border-primary bg-primary/5"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                      onClick={() => setSelectedVehicle(vehicle.id)}
+                {/* Customer Requirements Summary */}
+                <div className="mb-4 rounded-lg bg-blue-50 p-3">
+                  <h4 className="mb-2 text-sm font-semibold text-blue-900">
+                    Customer Requirements
+                  </h4>
+                  <div className="flex flex-wrap gap-4 text-sm text-blue-800">
+                    <span className="flex items-center gap-1.5">
+                      <FaUsers className="h-3.5 w-3.5" />
+                      {request.passengers} passengers
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <FaInfoCircle className="h-3.5 w-3.5" />
+                      {request.vehicleType} preferred
+                    </span>
+                  </div>
+                </div>
+
+                {vehicles.length === 0 ? (
+                  <div className="rounded-lg bg-gray-50 p-8 text-center">
+                    <p className="text-sm text-gray-600">
+                      No vehicles available. Please add vehicles to your fleet
+                      first.
+                    </p>
+                    <Link
+                      href={`/${locale}/owner/fleet/add`}
+                      className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-gray-900">
-                            {vehicle.name}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {vehicle.type} • {vehicle.capacity} seats
-                          </p>
+                      <FaPlus className="h-3 w-3" />
+                      Add Vehicle
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {getSortedVehicles().map((vehicle) => {
+                      const suitability = getVehicleSuitability(vehicle);
+                      return (
+                        <div
+                          key={vehicle.id}
+                          className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                            selectedVehicle === vehicle.id
+                              ? "border-primary bg-primary/5"
+                              : suitability.suitable
+                                ? "border-gray-200 hover:border-gray-300"
+                                : "border-orange-200 bg-orange-50/50 hover:border-orange-300"
+                          }`}
+                          onClick={() => setSelectedVehicle(vehicle.id)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-gray-900">
+                                  {vehicle.name}
+                                </h3>
+                                {suitability.suitable ? (
+                                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                    Suitable
+                                  </span>
+                                ) : (
+                                  <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+                                    Check Issues
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-1 text-sm text-gray-600">
+                                {vehicle.type} • {vehicle.capacity} seats
+                                {vehicle.acType &&
+                                  ` • ${vehicle.acType.replace("-", " ").toUpperCase()}`}
+                              </p>
+
+                              {/* Show suitability issues */}
+                              {!suitability.suitable && (
+                                <div className="mt-2 space-y-1">
+                                  {suitability.issues.map((issue, idx) => (
+                                    <p
+                                      key={idx}
+                                      className="text-xs text-orange-700"
+                                    >
+                                      • {issue}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Show capacity match info */}
+                              {suitability.suitable && (
+                                <p className="mt-1 text-xs text-green-700">
+                                  • Capacity matches ({vehicle.capacity} seats
+                                  for {request.passengers} passengers)
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500">Base Rate</p>
+                              <p className="font-semibold text-gray-900">
+                                LKR {vehicle.baseRate.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-500">per day</p>
+                            </div>
+                          </div>
+
+                          {/* Selection indicator */}
+                          {selectedVehicle === vehicle.id && (
+                            <div className="mt-3 flex items-center gap-2 border-t border-primary/20 pt-3 text-sm text-primary">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">
+                                ✓
+                              </span>
+                              Selected for this quotation
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600">Base Rate</p>
-                          <p className="font-semibold text-gray-900">
-                            LKR {vehicle.baseRate.toLocaleString()}
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Warning if selected vehicle doesn't meet requirements */}
+                {selectedVehicle &&
+                  !getVehicleSuitability(
+                    vehicles.find((v) => v.id === selectedVehicle)!,
+                  ).suitable && (
+                    <div className="mt-4 rounded-lg border border-orange-300 bg-orange-50 p-3">
+                      <div className="flex items-start gap-2">
+                        <FaInfoCircle className="mt-0.5 h-4 w-4 text-orange-600" />
+                        <div className="text-sm text-orange-800">
+                          <p className="font-semibold">
+                            Selected vehicle may not fully meet customer
+                            requirements
+                          </p>
+                          <p className="mt-1 text-orange-700">
+                            You can still send the quotation, but the customer
+                            may prefer a different vehicle. Consider mentioning
+                            this in your additional notes.
                           </p>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div> */}
+                  )}
+              </div>
 
               {/* Pricing Breakdown */}
               {selectedVehicle && (
