@@ -233,6 +233,7 @@ export interface QuotationQuery {
 }
 
 export interface CreateQuotationRequestData {
+  vehicleId?: string; // For requests from specific vehicle details page
   vehicleType?: VehicleType;
   startDate: string | Date;
   endDate: string | Date;
@@ -616,6 +617,26 @@ export const createQuotationRequest = async (
     throw ApiError.badRequest("Passenger count must be between 1 and 100");
   }
 
+  // If vehicleId is provided, verify it exists and get vehicle type
+  let vehicleType = data.vehicleType || null;
+  if (data.vehicleId) {
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: data.vehicleId },
+      select: { id: true, type: true, isActive: true, ownerId: true },
+    });
+
+    if (!vehicle) {
+      throw ApiError.notFound("Requested vehicle not found");
+    }
+
+    if (!vehicle.isActive) {
+      throw ApiError.badRequest("Requested vehicle is not available");
+    }
+
+    // Use the vehicle's type if not explicitly provided
+    vehicleType = vehicleType || vehicle.type;
+  }
+
   // Generate quotation ID
   const currentYear = new Date().getFullYear();
   const count = await prisma.quotation.count({
@@ -632,7 +653,8 @@ export const createQuotationRequest = async (
     data: {
       quotationId,
       customerId,
-      vehicleType: data.vehicleType || null,
+      vehicleId: data.vehicleId || null,
+      vehicleType,
       startDate,
       endDate,
       startTime: data.startTime || null,
@@ -678,6 +700,13 @@ export const sendQuotation = async (
 
   if (quotation.status !== "PENDING") {
     throw ApiError.badRequest("Can only respond to pending quotations");
+  }
+
+  // If quotation request was for a specific vehicle, ensure owner is responding with that vehicle
+  if (quotation.vehicleId && quotation.vehicleId !== data.vehicleId) {
+    throw ApiError.badRequest(
+      "This quotation request was for a specific vehicle. You must respond with the requested vehicle.",
+    );
   }
 
   // Verify vehicle belongs to owner

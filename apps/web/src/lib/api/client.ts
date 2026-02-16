@@ -528,6 +528,11 @@ class ApiClient {
       requestHeaders["Authorization"] = `Bearer ${token}`;
     }
 
+    const csrfToken = this.getCSRFToken();
+    if (csrfToken) {
+      requestHeaders["x-csrf-token"] = csrfToken;
+    }
+
     const requestId = `web_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     requestHeaders["X-Request-ID"] = requestId;
 

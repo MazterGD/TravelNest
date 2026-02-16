@@ -72,6 +72,17 @@ export const config = {
     cancelUrl: process.env.PAYHERE_CANCEL_URL || "",
   },
 
+  // Bank transfer details (for manual payments)
+  bankDetails: {
+    bankName: process.env.BANK_NAME || "",
+    accountName: process.env.BANK_ACCOUNT_NAME || "",
+    accountNumber: process.env.BANK_ACCOUNT_NUMBER || "",
+    branch: process.env.BANK_BRANCH || "",
+    referenceHint:
+      process.env.BANK_REFERENCE_HINT ||
+      "Use your booking reference as the payment note.",
+  },
+
   // File Upload
   upload: {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || "5242880", 10), // 5MB

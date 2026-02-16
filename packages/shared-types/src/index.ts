@@ -150,6 +150,11 @@ export interface Payment {
   method?: string;
   payherePaymentId?: string; // PayHere order ID
   payhereCustomerId?: string; // PayHere customer reference
+  bankReceiptUrl?: string;
+  bankReceiptName?: string;
+  bankReceiptSize?: number;
+  bankReceiptMime?: string;
+  bankReceiptAt?: Date;
   refundAmount?: number;
   refundReason?: string;
   createdAt: Date;

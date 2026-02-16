@@ -26,6 +26,7 @@ import {
 
 interface QuotationRequest {
   id: string;
+  vehicleId?: string; // If customer requested a specific vehicle
   customer: {
     name: string;
     email: string;
@@ -78,6 +79,11 @@ export default function SendQuotationPage({
   // Request data
   const [request, setRequest] = useState<QuotationRequest | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [isSpecificVehicleRequest, setIsSpecificVehicleRequest] =
+    useState(false);
+  const [requestedVehicle, setRequestedVehicle] = useState<Vehicle | null>(
+    null,
+  );
 
   // Form state
   const [selectedVehicle, setSelectedVehicle] = useState<string>("");
@@ -107,6 +113,7 @@ export default function SendQuotationPage({
 
         setRequest({
           id: data.id,
+          vehicleId: data.vehicleId || undefined,
           customer: {
             name: `${data.customer?.firstName || ""} ${data.customer?.lastName || ""}`.trim(),
             email: data.customer?.email || "",
@@ -140,6 +147,21 @@ export default function SendQuotationPage({
           }),
         );
         setVehicles(vehicleList);
+
+        // Check if this is a request for a specific vehicle
+        if (data.vehicleId) {
+          const specificVehicle = vehicleList.find(
+            (v: Vehicle) => v.id === data.vehicleId,
+          );
+          if (specificVehicle) {
+            setIsSpecificVehicleRequest(true);
+            setRequestedVehicle(specificVehicle);
+            setSelectedVehicle(data.vehicleId);
+          } else {
+            // Vehicle not found in owner's fleet - this shouldn't happen
+            console.warn("Requested vehicle not found in owner's fleet");
+          }
+        }
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -535,8 +557,28 @@ export default function SendQuotationPage({
               {/* Vehicle Selection */}
               <div className="rounded-lg border border-gray-200 bg-white p-6">
                 <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                  Select Vehicle
+                  {isSpecificVehicleRequest
+                    ? "Requested Vehicle"
+                    : "Select Vehicle"}
                 </h2>
+
+                {/* Show message if this is a specific vehicle request */}
+                {isSpecificVehicleRequest && requestedVehicle && (
+                  <div className="mb-4 rounded-lg border border-blue-300 bg-blue-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <FaInfoCircle className="mt-0.5 h-5 w-5 text-blue-600" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-blue-900">
+                          Customer Requested This Specific Vehicle
+                        </h4>
+                        <p className="mt-1 text-sm text-blue-800">
+                          The customer selected this vehicle from your fleet.
+                          The quotation will be sent for this vehicle only.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Customer Requirements Summary */}
                 <div className="mb-4 rounded-lg bg-blue-50 p-3">
@@ -568,6 +610,41 @@ export default function SendQuotationPage({
                       <FaPlus className="h-3 w-3" />
                       Add Vehicle
                     </Link>
+                  </div>
+                ) : isSpecificVehicleRequest && requestedVehicle ? (
+                  // Show only the requested vehicle (read-only)
+                  <div className="rounded-lg border-2 border-primary bg-primary/5 p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-gray-900">
+                            {requestedVehicle.name}
+                          </h3>
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                            Requested by Customer
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-gray-600">
+                          {requestedVehicle.type} • {requestedVehicle.capacity}{" "}
+                          seats
+                          {requestedVehicle.acType &&
+                            ` • ${requestedVehicle.acType.replace("-", " ").toUpperCase()}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Base Rate</p>
+                        <p className="font-semibold text-gray-900">
+                          LKR {requestedVehicle.baseRate.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-500">per day</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 border-t border-primary/20 pt-3 text-sm text-primary">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">
+                        ✓
+                      </span>
+                      Selected for this quotation
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -655,6 +732,7 @@ export default function SendQuotationPage({
 
                 {/* Warning if selected vehicle doesn't meet requirements */}
                 {selectedVehicle &&
+                  !isSpecificVehicleRequest &&
                   !getVehicleSuitability(
                     vehicles.find((v) => v.id === selectedVehicle)!,
                   ).suitable && (

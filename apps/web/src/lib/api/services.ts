@@ -10,6 +10,7 @@ import type {
   Booking,
   Quotation,
   Review,
+  TripPackage,
   PaginatedResponse,
   OwnerRegistrationInput,
 } from "@/types";
@@ -321,6 +322,72 @@ export const vehicleService = {
 };
 
 // ============================================
+// Trip Package Services
+// ============================================
+export interface TripPackageSearchParams extends PaginationParams {
+  startLocation?: string;
+  endLocation?: string;
+  minPassengers?: number;
+  maxPassengers?: number;
+  durationDays?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  vehicleType?: string;
+  ownerId?: string;
+  search?: string;
+  isActive?: boolean;
+}
+
+export interface TripPackageInput {
+  vehicleId: string;
+  title: string;
+  description?: string;
+  startLocation: string;
+  endLocation: string;
+  durationDays: number;
+  price: number;
+  minPassengers: number;
+  maxPassengers: number;
+  isActive?: boolean;
+}
+
+export interface TripPackageUpdateInput extends Partial<TripPackageInput> {}
+
+export const tripPackageService = {
+  getAll: (params?: TripPackageSearchParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<{
+      packages: TripPackage[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/packages${query}`);
+  },
+
+  getById: (id: string) =>
+    api.get<{ tripPackage: TripPackage }>(`/packages/${id}`),
+
+  getMyPackages: () =>
+    api.get<{ packages: TripPackage[] }>("/packages/owner/my"),
+
+  create: (data: TripPackageInput) =>
+    api.post<{ tripPackage: TripPackage }>("/packages", data),
+
+  update: (id: string, data: TripPackageUpdateInput) =>
+    api.patch<{ tripPackage: TripPackage }>(`/packages/${id}`, data),
+
+  delete: (id: string) => api.delete<MessageResponse>(`/packages/${id}`),
+
+  book: (
+    id: string,
+    data: { startDate: string; passengerCount: number; notes?: string },
+  ) => api.post<{ booking: Booking }>(`/packages/${id}/book`, data),
+};
+
+// ============================================
 // Quotation Services
 // ============================================
 export const quotationService = {
@@ -604,44 +671,129 @@ export const reviewService = {
 // Payment Services
 // ============================================
 export interface PaymentIntent {
-  clientSecret: string;
-  amount: number;
-  currency: string;
+  payment: {
+    id: string;
+    bookingId?: string;
+    status: string;
+    amount: number;
+    currency: string;
+    method: string | null;
+    receipt?: {
+      url?: string | null;
+      name?: string | null;
+      size?: number | null;
+      mime?: string | null;
+      uploadedAt?: string | Date | null;
+    } | null;
+  };
+  payhere?: {
+    actionUrl: string;
+    payload: Record<string, string>;
+  };
 }
 
 export const paymentService = {
   /**
    * Create a payment intent for a booking
    */
-  createPaymentIntent: (bookingId: string) =>
-    api.post<PaymentIntent>(`/payments/create-intent`, { bookingId }),
+  createPaymentIntent: (
+    bookingId: string,
+    method: "CARD" | "BANK_TRANSFER" | "CASH",
+    amount?: number,
+  ) =>
+    api.post<PaymentIntent>(`/payments/create-intent`, {
+      bookingId,
+      method,
+      amount,
+    }),
 
   /**
    * Confirm payment completion
    */
-  confirmPayment: (paymentIntentId: string) =>
-    api.post<MessageResponse>(`/payments/confirm`, { paymentIntentId }),
+  confirmPayment: (paymentId: string) =>
+    api.post<{ payment: { id: string; status: string } }>(`/payments/confirm`, {
+      paymentId,
+    }),
+
+  /**
+   * Get payment by ID
+   */
+  getPaymentById: (paymentId: string) =>
+    api.get<{
+      payment: {
+        id: string;
+        bookingId: string;
+        status: string;
+        amount: number;
+        currency: string;
+        method: string | null;
+        receipt?: {
+          url?: string | null;
+          name?: string | null;
+          size?: number | null;
+          mime?: string | null;
+          uploadedAt?: string | Date | null;
+        } | null;
+      };
+    }>(`/payments/${paymentId}`),
 
   /**
    * Get payment history for current user
    */
   getMyPayments: (params?: PaginationParams) => {
     const query = params ? `?${buildQueryString(params)}` : "";
-    return api.get<
-      Array<{
+    return api.get<{
+      payments: Array<{
         id: string;
         amount: number;
         status: string;
+        currency: string;
+        method: string | null;
         createdAt: string;
-      }>
-    >(`/payments/my${query}`);
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/payments/my-payments${query}`);
   },
 
   /**
    * Request a refund
    */
-  requestRefund: (paymentId: string, reason: string) =>
-    api.post<MessageResponse>(`/payments/${paymentId}/refund`, { reason }),
+  requestRefund: (paymentId: string, reason: string, amount?: number) =>
+    api.post<MessageResponse>(`/payments/${paymentId}/refund`, {
+      reason,
+      amount,
+    }),
+
+  /**
+   * Fetch bank transfer details
+   */
+  getBankDetails: () =>
+    api.get<{
+      bankDetails: {
+        bankName: string;
+        accountName: string;
+        accountNumber: string;
+        branch: string;
+        referenceHint: string;
+      };
+    }>("/payments/bank-details"),
+
+  /**
+   * Upload bank transfer receipt
+   */
+  uploadReceipt: (paymentId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("receipt", file);
+    return api.upload<{ payment: { id: string; status: string } }>(
+      `/payments/${paymentId}/receipt`,
+      formData,
+    );
+  },
 };
 
 // ============================================

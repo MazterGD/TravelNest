@@ -34,6 +34,7 @@ interface Location {
 }
 
 interface BookingData {
+  bookingId: string;
   bookingReference: string;
   quotationId: string;
   vehicleId: string;
@@ -101,6 +102,7 @@ export default function BookingConfirmationContent({
 
       // HARDCODED DATA FOR TESTING
       const mockBooking: BookingData = {
+        bookingId: "BK-2026-001",
         bookingReference: "BK-2026-001",
         quotationId: quotationId || "quo1",
         vehicleId: "veh1",
@@ -167,14 +169,21 @@ export default function BookingConfirmationContent({
       return;
     }
 
+    if (!bookingData) {
+      alert("Booking data is missing");
+      return;
+    }
+
     try {
       setSubmitting(true);
 
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Redirect to booking details after successful "payment"
-      router.push(`/${locale}/dashboard/bookings/BK-2026-001`);
+      // Redirect to payment page
+      router.push(
+        `/${locale}/dashboard/bookings/${bookingData.bookingId}/payment`,
+      );
     } catch (error) {
       console.error("Error proceeding to payment:", error);
       alert("Failed to proceed. Please try again.");

@@ -45,6 +45,7 @@ export const locationSchema = z.object({
 // Quotation Request Schema
 export const quotationRequestSchema = z
   .object({
+    vehicleId: z.string().optional(), // For requests from specific vehicle detail page
     pickupLocation: locationSchema,
     dropoffLocation: locationSchema,
     pickupDate: z.string().refine((date) => new Date(date) > new Date(), {

@@ -9,6 +9,7 @@ import {
   FaCalendarAlt,
   FaStar,
   FaUser,
+  FaMapMarkerAlt,
 } from "react-icons/fa";
 
 interface SidebarItem {
@@ -37,6 +38,12 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
       label: "Quotations",
       href: `/${locale}/dashboard/quotations`,
       icon: FaClipboardList,
+    },
+    {
+      id: "packages",
+      label: "Packages",
+      href: `/${locale}/dashboard/packages`,
+      icon: FaMapMarkerAlt,
     },
     {
       id: "bookings",

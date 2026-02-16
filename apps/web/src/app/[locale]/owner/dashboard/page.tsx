@@ -368,6 +368,19 @@ export default function OwnerDashboardPage() {
                   <p className="text-sm text-gray-500">Manage quotations</p>
                 </div>
               </Link>
+
+              <Link
+                href={`/${locale}/owner/packages`}
+                className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300 hover:bg-gray-50"
+              >
+                <div className="rounded-full bg-teal-100 p-3">
+                  <FaMapMarkerAlt className="h-6 w-6 text-teal-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900">Trip Packages</h3>
+                  <p className="text-sm text-gray-500">Create fixed routes</p>
+                </div>
+              </Link>
             </div>
           </div>
 

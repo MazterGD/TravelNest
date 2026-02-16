@@ -9,6 +9,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import path from "path";
 
 import { config } from "./config/index.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
@@ -23,6 +24,7 @@ import reviewRoutes from "./modules/review/review.routes.js";
 import paymentRoutes from "./modules/payment/payment.routes.js";
 import notificationRoutes from "./modules/notification/notification.routes.js";
 import ownerRoutes from "./modules/owner/owner.routes.js";
+import tripPackageRoutes from "./modules/trip-package/trip-package.routes.js";
 
 const app: Express = express();
 
@@ -59,6 +61,9 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
+// Serve uploaded files
+app.use("/uploads", express.static(path.resolve(config.upload.uploadDir)));
+
 // Logging
 if (config.env === "development") {
   app.use(morgan("dev"));
@@ -87,6 +92,7 @@ app.use(`${apiBase}/reviews`, reviewRoutes);
 app.use(`${apiBase}/payments`, paymentRoutes);
 app.use(`${apiBase}/notifications`, notificationRoutes);
 app.use(`${apiBase}/owner`, ownerRoutes);
+app.use(`${apiBase}/packages`, tripPackageRoutes);
 
 // API documentation endpoint
 app.get(`${apiBase}`, (_req: Request, res: Response) => {
@@ -104,6 +110,7 @@ app.get(`${apiBase}`, (_req: Request, res: Response) => {
       payments: `${apiBase}/payments`,
       notifications: `${apiBase}/notifications`,
       owner: `${apiBase}/owner`,
+      packages: `${apiBase}/packages`,
     },
   });
 });

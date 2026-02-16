@@ -366,6 +366,11 @@ export default function BookingDetailsContent({
   const canRate =
     booking.status === BookingStatus.COMPLETED &&
     !booking.messages.some((m) => m.message.includes("rated"));
+  const canPay = [
+    PaymentStatus.PENDING,
+    PaymentStatus.PARTIAL,
+    PaymentStatus.FAILED,
+  ].includes(booking.paymentStatus);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
@@ -396,6 +401,18 @@ export default function BookingDetailsContent({
               <Badge className={getPaymentStatusColor(booking.paymentStatus)}>
                 {booking.paymentStatus}
               </Badge>
+              {canPay && (
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    router.push(
+                      `/${locale}/dashboard/bookings/${booking.id}/payment`,
+                    )
+                  }
+                >
+                  Pay Now
+                </Button>
+              )}
             </div>
           </div>
         </div>

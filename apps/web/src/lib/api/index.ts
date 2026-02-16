@@ -16,6 +16,12 @@ export {
   vehicleService,
   type VehicleSearchParams,
 
+  // Trip Packages
+  tripPackageService,
+  type TripPackageSearchParams,
+  type TripPackageInput,
+  type TripPackageUpdateInput,
+
   // Quotation
   quotationService,
 

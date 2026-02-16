@@ -123,7 +123,8 @@ export const getBookingById = async (
   userId: string,
   userRole: string,
 ) => {
-  const booking = await prisma.booking.findUnique({
+  const prismaClient = prisma as any;
+  const booking = await prismaClient.booking.findUnique({
     where: { id: bookingId },
     include: {
       customer: {
@@ -164,6 +165,7 @@ export const getBookingById = async (
           status: true,
           method: true,
           createdAt: true,
+          bankReceiptUrl: true,
         },
       },
       review: true,
@@ -221,10 +223,12 @@ export const getBookingById = async (
       passengers: booking.totalPassengers || 0,
     },
     payment: {
+      id: booking.payment?.id || null,
       total: booking.totalAmount,
       paid: booking.payment?.amount || 0,
       status: booking.payment?.status?.toLowerCase() || "pending",
       method: booking.payment?.method || "Pending",
+      receiptUrl: booking.payment?.bankReceiptUrl || null,
       platformCommission,
       netAmount,
     },

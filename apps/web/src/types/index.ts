@@ -119,6 +119,26 @@ export interface Vehicle {
   reviews?: any[];
 }
 
+// Trip Package Types
+export interface TripPackage {
+  id: string;
+  ownerId: string;
+  vehicleId: string;
+  title: string;
+  description?: string | null;
+  startLocation: string;
+  endLocation: string;
+  durationDays: number;
+  price: number;
+  minPassengers: number;
+  maxPassengers: number;
+  isActive: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  vehicle?: Partial<Vehicle>;
+  owner?: Partial<User>;
+}
+
 // Booking Types
 export enum BookingStatus {
   PENDING = "pending",

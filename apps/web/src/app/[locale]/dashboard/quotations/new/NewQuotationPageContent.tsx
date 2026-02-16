@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingSpinner, Input, Select, TextArea } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useProtectedRoute } from "@/hooks";
@@ -97,7 +97,18 @@ export function NewQuotationPageContent({
 }: NewQuotationPageContentProps) {
   const { user } = useAuthStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isLoading: guardLoading, isAuthorized } = useProtectedRoute();
+
+  // Get vehicleId from URL if present (for requests from vehicle detail page)
+  const [vehicleId, setVehicleId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const vehicleIdParam = searchParams.get("vehicleId");
+    if (vehicleIdParam) {
+      setVehicleId(vehicleIdParam);
+    }
+  }, [searchParams]);
 
   // Form state
   const [pickupLocation, setPickupLocation] = useState<Location>({
@@ -227,6 +238,7 @@ export function NewQuotationPageContent({
       const endDate = isRoundTrip && returnDate ? returnDate : pickupDate;
 
       await quotationService.requestQuotation({
+        vehicleId, // Include vehicleId if requesting for a specific vehicle
         pickupLocation: {
           address: pickupLocation.address || pickupLocation.city,
           city: pickupLocation.city,

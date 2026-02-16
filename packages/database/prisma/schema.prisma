@@ -133,6 +133,7 @@ model User {
   notifications Notification[]
   payments      Payment[]
   passwordResets PasswordResetToken[]
+  tripPackages  TripPackage[]
 
   @@map("users")
 }
@@ -225,6 +226,7 @@ model Vehicle {
   quotations      Quotation[]
   reviews         Review[]
   availability    VehicleAvailability[]
+  tripPackages    TripPackage[]
 
   @@index([ownerId])
   @@index([type])
@@ -296,6 +298,7 @@ model Booking {
   id              String        @id @default(cuid())
   customerId      String
   vehicleId       String
+  tripPackageId   String?
   startDate       DateTime
   endDate         DateTime
   pickupLocation  String
@@ -321,6 +324,7 @@ model Booking {
   // Relations
   customer        User          @relation("CustomerBookings", fields: [customerId], references: [id], onDelete: Cascade)
   vehicle         Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  tripPackage     TripPackage?  @relation(fields: [tripPackageId], references: [id], onDelete: SetNull)
   payment         Payment?
   review          Review?
   itinerary       TripItinerary[]
@@ -328,7 +332,36 @@ model Booking {
   @@index([customerId])
   @@index([vehicleId])
   @@index([status])
+  @@index([tripPackageId])
   @@map("bookings")
+}
+
+model TripPackage {
+  id            String   @id @default(cuid())
+  ownerId       String
+  vehicleId     String
+  title         String
+  description   String?
+  startLocation String
+  endLocation   String
+  durationDays  Int
+  price         Float
+  minPassengers Int
+  maxPassengers Int
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  bookings      Booking[]
+
+  @@index([ownerId])
+  @@index([vehicleId])
+  @@index([startLocation])
+  @@index([endLocation])
+  @@map("trip_packages")
 }
 
 model Quotation {
@@ -421,6 +454,11 @@ model Payment {
   method            String?
   payherePaymentId  String?       @unique  // PayHere order ID
   payhereCustomerId String?                // PayHere customer reference
+  bankReceiptUrl    String?
+  bankReceiptName   String?
+  bankReceiptSize   Int?
+  bankReceiptMime   String?
+  bankReceiptAt     DateTime?
   refundAmount      Float?
   refundReason      String?
   createdAt         DateTime      @default(now())

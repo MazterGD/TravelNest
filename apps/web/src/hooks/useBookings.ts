@@ -215,10 +215,13 @@ export function useBookings() {
    * Create payment intent for a booking
    */
   const initiatePayment = useCallback(
-    async (bookingId: string) => {
+    async (bookingId: string, method: "CARD" | "BANK_TRANSFER" | "CASH") => {
       setLoading(true);
       try {
-        const response = await paymentService.createPaymentIntent(bookingId);
+        const response = await paymentService.createPaymentIntent(
+          bookingId,
+          method,
+        );
         return { success: true, data: response };
       } catch (err) {
         const apiError = err instanceof ApiError ? err : null;
@@ -240,13 +243,10 @@ export function useBookings() {
    * Confirm payment completion
    */
   const confirmPayment = useCallback(
-    async (
-      bookingId: string,
-      paymentIntentId: string,
-    ): Promise<BookingResult> => {
+    async (bookingId: string, paymentId: string): Promise<BookingResult> => {
       setLoading(true);
       try {
-        await paymentService.confirmPayment(paymentIntentId);
+        await paymentService.confirmPayment(paymentId);
         updateBooking(bookingId, {
           paymentStatus: "paid" as PaymentStatus,
         });

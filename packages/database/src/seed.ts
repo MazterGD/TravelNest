@@ -83,6 +83,7 @@ async function main() {
   await prisma.payment.deleteMany({});
   await prisma.review.deleteMany({});
   await prisma.booking.deleteMany({});
+  await prisma.tripPackage.deleteMany({});
   await prisma.quotation.deleteMany({});
   await prisma.vehiclePhoto.deleteMany({});
   await prisma.vehicleDocument.deleteMany({});
@@ -1044,6 +1045,58 @@ async function main() {
   console.log(
     `Created ${owner5VehicleData.length} vehicles for ${owner5.firstName} ${owner5.lastName} (Pending)`,
   );
+
+  // ===========================================
+  // Create trip packages for owners
+  // ===========================================
+  console.log("\nCreating trip packages...\n");
+
+  const pickRandomDistrict = (exclude?: string) => {
+    const candidates = SRI_LANKAN_DISTRICTS.filter((d) => d !== exclude);
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  };
+
+  const createPackagesForOwner = async (ownerId: string) => {
+    const vehicles = await prisma.vehicle.findMany({
+      where: { ownerId },
+      orderBy: { createdAt: "asc" },
+    });
+
+    for (const vehicle of vehicles) {
+      const packageCount = 1 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < packageCount; i += 1) {
+        const startLocation = vehicle.location;
+        const endLocation = pickRandomDistrict(startLocation);
+        const durationDays = 1 + Math.floor(Math.random() * 5);
+        const minPassengers = Math.max(10, Math.floor(vehicle.seats * 0.5));
+        const maxPassengers = vehicle.seats;
+        const basePrice = vehicle.pricePerDay * durationDays;
+        const price = Math.round(basePrice * (0.9 + Math.random() * 0.6));
+
+        await prisma.tripPackage.create({
+          data: {
+            ownerId: vehicle.ownerId,
+            vehicleId: vehicle.id,
+            title: `${startLocation} to ${endLocation} ${durationDays}-Day Trip`,
+            description:
+              "Fixed itinerary package with experienced driver and standard amenities.",
+            startLocation,
+            endLocation,
+            durationDays,
+            price,
+            minPassengers,
+            maxPassengers,
+            isActive: vehicle.isActive,
+          },
+        });
+      }
+    }
+  };
+
+  for (const owner of owners) {
+    await createPackagesForOwner(owner.id);
+  }
+  console.log("Trip packages created\n");
 
   // ===========================================
   // Create sample quotations
