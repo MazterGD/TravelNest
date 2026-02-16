@@ -50,6 +50,9 @@ export {
   // Owner Registration
   ownerRegistrationService,
 
+  // Storage
+  storageService,
+
   // Owner Service - Profile Updates
   ownerService,
 

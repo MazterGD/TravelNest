@@ -58,9 +58,9 @@ const mockValidOwnerData = {
       acType: "full-ac",
       photos: [],
       documents: {
-        license: null,
-        insurance: null,
-        registrationCertificate: null,
+        license: { file: { name: "license.pdf" } } as any,
+        insurance: { file: { name: "insurance.pdf" } } as any,
+        registrationCertificate: { file: { name: "registration.pdf" } } as any,
       },
     },
   ],
@@ -193,12 +193,10 @@ describe("Owner Registration Page", () => {
     });
   });
 
-  describe("Optional Documents Mode", () => {
-    it("should allow registration without documents", () => {
-      // Documents are now optional - users can register without uploading documents
-      // They can upload documents later after registration
-      const documentsRequired = false;
-      expect(documentsRequired).toBe(false);
+  describe("Required Documents", () => {
+    it("should require documents during registration", () => {
+      const documentsRequired = true;
+      expect(documentsRequired).toBe(true);
     });
   });
 
@@ -231,7 +229,11 @@ describe("Owner Registration Page", () => {
           seatingCapacity: parseInt(v.seatingCapacity),
           acType: v.acType,
           photos: v.photos,
-          documents: [],
+          documents: [
+            { type: "DRIVING_LICENSE", fileName: "license.pdf" },
+            { type: "INSURANCE", fileName: "insurance.pdf" },
+            { type: "REGISTRATION_CERTIFICATE", fileName: "registration.pdf" },
+          ],
         })),
       };
 

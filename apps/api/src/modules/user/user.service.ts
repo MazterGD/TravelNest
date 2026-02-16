@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import xss from "xss";
 import prisma from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { deleteByUrl } from "../../utils/storage.js";
 import type {
   UpdatePersonalInfoInput,
   UpdateAddressInput,
@@ -154,6 +155,49 @@ export const updateAddress = async (
 };
 
 /**
+ * Update user avatar
+ */
+export const updateAvatar = async (userId: string, avatarUrl: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { avatar: true },
+  });
+
+  if (!user) {
+    throw ApiError.notFound("User not found");
+  }
+
+  if (user.avatar) {
+    await deleteByUrl(user.avatar);
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { avatar: avatarUrl },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      nicNumber: true,
+      avatar: true,
+      address: true,
+      city: true,
+      district: true,
+      postalCode: true,
+      role: true,
+      status: true,
+      isVerified: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return updatedUser;
+};
+
+/**
  * Change user password
  */
 export const changePassword = async (
@@ -213,6 +257,30 @@ export const deleteAccount = async (userId: string) => {
       "Cannot delete account with active bookings. Please cancel or complete all bookings first.",
     );
   }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      avatar: true,
+      documents: { select: { url: true } },
+      vehicles: {
+        select: {
+          documents: { select: { url: true } },
+          photos: { select: { url: true } },
+        },
+      },
+    },
+  });
+
+  const urls: string[] = [];
+  if (user?.avatar) urls.push(user.avatar);
+  user?.documents.forEach((doc) => urls.push(doc.url));
+  user?.vehicles.forEach((vehicle) => {
+    vehicle.documents.forEach((doc) => urls.push(doc.url));
+    vehicle.photos.forEach((photo) => urls.push(photo.url));
+  });
+
+  await Promise.all(urls.map((url) => deleteByUrl(url)));
 
   // Delete user (cascades to related records due to Prisma relations)
   await prisma.user.delete({

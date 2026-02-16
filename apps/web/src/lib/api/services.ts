@@ -273,18 +273,9 @@ export const vehicleService = {
       isPrimary?: boolean;
     }>,
   ) => {
-    // For now, return mock URLs - will be replaced with actual upload logic
-    const photoData = photos.map((photo, index) => ({
-      url: `/uploads/vehicles/${id}/${Date.now()}_${photo.file.name}`,
-      fileName: photo.file.name,
-      fileSize: photo.file.size,
-      mimeType: photo.file.type,
-      isPrimary: index === 0 || photo.isPrimary || false,
-    }));
-
-    return api.post<{ photos: any[] }>(`/vehicles/${id}/photos`, {
-      photos: photoData,
-    });
+    const formData = new FormData();
+    photos.forEach((photo) => formData.append("photos", photo.file));
+    return api.upload<{ photos: any[] }>(`/vehicles/${id}/photos`, formData);
   },
 
   /**
@@ -297,18 +288,23 @@ export const vehicleService = {
       type: string;
     }>,
   ) => {
-    // For now, return mock URLs - will be replaced with actual upload logic
-    const docData = documents.map((doc) => ({
-      url: `/uploads/vehicles/${id}/documents/${Date.now()}_${doc.file.name}`,
-      fileName: doc.file.name,
-      fileSize: doc.file.size,
-      mimeType: doc.file.type,
-      type: doc.type,
-    }));
-
-    return api.post<{ documents: any[] }>(`/vehicles/${id}/documents`, {
-      documents: docData,
+    const formData = new FormData();
+    documents.forEach((doc) => {
+      if (doc.type === "DRIVING_LICENSE") {
+        formData.append("license", doc.file);
+      }
+      if (doc.type === "INSURANCE") {
+        formData.append("insurance", doc.file);
+      }
+      if (doc.type === "REGISTRATION_CERTIFICATE") {
+        formData.append("registrationCertificate", doc.file);
+      }
     });
+
+    return api.upload<{ documents: any[] }>(
+      `/vehicles/${id}/documents`,
+      formData,
+    );
   },
 
   /**
@@ -1005,6 +1001,24 @@ export const ownerRegistrationService = {
         >;
       };
     }>("/owner/profile"),
+};
+
+// ============================================
+// Storage Services
+// ============================================
+export const storageService = {
+  uploadRegistrationFile: (
+    file: File,
+    category: "owner-documents" | "vehicle-documents" | "vehicle-photos",
+  ) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("category", category);
+    return api.upload<{ url: string; path: string }>(
+      "/uploads/registration",
+      formData,
+    );
+  },
 };
 
 // ============================================

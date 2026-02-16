@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import * as vehicleService from "./vehicle.service.js";
 import { ResponseHelper } from "../../utils/response.js";
+import { ApiError } from "../../middleware/errorHandler.js";
+import { uploadBuffer } from "../../utils/storage.js";
 
 /**
  * Get all vehicles with filters
@@ -99,12 +101,35 @@ export const deleteVehicle = async (req: Request, res: Response) => {
 export const uploadPhotos = async (req: Request, res: Response) => {
   const { id } = req.params;
   const ownerId = req.user!.id;
-  const { photos } = req.body;
+  const files = (req.files as Express.Multer.File[]) || [];
+
+  if (!files.length) {
+    throw ApiError.badRequest("At least one photo is required");
+  }
+
+  const uploads = await Promise.all(
+    files.map((file) =>
+      uploadBuffer({
+        prefix: `vehicles/${id}/photos`,
+        fileName: file.originalname,
+        buffer: file.buffer,
+        contentType: file.mimetype,
+      }),
+    ),
+  );
+
+  const photoData = uploads.map((upload, index) => ({
+    url: upload.publicUrl,
+    fileName: files[index].originalname,
+    fileSize: files[index].size,
+    mimeType: files[index].mimetype,
+    isPrimary: index === 0,
+  }));
 
   const uploadedPhotos = await vehicleService.uploadVehiclePhotos(
     String(id),
     ownerId,
-    photos,
+    photoData,
   );
 
   return ResponseHelper.created(
@@ -121,7 +146,40 @@ export const uploadPhotos = async (req: Request, res: Response) => {
 export const uploadDocuments = async (req: Request, res: Response) => {
   const { id } = req.params;
   const ownerId = req.user!.id;
-  const { documents } = req.body;
+  const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+
+  const licenseFile = files?.license?.[0];
+  const insuranceFile = files?.insurance?.[0];
+  const registrationFile = files?.registrationCertificate?.[0];
+
+  if (!licenseFile || !insuranceFile || !registrationFile) {
+    throw ApiError.badRequest("All vehicle documents are required");
+  }
+
+  const documentFiles = [
+    { file: licenseFile, type: "DRIVING_LICENSE" },
+    { file: insuranceFile, type: "INSURANCE" },
+    { file: registrationFile, type: "REGISTRATION_CERTIFICATE" },
+  ];
+
+  const uploads = await Promise.all(
+    documentFiles.map((doc) =>
+      uploadBuffer({
+        prefix: `vehicles/${id}/documents`,
+        fileName: doc.file.originalname,
+        buffer: doc.file.buffer,
+        contentType: doc.file.mimetype,
+      }),
+    ),
+  );
+
+  const documents = documentFiles.map((doc, index) => ({
+    type: doc.type,
+    url: uploads[index].publicUrl,
+    fileName: doc.file.originalname,
+    fileSize: doc.file.size,
+    mimeType: doc.file.mimetype,
+  }));
 
   const uploadedDocs = await vehicleService.uploadVehicleDocuments(
     String(id),

@@ -1,7 +1,5 @@
 import { Router } from "express";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import { authenticate } from "../../middleware/auth.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
 import { csrfProtection } from "../../middleware/csrf.js";
@@ -17,22 +15,8 @@ import { config } from "../../config/index.js";
 
 const router = Router();
 
-const receiptsDir = path.resolve(config.upload.uploadDir, "receipts");
-if (!fs.existsSync(receiptsDir)) {
-  fs.mkdirSync(receiptsDir, { recursive: true });
-}
-
 const receiptUpload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, receiptsDir),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      const name = `receipt_${Date.now()}_${Math.random()
-        .toString(36)
-        .slice(2, 8)}${ext}`;
-      cb(null, name);
-    },
-  }),
+  storage: multer.memoryStorage(),
   fileFilter: (_req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "application/pdf"];
     if (!allowed.includes(file.mimetype)) {

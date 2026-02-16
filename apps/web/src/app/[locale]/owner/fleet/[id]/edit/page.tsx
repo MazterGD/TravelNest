@@ -165,6 +165,17 @@ export default function EditVehiclePage() {
     setError(null);
 
     try {
+      if (
+        !documents.license ||
+        !documents.insurance ||
+        !documents.registrationCertificate
+      ) {
+        setError("All vehicle documents are required");
+        setActiveSection("documents");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Map form data to API format
       const updateData = {
         name: formData.name,
@@ -192,6 +203,25 @@ export default function EditVehiclePage() {
       console.log("Updating vehicle with data:", updateData);
       const result = await vehicleService.update(vehicleId, updateData);
       console.log("Update result:", result);
+
+      await vehicleService.uploadDocuments(vehicleId, [
+        { file: documents.license.file, type: "DRIVING_LICENSE" },
+        { file: documents.insurance.file, type: "INSURANCE" },
+        {
+          file: documents.registrationCertificate.file,
+          type: "REGISTRATION_CERTIFICATE",
+        },
+      ]);
+
+      const photoUploads = [] as Array<{ file: File; isPrimary?: boolean }>;
+      if (primaryPhoto) {
+        photoUploads.push({ file: primaryPhoto, isPrimary: true });
+      }
+      additionalPhotos.forEach((photo) => photoUploads.push({ file: photo }));
+      if (photoUploads.length > 0) {
+        await vehicleService.uploadPhotos(vehicleId, photoUploads);
+      }
+
       router.push(`/${locale}/owner/fleet`);
     } catch (err) {
       console.error("Failed to update vehicle:", err);

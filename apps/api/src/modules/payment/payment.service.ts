@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import prisma from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { deleteByUrl } from "../../utils/storage.js";
 import { config } from "../../config/index.js";
 
 export type PaymentMethod = "CARD" | "BANK_TRANSFER" | "CASH";
@@ -342,7 +343,7 @@ export const uploadBankReceipt = async (
   },
 ) => {
   const prismaClient = prisma as any;
-  const payment = await prisma.payment.findUnique({
+  const payment = await prismaClient.payment.findUnique({
     where: { id: paymentId },
   });
 
@@ -356,6 +357,10 @@ export const uploadBankReceipt = async (
 
   if (payment.status === "COMPLETED") {
     throw ApiError.badRequest("Cannot upload receipt for completed payments");
+  }
+
+  if (payment.bankReceiptUrl) {
+    await deleteByUrl(payment.bankReceiptUrl);
   }
 
   const updated = await prismaClient.payment.update({

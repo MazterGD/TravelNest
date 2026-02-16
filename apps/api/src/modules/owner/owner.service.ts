@@ -74,9 +74,13 @@ const mapDocumentType = (type: string) => {
   return typeMap[type] || type;
 };
 
-// Generate a placeholder URL for documents (until S3 is configured)
-const generatePlaceholderUrl = (fileName: string, type: string): string => {
-  return `/uploads/pending/${type.toLowerCase()}/${Date.now()}_${fileName}`;
+const requireDocumentTypes = (types: string[], required: string[]) => {
+  const missing = required.filter((type) => !types.includes(type));
+  if (missing.length > 0) {
+    throw ApiError.badRequest(
+      `Missing required documents: ${missing.join(", ")}`,
+    );
+  }
 };
 
 /**
@@ -88,19 +92,25 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
     throw ApiError.badRequest("Passwords do not match");
   }
 
-  // Validate file uploads (if provided)
-  if (data.ownerDocuments && data.ownerDocuments.length > 0) {
-    for (const doc of data.ownerDocuments) {
-      validateMimeType(
-        doc.mimeType,
-        doc.type === "PROFILE_PHOTO"
-          ? ALLOWED_IMAGE_TYPES
-          : ALLOWED_DOCUMENT_TYPES,
-        doc.fileName,
-      );
-      validateFileSize(doc.fileSize, doc.fileName);
+  // Validate owner documents
+  for (const doc of data.ownerDocuments) {
+    validateMimeType(
+      doc.mimeType,
+      doc.type === "PROFILE_PHOTO"
+        ? ALLOWED_IMAGE_TYPES
+        : ALLOWED_DOCUMENT_TYPES,
+      doc.fileName,
+    );
+    validateFileSize(doc.fileSize, doc.fileName);
+    if (!doc.url) {
+      throw ApiError.badRequest("Owner document URL is required");
     }
   }
+
+  requireDocumentTypes(
+    data.ownerDocuments.map((doc) => doc.type),
+    ["NIC", "PROFILE_PHOTO"],
+  );
 
   // Validate vehicle photos and documents
   for (const vehicle of data.vehicles) {
@@ -110,12 +120,18 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
         validateFileSize(photo.fileSize, photo.fileName);
       }
     }
-    if (vehicle.documents && vehicle.documents.length > 0) {
-      for (const doc of vehicle.documents) {
-        validateMimeType(doc.mimeType, ALLOWED_DOCUMENT_TYPES, doc.fileName);
-        validateFileSize(doc.fileSize, doc.fileName);
+    for (const doc of vehicle.documents) {
+      validateMimeType(doc.mimeType, ALLOWED_DOCUMENT_TYPES, doc.fileName);
+      validateFileSize(doc.fileSize, doc.fileName);
+      if (!doc.url) {
+        throw ApiError.badRequest("Vehicle document URL is required");
       }
     }
+
+    requireDocumentTypes(
+      vehicle.documents.map((doc) => doc.type),
+      ["DRIVING_LICENSE", "INSURANCE", "REGISTRATION_CERTIFICATE"],
+    );
   }
 
   // Check if email already exists
@@ -174,20 +190,18 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
     });
 
     // Create owner documents (if provided - optional for registration)
-    if (data.ownerDocuments && data.ownerDocuments.length > 0) {
-      for (const doc of data.ownerDocuments) {
-        await tx.ownerDocument.create({
-          data: {
-            ownerId: user.id,
-            type: mapDocumentType(doc.type) as any,
-            url: doc.url || generatePlaceholderUrl(doc.fileName, doc.type),
-            fileName: doc.fileName,
-            fileSize: doc.fileSize,
-            mimeType: doc.mimeType,
-            status: "PENDING",
-          },
-        });
-      }
+    for (const doc of data.ownerDocuments) {
+      await tx.ownerDocument.create({
+        data: {
+          ownerId: user.id,
+          type: mapDocumentType(doc.type) as any,
+          url: doc.url,
+          fileName: doc.fileName,
+          fileSize: doc.fileSize,
+          mimeType: doc.mimeType,
+          status: "PENDING",
+        },
+      });
     }
 
     // Create vehicles with documents and photos
@@ -214,32 +228,31 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
       });
 
       // Create vehicle documents (if provided - optional for registration)
-      if (vehicleData.documents && vehicleData.documents.length > 0) {
-        for (const doc of vehicleData.documents) {
-          await tx.vehicleDocument.create({
-            data: {
-              vehicleId: vehicle.id,
-              type: mapDocumentType(doc.type) as any,
-              url: doc.url || generatePlaceholderUrl(doc.fileName, doc.type),
-              fileName: doc.fileName,
-              fileSize: doc.fileSize,
-              mimeType: doc.mimeType,
-              status: "PENDING",
-            },
-          });
-        }
+      for (const doc of vehicleData.documents) {
+        await tx.vehicleDocument.create({
+          data: {
+            vehicleId: vehicle.id,
+            type: mapDocumentType(doc.type) as any,
+            url: doc.url,
+            fileName: doc.fileName,
+            fileSize: doc.fileSize,
+            mimeType: doc.mimeType,
+            status: "PENDING",
+          },
+        });
       }
 
       // Create vehicle photos (if provided - optional for registration)
       if (vehicleData.photos && vehicleData.photos.length > 0) {
         for (let i = 0; i < vehicleData.photos.length; i++) {
           const photo = vehicleData.photos[i];
+          if (!photo.url) {
+            throw ApiError.badRequest("Vehicle photo URL is required");
+          }
           await tx.vehiclePhoto.create({
             data: {
               vehicleId: vehicle.id,
-              url:
-                photo.url ||
-                generatePlaceholderUrl(photo.fileName, "VEHICLE_PHOTO"),
+              url: photo.url,
               fileName: photo.fileName,
               fileSize: photo.fileSize,
               mimeType: photo.mimeType,

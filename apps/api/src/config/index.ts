@@ -2,8 +2,9 @@ import dotenv from "dotenv";
 import path from "path";
 import crypto from "crypto";
 
-// Load environment variables
+// Load environment variables (local .env and repo root .env)
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: path.resolve(process.cwd(), "..", "..", ".env") });
 
 // Generate secure random secret for development only
 const getJWTSecret = () => {
@@ -87,6 +88,15 @@ export const config = {
   upload: {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || "5242880", 10), // 5MB
     uploadDir: process.env.UPLOAD_DIR || "uploads",
+  },
+
+  // Supabase Storage
+  supabase: {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    publishableKey:
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY || "",
+    bucket: process.env.SUPABASE_BUCKET || "travenest",
+    publicUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
   },
 
   // Rate Limiting

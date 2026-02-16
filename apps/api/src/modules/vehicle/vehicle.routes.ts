@@ -1,4 +1,5 @@
 import { Router } from "express";
+import multer from "multer";
 import {
   authenticate,
   authorize,
@@ -11,13 +12,42 @@ import * as vehicleController from "./vehicle.controller.js";
 import {
   createVehicleSchema,
   updateVehicleSchema,
-  uploadPhotosSchema,
-  uploadDocumentsSchema,
   getVehicleByIdSchema,
   deleteVehicleSchema,
 } from "./vehicle.schemas.js";
+import { config } from "../../config/index.js";
 
 const router = Router();
+
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowed.includes(file.mimetype)) {
+      cb(new Error("Unsupported photo file type"));
+      return;
+    }
+    cb(null, true);
+  },
+  limits: {
+    fileSize: config.upload.maxFileSize,
+  },
+});
+
+const documentUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["application/pdf", "image/jpeg", "image/png"];
+    if (!allowed.includes(file.mimetype)) {
+      cb(new Error("Unsupported document file type"));
+      return;
+    }
+    cb(null, true);
+  },
+  limits: {
+    fileSize: config.upload.maxFileSize,
+  },
+});
 
 // Public routes
 // Get all vehicles (with filters)
@@ -76,7 +106,7 @@ router.post(
   authenticate,
   csrfProtection,
   authorize("owner", "admin"),
-  validate(uploadPhotosSchema),
+  photoUpload.array("photos", 10),
   asyncHandler(vehicleController.uploadPhotos),
 );
 
@@ -86,7 +116,11 @@ router.post(
   authenticate,
   csrfProtection,
   authorize("owner", "admin"),
-  validate(uploadDocumentsSchema),
+  documentUpload.fields([
+    { name: "license", maxCount: 1 },
+    { name: "insurance", maxCount: 1 },
+    { name: "registrationCertificate", maxCount: 1 },
+  ]),
   asyncHandler(vehicleController.uploadDocuments),
 );
 

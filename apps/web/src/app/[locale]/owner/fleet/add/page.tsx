@@ -132,6 +132,17 @@ export default function AddVehiclePage() {
     setErrors({});
 
     try {
+      if (
+        !documents.license ||
+        !documents.insurance ||
+        !documents.registrationCertificate
+      ) {
+        setErrors({ documents: "All vehicle documents are required" });
+        setActiveSection("documents");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Photo validation temporarily disabled - storage bucket not implemented yet
       // if (!photos.length) {
       //   setErrors({ photos: "At least one photo is required" });
@@ -165,16 +176,24 @@ export default function AddVehiclePage() {
       // Create vehicle
       const vehicle = await vehicleService.create(vehicleData);
 
-      // Photo upload temporarily disabled - storage bucket not implemented yet
-      // if (photos.length > 0) {
-      //   await vehicleService.uploadPhotos(
-      //     vehicle.id,
-      //     photos.map((photo, index) => ({
-      //       file: photo,
-      //       isPrimary: index === 0,
-      //     })),
-      //   );
-      // }
+      await vehicleService.uploadDocuments(vehicle.id, [
+        { file: documents.license.file, type: "DRIVING_LICENSE" },
+        { file: documents.insurance.file, type: "INSURANCE" },
+        {
+          file: documents.registrationCertificate.file,
+          type: "REGISTRATION_CERTIFICATE",
+        },
+      ]);
+
+      if (photos.length > 0) {
+        await vehicleService.uploadPhotos(
+          vehicle.id,
+          photos.map((photo, index) => ({
+            file: photo,
+            isPrimary: index === 0,
+          })),
+        );
+      }
 
       // Redirect to fleet page
       router.push(`/${locale}/owner/fleet`);
@@ -626,6 +645,12 @@ export default function AddVehiclePage() {
                           helpText="Vehicle registration certificate"
                         />
                       </div>
+
+                      {errors.documents && (
+                        <p className="text-sm text-red-500">
+                          {errors.documents}
+                        </p>
+                      )}
                     </div>
 
                     <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">

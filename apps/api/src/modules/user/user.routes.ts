@@ -1,7 +1,9 @@
 import { Router } from "express";
+import multer from "multer";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
+import { csrfProtection } from "../../middleware/csrf.js";
 import {
   updatePersonalInfoSchema,
   updateAddressSchema,
@@ -9,8 +11,24 @@ import {
 } from "./user.schemas.js";
 import * as userController from "./user.controller.js";
 import type { Request, Response } from "express";
+import { config } from "../../config/index.js";
 
 const router = Router();
+
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.mimetype)) {
+      cb(new Error("Unsupported avatar file type"));
+      return;
+    }
+    cb(null, true);
+  },
+  limits: {
+    fileSize: config.upload.maxFileSize,
+  },
+});
 
 /**
  * @route   GET /api/v1/users/profile
@@ -53,6 +71,19 @@ router.post(
   authenticate,
   validate(changePasswordSchema),
   asyncHandler(userController.changePassword),
+);
+
+/**
+ * @route   POST /api/v1/users/avatar
+ * @desc    Upload user avatar
+ * @access  Private
+ */
+router.post(
+  "/avatar",
+  authenticate,
+  csrfProtection,
+  avatarUpload.single("avatar"),
+  asyncHandler(userController.uploadAvatar),
 );
 
 /**

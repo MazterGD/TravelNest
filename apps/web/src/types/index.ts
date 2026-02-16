@@ -295,7 +295,7 @@ export interface OwnerRegistrationVehicleDocument {
   fileName: string;
   fileSize: number;
   mimeType: string;
-  url?: string;
+  url: string;
 }
 
 export interface OwnerRegistrationVehiclePhoto {
@@ -303,7 +303,7 @@ export interface OwnerRegistrationVehiclePhoto {
   fileSize: number;
   mimeType: string;
   isPrimary?: boolean;
-  url?: string;
+  url: string;
 }
 
 export interface OwnerRegistrationVehicle {
@@ -315,7 +315,7 @@ export interface OwnerRegistrationVehicle {
   seatingCapacity: number; // Maps to seats in DB
   acType: "full-ac" | "ac" | "non-ac";
   photos?: OwnerRegistrationVehiclePhoto[];
-  documents?: OwnerRegistrationVehicleDocument[];
+  documents: OwnerRegistrationVehicleDocument[];
 }
 
 export interface OwnerRegistrationDocument {
@@ -323,7 +323,7 @@ export interface OwnerRegistrationDocument {
   fileName: string;
   fileSize: number;
   mimeType: string;
-  url?: string;
+  url: string;
 }
 
 export interface OwnerRegistrationAddress {
@@ -343,6 +343,6 @@ export interface OwnerRegistrationInput {
   password: string;
   confirmPassword: string;
   address: OwnerRegistrationAddress;
-  ownerDocuments?: OwnerRegistrationDocument[];
+  ownerDocuments: OwnerRegistrationDocument[];
   vehicles: OwnerRegistrationVehicle[];
 }

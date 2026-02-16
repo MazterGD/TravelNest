@@ -25,6 +25,7 @@ import paymentRoutes from "./modules/payment/payment.routes.js";
 import notificationRoutes from "./modules/notification/notification.routes.js";
 import ownerRoutes from "./modules/owner/owner.routes.js";
 import tripPackageRoutes from "./modules/trip-package/trip-package.routes.js";
+import uploadsRoutes from "./modules/uploads/uploads.routes.js";
 
 const app: Express = express();
 
@@ -93,6 +94,7 @@ app.use(`${apiBase}/payments`, paymentRoutes);
 app.use(`${apiBase}/notifications`, notificationRoutes);
 app.use(`${apiBase}/owner`, ownerRoutes);
 app.use(`${apiBase}/packages`, tripPackageRoutes);
+app.use(`${apiBase}/uploads`, uploadsRoutes);
 
 // API documentation endpoint
 app.get(`${apiBase}`, (_req: Request, res: Response) => {

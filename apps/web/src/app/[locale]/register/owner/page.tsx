@@ -23,7 +23,7 @@ import {
 } from "react-icons/fa";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner, FileUpload, type UploadedFile } from "@/components/ui";
-import { ownerRegistrationService, ApiError } from "@/lib/api";
+import { ownerRegistrationService, storageService, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store";
 import { useGuestGuard } from "@/hooks";
 import { cn } from "@/lib/utils/cn";
@@ -237,7 +237,14 @@ export default function OwnerRegistrationPage() {
           setFieldErrors({ email: "Please enter a valid email address" });
           return false;
         }
-        // Documents are optional - can be uploaded later
+        if (!ownerPhoto || !nicDocument) {
+          setFieldErrors({
+            ownerPhoto: !ownerPhoto ? "Profile photo is required" : "",
+            nicDocument: !nicDocument ? "NIC document is required" : "",
+          });
+          setError("Please upload the required identity documents");
+          return false;
+        }
         return true;
 
       case 2: // Address
@@ -267,7 +274,16 @@ export default function OwnerRegistrationPage() {
             setError(`Please fill in all required fields for Vehicle ${i + 1}`);
             return false;
           }
-          // Documents and photos are optional - can be uploaded after approval
+          if (
+            !vehicle.documents.license ||
+            !vehicle.documents.insurance ||
+            !vehicle.documents.registrationCertificate
+          ) {
+            setError(
+              `Please upload all required documents for Vehicle ${i + 1}`,
+            );
+            return false;
+          }
         }
         return true;
 
@@ -395,70 +411,93 @@ export default function OwnerRegistrationPage() {
     setError(null);
 
     try {
-      // Prepare owner documents
-      const ownerDocs = [];
-      if (nicDocument) {
-        ownerDocs.push({
+      const uploadRegistrationFile = async (
+        file: File,
+        category: "owner-documents" | "vehicle-documents" | "vehicle-photos",
+      ) => {
+        const result = await storageService.uploadRegistrationFile(
+          file,
+          category,
+        );
+        return result.url;
+      };
+
+      const ownerDocs = [
+        {
           type: "NIC" as const,
-          fileName: nicDocument.file.name,
-          fileSize: nicDocument.file.size,
-          mimeType: nicDocument.file.type,
-        });
-      }
-      if (ownerPhoto) {
-        ownerDocs.push({
+          file: nicDocument!.file,
+        },
+        {
           type: "PROFILE_PHOTO" as const,
-          fileName: ownerPhoto.file.name,
-          fileSize: ownerPhoto.file.size,
-          mimeType: ownerPhoto.file.type,
-        });
-      }
+          file: ownerPhoto!.file,
+        },
+      ];
+
+      const ownerDocuments = await Promise.all(
+        ownerDocs.map(async (doc) => ({
+          type: doc.type,
+          fileName: doc.file.name,
+          fileSize: doc.file.size,
+          mimeType: doc.file.type,
+          url: await uploadRegistrationFile(doc.file, "owner-documents"),
+        })),
+      );
 
       // Prepare vehicles data
-      const vehiclesData = vehicles.map((v) => ({
-        registrationNumber: v.registrationNumber,
-        vehicleType: v.vehicleType as
-          | "luxury"
-          | "semi-luxury"
-          | "standard"
-          | "mini",
-        make: v.make,
-        model: v.model,
-        year: parseInt(v.year),
-        seatingCapacity: parseInt(v.seatingCapacity),
-        acType: v.acType as "full-ac" | "ac" | "non-ac",
-        photos: v.photos.map((p, idx) => ({
-          fileName: p.file.name,
-          fileSize: p.file.size,
-          mimeType: p.file.type,
-          isPrimary: idx === 0,
-        })),
-        documents: [
-          v.documents.license && {
-            type: "DRIVING_LICENSE" as const,
-            fileName: v.documents.license.file.name,
-            fileSize: v.documents.license.file.size,
-            mimeType: v.documents.license.file.type,
-          },
-          v.documents.insurance && {
-            type: "INSURANCE" as const,
-            fileName: v.documents.insurance.file.name,
-            fileSize: v.documents.insurance.file.size,
-            mimeType: v.documents.insurance.file.type,
-          },
-          v.documents.registrationCertificate && {
-            type: "REGISTRATION_CERTIFICATE" as const,
-            fileName: v.documents.registrationCertificate.file.name,
-            fileSize: v.documents.registrationCertificate.file.size,
-            mimeType: v.documents.registrationCertificate.file.type,
-          },
-        ].filter(Boolean) as Array<{
-          type: "DRIVING_LICENSE" | "INSURANCE" | "REGISTRATION_CERTIFICATE";
-          fileName: string;
-          fileSize: number;
-          mimeType: string;
-        }>,
-      }));
+      const vehiclesData = await Promise.all(
+        vehicles.map(async (v) => {
+          const photos = await Promise.all(
+            v.photos.map(async (p, idx) => ({
+              fileName: p.file.name,
+              fileSize: p.file.size,
+              mimeType: p.file.type,
+              isPrimary: idx === 0,
+              url: await uploadRegistrationFile(p.file, "vehicle-photos"),
+            })),
+          );
+
+          const documentFiles = [
+            {
+              type: "DRIVING_LICENSE" as const,
+              file: v.documents.license!.file,
+            },
+            {
+              type: "INSURANCE" as const,
+              file: v.documents.insurance!.file,
+            },
+            {
+              type: "REGISTRATION_CERTIFICATE" as const,
+              file: v.documents.registrationCertificate!.file,
+            },
+          ];
+
+          const documents = await Promise.all(
+            documentFiles.map(async (doc) => ({
+              type: doc.type,
+              fileName: doc.file.name,
+              fileSize: doc.file.size,
+              mimeType: doc.file.type,
+              url: await uploadRegistrationFile(doc.file, "vehicle-documents"),
+            })),
+          );
+
+          return {
+            registrationNumber: v.registrationNumber,
+            vehicleType: v.vehicleType as
+              | "luxury"
+              | "semi-luxury"
+              | "standard"
+              | "mini",
+            make: v.make,
+            model: v.model,
+            year: parseInt(v.year),
+            seatingCapacity: parseInt(v.seatingCapacity),
+            acType: v.acType as "full-ac" | "ac" | "non-ac",
+            photos,
+            documents,
+          };
+        }),
+      );
 
       // Prepare registration payload
       const registrationPayload: OwnerRegistrationInput = {
@@ -476,7 +515,7 @@ export default function OwnerRegistrationPage() {
           postalCode: addressInfo.postalCode || undefined,
           baseLocation: addressInfo.baseLocation,
         },
-        ownerDocuments: ownerDocs,
+        ownerDocuments,
         vehicles: vehiclesData,
       };
 
@@ -806,13 +845,13 @@ export default function OwnerRegistrationPage() {
                           <FaCamera className="text-primary" />
                           Identity Verification
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full ml-2">
-                            Optional - Can upload later
+                            Required
                           </span>
                         </h3>
                         <div className="grid md:grid-cols-2 gap-6">
                           <div>
                             <label className="block font-semibold text-gray-800 mb-2">
-                              Profile Photo
+                              Profile Photo *
                             </label>
                             <div
                               className={cn(
@@ -859,20 +898,36 @@ export default function OwnerRegistrationPage() {
                                         const preview =
                                           URL.createObjectURL(file);
                                         setOwnerPhoto({ file, preview });
+                                        setFieldErrors((prev) => ({
+                                          ...prev,
+                                          ownerPhoto: "",
+                                        }));
                                       }
                                     }}
                                   />
                                 </label>
                               )}
                             </div>
+                            {fieldErrors.ownerPhoto && (
+                              <p className="mt-2 text-sm text-red-600">
+                                {fieldErrors.ownerPhoto}
+                              </p>
+                            )}
                           </div>
 
                           <FileUpload
                             label="NIC Document"
-                            required={false}
+                            required
                             value={nicDocument}
-                            onChange={setNicDocument}
+                            onChange={(file) => {
+                              setNicDocument(file);
+                              setFieldErrors((prev) => ({
+                                ...prev,
+                                nicDocument: "",
+                              }));
+                            }}
                             helpText="Upload a clear copy of your NIC (front & back)"
+                            error={fieldErrors.nicDocument}
                           />
                         </div>
                       </div>
@@ -1441,14 +1496,14 @@ export default function OwnerRegistrationPage() {
                               <FaFileAlt className="text-primary" />
                               Vehicle Documents
                               <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full ml-2">
-                                Optional - Can upload later
+                                Required
                               </span>
                             </h4>
 
                             <div className="grid md:grid-cols-3 gap-4">
                               <FileUpload
                                 label="Driving License"
-                                required={false}
+                                required
                                 value={vehicle.documents.license}
                                 onChange={(file) =>
                                   updateVehicleDocument(index, "license", file)
@@ -1458,7 +1513,7 @@ export default function OwnerRegistrationPage() {
 
                               <FileUpload
                                 label="Insurance Certificate"
-                                required={false}
+                                required
                                 value={vehicle.documents.insurance}
                                 onChange={(file) =>
                                   updateVehicleDocument(
@@ -1472,7 +1527,7 @@ export default function OwnerRegistrationPage() {
 
                               <FileUpload
                                 label="Certificate of Registration"
-                                required={false}
+                                required
                                 value={
                                   vehicle.documents.registrationCertificate
                                 }

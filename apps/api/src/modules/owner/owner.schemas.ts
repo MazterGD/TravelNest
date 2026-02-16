@@ -6,8 +6,7 @@ const vehicleDocumentSchema = z.object({
   fileName: z.string().min(1, "File name is required"),
   fileSize: z.number().positive("File size must be positive"),
   mimeType: z.string().min(1, "MIME type is required"),
-  // URL will be generated after upload - optional during validation
-  url: z.string().optional(),
+  url: z.string().url("Document URL is required"),
 });
 
 // Vehicle photo schema
@@ -16,8 +15,7 @@ const vehiclePhotoSchema = z.object({
   fileSize: z.number().positive("File size must be positive"),
   mimeType: z.string().min(1, "MIME type is required"),
   isPrimary: z.boolean().default(false),
-  // URL will be generated after upload - optional during validation
-  url: z.string().optional(),
+  url: z.string().url("Photo URL is required"),
 });
 
 // Vehicle data schema
@@ -41,7 +39,9 @@ const vehicleSchema = z.object({
     .max(100),
   acType: z.enum(["full-ac", "ac", "non-ac"]),
   photos: z.array(vehiclePhotoSchema).optional().default([]),
-  documents: z.array(vehicleDocumentSchema).optional().default([]),
+  documents: z
+    .array(vehicleDocumentSchema)
+    .min(3, "Vehicle documents are required"),
 });
 
 // Owner document schema
@@ -50,8 +50,7 @@ const ownerDocumentSchema = z.object({
   fileName: z.string().min(1, "File name is required"),
   fileSize: z.number().positive("File size must be positive"),
   mimeType: z.string().min(1, "MIME type is required"),
-  // URL will be generated after upload - optional during validation
-  url: z.string().optional(),
+  url: z.string().url("Document URL is required"),
 });
 
 // Address schema
@@ -96,7 +95,9 @@ export const ownerRegistrationSchema = z.object({
     address: addressSchema,
 
     // Owner documents (NIC, Profile Photo)
-    ownerDocuments: z.array(ownerDocumentSchema).optional().default([]),
+    ownerDocuments: z
+      .array(ownerDocumentSchema)
+      .min(2, "Owner documents are required"),
 
     // Vehicles (at least one required)
     vehicles: z.array(vehicleSchema).min(1, "At least one vehicle is required"),

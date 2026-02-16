@@ -1,5 +1,6 @@
 import { prisma } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { deleteByUrl } from "../../utils/storage.js";
 import xss from "xss";
 
 /**
@@ -427,6 +428,8 @@ export const deleteVehicle = async (id: string, ownerId: string) => {
           },
         },
       },
+      documents: true,
+      photos: true,
     },
   });
 
@@ -444,6 +447,13 @@ export const deleteVehicle = async (id: string, ownerId: string) => {
       "Cannot delete vehicle with active or pending bookings. Please complete or cancel all bookings first.",
     );
   }
+
+  const fileUrls = [
+    ...existing.documents.map((doc) => doc.url),
+    ...existing.photos.map((photo) => photo.url),
+  ];
+
+  await Promise.all(fileUrls.map((url) => deleteByUrl(url)));
 
   // Hard delete - remove the vehicle and all related data
   await prisma.vehicle.delete({
@@ -572,6 +582,22 @@ export const uploadVehicleDocuments = async (
       "You can only upload documents to your own vehicles",
     );
   }
+
+  const docTypes = documents.map((doc) => doc.type as any);
+  const existingDocs = await prisma.vehicleDocument.findMany({
+    where: {
+      vehicleId,
+      type: { in: docTypes },
+    },
+  });
+
+  await Promise.all(existingDocs.map((doc) => deleteByUrl(doc.url)));
+  await prisma.vehicleDocument.deleteMany({
+    where: {
+      vehicleId,
+      type: { in: docTypes },
+    },
+  });
 
   // Create document records
   const createdDocs = await Promise.all(

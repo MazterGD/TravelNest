@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
+import { uploadBuffer } from "../../utils/storage.js";
 import * as userService from "./user.service.js";
 import { ResponseHelper } from "../../utils/response.js";
+import { ApiError } from "../../middleware/errorHandler.js";
 
 /**
  * Get current user's profile
@@ -74,4 +76,32 @@ export const getDashboardStats = async (req: Request, res: Response) => {
   const stats = await userService.getCustomerDashboardStats(userId);
 
   return ResponseHelper.success(res, stats);
+};
+
+/**
+ * Upload avatar image
+ * POST /api/v1/users/avatar
+ */
+export const uploadAvatar = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const uploadedFile = (req as Request & { file?: Express.Multer.File }).file;
+
+  if (!uploadedFile) {
+    throw ApiError.badRequest("Avatar file is required");
+  }
+
+  const upload = await uploadBuffer({
+    prefix: `avatars/${userId}`,
+    fileName: uploadedFile.originalname,
+    buffer: uploadedFile.buffer,
+    contentType: uploadedFile.mimetype,
+  });
+
+  const updatedUser = await userService.updateAvatar(userId, upload.publicUrl);
+
+  return ResponseHelper.success(
+    res,
+    updatedUser,
+    "Avatar updated successfully",
+  );
 };
