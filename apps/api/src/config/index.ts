@@ -29,30 +29,61 @@ const getJWTRefreshSecret = () => {
   return `dev-refresh-secret-${crypto.randomBytes(32).toString("hex")}`;
 };
 
+const port = parseInt(process.env.PORT || "5000", 10);
+const apiVersion = process.env.API_VERSION || "v1";
+const appUrl = process.env.APP_URL || "http://localhost:3000";
+const apiBaseUrl =
+  process.env.API_BASE_URL || `http://localhost:${port}/api/${apiVersion}`;
+const jwtSecret = getJWTSecret();
+const jwtRefreshSecret = getJWTRefreshSecret();
+const oauthStateSecret = process.env.OAUTH_STATE_SECRET || jwtSecret;
+const oauthRedirectBase = apiBaseUrl;
+const oauthRedirectGoogle =
+  process.env.GOOGLE_REDIRECT_URI ||
+  `${oauthRedirectBase}/auth/oauth/google/callback`;
+const oauthRedirectFacebook =
+  process.env.FACEBOOK_REDIRECT_URI ||
+  `${oauthRedirectBase}/auth/oauth/facebook/callback`;
+
 export const config = {
   // Server
   env: process.env.NODE_ENV || "development",
-  port: parseInt(process.env.PORT || "5000", 10),
-  apiVersion: process.env.API_VERSION || "v1",
-  appUrl: process.env.APP_URL || "http://localhost:3000",
+  port,
+  apiVersion,
+  appUrl,
 
   // Database
   databaseUrl: process.env.DATABASE_URL || "",
 
   // JWT
   jwt: {
-    secret: getJWTSecret(),
+    secret: jwtSecret,
     expiresIn:
       process.env.JWT_ACCESS_EXPIRY || process.env.JWT_EXPIRES_IN || "1h",
-    refreshSecret: getJWTRefreshSecret(),
+    refreshSecret: jwtRefreshSecret,
     refreshExpiresIn:
       process.env.JWT_REFRESH_EXPIRY ||
       process.env.JWT_REFRESH_EXPIRES_IN ||
       "30d",
   },
 
+  // OAuth (Google/Facebook)
+  oauth: {
+    stateSecret: oauthStateSecret,
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      redirectUri: oauthRedirectGoogle,
+    },
+    facebook: {
+      clientId: process.env.FACEBOOK_CLIENT_ID || "",
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET || "",
+      redirectUri: oauthRedirectFacebook,
+    },
+  },
+
   // CORS
-  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:3000",
+  corsOrigin: process.env.CORS_ORIGIN || appUrl,
 
   // Email
   email: {

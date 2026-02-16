@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import jwt, { type SignOptions } from "jsonwebtoken";
 import xss from "xss";
 import prisma from "@travenest/database";
@@ -29,6 +30,20 @@ interface TokenPayload {
   id: string;
   email: string;
   role: string;
+}
+
+export type OAuthProvider = "google" | "facebook";
+
+interface OAuthStatePayload {
+  provider: OAuthProvider;
+  returnTo: string;
+}
+
+interface OAuthProfile {
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl?: string | null;
 }
 
 interface SafeUser {
@@ -81,6 +96,55 @@ export const generateTokens = (user: {
   );
 
   return { accessToken, refreshToken };
+};
+
+// ============================================
+// OAuth Helpers
+// ============================================
+
+export const createOAuthStateToken = (payload: OAuthStatePayload) =>
+  jwt.sign(payload, config.oauth.stateSecret, {
+    expiresIn: "10m",
+  } as SignOptions);
+
+export const verifyOAuthStateToken = (token: string): OAuthStatePayload =>
+  jwt.verify(token, config.oauth.stateSecret) as OAuthStatePayload;
+
+export const getOAuthAuthorizationUrl = (
+  provider: OAuthProvider,
+  state: string,
+) => {
+  if (provider === "google") {
+    if (!config.oauth.google.clientId || !config.oauth.google.redirectUri) {
+      throw ApiError.internal("Google OAuth is not configured");
+    }
+
+    const params = new URLSearchParams({
+      client_id: config.oauth.google.clientId,
+      redirect_uri: config.oauth.google.redirectUri,
+      response_type: "code",
+      scope: "openid email profile",
+      access_type: "offline",
+      prompt: "select_account",
+      state,
+    });
+
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  }
+
+  if (!config.oauth.facebook.clientId || !config.oauth.facebook.redirectUri) {
+    throw ApiError.internal("Facebook OAuth is not configured");
+  }
+
+  const params = new URLSearchParams({
+    client_id: config.oauth.facebook.clientId,
+    redirect_uri: config.oauth.facebook.redirectUri,
+    response_type: "code",
+    scope: "email,public_profile",
+    state,
+  });
+
+  return `https://www.facebook.com/v18.0/dialog/oauth?${params.toString()}`;
 };
 
 /**
@@ -471,6 +535,202 @@ export const resetUserPassword = async (token: string, newPassword: string) => {
   return {
     message:
       "Password reset successfully. Please login with your new password.",
+  };
+};
+
+// ============================================
+// OAuth Login
+// ============================================
+
+export const getGoogleProfileFromCode = async (code: string) => {
+  if (!config.oauth.google.clientId || !config.oauth.google.clientSecret) {
+    throw ApiError.internal("Google OAuth is not configured");
+  }
+
+  const tokenParams = new URLSearchParams({
+    client_id: config.oauth.google.clientId,
+    client_secret: config.oauth.google.clientSecret,
+    code,
+    grant_type: "authorization_code",
+    redirect_uri: config.oauth.google.redirectUri,
+  });
+
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: tokenParams.toString(),
+  });
+
+  if (!tokenResponse.ok) {
+    throw ApiError.badRequest("Failed to exchange Google authorization code");
+  }
+
+  const tokenData = (await tokenResponse.json()) as {
+    access_token?: string;
+    id_token?: string;
+  };
+
+  if (!tokenData.access_token) {
+    throw ApiError.badRequest("Google access token missing in response");
+  }
+
+  const profileResponse = await fetch(
+    "https://openidconnect.googleapis.com/v1/userinfo",
+    {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    },
+  );
+
+  if (!profileResponse.ok) {
+    throw ApiError.badRequest("Failed to fetch Google user profile");
+  }
+
+  const profile = (await profileResponse.json()) as {
+    email?: string;
+    given_name?: string;
+    family_name?: string;
+    picture?: string;
+  };
+
+  if (!profile.email) {
+    throw ApiError.badRequest("Google account did not return an email");
+  }
+
+  return {
+    email: profile.email,
+    firstName: profile.given_name || "TraveNest",
+    lastName: profile.family_name || "User",
+    avatarUrl: profile.picture || null,
+  } satisfies OAuthProfile;
+};
+
+export const getFacebookProfileFromCode = async (code: string) => {
+  if (!config.oauth.facebook.clientId || !config.oauth.facebook.clientSecret) {
+    throw ApiError.internal("Facebook OAuth is not configured");
+  }
+
+  const tokenParams = new URLSearchParams({
+    client_id: config.oauth.facebook.clientId,
+    client_secret: config.oauth.facebook.clientSecret,
+    redirect_uri: config.oauth.facebook.redirectUri,
+    code,
+  });
+
+  const tokenResponse = await fetch(
+    `https://graph.facebook.com/v18.0/oauth/access_token?${tokenParams.toString()}`,
+  );
+
+  if (!tokenResponse.ok) {
+    throw ApiError.badRequest("Failed to exchange Facebook authorization code");
+  }
+
+  const tokenData = (await tokenResponse.json()) as {
+    access_token?: string;
+  };
+
+  if (!tokenData.access_token) {
+    throw ApiError.badRequest("Facebook access token missing in response");
+  }
+
+  const profileParams = new URLSearchParams({
+    fields: "id,email,first_name,last_name,picture",
+    access_token: tokenData.access_token,
+  });
+
+  const profileResponse = await fetch(
+    `https://graph.facebook.com/me?${profileParams.toString()}`,
+  );
+
+  if (!profileResponse.ok) {
+    throw ApiError.badRequest("Failed to fetch Facebook user profile");
+  }
+
+  const profile = (await profileResponse.json()) as {
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    picture?: { data?: { url?: string } };
+  };
+
+  if (!profile.email) {
+    throw ApiError.badRequest("Facebook account did not return an email");
+  }
+
+  return {
+    email: profile.email,
+    firstName: profile.first_name || "TraveNest",
+    lastName: profile.last_name || "User",
+    avatarUrl: profile.picture?.data?.url || null,
+  } satisfies OAuthProfile;
+};
+
+export const loginWithOAuthProfile = async (profile: OAuthProfile) => {
+  const email = profile.email.toLowerCase().trim();
+  let user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    const randomPassword = crypto.randomBytes(32).toString("hex");
+    const hashedPassword = await bcrypt.hash(randomPassword, 12);
+    const sanitizedFirstName = xss(profile.firstName.trim());
+    const sanitizedLastName = xss(profile.lastName.trim());
+
+    user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        firstName: sanitizedFirstName || "TraveNest",
+        lastName: sanitizedLastName || "User",
+        phone: null,
+        role: UserRole.CUSTOMER,
+        status: UserStatus.ACTIVE,
+        isVerified: true,
+        avatar: profile.avatarUrl || null,
+        lastLoginAt: new Date(),
+      },
+    });
+  } else {
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const minutesLeft = Math.ceil(
+        (user.lockedUntil.getTime() - Date.now()) / (1000 * 60),
+      );
+      throw ApiError.forbidden(
+        `Account is locked. Try again in ${minutesLeft} minute(s).`,
+        "ACCOUNT_LOCKED",
+      );
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw ApiError.forbidden(
+        user.status === UserStatus.SUSPENDED
+          ? "Your account has been suspended"
+          : "Your account is not active",
+      );
+    }
+
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastLoginAt: new Date(),
+        avatar: user.avatar || profile.avatarUrl || null,
+        isVerified: true,
+      },
+    });
+  }
+
+  const tokens = generateTokens({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    tokenVersion: user.tokenVersion,
+  });
+
+  return {
+    user: excludePassword(user),
+    ...tokens,
   };
 };
 

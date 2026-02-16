@@ -46,6 +46,15 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleOAuthLogin = (provider: "google" | "facebook") => {
+    const apiBaseUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    const returnTo = `${window.location.origin}/${locale}/auth/callback`;
+    const authUrl = new URL(`${apiBaseUrl}/auth/oauth/${provider}`);
+    authUrl.searchParams.set("returnTo", returnTo);
+    window.location.href = authUrl.toString();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -299,6 +308,7 @@ export default function LoginPage() {
             <div className="grid grid-cols-2 gap-4 mb-8">
               <button
                 type="button"
+                onClick={() => handleOAuthLogin("google")}
                 className="flex items-center justify-center gap-3 py-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
               >
                 <FaGoogle className="w-5 h-5 text-red-500" />
@@ -306,6 +316,7 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
+                onClick={() => handleOAuthLogin("facebook")}
                 className="flex items-center justify-center gap-3 py-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
               >
                 <FaFacebook className="w-5 h-5 text-blue-600" />

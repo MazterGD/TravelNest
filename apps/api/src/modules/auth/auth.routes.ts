@@ -35,6 +35,10 @@ const authRateLimiter = rateLimit({
 
 // Public routes with stricter rate limiting
 router.get("/csrf-token", getCSRFToken); // Get CSRF token
+router.get("/oauth/google", authController.startGoogleOAuth);
+router.get("/oauth/google/callback", authController.handleGoogleCallback);
+router.get("/oauth/facebook", authController.startFacebookOAuth);
+router.get("/oauth/facebook/callback", authController.handleFacebookCallback);
 router.post(
   "/register",
   authRateLimiter,
