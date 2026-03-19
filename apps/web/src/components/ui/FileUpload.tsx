@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { FaUpload, FaCheckCircle, FaTimes, FaFile } from "react-icons/fa";
 import { cn } from "@/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 export interface UploadedFile {
   file: File;
@@ -32,6 +33,7 @@ export function FileUpload({
   helpText,
   className,
 }: FileUploadProps) {
+  const t = useTranslations("fileUpload");
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export function FileUpload({
 
     // Validate file size
     if (file.size > maxSize * 1024 * 1024) {
-      setLocalError(`File size must be less than ${maxSize}MB`);
+      setLocalError(t("errors.maxSize", { maxSize }));
       return;
     }
 
@@ -63,7 +65,7 @@ export function FileUpload({
     });
 
     if (!isValidType) {
-      setLocalError(`Invalid file type. Allowed: ${accept}`);
+      setLocalError(t("errors.invalidType", { types: accept }));
       return;
     }
 
@@ -118,25 +120,25 @@ export function FileUpload({
   return (
     <div className={cn("w-full", className)}>
       <div className="flex items-center justify-between mb-3">
-        <label className="text-lg font-semibold text-gray-800">
+        <label className="text-lg font-semibold text-foreground">
           {label} {required && "*"}
         </label>
         {value && (
-          <span className="text-green-600 flex items-center gap-2 text-sm">
+          <span className="flex items-center gap-2 text-sm text-success">
             <FaCheckCircle className="w-4 h-4" />
-            Uploaded
+            {t("uploaded")}
           </span>
         )}
       </div>
 
       <div
         className={cn(
-          "border-2 border-dashed rounded-xl p-6 transition-all",
+          "rounded-[20px] border-2 border-dashed p-6 transition-all",
           dragActive
             ? "border-primary bg-primary/5"
             : displayError
-              ? "border-red-300 bg-red-50"
-              : "border-gray-200 hover:border-primary/50",
+              ? "border-error-border bg-error-bg"
+              : "border-border hover:border-primary/50",
         )}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -148,7 +150,7 @@ export function FileUpload({
             {/* File Preview */}
             <div className="flex-shrink-0">
               {isImage && value.preview ? (
-                <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100">
+                <div className="h-16 w-16 overflow-hidden rounded-lg bg-muted">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={value.preview}
@@ -157,18 +159,18 @@ export function FileUpload({
                   />
                 </div>
               ) : (
-                <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
-                  <FaFile className="w-8 h-8 text-gray-400" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
+                  <FaFile className="w-8 h-8 text-muted-foreground" />
                 </div>
               )}
             </div>
 
             {/* File Info */}
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-900 truncate">
+              <p className="truncate font-medium text-foreground">
                 {value.file.name}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {(value.file.size / 1024 / 1024).toFixed(2)} MB
               </p>
             </div>
@@ -177,17 +179,17 @@ export function FileUpload({
             <button
               type="button"
               onClick={handleRemove}
-              className="p-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all"
+              className="rounded-xl bg-error-bg p-3 text-error hover:bg-error-bg/80 transition-all"
             >
               <FaTimes className="w-5 h-5" />
             </button>
           </div>
         ) : (
           <label className="flex flex-col items-center cursor-pointer">
-            <div className="flex items-center justify-center gap-3 py-4 px-6 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-all w-full">
-              <FaUpload className="w-6 h-6 text-gray-400" />
-              <span className="text-gray-600 font-medium">
-                Click to upload or drag and drop
+            <div className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-muted px-6 py-4 transition-all hover:bg-muted/80">
+              <FaUpload className="h-6 w-6 text-muted-foreground" />
+              <span className="font-medium text-muted-foreground">
+                {t("prompt")}
               </span>
             </div>
             <input
@@ -203,11 +205,11 @@ export function FileUpload({
       </div>
 
       {displayError && (
-        <p className="mt-2 text-sm text-red-600">{displayError}</p>
+        <p className="mt-2 text-sm text-error">{displayError}</p>
       )}
 
       {helpText && !displayError && (
-        <p className="mt-2 text-sm text-gray-500">{helpText}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{helpText}</p>
       )}
     </div>
   );
@@ -232,6 +234,8 @@ export function DocumentUploadGroup({
   onChange,
   errors,
 }: DocumentUploadGroupProps) {
+  const t = useTranslations("fileUpload");
+
   return (
     <div className="space-y-6">
       {documents.map((doc) => (
@@ -242,7 +246,7 @@ export function DocumentUploadGroup({
           value={values[doc.key]}
           onChange={(file) => onChange(doc.key, file)}
           error={errors?.[doc.key]}
-          helpText={doc.helpText || "Accepted formats: PDF, JPG, PNG (Max 5MB)"}
+          helpText={doc.helpText || t("helpText")}
         />
       ))}
     </div>

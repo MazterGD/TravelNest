@@ -1,6 +1,7 @@
 // Re-export all UI components for cleaner imports
 export { PageHeader } from "./PageHeader";
 export { Button } from "./Button";
+export { CTAButton } from "./CTAButton";
 export { Input } from "./Input";
 export { Select } from "./Select";
 export { TextArea } from "./TextArea";

@@ -75,7 +75,7 @@ export default function LoginPage() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("An unexpected error occurred. Please try again.");
+        setError(t("errors.unexpected"));
       }
     } finally {
       setIsLoading(false);
@@ -102,11 +102,10 @@ export default function LoginPage() {
             <div className="bg-white rounded-3xl shadow-2xl p-12 border-2 border-gray-100">
               <div className="mb-8">
                 <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                  Welcome Back to TraveNest!
+                  {t("marketing.title")}
                 </h2>
                 <p className="text-xl text-gray-600 leading-relaxed">
-                  Access your account to manage bookings, view quotations, and
-                  connect with trusted bus operators across Sri Lanka.
+                  {t("marketing.subtitle")}
                 </p>
               </div>
               <div className="relative h-96 rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary/10">
@@ -127,7 +126,9 @@ export default function LoginPage() {
                   <div className="text-2xl font-bold text-primary mb-1">
                     500+
                   </div>
-                  <div className="text-sm text-gray-600">Buses</div>
+                  <div className="text-sm text-gray-600">
+                    {t("marketing.stats.buses")}
+                  </div>
                 </div>
                 <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
                   <div className="flex justify-center mb-2">
@@ -136,7 +137,9 @@ export default function LoginPage() {
                   <div className="text-2xl font-bold text-primary mb-1">
                     5000+
                   </div>
-                  <div className="text-sm text-gray-600">Customers</div>
+                  <div className="text-sm text-gray-600">
+                    {t("marketing.stats.customers")}
+                  </div>
                 </div>
                 <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
                   <div className="flex justify-center mb-2">
@@ -145,7 +148,9 @@ export default function LoginPage() {
                   <div className="text-2xl font-bold text-primary mb-1">
                     4.8★
                   </div>
-                  <div className="text-sm text-gray-600">Rating</div>
+                  <div className="text-sm text-gray-600">
+                    {t("marketing.stats.rating")}
+                  </div>
                 </div>
               </div>
             </div>
@@ -172,7 +177,7 @@ export default function LoginPage() {
                     : "text-gray-600 hover:text-gray-900",
                 )}
               >
-                Password Login
+                {t("passwordLogin")}
               </button>
               <button
                 type="button"
@@ -184,7 +189,7 @@ export default function LoginPage() {
                     : "text-gray-600 hover:text-gray-900",
                 )}
               >
-                OTP Login
+                {t("otpLogin")}
               </button>
             </div>
 
@@ -198,7 +203,7 @@ export default function LoginPage() {
               {/* Email or Phone Input */}
               <div>
                 <label className="block text-lg font-semibold text-gray-800 mb-2">
-                  Email or Phone Number
+                  {t("emailOrPhone")}
                 </label>
                 <div className="relative group">
                   <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -209,7 +214,7 @@ export default function LoginPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, emailOrPhone: e.target.value })
                     }
-                    placeholder="Enter your email or phone number"
+                    placeholder={t("emailOrPhonePlaceholder")}
                     className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                   />
                 </div>
@@ -219,7 +224,7 @@ export default function LoginPage() {
               {loginMethod === "password" && (
                 <div>
                   <label className="block text-lg font-semibold text-gray-800 mb-2">
-                    Password
+                    {t("password")}
                   </label>
                   <div className="relative group">
                     <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -230,7 +235,7 @@ export default function LoginPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, password: e.target.value })
                       }
-                      placeholder="Enter your password"
+                      placeholder={t("passwordPlaceholder")}
                       className="w-full pl-12 pr-12 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                     />
                     <button
@@ -287,7 +292,7 @@ export default function LoginPage() {
                 ) : loginMethod === "password" ? (
                   t("submit")
                 ) : (
-                  "Send OTP"
+                  t("sendOtp")
                 )}
               </button>
             </form>
@@ -299,7 +304,7 @@ export default function LoginPage() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-4 bg-white text-gray-500 text-lg">
-                  Or continue with
+                  {t("divider")}
                 </span>
               </div>
             </div>
@@ -312,7 +317,9 @@ export default function LoginPage() {
                 className="flex items-center justify-center gap-3 py-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
               >
                 <FaGoogle className="w-5 h-5 text-red-500" />
-                <span className="font-semibold text-gray-700">Google</span>
+                <span className="font-semibold text-gray-700">
+                  {t("social.google")}
+                </span>
               </button>
               <button
                 type="button"
@@ -320,25 +327,27 @@ export default function LoginPage() {
                 className="flex items-center justify-center gap-3 py-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
               >
                 <FaFacebook className="w-5 h-5 text-blue-600" />
-                <span className="font-semibold text-gray-700">Facebook</span>
+                <span className="font-semibold text-gray-700">
+                  {t("social.facebook")}
+                </span>
               </button>
             </div>
 
             {/* Register Links */}
             <div className="text-center space-y-3">
-              <p className="text-gray-600">Don&apos;t have an account?</p>
+              <p className="text-gray-600">{t("noAccount")}</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   href={`/${locale}/register/customer`}
                   className="px-6 py-3 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold"
                 >
-                  Register as Customer
+                  {t("registerCustomer")}
                 </Link>
                 <Link
                   href={`/${locale}/register/owner`}
                   className="px-6 py-3 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold"
                 >
-                  Register as Bus Owner
+                  {t("registerOwner")}
                 </Link>
               </div>
             </div>

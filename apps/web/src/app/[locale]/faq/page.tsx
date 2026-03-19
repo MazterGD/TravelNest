@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { MainLayout } from "@/components/layout/MainLayout";
 import {
@@ -11,6 +11,7 @@ import {
 
 export default function FAQPage() {
   const t = useTranslations("faq");
+  const locale = useLocale();
 
   const faqItems = [
     {
@@ -71,7 +72,7 @@ export default function FAQPage() {
               {t("stillHaveQuestions")}
             </h3>
             <p className="text-muted-foreground mb-6">{t("contactUs")}</p>
-            <Link href="/en/contact">
+            <Link href={`/${locale}/contact`}>
               <Button>{t("contactUs")}</Button>
             </Link>
           </Card>

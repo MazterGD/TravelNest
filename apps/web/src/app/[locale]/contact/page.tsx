@@ -181,7 +181,7 @@ export default function ContactPage() {
               <Card className="mt-8 h-64 flex items-center justify-center bg-muted">
                 <div className="text-center text-muted-foreground">
                   <FaMapMarkerAlt className="h-8 w-8 mx-auto mb-2" />
-                  <p>Map integration coming soon</p>
+                  <p>{t("mapPlaceholder")}</p>
                 </div>
               </Card>
             </div>

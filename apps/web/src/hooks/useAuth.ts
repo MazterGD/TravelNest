@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store";
 import { authService, userService, ApiError, api } from "@/lib/api";
 import type { User } from "@/types";
@@ -28,6 +28,8 @@ interface AuthResult {
 export function useAuth() {
   const router = useRouter();
   const initRef = useRef(false);
+  const params = useParams();
+  const locale = params.locale as string;
 
   const {
     user,
@@ -94,7 +96,7 @@ export function useAuth() {
       setLogout();
       localStorage.removeItem("travenest-auth");
       api.stopTokenRefresh();
-      router.push("/login?session=expired");
+      router.push(`/${locale}/login?session=expired`);
     };
 
     window.addEventListener("auth:error", handleAuthError);

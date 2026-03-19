@@ -15,7 +15,9 @@
     "register": "Register",
     "dashboard": "Dashboard",
     "profile": "Profile",
-    "logout": "Logout"
+    "logout": "Logout",
+    "openMenu": "Open main menu",
+    "dashboardFor": "{name}'s Dashboard"
   },
   "home": {
     "hero": {
@@ -98,7 +100,21 @@
       "priceRange": "Price Range",
       "amenities": "Amenities",
       "district": "District",
-      "clearAll": "Clear All"
+      "clearAll": "Clear All",
+      "allTypes": "All Types",
+      "allDistricts": "All Districts",
+      "min": "Min",
+      "max": "Max",
+      "vehicleTypes": {
+        "ordinary": "Ordinary",
+        "semiLuxury": "Semi-Luxury",
+        "luxuryAc": "Luxury AC"
+      },
+      "acTypes": {
+        "fullAc": "Full AC",
+        "ac": "AC",
+        "nonAc": "Non-AC"
+      }
     },
     "sort": {
       "label": "Sort by",
@@ -109,7 +125,12 @@
     },
     "results": "results found",
     "noResults": "No buses found matching your criteria",
-    "adjustFilters": "Try adjusting your filters or search in a different area"
+    "adjustFilters": "Try adjusting your filters or search in a different area",
+    "errors": {
+      "fetchVehicles": "Failed to fetch vehicles"
+    },
+    "seatsCount": "{count} Seats",
+    "viewDetails": "View Details"
   },
   "about": {
     "hero": {
@@ -181,7 +202,8 @@
         "title": "Business Hours",
         "value": "Mon - Fri: 9:00 AM - 6:00 PM"
       }
-    }
+    },
+    "mapPlaceholder": "Map integration coming soon"
   },
   "howItWorks": {
     "hero": {
@@ -231,7 +253,8 @@
           "description": "Get bookings, provide excellent service, and build your reputation. Grow your business with repeat customers."
         }
       }
-    }
+    },
+    "ownerCta": "Register as Owner"
   },
   "auth": {
     "login": {
@@ -243,7 +266,32 @@
       "forgotPassword": "Forgot password?",
       "submit": "Sign In",
       "noAccount": "Don't have an account?",
-      "register": "Register now"
+      "register": "Register now",
+      "marketing": {
+        "title": "Welcome Back to TravelNest!",
+        "subtitle": "Access your account to manage bookings, view quotations, and connect with trusted bus operators across Sri Lanka.",
+        "stats": {
+          "buses": "Buses",
+          "customers": "Customers",
+          "rating": "Rating"
+        }
+      },
+      "passwordLogin": "Password Login",
+      "otpLogin": "OTP Login",
+      "emailOrPhone": "Email or Phone Number",
+      "emailOrPhonePlaceholder": "Enter your email or phone number",
+      "passwordPlaceholder": "Enter your password",
+      "sendOtp": "Send OTP",
+      "divider": "Or continue with",
+      "social": {
+        "google": "Google",
+        "facebook": "Facebook"
+      },
+      "registerCustomer": "Register as Customer",
+      "registerOwner": "Register as Bus Owner",
+      "errors": {
+        "unexpected": "An unexpected error occurred. Please try again."
+      }
     },
     "register": {
       "title": "Create Account",
@@ -262,13 +310,133 @@
       "privacyLink": "Privacy Policy",
       "submit": "Create Account",
       "hasAccount": "Already have an account?",
-      "login": "Sign in"
+      "login": "Sign in",
+      "intro": "Choose how you want to use TravelNest - whether you're looking to book buses or list your own vehicles",
+      "customerCard": {
+        "description": "Book buses for trips, tours, and special occasions. Perfect for individuals and organizations looking for reliable transportation.",
+        "bullets": [
+          "Search and compare buses",
+          "Get instant quotations",
+          "Book verified operators"
+        ],
+        "cta": "Register as Customer"
+      },
+      "ownerCard": {
+        "description": "List your buses and connect with customers across Sri Lanka. Individual owners and transport companies welcome.",
+        "bullets": [
+          "No listing fees",
+          "Only 10% commission on bookings",
+          "Business dashboard & analytics"
+        ],
+        "cta": "Register as Bus Owner"
+      }
     },
     "errors": {
       "invalidEmail": "Please enter a valid email address",
       "passwordTooShort": "Password must be at least 8 characters",
       "passwordMismatch": "Passwords do not match",
       "required": "This field is required"
+    },
+    "customerRegister": {
+      "title": "Customer Registration",
+      "subtitle": "Fill in your details to create an account",
+      "sidebar": {
+        "title": "Join TravelNest",
+        "subtitle": "Create your account to start booking buses across Sri Lanka",
+        "benefits": {
+          "easyBooking": {
+            "title": "Easy Booking",
+            "description": "Search and book buses in minutes"
+          },
+          "verifiedOperators": {
+            "title": "Verified Operators",
+            "description": "All bus owners are verified for safety"
+          },
+          "support": {
+            "title": "24/7 Support",
+            "description": "We're here to help anytime"
+          }
+        },
+        "hasAccount": "Already have an account?",
+        "signIn": "Sign In"
+      },
+      "sections": {
+        "personalInfo": "Personal Information",
+        "addressInfo": "Address Information",
+        "password": "Create Password"
+      },
+      "fields": {
+        "firstName": {
+          "label": "First Name *",
+          "placeholder": "Enter first name"
+        },
+        "lastName": {
+          "label": "Last Name *",
+          "placeholder": "Enter last name"
+        },
+        "email": {
+          "label": "Email Address *",
+          "placeholder": "your@email.com"
+        },
+        "phone": {
+          "label": "Phone Number *",
+          "placeholder": "+94 XX XXX XXXX"
+        },
+        "address": {
+          "label": "Address *",
+          "placeholder": "Enter your full address"
+        },
+        "city": {
+          "label": "City *",
+          "placeholder": "Enter city"
+        },
+        "postalCode": {
+          "label": "Postal Code",
+          "placeholder": "Enter postal code"
+        },
+        "password": {
+          "label": "Password *",
+          "placeholder": "Create a strong password"
+        },
+        "confirmPassword": {
+          "label": "Confirm Password *",
+          "placeholder": "Re-enter your password"
+        }
+      },
+      "passwordStrength": {
+        "label": "Password Strength:",
+        "weak": "Weak",
+        "medium": "Medium",
+        "strong": "Strong"
+      },
+      "terms": {
+        "accept": "I accept the",
+        "termsLink": "Terms and Conditions",
+        "privacyAccept": "I have read and agree to the",
+        "privacyLink": "Privacy Policy"
+      },
+      "submit": "Create Account",
+      "errors": {
+        "passwordMismatch": "Passwords do not match",
+        "acceptTerms": "Please accept the Terms and Conditions and Privacy Policy",
+        "unexpected": "An unexpected error occurred. Please try again."
+      }
+    },
+    "oauth": {
+      "title": "OAuth Login Failed",
+      "loading": "Finishing your social login...",
+      "actions": {
+        "backToLogin": "Back to Login"
+      },
+      "errors": {
+        "OAUTH_DENIED": "OAuth login was cancelled. Please try again.",
+        "INVALID_STATE": "OAuth session expired. Please try again.",
+        "MISSING_CODE": "OAuth response was incomplete. Please try again.",
+        "PROFILE_ERROR": "Unable to read your social profile. Please try again.",
+        "missingToken": "OAuth login did not return an access token. Please try again.",
+        "finalizeFailed": "Failed to finalize OAuth login. Please try again.",
+        "default": "OAuth login failed. Please try again."
+      }
     }
   },
   "faq": {
@@ -434,7 +602,10 @@
     "readMore": "Read More",
     "perDay": "per day",
     "perKm": "per km",
-    "passengers": "passengers"
+    "passengers": "passengers",
+    "retry": "Retry",
+    "processing": "Processing...",
+    "closeModal": "Close modal"
   },
   "footer": {
     "description": "Sri Lanka's premier bus rental marketplace",
@@ -442,10 +613,17 @@
     "support": "Support",
     "legal": "Legal",
     "followUs": "Follow Us",
-    "copyright": "© 2025 TravelNest. All rights reserved.",
+    "copyright": "© {year} TravelNest. All rights reserved.",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
-    "refundPolicy": "Refund Policy"
+    "refundPolicy": "Refund Policy",
+    "faq": "FAQ",
+    "social": {
+      "facebook": "Facebook",
+      "twitter": "Twitter",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn"
+    }
   },
   "dashboard": {
     "pageTitle": "Dashboard - TravelNest",
@@ -475,7 +653,76 @@
     "newRequest": "New Request",
     "myBookings": "My Bookings",
     "myReviews": "My Reviews",
-    "viewAll": "View All"
+    "viewAll": "View All",
+    "packages": "Packages",
+    "customerDashboard": "Customer Dashboard",
+    "welcomeUser": "Welcome back, {name}!",
+    "actions": {
+      "searchBuses": "Search Buses",
+      "searchBusesHint": "Find your next ride",
+      "viewQuotations": "View Quotations",
+      "trackBooking": "Track Booking",
+      "trackBookingHint": "View your trips",
+      "viewAll": "View All",
+      "viewDetails": "View Details"
+    },
+    "pendingCount": "{count} pending",
+    "metrics": {
+      "totalBookings": "Total Bookings",
+      "completedTrips": "Completed Trips",
+      "pendingQuotations": "Pending Quotations",
+      "totalSpent": "Total Spent"
+    },
+    "upcomingBookings": {
+      "title": "Upcoming Bookings",
+      "subtitle": "Your next {count} trips",
+      "emptyTitle": "No Upcoming Bookings",
+      "emptySubtitle": "Start planning your next trip"
+    },
+    "recentQuotations": {
+      "title": "Recent Quotations",
+      "subtitle": "Your latest quotation requests",
+      "quotesCount": "{count} quotes",
+      "empty": "No quotation requests yet"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "viewAll": "View All Notifications",
+      "items": [
+        {
+          "title": "New Quotation Received",
+          "message": "You received 3 new quotations for your Kandy trip",
+          "time": "2 hours ago"
+        },
+        {
+          "title": "Booking Confirmed",
+          "message": "Your booking BK-001 has been confirmed",
+          "time": "5 hours ago"
+        },
+        {
+          "title": "Payment Successful",
+          "message": "Payment of LKR 15,000 processed successfully",
+          "time": "1 day ago"
+        },
+        {
+          "title": "Trip Reminder",
+          "message": "Your trip to Galle is scheduled for tomorrow",
+          "time": "1 day ago"
+        },
+        {
+          "title": "Review Request",
+          "message": "Please review your recent trip with Kamal Perera",
+          "time": "2 days ago"
+        }
+      ]
+    },
+    "status": {
+      "confirmed": "Confirmed",
+      "ongoing": "Ongoing",
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
   },
   "quotation": {
     "pageTitle": "My Quotations - TravelNest",
@@ -536,7 +783,9 @@
     "noQuotationsReceived": "No quotations received yet",
     "receivedQuotations": "Received Quotations",
     "sortedByPrice": "Sorted by price",
-    "lowestPrice": "Lowest Price"
+    "lowestPrice": "Lowest Price",
+    "viewQuotations": "View Quotations ({count})",
+    "compareQuotations": "Compare Quotations"
   },
   "booking": {
     "pageTitle": "My Bookings - TravelNest",
@@ -554,7 +803,17 @@
     "dropoff": "Dropoff",
     "driver": "Driver",
     "contact": "Contact",
-    "leaveReview": "Leave Review"
+    "leaveReview": "Leave Review",
+    "errors": {
+      "fetchBookings": "Failed to fetch bookings",
+      "cancelFailed": "Failed to cancel booking"
+    },
+    "cancelDialog": {
+      "title": "Cancel Booking",
+      "message": "Are you sure you want to cancel this booking? This action cannot be undone and may affect your refund eligibility.",
+      "confirm": "Yes, Cancel Booking",
+      "cancel": "Keep Booking"
+    }
   },
   "review": {
     "pageTitle": "My Reviews - TravelNest",
@@ -581,6 +840,7 @@
     "ratingAverage": "Average",
     "ratingGood": "Good",
     "ratingExcellent": "Excellent",
+    "ratingRequired": "Please select a rating",
     "ownerResponse": "Owner Response"
   },
   "profile": {
@@ -611,5 +871,409 @@
     "deleteAccount": "Delete Account",
     "deleteAccountDescription": "Permanently delete your account and all data",
     "delete": "Delete"
+  },
+  "landing": {
+    "searchSection": {
+      "imageAlt": "Sri Lankan landscape",
+      "titleLine1": "Travel Sri Lanka,",
+      "titleLine2": "Your Way",
+      "subtitle": "Find the perfect bus for your group",
+      "bullets": {
+        "verifiedOwners": "Verified Owners",
+        "transparentPricing": "Transparent Pricing",
+        "instantQuotes": "Instant Quotes"
+      },
+      "form": {
+        "title": "Find Your Bus",
+        "subtitle": "Get instant quotes from verified owners",
+        "fromLabel": "From",
+        "toLabel": "To",
+        "dateLabel": "Date",
+        "passengersLabel": "Passengers",
+        "fromPlaceholder": "Colombo",
+        "toPlaceholder": "Kandy",
+        "passengersPlaceholder": "35",
+        "searchButton": "Search Buses"
+      },
+      "scrollPrompt": "Scroll to explore"
+    },
+    "trustIndicators": {
+      "headline": "Trusted by thousands across Sri Lanka",
+      "stats": {
+        "verifiedBuses": {
+          "label": "Verified Buses",
+          "sublabel": "From Galle to Jaffna"
+        },
+        "successfulTrips": {
+          "label": "Successful Trips",
+          "sublabel": "Happy memories made"
+        },
+        "travelersTrustUs": {
+          "label": "Travelers Trust Us",
+          "sublabel": "Schools, families & more"
+        }
+      }
+    },
+    "popularRoutes": {
+      "title": "Popular Routes",
+      "subtitle": "Explore the most traveled destinations across Sri Lanka",
+      "viewAllRoutes": "View All Routes",
+      "mostPopular": "Most Popular",
+      "durationHours": "{hours} hours",
+      "bookingsCount": "{count}+ trips",
+      "startingFrom": "Starting from",
+      "viewBuses": "View Buses"
+    },
+    "popularPackages": {
+      "title": "Popular Tour Packages",
+      "subtitle": "Explore curated packages from verified owners across Sri Lanka",
+      "featured": "Featured",
+      "viewAllPackages": "View All Packages",
+      "durationLabel": "Duration",
+      "durationDays": "{min}-{max} days",
+      "capacityLabel": "Capacity",
+      "priceLabel": "Price",
+      "startingFrom": "Starting from",
+      "perPerson": "per person",
+      "days": "days",
+      "viewDetails": "View Details",
+      "sendQuote": "Send Quote",
+      "includes": "Includes",
+      "amenities": {
+        "ac": "AC",
+        "wifi": "WiFi",
+        "meals": "Meals Included",
+        "guide": "Expert Guide",
+        "hotelIncluded": "Hotel Included",
+        "activities": "Activities Included"
+      }
+    },
+    "howItWorks": {
+      "title": "How TravelNest Works",
+      "subtitle": "Three simple steps to find and book the perfect bus for your journey",
+      "stepLabel": "STEP {number}",
+      "steps": {
+        "search": {
+          "title": "Search & Compare",
+          "description": "Tell us where you're going and how many are traveling"
+        },
+        "quotes": {
+          "title": "Get Instant Quotes",
+          "description": "Receive quotes from verified owners - no hidden fees"
+        },
+        "book": {
+          "title": "Book with Confidence",
+          "description": "Confirm your booking and hit the road with peace of mind"
+        }
+      },
+      "cta": {
+        "title": "Ready to get started?",
+        "button": "Find Your Bus Now"
+      }
+    },
+    "faq": {
+      "title": "Let's Clear Things Up",
+      "subtitle": "Here's what our customers usually ask us and our honest answers",
+      "items": {
+        "verification": {
+          "question": "How are bus owners verified?",
+          "answer": "All bus owners on TravelNest go through a rigorous verification process. We check business licenses, vehicle registration documents, insurance certificates, and safety inspection reports. Each owner must pass background checks before listing their buses on our platform."
+        },
+        "payment": {
+          "question": "Is my payment secure?",
+          "answer": "Yes, absolutely. We use bank-grade encryption for all transactions. You can pay via credit/debit cards, bank transfers, or digital wallets. Your payment information is never stored on our servers and we comply with international payment security standards (PCI DSS)."
+        },
+        "breakdown": {
+          "question": "What if the bus breaks down during our trip?",
+          "answer": "All verified owners are required to have roadside assistance coverage and backup vehicles available. In case of a breakdown, the owner must provide an immediate replacement bus or issue a full refund. Our 24/7 support team will coordinate to ensure minimal disruption to your journey."
+        },
+        "cancellation": {
+          "question": "What is the cancellation policy?",
+          "answer": "Cancellation policies vary by owner, but are clearly displayed before booking. Generally, cancellations made 7+ days in advance receive a full refund minus processing fees. Cancellations within 48-72 hours may incur a 50% fee. Last-minute cancellations (< 24 hours) are typically non-refundable unless due to emergencies."
+        },
+        "contact": {
+          "question": "Can I contact the bus owner directly?",
+          "answer": "Yes. Once you receive a quote or make a booking, you can message the owner directly through our platform. This allows you to discuss specific requirements, route modifications, or any special requests. Our messaging system keeps all communications documented for your protection."
+        },
+        "safety": {
+          "question": "Are the buses inspected for safety?",
+          "answer": "Yes, all buses must pass annual safety inspections by certified mechanics. Owners must upload current inspection certificates, insurance documents, and passenger safety compliance reports. We randomly conduct spot checks and customer feedback helps us maintain high safety standards."
+        }
+      },
+      "cta": {
+        "title": "Still have questions?",
+        "subtitle": "Our customer support team is here to help you 24/7",
+        "contactButton": "Contact Support",
+        "helpCenterButton": "View Help Center"
+      }
+    },
+    "testimonials": {
+      "title": "Trusted by Thousands",
+      "subtitle": "From schools to corporations, see what our customers say about their experience",
+      "items": [
+        {
+          "name": "Rajitha Perera",
+          "role": "School Principal",
+          "organization": "Sacred Heart College",
+          "quote": "TravelNest made organizing our annual school trip incredibly easy. The transparent pricing and verified owners gave us complete peace of mind. Highly recommended for educational institutions!",
+          "tripDetails": "School trip - 45 students - Colombo to Sigiriya"
+        },
+        {
+          "name": "Amara De Silva",
+          "role": "HR Manager",
+          "organization": "Tech Innovations Lanka",
+          "quote": "We use TravelNest for all our corporate events. The professional service and modern buses reflect well on our company. The booking system is straightforward and reliable.",
+          "tripDetails": "Corporate retreat - 30 employees - Regular bookings"
+        },
+        {
+          "name": "Kasun Jayasinghe",
+          "role": "Wedding Planner",
+          "organization": "Elegant Events",
+          "quote": "For destination weddings, reliable transportation is crucial. TravelNest has never let us down. The luxury coaches and professional drivers make our events seamless.",
+          "tripDetails": "Wedding transport - 60+ guests - Premium service"
+        }
+      ],
+      "trustedBy": [
+        "Sacred Heart College",
+        "Tech Innovations Lanka",
+        "Elegant Events",
+        "National Museum",
+        "Grand Hotel Colombo",
+        "Tourism Board"
+      ],
+      "trustedByTitle": "Trusted by leading organizations",
+      "trustedBySubtitle": "Join thousands of satisfied customers across Sri Lanka",
+      "stats": {
+        "happyCustomers": "Happy Customers",
+        "successfulTrips": "Successful Trips",
+        "averageRating": "Average Rating",
+        "verifiedBuses": "Verified Buses"
+      }
+    },
+    "featuredVehicles": {
+      "title": "Featured Buses",
+      "subtitle": "Top-rated vehicles available for booking",
+      "viewDetails": "View Details",
+      "viewAllBuses": "View All Buses",
+      "amenities": {
+        "ac": "AC",
+        "wifi": "WiFi",
+        "music": "Music"
+      },
+      "items": [
+        {
+          "name": "Luxury Coach",
+          "capacity": "{count} passengers",
+          "location": "Colombo"
+        },
+        {
+          "name": "Tourist Bus",
+          "capacity": "{count} passengers",
+          "location": "Kandy"
+        },
+        {
+          "name": "Modern Coach",
+          "capacity": "{count} passengers",
+          "location": "Galle"
+        }
+      ]
+    },
+    "ownerCta": {
+      "title": "Own a Bus? Join TravelNest",
+      "subtitle": "List your bus on Sri Lanka's leading rental marketplace and reach thousands of customers looking for reliable transportation.",
+      "primaryButton": "List Your Bus Now",
+      "benefits": [
+        "Increase your bookings",
+        "Save time with automated quotes",
+        "Verified customers only"
+      ],
+      "card": {
+        "title": "Join 500+ Bus Owners",
+        "stats": [
+          {
+            "value": "Free",
+            "label": "To list your bus"
+          },
+          {
+            "value": "24/7",
+            "label": "Customer support"
+          },
+          {
+            "value": "10%",
+            "label": "Average commission only"
+          }
+        ],
+        "note": "No monthly fees. Pay only when you get bookings."
+      }
+    }
+  },
+  "packages": {
+    "title": "Trip Packages",
+    "subtitle": "Compare fixed trip packages from verified owners.",
+    "searchPlaceholder": "Search routes or package name",
+    "loading": "Loading packages...",
+    "empty": "No packages match your filters.",
+    "vehicleFallback": "Vehicle",
+    "bookPackage": "Book Package",
+    "priceLabel": "Package Price",
+    "passengers": "passengers",
+    "maxSeats": "max {count}",
+    "ownerLabel": "Owner: {name}",
+    "durationDays": "{count} day(s)",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "compare": {
+      "label": "Compare",
+      "selected": "Selected",
+      "title": "Compare Packages",
+      "clear": "Clear",
+      "feature": "Feature",
+      "route": "Route",
+      "duration": "Duration",
+      "passengers": "Passengers",
+      "vehicle": "Vehicle",
+      "price": "Price"
+    },
+    "filters": {
+      "title": "Filters",
+      "clear": "Clear",
+      "startLocation": "Start Location",
+      "endLocation": "End Location",
+      "durationDays": "Duration (days)",
+      "minPassengers": "Min Passengers",
+      "maxPassengers": "Max Passengers",
+      "minPrice": "Min Price (LKR)",
+      "maxPrice": "Max Price (LKR)"
+    },
+    "modal": {
+      "title": "Book Package",
+      "titleWithName": "Book {name}",
+      "startDate": "Start Date",
+      "passengerCount": "Passenger Count (min {min})",
+      "notes": "Notes (optional)",
+      "cancel": "Cancel",
+      "confirm": "Confirm Booking"
+    },
+    "errors": {
+      "fetchPackages": "Failed to load trip packages",
+      "compareLimit": "You can compare up to 3 packages at a time.",
+      "missingStartDate": "Please select a start date.",
+      "passengerLimit": "Passenger count is outside the package limits.",
+      "bookingFailed": "Failed to book package"
+    }
+  },
+  "fileUpload": {
+    "uploaded": "Uploaded",
+    "prompt": "Click to upload or drag and drop",
+    "helpText": "Accepted formats: PDF, JPG, PNG (Max 5MB)",
+    "errors": {
+      "maxSize": "File size must be less than {maxSize}MB",
+      "invalidType": "Invalid file type. Allowed: {types}"
+    }
+  },
+  "payment": {
+    "return": {
+      "success": {
+        "title": "Payment successful",
+        "message": "Your payment is confirmed."
+      },
+      "pending": {
+        "title": "Payment pending",
+        "message": "We are still confirming your payment status."
+      },
+      "errors": {
+        "missingReference": "Payment reference not found",
+        "verifyFailed": "Failed to verify payment"
+      },
+      "actions": {
+        "viewBooking": "View booking",
+        "paymentDetails": "Payment details"
+      }
+    },
+    "cancel": {
+      "title": "Payment canceled",
+      "message": "Your payment was canceled. You can try again from the payment page.",
+      "actions": {
+        "returnToPayment": "Return to payment"
+      }
+    }
+  },
+  "vehicle": {
+    "errors": {
+      "invalidVehicleData": "Invalid vehicle data received",
+      "fetchVehicle": "Failed to fetch vehicle details"
+    },
+    "actions": {
+      "goBack": "Go Back",
+      "backToSearch": "Back to Search",
+      "requestQuotation": "Request Quotation",
+      "viewAllReviews": "View All Reviews",
+      "contactOwner": "Contact Owner"
+    },
+    "status": {
+      "available": "Available",
+      "unavailable": "This vehicle is currently unavailable",
+      "verified": "Verified"
+    },
+    "sections": {
+      "description": "Description",
+      "specifications": "Specifications",
+      "amenities": "Amenities",
+      "pricing": "Pricing",
+      "ownerInfo": "Owner Information",
+      "availability": "Availability"
+    },
+    "specs": {
+      "capacity": "Capacity",
+      "seatsCount": "{count} Seats",
+      "notAvailable": "N/A",
+      "type": "Type",
+      "condition": "Condition",
+      "good": "Good",
+      "brand": "Brand",
+      "model": "Model",
+      "year": "Year",
+      "color": "Color",
+      "fuelType": "Fuel Type",
+      "transmission": "Transmission",
+      "seatingCapacity": "Seating Capacity",
+      "passengersCount": "{count} Passengers",
+      "acType": "AC Type"
+    },
+    "reviewsTitle": "Reviews ({count})",
+    "reviewsCount": "{count} reviews",
+    "reviews": {
+      "anonymous": "Anonymous"
+    },
+    "empty": {
+      "noImages": "No images available",
+      "noReviews": "No reviews yet. Be the first to review this vehicle!"
+    },
+    "pricing": {
+      "basePrice": "Base Price",
+      "pricePerKm": "Price per km",
+      "pricePerHour": "Price per hour",
+      "driverAllowance": "Driver allowance",
+      "noteTitle": "* Final price will be calculated based on:",
+      "notes": {
+        "tripDuration": "Trip duration",
+        "distanceTraveled": "Distance traveled",
+        "fuelCosts": "Fuel costs",
+        "tollCharges": "Toll charges (if applicable)",
+        "permitFees": "Permit fees (if applicable)"
+      },
+      "startingFrom": "Starting from"
+    },
+    "owner": {
+      "businessName": "Business Name",
+      "label": "Owner Name",
+      "baseLocation": "Base Location",
+      "rating": "Rating"
+    },
+    "availability": {
+      "note": "Check availability by requesting a quotation"
+    }
   }
 }

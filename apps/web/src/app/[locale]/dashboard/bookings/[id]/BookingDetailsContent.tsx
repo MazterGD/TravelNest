@@ -11,7 +11,7 @@ import {
   Input,
 } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
-import { BookingStatus, PaymentStatus } from "@/types";
+import { bookingService } from "@/lib/api/services";
 import {
   FaArrowLeft,
   FaMapMarkerAlt,
@@ -33,71 +33,63 @@ import {
   FaInfoCircle,
 } from "react-icons/fa";
 
-interface Location {
-  address: string;
-  city: string;
-  district: string;
-}
-
-interface Message {
-  id: string;
-  senderId: string;
-  senderName: string;
-  message: string;
-  timestamp: string;
-  isOwner: boolean;
-}
-
-interface TimelineEvent {
-  id: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  status: "completed" | "current" | "upcoming";
-}
-
 interface BookingDetails {
   id: string;
-  bookingReference: string;
-  status: BookingStatus;
-  paymentStatus: PaymentStatus;
-  bookingDate: string;
-  vehicleId: string;
-  vehicleName: string;
-  vehicleImage: string;
-  vehicleType: string;
-  vehicleCapacity: number;
-  vehiclePlate: string;
-  vehicleAmenities: string[];
-  ownerName: string;
-  ownerPhone: string;
-  ownerEmail: string;
-  ownerRating: number;
-  ownerTrips: number;
-  pickupLocation: Location;
-  dropoffLocation: Location;
-  stops: Location[];
-  startDate: string;
-  endDate: string;
-  startTime: string;
-  passengerCount: number;
-  specialRequirements?: string;
-  priceBreakdown: {
-    vehicleRental: number;
-    driverCost: number;
-    fuelCost: number;
-    tollCharges: number;
-    permitFees: number;
-    otherCharges: number;
-    tax: number;
+  bookingRef: string;
+  customer: {
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
   };
-  totalAmount: number;
-  paidAmount: number;
-  paymentMethod: string;
-  transactionId: string;
-  gpsTrackingEnabled: boolean;
-  messages: Message[];
-  timeline: TimelineEvent[];
+  vehicle: {
+    id: string;
+    name: string;
+    registration: string;
+    type: string;
+    brand: string;
+    model: string;
+    capacity: number;
+    image: string | null;
+  };
+  owner: {
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+  };
+  trip: {
+    startDate: string;
+    endDate: string;
+    pickupLocation: string;
+    dropoffLocation: string;
+    passengers: number;
+  };
+  payment: {
+    id: string | null;
+    total: number;
+    paid: number;
+    status: string;
+    method: string;
+    receiptUrl: string | null;
+    platformCommission: number;
+    netAmount: number;
+  };
+  status: string;
+  notes?: string;
+  cancelReason?: string;
+  hasReview: boolean;
+  review?: any;
+  createdAt: string;
+  updatedAt: string;
+
+  // Fields available in DB but not currently populated via API
+  // startTime?: string;
+  // stops?: Array<{address: string; city: string; district: string}>;
+  // vehicleAmenities?: string[];
+  // gpsTrackingEnabled?: boolean;
+  // messages?: Array<{id: string; senderId: string; senderName: string; message: string; timestamp: string; isOwner: boolean}>;
+  // timeline?: Array<{id: string; title: string; description: string; timestamp: string; status: string}>;
 }
 
 interface BookingDetailsContentProps {
@@ -114,6 +106,7 @@ export default function BookingDetailsContent({
 
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<BookingDetails | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [newMessage, setNewMessage] = useState("");
@@ -130,152 +123,58 @@ export default function BookingDetailsContent({
   const fetchBookingDetails = async () => {
     try {
       setLoading(true);
+      setError(null);
 
-      // HARDCODED DATA FOR TESTING
-      const mockBooking: BookingDetails = {
-        id: bookingId,
-        bookingReference: bookingId,
-        status: BookingStatus.CONFIRMED,
-        paymentStatus: PaymentStatus.PAID,
-        bookingDate: new Date(Date.now() - 86400000 * 2).toISOString(),
-        vehicleId: "veh1",
-        vehicleName: "Toyota Hiace Super GL",
-        vehicleImage:
-          "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=500&q=80",
-        vehicleType: "Van",
-        vehicleCapacity: 14,
-        vehiclePlate: "CAA-1234",
-        vehicleAmenities: [
-          "AC",
-          "GPS",
-          "Music System",
-          "Reclining Seats",
-          "USB Charging",
-        ],
-        ownerName: "Kamal Perera",
-        ownerPhone: "+94 77 123 4567",
-        ownerEmail: "kamal@example.com",
-        ownerRating: 4.8,
-        ownerTrips: 156,
-        pickupLocation: {
-          address: "Bandaranaike International Airport",
-          city: "Katunayake",
-          district: "Gampaha",
-        },
-        dropoffLocation: {
-          address: "Grand Hotel, Nuwara Eliya",
-          city: "Nuwara Eliya",
-          district: "Nuwara Eliya",
-        },
-        stops: [
-          {
-            address: "Pinnawala Elephant Orphanage",
-            city: "Pinnawala",
-            district: "Kegalle",
-          },
-        ],
-        startDate: new Date(Date.now() + 86400000 * 7)
-          .toISOString()
-          .split("T")[0],
-        endDate: new Date(Date.now() + 86400000 * 9)
-          .toISOString()
-          .split("T")[0],
-        startTime: "08:00",
-        passengerCount: 6,
-        specialRequirements: "Need 2 child seats",
-        priceBreakdown: {
-          vehicleRental: 20000,
-          driverCost: 12000,
-          fuelCost: 8000,
-          tollCharges: 2500,
-          permitFees: 1000,
-          otherCharges: 500,
-          tax: 1000,
-        },
-        totalAmount: 45000,
-        paidAmount: 45000,
-        paymentMethod: "Credit Card",
-        transactionId: "TXN-2026-001234",
-        gpsTrackingEnabled: true,
-        messages: [
-          {
-            id: "msg1",
-            senderId: "owner1",
-            senderName: "Kamal Perera",
-            message: "Booking confirmed! I'll be in touch closer to the date.",
-            timestamp: new Date(Date.now() - 86400000).toISOString(),
-            isOwner: true,
-          },
-        ],
-        timeline: [
-          {
-            id: "t1",
-            title: "Booking Created",
-            description: "Booking successfully created and payment processed",
-            timestamp: new Date(Date.now() - 86400000 * 2).toISOString(),
-            status: "completed",
-          },
-          {
-            id: "t2",
-            title: "Booking Confirmed",
-            description: "Owner confirmed the booking",
-            timestamp: new Date(Date.now() - 86400000).toISOString(),
-            status: "completed",
-          },
-          {
-            id: "t3",
-            title: "Trip Start",
-            description: "Your journey begins",
-            timestamp: new Date(Date.now() + 86400000 * 7).toISOString(),
-            status: "upcoming",
-          },
-          {
-            id: "t4",
-            title: "Trip End",
-            description: "Journey completed",
-            timestamp: new Date(Date.now() + 86400000 * 9).toISOString(),
-            status: "upcoming",
-          },
-        ],
-      };
+      // Fetch actual booking data from API
+      const response = await bookingService.getById(bookingId);
+      const bookingData = response as any;
 
-      setBooking(mockBooking);
-    } catch (error) {
-      console.error("Error fetching booking details:", error);
+      // The API returns { booking: BookingDetails } or just the booking object
+      const data = bookingData.booking || bookingData;
+      setBooking(data);
+    } catch (err: any) {
+      console.error("Error fetching booking details:", err);
+      setError(err.message || "Failed to load booking details");
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status: BookingStatus) => {
-    switch (status) {
-      case BookingStatus.PENDING:
+  const getStatusColor = (status: string) => {
+    const statusLower = status?.toLowerCase() || "";
+    switch (statusLower) {
+      case "pending":
         return "bg-yellow-100 text-yellow-800";
-      case BookingStatus.CONFIRMED:
+      case "confirmed":
         return "bg-blue-100 text-blue-800";
-      case BookingStatus.IN_PROGRESS:
+      case "in_progress":
+      case "ongoing":
         return "bg-green-100 text-green-800";
-      case BookingStatus.COMPLETED:
+      case "completed":
         return "bg-gray-100 text-gray-800";
-      case BookingStatus.CANCELLED:
+      case "cancelled":
         return "bg-red-100 text-red-800";
-      case BookingStatus.DISPUTED:
+      case "disputed":
         return "bg-purple-100 text-purple-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
-  const getPaymentStatusColor = (status: PaymentStatus) => {
-    switch (status) {
-      case PaymentStatus.PENDING:
+  const getPaymentStatusColor = (status: string) => {
+    const statusLower = status?.toLowerCase() || "";
+    switch (statusLower) {
+      case "pending":
         return "bg-yellow-100 text-yellow-800";
-      case PaymentStatus.PARTIAL:
+      case "partial":
         return "bg-orange-100 text-orange-800";
-      case PaymentStatus.PAID:
+      case "paid":
+      case "completed":
         return "bg-green-100 text-green-800";
-      case PaymentStatus.REFUNDED:
+      case "refunded":
         return "bg-purple-100 text-purple-800";
+      case "failed":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -360,21 +259,51 @@ export default function BookingDetailsContent({
     );
   }
 
-  const canCancel = [BookingStatus.PENDING, BookingStatus.CONFIRMED].includes(
-    booking.status,
+  if (guardLoading || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => router.push(`/${locale}/dashboard/bookings`)}>
+            Go to Bookings
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Booking not found</p>
+          <Button onClick={() => router.push(`/${locale}/dashboard/bookings`)}>
+            Go to Bookings
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const canCancel = ["pending", "confirmed"].includes(
+    booking.status?.toLowerCase() || "",
   );
   const canRate =
-    booking.status === BookingStatus.COMPLETED &&
-    !booking.messages.some((m) => m.message.includes("rated"));
-  const canPay = [
-    PaymentStatus.PENDING,
-    PaymentStatus.PARTIAL,
-    PaymentStatus.FAILED,
-  ].includes(booking.paymentStatus);
+    booking.status?.toLowerCase() === "completed" && !booking.hasReview;
+  const canPay = ["pending", "partial", "failed"].includes(
+    booking.payment?.status?.toLowerCase() || "",
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
@@ -390,7 +319,7 @@ export default function BookingDetailsContent({
                   Booking Details
                 </h1>
                 <p className="text-sm text-gray-600 mt-1">
-                  Reference: {booking.bookingReference}
+                  Reference: {booking.bookingRef}
                 </p>
               </div>
             </div>
@@ -398,8 +327,8 @@ export default function BookingDetailsContent({
               <Badge className={getStatusColor(booking.status)}>
                 {booking.status}
               </Badge>
-              <Badge className={getPaymentStatusColor(booking.paymentStatus)}>
-                {booking.paymentStatus}
+              <Badge className={getPaymentStatusColor(booking.payment?.status)}>
+                {booking.payment?.status}
               </Badge>
               {canPay && (
                 <Button
@@ -433,10 +362,9 @@ export default function BookingDetailsContent({
                 <div className="flex items-start gap-3">
                   <FaCalendarAlt className="text-[#20B0E9] mt-1" />
                   <div>
-                    <p className="text-sm text-gray-600">Start Date & Time</p>
+                    <p className="text-sm text-gray-600">Start Date</p>
                     <p className="font-medium">
-                      {new Date(booking.startDate).toLocaleDateString()} at{" "}
-                      {booking.startTime}
+                      {new Date(booking.trip.startDate).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -445,11 +373,12 @@ export default function BookingDetailsContent({
                   <div>
                     <p className="text-sm text-gray-600">End Date</p>
                     <p className="font-medium">
-                      {new Date(booking.endDate).toLocaleDateString()}
+                      {new Date(booking.trip.endDate).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
               </div>
+              {/* NOTE: startTime is not stored in the database yet - will be added in future updates */}
 
               {/* Route with Map placeholder */}
               <div className="mb-6">
@@ -464,18 +393,15 @@ export default function BookingDetailsContent({
                       <div className="w-3 h-3 bg-green-500 rounded-full" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Pickup</p>
+                      <p className="text-sm text-gray-600">Pickup Location</p>
                       <p className="font-medium">
-                        {booking.pickupLocation.address}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {booking.pickupLocation.city},{" "}
-                        {booking.pickupLocation.district}
+                        {booking.trip.pickupLocation}
                       </p>
                     </div>
                   </div>
 
-                  {booking.stops.map((stop, index) => (
+                  {/* NOTE: Stops are not currently stored in the database - they will be added via trip itinerary
+                  {booking.stops?.map((stop, index) => (
                     <div key={index}>
                       <div className="flex items-start gap-3 ml-4 mb-2">
                         <div className="w-0.5 h-6 bg-gray-300 ml-3.5" />
@@ -496,6 +422,7 @@ export default function BookingDetailsContent({
                       </div>
                     </div>
                   ))}
+                  */}
 
                   <div className="flex items-start gap-3 ml-4 mb-2">
                     <div className="w-0.5 h-6 bg-gray-300 ml-3.5" />
@@ -506,13 +433,9 @@ export default function BookingDetailsContent({
                       <FaMapMarkerAlt className="text-red-500" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Drop-off</p>
+                      <p className="text-sm text-gray-600">Drop-off Location</p>
                       <p className="font-medium">
-                        {booking.dropoffLocation.address}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {booking.dropoffLocation.city},{" "}
-                        {booking.dropoffLocation.district}
+                        {booking.trip.dropoffLocation}
                       </p>
                     </div>
                   </div>
@@ -524,9 +447,10 @@ export default function BookingDetailsContent({
                 <div className="flex items-center gap-2">
                   <FaUsers className="text-[#20B0E9]" />
                   <span className="font-medium">
-                    {booking.passengerCount} Passengers
+                    {booking.trip.passengers} Passengers
                   </span>
                 </div>
+                {/* NOTE: GPS tracking is not stored in the database yet - will be added in future updates
                 {booking.gpsTrackingEnabled && (
                   <Button
                     variant="outline"
@@ -537,18 +461,21 @@ export default function BookingDetailsContent({
                     Track Live
                   </Button>
                 )}
+                */}
               </div>
 
-              {booking.specialRequirements && (
+              {/* NOTE: Special requirements/notes are stored in booking.notes
+              {booking.notes && (
                 <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
                   <p className="text-sm font-medium text-yellow-800 mb-1">
                     Special Requirements
                   </p>
                   <p className="text-sm text-yellow-700">
-                    {booking.specialRequirements}
+                    {booking.notes}
                   </p>
                 </div>
               )}
+              */}
             </div>
 
             {/* Vehicle Details */}
@@ -557,23 +484,26 @@ export default function BookingDetailsContent({
                 Vehicle Details
               </h2>
               <div className="flex gap-4 mb-4">
-                <img
-                  src={booking.vehicleImage}
-                  alt={booking.vehicleName}
-                  className="w-48 h-32 object-cover rounded-lg"
-                />
+                {booking.vehicle.image && (
+                  <img
+                    src={booking.vehicle.image}
+                    alt={booking.vehicle.name}
+                    className="w-48 h-32 object-cover rounded-lg"
+                  />
+                )}
                 <div className="flex-1">
                   <h3 className="font-bold text-lg text-gray-900">
-                    {booking.vehicleName}
+                    {booking.vehicle.name}
                   </h3>
                   <p className="text-gray-600 mb-2">
-                    {booking.vehicleType} • {booking.vehicleCapacity} Seats
+                    {booking.vehicle.type} • {booking.vehicle.capacity} Seats
                   </p>
                   <p className="text-sm text-gray-600 mb-3">
-                    Registration: {booking.vehiclePlate}
+                    Registration: {booking.vehicle.registration}
                   </p>
+                  {/* NOTE: Vehicle amenities are not stored in the API response yet - they will be added in future updates
                   <div className="flex flex-wrap gap-2">
-                    {booking.vehicleAmenities.map((amenity, index) => (
+                    {booking.vehicleAmenities?.map((amenity, index) => (
                       <span
                         key={index}
                         className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
@@ -582,6 +512,10 @@ export default function BookingDetailsContent({
                       </span>
                     ))}
                   </div>
+                  */}
+                  <p className="text-xs text-gray-500 mt-2">
+                    {booking.vehicle.brand} {booking.vehicle.model}
+                  </p>
                 </div>
               </div>
             </div>
@@ -595,27 +529,29 @@ export default function BookingDetailsContent({
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
                     <span className="text-2xl font-bold text-gray-700">
-                      {booking.ownerName.charAt(0)}
+                      {booking.owner.name.charAt(0)}
                     </span>
                   </div>
                   <div>
                     <p className="font-bold text-lg text-gray-900">
-                      {booking.ownerName}
+                      {booking.owner.name}
                     </p>
+                    {/* NOTE: Owner rating and trips count are not stored in the database yet
                     <div className="flex items-center gap-2 mb-1">
                       <FaStar className="text-yellow-400" />
                       <span className="text-sm font-medium">
                         {booking.ownerRating} ({booking.ownerTrips} trips)
                       </span>
                     </div>
+                    */}
                     <p className="text-sm text-gray-600">
-                      {booking.ownerPhone}
+                      {booking.owner.phone}
                     </p>
                   </div>
                 </div>
                 <Button
                   onClick={() =>
-                    (window.location.href = `tel:${booking.ownerPhone}`)
+                    (window.location.href = `tel:${booking.owner.phone}`)
                   }
                   className="bg-[#20B0E9] hover:bg-[#0B5F7F] text-white"
                 >
@@ -625,14 +561,14 @@ export default function BookingDetailsContent({
               </div>
             </div>
 
-            {/* Messages Thread */}
+            {/* NOTE: Messages feature is not integrated yet - will be added in future updates
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <FaComments />
                 Messages with Owner
               </h2>
               <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
-                {booking.messages.map((msg) => (
+                {booking.messages?.map((msg) => (
                   <div
                     key={msg.id}
                     className={`flex ${msg.isOwner ? "justify-start" : "justify-end"}`}
@@ -672,12 +608,13 @@ export default function BookingDetailsContent({
             </div>
 
             {/* Booking Timeline */}
+            {/* NOTE: Timeline data is not currently stored in the database - will be added in future updates
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">
                 Booking Timeline
               </h2>
               <div className="space-y-6">
-                {booking.timeline.map((event, index) => (
+                {booking.timeline?.map((event, index) => (
                   <div key={event.id} className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div
@@ -718,6 +655,7 @@ export default function BookingDetailsContent({
                 ))}
               </div>
             </div>
+            */}
           </div>
 
           {/* Sidebar */}
@@ -727,49 +665,72 @@ export default function BookingDetailsContent({
               <h3 className="font-semibold text-gray-900 mb-4">
                 Pricing Details
               </h3>
+              {/* NOTE: Detailed price breakdown is not stored in the database yet - will be added in future updates
               <div className="space-y-3 mb-4 pb-4 border-b">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Vehicle Rental</span>
                   <span className="font-medium">
-                    Rs. {booking.priceBreakdown.vehicleRental.toLocaleString()}
+                    Rs. {booking.priceBreakdown?.vehicleRental?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Driver Cost</span>
                   <span className="font-medium">
-                    Rs. {booking.priceBreakdown.driverCost.toLocaleString()}
+                    Rs. {booking.priceBreakdown?.driverCost?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Fuel Cost</span>
                   <span className="font-medium">
-                    Rs. {booking.priceBreakdown.fuelCost.toLocaleString()}
+                    Rs. {booking.priceBreakdown?.fuelCost?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Toll Charges</span>
                   <span className="font-medium">
-                    Rs. {booking.priceBreakdown.tollCharges.toLocaleString()}
+                    Rs. {booking.priceBreakdown?.tollCharges?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Permit Fees</span>
                   <span className="font-medium">
-                    Rs. {booking.priceBreakdown.permitFees.toLocaleString()}
+                    Rs. {booking.priceBreakdown?.permitFees?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Tax</span>
                   <span className="font-medium">
-                    Rs. {booking.priceBreakdown.tax.toLocaleString()}
+                    Rs. {booking.priceBreakdown?.tax?.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              */}
+
+              <div className="space-y-3 mb-4 pb-4 border-b">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Total Amount</span>
+                  <span className="font-medium">
+                    Rs. {booking.payment.total.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Platform Commission</span>
+                  <span className="font-medium">
+                    Rs. {booking.payment.platformCommission.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Net Amount (Owner)</span>
+                  <span className="font-medium">
+                    Rs. {booking.payment.netAmount.toLocaleString()}
                   </span>
                 </div>
               </div>
 
               <div className="flex justify-between items-center mb-4">
-                <span className="font-bold text-gray-900">Total Amount</span>
+                <span className="font-bold text-gray-900">Total Payable</span>
                 <span className="font-bold text-xl text-[#20B0E9]">
-                  Rs. {booking.totalAmount.toLocaleString()}
+                  Rs. {booking.payment.total.toLocaleString()}
                 </span>
               </div>
 
@@ -778,22 +739,37 @@ export default function BookingDetailsContent({
                   Amount Paid
                 </p>
                 <p className="text-lg font-bold text-green-600">
-                  Rs. {booking.paidAmount.toLocaleString()}
+                  Rs. {booking.payment.paid.toLocaleString()}
                 </p>
               </div>
 
               {/* Payment Information */}
               <div className="space-y-2 text-sm mb-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Payment Method</span>
-                  <span className="font-medium">{booking.paymentMethod}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Transaction ID</span>
-                  <span className="font-medium text-xs">
-                    {booking.transactionId}
+                  <span className="text-gray-600">Payment Status</span>
+                  <span className="font-medium capitalize">
+                    {booking.payment.status}
                   </span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Payment Method</span>
+                  <span className="font-medium">
+                    {booking.payment.method || "N/A"}
+                  </span>
+                </div>
+                {booking.payment.receiptUrl && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Receipt</span>
+                    <a
+                      href={booking.payment.receiptUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#20B0E9] font-medium"
+                    >
+                      View
+                    </a>
+                  </div>
+                )}
               </div>
 
               {/* Download Buttons */}
@@ -802,10 +778,12 @@ export default function BookingDetailsContent({
                   <FaDownload className="mr-2" />
                   Download Invoice
                 </Button>
-                <Button variant="outline" className="w-full" size="sm">
-                  <FaFileInvoiceDollar className="mr-2" />
-                  Download Receipt
-                </Button>
+                {booking.payment.receiptUrl && (
+                  <Button variant="outline" className="w-full" size="sm">
+                    <FaFileInvoiceDollar className="mr-2" />
+                    Download Receipt
+                  </Button>
+                )}
               </div>
             </div>
 

@@ -6,6 +6,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Button, Card, CardContent, LoadingSpinner } from "@/components/ui";
 import { paymentService, ApiError } from "@/lib/api";
 import { FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
+import { useTranslations } from "next-intl";
 
 interface PaymentInfo {
   id: string;
@@ -14,6 +15,7 @@ interface PaymentInfo {
 }
 
 export default function PaymentReturnPage() {
+  const t = useTranslations("payment.return");
   const params = useParams();
   const locale = params.locale as string;
   const searchParams = useSearchParams();
@@ -27,7 +29,7 @@ export default function PaymentReturnPage() {
   useEffect(() => {
     const loadPayment = async () => {
       if (!orderId) {
-        setError("Payment reference not found");
+        setError(t("errors.missingReference"));
         setIsLoading(false);
         return;
       }
@@ -37,7 +39,7 @@ export default function PaymentReturnPage() {
         setPayment(response.payment);
       } catch (err) {
         const message =
-          err instanceof ApiError ? err.message : "Failed to verify payment";
+          err instanceof ApiError ? err.message : t("errors.verifyFailed");
         setError(message);
       } finally {
         setIsLoading(false);
@@ -67,23 +69,20 @@ export default function PaymentReturnPage() {
             <FaExclamationTriangle className="mx-auto h-12 w-12 text-yellow-500" />
           )}
           <h1 className="text-2xl font-semibold text-gray-900">
-            {isSuccess ? "Payment successful" : "Payment pending"}
+            {isSuccess ? t("success.title") : t("pending.title")}
           </h1>
           <p className="text-sm text-gray-600">
-            {error ||
-              (isSuccess
-                ? "Your payment is confirmed."
-                : "We are still confirming your payment status.")}
+            {error || (isSuccess ? t("success.message") : t("pending.message"))}
           </p>
           {payment?.bookingId && (
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Link href={`/${locale}/dashboard/bookings/${payment.bookingId}`}>
-                <Button>View booking</Button>
+                <Button>{t("actions.viewBooking")}</Button>
               </Link>
               <Link
                 href={`/${locale}/dashboard/bookings/${payment.bookingId}/payment`}
               >
-                <Button variant="outline">Payment details</Button>
+                <Button variant="outline">{t("actions.paymentDetails")}</Button>
               </Link>
             </div>
           )}

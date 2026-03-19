@@ -8,15 +8,10 @@ import { LoadingSpinner } from "@/components/ui";
 import { authService, api } from "@/lib/api";
 import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 import { useAuthStore } from "@/store";
-
-const errorMessages: Record<string, string> = {
-  OAUTH_DENIED: "OAuth login was cancelled. Please try again.",
-  INVALID_STATE: "OAuth session expired. Please try again.",
-  MISSING_CODE: "OAuth response was incomplete. Please try again.",
-  PROFILE_ERROR: "Unable to read your social profile. Please try again.",
-};
+import { useTranslations } from "next-intl";
 
 export default function OAuthCallbackPage() {
+  const t = useTranslations("auth.oauth");
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,13 +26,15 @@ export default function OAuthCallbackPage() {
 
     if (errorCode) {
       setError(
-        errorMessages[errorCode] || "OAuth login failed. Please try again.",
+        t(`errors.${errorCode}`, {
+          defaultValue: t("errors.default"),
+        }),
       );
       return;
     }
 
     if (!accessToken) {
-      setError("OAuth login did not return an access token. Please try again.");
+      setError(t("errors.missingToken"));
       return;
     }
 
@@ -50,7 +47,7 @@ export default function OAuthCallbackPage() {
         router.replace(getDashboardUrl(response.user, locale));
       } catch {
         setToken(null);
-        setError("Failed to finalize OAuth login. Please try again.");
+        setError(t("errors.finalizeFailed"));
       }
     };
 
@@ -64,22 +61,20 @@ export default function OAuthCallbackPage() {
           {error ? (
             <>
               <h1 className="text-2xl font-bold text-gray-900 mb-4">
-                OAuth Login Failed
+                {t("title")}
               </h1>
               <p className="text-gray-600 mb-6">{error}</p>
               <Link
                 href={`/${locale}/login`}
                 className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
               >
-                Back to Login
+                {t("actions.backToLogin")}
               </Link>
             </>
           ) : (
             <>
               <LoadingSpinner size="lg" />
-              <p className="text-gray-600 mt-6">
-                Finishing your social login...
-              </p>
+              <p className="text-gray-600 mt-6">{t("loading")}</p>
             </>
           )}
         </div>

@@ -242,10 +242,10 @@ function ToastItem({
   };
 
   const typeStyles: Record<ToastType, string> = {
-    success: "bg-green-50 border-green-500 text-green-800",
-    error: "bg-red-50 border-red-500 text-red-800",
-    warning: "bg-yellow-50 border-yellow-500 text-yellow-800",
-    info: "bg-blue-50 border-blue-500 text-blue-800",
+    success: "bg-success-bg border-success-border text-success-text",
+    error: "bg-error-bg border-error-border text-error-text",
+    warning: "bg-muted border-border text-foreground",
+    info: "bg-muted border-primary text-foreground",
   };
 
   const icons: Record<ToastType, string> = {
@@ -259,7 +259,7 @@ function ToastItem({
     <div
       role="alert"
       className={`
-        p-4 rounded-lg border-l-4 shadow-lg transition-all duration-200
+        rounded-xl border-l-4 p-4 shadow-lg transition-all duration-200
         ${typeStyles[toast.type]}
         ${isVisible && !isLeaving ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"}
       `}

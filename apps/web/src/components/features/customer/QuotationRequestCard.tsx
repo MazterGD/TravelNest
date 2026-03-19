@@ -218,7 +218,7 @@ export function QuotationRequestCard({
                 onClick={onCancel}
                 className="flex-1 text-destructive hover:bg-destructive/10"
               >
-                Cancel Request
+                {t("cancelRequest")}
               </Button>
             )}
             {request.quotationsCount > 0 && (
@@ -227,13 +227,13 @@ export function QuotationRequestCard({
                 className="flex-1"
               >
                 <Button size="sm" className="w-full">
-                  View Quotations ({request.quotationsCount})
+                  {t("viewQuotations", { count: request.quotationsCount })}
                 </Button>
               </Link>
             )}
             {request.quotationsCount === 0 && request.status === "pending" && (
               <div className="flex-1 text-center py-2 text-sm text-muted-foreground">
-                Waiting for quotations
+                {t("waitingForQuotations")}
               </div>
             )}
           </div>
@@ -260,7 +260,7 @@ export function QuotationRequestCard({
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                   />
                 </svg>
-                Compare Quotations
+                {t("compareQuotations")}
               </Button>
             </Link>
           )}

@@ -38,8 +38,7 @@ export default function RegisterPage() {
               {t("title")}
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Choose how you want to use TraveNest - whether you&apos;re looking
-              to book buses or list your own vehicles
+              {t("intro")}
             </p>
           </div>
 
@@ -71,29 +70,27 @@ export default function RegisterPage() {
                   {t("customer")}
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  Book buses for trips, tours, and special occasions. Perfect
-                  for individuals and organizations looking for reliable
-                  transportation.
+                  {t("customerCard.description")}
                 </p>
 
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-3 text-gray-700">
                     <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span>Search and compare buses</span>
+                    <span>{t("customerCard.bullets.0")}</span>
                   </li>
                   <li className="flex items-center gap-3 text-gray-700">
                     <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span>Get instant quotations</span>
+                    <span>{t("customerCard.bullets.1")}</span>
                   </li>
                   <li className="flex items-center gap-3 text-gray-700">
                     <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span>Book verified operators</span>
+                    <span>{t("customerCard.bullets.2")}</span>
                   </li>
                 </ul>
 
                 <div className="flex items-center justify-between">
                   <span className="text-primary font-semibold group-hover:underline">
-                    Register as Customer
+                    {t("customerCard.cta")}
                   </span>
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
                     <FaArrowRight className="w-4 h-4 text-primary group-hover:text-white transition-colors" />
@@ -128,28 +125,27 @@ export default function RegisterPage() {
                   {t("owner")}
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  List your buses and connect with customers across Sri Lanka.
-                  Individual owners and transport companies welcome.
+                  {t("ownerCard.description")}
                 </p>
 
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-3 text-gray-700">
                     <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span>No listing fees</span>
+                    <span>{t("ownerCard.bullets.0")}</span>
                   </li>
                   <li className="flex items-center gap-3 text-gray-700">
                     <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span>Only 10% commission on bookings</span>
+                    <span>{t("ownerCard.bullets.1")}</span>
                   </li>
                   <li className="flex items-center gap-3 text-gray-700">
                     <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span>Business dashboard & analytics</span>
+                    <span>{t("ownerCard.bullets.2")}</span>
                   </li>
                 </ul>
 
                 <div className="flex items-center justify-between">
                   <span className="text-primary font-semibold group-hover:underline">
-                    Register as Bus Owner
+                    {t("ownerCard.cta")}
                   </span>
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
                     <FaArrowRight className="w-4 h-4 text-primary group-hover:text-white transition-colors" />
@@ -162,12 +158,12 @@ export default function RegisterPage() {
           {/* Already have account */}
           <div className="text-center mt-12">
             <p className="text-gray-600">
-              Already have an account?{" "}
+              {t("hasAccount")}{" "}
               <Link
                 href={`/${locale}/login`}
                 className="text-primary font-semibold hover:underline"
               >
-                Sign in here
+                {t("login")}
               </Link>
             </p>
           </div>

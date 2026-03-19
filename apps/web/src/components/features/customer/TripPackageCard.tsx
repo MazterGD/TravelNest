@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import type { TripPackage } from "@/types";
 import { FaMapMarkerAlt, FaUsers, FaClock, FaBus } from "react-icons/fa";
+import { useTranslations } from "next-intl";
 
 interface TripPackageCardProps {
   tripPackage: TripPackage;
@@ -26,8 +27,9 @@ export function TripPackageCard({
   onToggleCompare,
   onBook,
 }: TripPackageCardProps) {
+  const t = useTranslations("packages");
   const imageUrl = tripPackage.vehicle?.images?.[0];
-  const vehicleName = tripPackage.vehicle?.name || "Vehicle";
+  const vehicleName = tripPackage.vehicle?.name || t("vehicleFallback");
   const seats = tripPackage.vehicle?.seats;
   const ownerName = tripPackage.owner
     ? `${tripPackage.owner.firstName || ""} ${tripPackage.owner.lastName || ""}`.trim()
@@ -41,7 +43,7 @@ export function TripPackageCard({
           <p className="text-xs text-muted-foreground">{vehicleName}</p>
         </div>
         <Badge variant={tripPackage.isActive ? "success" : "secondary"}>
-          {tripPackage.isActive ? "Active" : "Inactive"}
+          {tripPackage.isActive ? t("status.active") : t("status.inactive")}
         </Badge>
       </CardHeader>
 
@@ -70,23 +72,27 @@ export function TripPackageCard({
           </div>
           <div className="flex items-center gap-2">
             <FaClock className="h-4 w-4" />
-            <span>{tripPackage.durationDays} day(s)</span>
+            <span>
+              {t("durationDays", { count: tripPackage.durationDays })}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <FaUsers className="h-4 w-4" />
             <span>
               {tripPackage.minPassengers} - {tripPackage.maxPassengers}{" "}
-              passengers
-              {seats ? ` (max ${seats})` : ""}
+              {t("passengers")}
+              {seats ? ` (${t("maxSeats", { count: seats })})` : ""}
             </span>
           </div>
-          {ownerName && <p className="text-xs">Owner: {ownerName}</p>}
+          {ownerName && (
+            <p className="text-xs">{t("ownerLabel", { name: ownerName })}</p>
+          )}
         </div>
       </CardContent>
 
       <CardFooter className="mt-auto flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs text-muted-foreground">Package Price</p>
+          <p className="text-xs text-muted-foreground">{t("priceLabel")}</p>
           <p className="text-lg font-semibold text-foreground">
             LKR {tripPackage.price.toLocaleString()}
           </p>
@@ -101,10 +107,10 @@ export function TripPackageCard({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {isSelected ? "Selected" : "Compare"}
+            {isSelected ? t("compare.selected") : t("compare.label")}
           </button>
           <Button size="sm" onClick={() => onBook(tripPackage)}>
-            Book Package
+            {t("bookPackage")}
           </Button>
         </div>
       </CardFooter>

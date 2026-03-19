@@ -18,26 +18,26 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       children,
       ...props
     },
-    ref
+    ref,
   ) => {
     const baseStyles =
-      "inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 rounded-md";
+      "inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-[transform,box-shadow,background-color,color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 disabled:bg-action-disabled";
 
     const variants = {
       primary:
-        "bg-primary text-primary-foreground hover:bg-secondary shadow-sm",
+        "bg-primary text-primary-foreground hover:bg-action-primary-hover active:bg-action-primary-active shadow-[0_8px_24px_-4px_rgba(32,176,233,0.42)]",
       secondary:
-        "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm",
+        "bg-background text-foreground border border-border hover:bg-muted",
       outline:
-        "border border-border bg-background hover:bg-muted text-foreground",
+        "border border-border bg-background text-foreground hover:bg-muted",
       ghost: "hover:bg-muted text-foreground",
       link: "text-primary underline-offset-4 hover:underline",
     };
 
     const sizes = {
-      sm: "h-9 px-3 text-sm",
-      md: "h-10 px-4 text-sm",
-      lg: "h-12 px-6 text-base",
+      sm: "h-10 px-3 text-sm",
+      md: "h-11 px-4 text-sm",
+      lg: "h-[52px] px-6 text-base",
     };
 
     return (
@@ -76,7 +76,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
       </button>
     );
-  }
+  },
 );
 
 Button.displayName = "Button";

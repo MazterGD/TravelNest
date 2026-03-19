@@ -1,114 +1,103 @@
 @import "tailwindcss";
 
 :root {
-  /* TravelNest Brand Colors - Blue Palette */
-  --primary: 199 100% 21%;
-  /* #00476B - Deep Blue - Main brand color */
-  --primary-foreground: 0 0% 100%;
-  --secondary: 200 46% 34%;
-  /* #2F6280 - Slate Blue */
-  --secondary-foreground: 0 0% 100%;
-  --accent: 197 82% 68%;
-  /* #6ACAF0 - Medium Blue - Highlights */
-  --accent-foreground: 199 100% 21%;
+  --color-action-primary: #20b0e9;
+  --color-action-primary-hover: #1d9ed1;
+  --color-action-primary-active: #1a8cb9;
+  --color-action-focus: #20b0e9;
+  --color-action-disabled: #cbd5e1;
 
-  /* Neutral Colors */
-  --background: 0 0% 100%;
-  /* White */
-  --foreground: 199 100% 21%;
-  /* Dark blue text */
-  --muted: 199 74% 88%;
-  /* #C9E9F8 - Light blue */
-  --muted-foreground: 200 46% 34%;
-  /* #2F6280 */
-  --card: 195 79% 96%;
-  /* Very light blue tint */
-  --card-foreground: 199 100% 21%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 199 100% 21%;
+  --color-bg-base: #ffffff;
+  --color-bg-surface: #f8fafc;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #94a3b8;
+  --color-border-default: #e2e8f0;
 
-  /* Borders and Inputs */
-  --border: 199 74% 88%;
-  /* #C9E9F8 */
-  --input: 199 74% 88%;
-  --ring: 197 82% 68%;
-  /* Accent blue for focus rings */
+  --color-success-bg: #d1fae5;
+  --color-success-text: #065f46;
+  --color-success-border: #10b981;
+  --color-error-bg: #fee2e2;
+  --color-error-text: #991b1b;
+  --color-error-border: #ef4444;
 
-  /* Status Colors */
-  --success: 142 71% 45%;
-  /* Green */
-  --success-foreground: 0 0% 100%;
-  --warning: 38 92% 50%;
-  /* Orange/Yellow */
-  --warning-foreground: 0 0% 0%;
-  --error: 0 84% 60%;
-  /* Red */
-  --error-foreground: 0 0% 100%;
-  --info: 197 82% 68%;
-  /* Accent blue */
-  --info-foreground: 199 100% 21%;
+  --radius-card: 20px;
+  --radius-interactive: 12px;
+  --radius-chip: 8px;
 
-  /* Border Radius */
-  --radius: 0.5rem;
+  --spring-bouncy: cubic-bezier(0.2, 0.9, 0.2, 1);
+  --spring-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @theme inline {
-  /* Colors */
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-border: hsl(var(--border));
-  --color-success: hsl(var(--success));
-  --color-warning: hsl(var(--warning));
-  --color-error: hsl(var(--error));
-  --color-info: hsl(var(--info));
+  --color-action-primary: var(--color-action-primary);
+  --color-action-primary-hover: var(--color-action-primary-hover);
+  --color-action-primary-active: var(--color-action-primary-active);
+  --color-action-focus: var(--color-action-focus);
+  --color-action-disabled: var(--color-action-disabled);
 
-  /* Fonts */
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --color-bg-base: var(--color-bg-base);
+  --color-bg-surface: var(--color-bg-surface);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-border-default: var(--color-border-default);
 
-  /* Border Radius */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 4px);
-}
+  --color-success-bg: var(--color-success-bg);
+  --color-success-text: var(--color-success-text);
+  --color-success-border: var(--color-success-border);
+  --color-error-bg: var(--color-error-bg);
+  --color-error-text: var(--color-error-text);
+  --color-error-border: var(--color-error-border);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: 199 100% 10%;
-    /* Very dark blue */
-    --foreground: 195 79% 92%;
-    /* Light blue text */
-    --muted: 200 46% 20%;
-    /* Darker muted */
-    --muted-foreground: 199 74% 75%;
-    --card: 199 100% 14%;
-    /* Dark blue card */
-    --card-foreground: 195 79% 92%;
-    --border: 200 46% 25%;
-    --input: 200 46% 25%;
-    --popover: 199 100% 12%;
-    --popover-foreground: 195 79% 92%;
-  }
+  --color-primary: var(--color-action-primary);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--color-bg-surface);
+  --color-secondary-foreground: var(--color-text-primary);
+  --color-accent: var(--color-action-primary);
+  --color-accent-foreground: #ffffff;
+  --color-background: var(--color-bg-base);
+  --color-foreground: var(--color-text-primary);
+  --color-muted: var(--color-bg-surface);
+  --color-muted-foreground: var(--color-text-secondary);
+  --color-card: var(--color-bg-base);
+  --color-card-foreground: var(--color-text-primary);
+  --color-popover: var(--color-bg-base);
+  --color-popover-foreground: var(--color-text-primary);
+  --color-border: var(--color-border-default);
+  --color-input: var(--color-border-default);
+  --color-ring: var(--color-action-focus);
+
+  --color-success: var(--color-success-border);
+  --color-success-foreground: var(--color-success-text);
+  --color-error: var(--color-error-border);
+  --color-error-foreground: var(--color-error-text);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --radius-sm: var(--radius-chip);
+  --radius-md: var(--radius-interactive);
+  --radius-lg: var(--radius-card);
 }
 
 * {
-  border-color: hsl(var(--border));
+  border-color: var(--color-border-default);
 }
 
 body {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
   font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+button,
+[role="button"],
+input,
+select,
+textarea {
+  min-height: 44px;
 }
 
 /* Scrollbar Styling */
@@ -117,14 +106,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
+  background: var(--color-bg-surface);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary));
+  background: var(--color-action-primary);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--secondary));
+  background: var(--color-action-primary-hover);
 }

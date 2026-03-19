@@ -3,6 +3,7 @@
 import { Modal } from "./Modal";
 import { Button } from "./Button";
 import { cn } from "@/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ const variantStyles = {
   danger: {
     icon: (
       <svg
-        className="w-12 h-12 text-red-500"
+        className="h-12 w-12 text-error"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -33,12 +34,12 @@ const variantStyles = {
         />
       </svg>
     ),
-    buttonClass: "bg-red-600 hover:bg-red-700 text-white",
+    buttonClass: "bg-error text-white hover:bg-error/90",
   },
   warning: {
     icon: (
       <svg
-        className="w-12 h-12 text-amber-500"
+        className="h-12 w-12 text-foreground"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -51,12 +52,12 @@ const variantStyles = {
         />
       </svg>
     ),
-    buttonClass: "bg-amber-600 hover:bg-amber-700 text-white",
+    buttonClass: "bg-foreground text-background hover:bg-foreground/90",
   },
   info: {
     icon: (
       <svg
-        className="w-12 h-12 text-blue-500"
+        className="h-12 w-12 text-primary"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -69,7 +70,7 @@ const variantStyles = {
         />
       </svg>
     ),
-    buttonClass: "bg-blue-600 hover:bg-blue-700 text-white",
+    buttonClass: "bg-primary text-white hover:bg-action-primary-hover",
   },
 };
 
@@ -79,12 +80,15 @@ export function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   variant = "danger",
   isLoading = false,
 }: ConfirmDialogProps) {
+  const t = useTranslations("common");
   const styles = variantStyles[variant];
+  const resolvedConfirmText = confirmText || t("confirm");
+  const resolvedCancelText = cancelText || t("cancel");
 
   const handleConfirm = async () => {
     await onConfirm();
@@ -119,7 +123,7 @@ export function ConfirmDialog({
             disabled={isLoading}
             className="flex-1"
           >
-            {cancelText}
+            {resolvedCancelText}
           </Button>
           <Button
             onClick={handleConfirm}
@@ -148,10 +152,10 @@ export function ConfirmDialog({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                Processing...
+                {t("processing")}
               </span>
             ) : (
-              confirmText
+              resolvedConfirmText
             )}
           </Button>
         </div>

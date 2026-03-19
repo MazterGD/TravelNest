@@ -1,4 +1,4 @@
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   FaSearch,
@@ -16,6 +16,7 @@ import { PageHeader, Card, Button } from "@/components/ui";
 export default function HowItWorksPage() {
   const t = useTranslations("howItWorks");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
 
   const customerSteps = [
     {
@@ -109,7 +110,7 @@ export default function HowItWorksPage() {
           </div>
 
           <div className="text-center mt-10">
-            <Link href="/en/search">
+            <Link href={`/${locale}/search`}>
               <Button size="lg">{tCommon("getStarted")}</Button>
             </Link>
           </div>
@@ -158,9 +159,9 @@ export default function HowItWorksPage() {
           </div>
 
           <div className="text-center mt-10">
-            <Link href="/en/register">
+            <Link href={`/${locale}/register`}>
               <Button size="lg" variant="secondary">
-                Register as Owner
+                {t("ownerCta")}
               </Button>
             </Link>
           </div>

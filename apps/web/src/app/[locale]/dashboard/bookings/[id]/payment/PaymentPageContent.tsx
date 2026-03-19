@@ -58,7 +58,7 @@ interface PaymentPageContentProps {
   locale: string;
 }
 
-type PaymentTab = "card" | "bank" | "cash";
+type PaymentTab = "card" | "bank";
 
 const fallbackBankDetails = {
   bankName: "",
@@ -188,10 +188,9 @@ export default function PaymentPageContent({
     setStatusMessage(null);
     setError(null);
 
-    const methodMap: Record<PaymentTab, "CARD" | "BANK_TRANSFER" | "CASH"> = {
+    const methodMap: Record<PaymentTab, "CARD" | "BANK_TRANSFER"> = {
       card: "CARD",
       bank: "BANK_TRANSFER",
-      cash: "CASH",
     };
 
     try {
@@ -210,9 +209,7 @@ export default function PaymentPageContent({
       }
 
       setStatusMessage(
-        activeTab === "cash"
-          ? "Cash payment selected. Please pay the driver on pickup."
-          : "Bank transfer instructions are ready. Use your booking reference for the transfer.",
+        "Bank transfer instructions are ready. Use your booking reference for the transfer.",
       );
 
       await fetchBooking();
@@ -294,11 +291,6 @@ export default function PaymentPageContent({
       id: "bank",
       label: "Bank Transfer",
       icon: <FaUniversity className="text-sm" />,
-    },
-    {
-      id: "cash",
-      label: "Cash (Pay Later)",
-      icon: <FaMoneyBillWave className="text-sm" />,
     },
   ];
 
@@ -417,13 +409,6 @@ export default function PaymentPageContent({
                     >
                       Upload Receipt
                     </Button>
-                  </div>
-                )}
-
-                {activeTab === "cash" && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                    Pay in cash on the day of your trip. Please keep the exact
-                    amount ready.
                   </div>
                 )}
 

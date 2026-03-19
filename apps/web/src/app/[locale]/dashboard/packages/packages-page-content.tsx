@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   PageHeader,
   Button,
@@ -20,6 +21,7 @@ interface PackagesPageContentProps {
 }
 
 export function PackagesPageContent({ locale }: PackagesPageContentProps) {
+  const t = useTranslations("packages");
   const router = useRouter();
   const [packages, setPackages] = useState<TripPackage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +56,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
       setPackages(response.packages || []);
     } catch (err) {
       if (err instanceof ApiError) setError(err.message);
-      else setError("Failed to load trip packages");
+      else setError(t("errors.fetchPackages"));
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +133,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
         return prev.filter((item) => item !== id);
       }
       if (prev.length >= 3) {
-        alert("You can compare up to 3 packages at a time.");
+        alert(t("errors.compareLimit"));
         return prev;
       }
       return [...prev, id];
@@ -148,7 +150,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
   const handleBooking = async () => {
     if (!bookingPackage) return;
     if (!bookingDate) {
-      alert("Please select a start date.");
+      alert(t("errors.missingStartDate"));
       return;
     }
 
@@ -156,7 +158,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
       bookingPassengers < bookingPackage.minPassengers ||
       bookingPassengers > bookingPackage.maxPassengers
     ) {
-      alert("Passenger count is outside the package limits.");
+      alert(t("errors.passengerLimit"));
       return;
     }
 
@@ -173,7 +175,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
       router.push(`/${locale}/dashboard/bookings/${bookingId}/payment`);
     } catch (err) {
       if (err instanceof ApiError) alert(err.message);
-      else alert("Failed to book package");
+      else alert(t("errors.bookingFailed"));
     } finally {
       setIsBooking(false);
     }
@@ -193,16 +195,13 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Trip Packages"
-        description="Compare fixed trip packages from verified owners."
-      />
+      <PageHeader title={t("title")} description={t("subtitle")} />
 
       <Card className="p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex-1">
             <Input
-              placeholder="Search routes or package name"
+              placeholder={t("searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -213,10 +212,10 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
               onClick={() => setShowFilters(!showFilters)}
             >
               <FaFilter className="mr-2 h-4 w-4" />
-              Filters
+              {t("filters.title")}
             </Button>
             <Button variant="ghost" onClick={clearFilters}>
-              Clear
+              {t("filters.clear")}
             </Button>
           </div>
         </div>
@@ -224,7 +223,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
         {showFilters && (
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <Input
-              label="Start Location"
+              label={t("filters.startLocation")}
               value={filters.startLocation}
               onChange={(e) =>
                 setFilters((prev) => ({
@@ -234,7 +233,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
               }
             />
             <Input
-              label="End Location"
+              label={t("filters.endLocation")}
               value={filters.endLocation}
               onChange={(e) =>
                 setFilters((prev) => ({
@@ -244,7 +243,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
               }
             />
             <Input
-              label="Duration (days)"
+              label={t("filters.durationDays")}
               type="number"
               min={1}
               value={filters.durationDays}
@@ -256,7 +255,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
               }
             />
             <Input
-              label="Min Passengers"
+              label={t("filters.minPassengers")}
               type="number"
               min={1}
               value={filters.minPassengers}
@@ -268,7 +267,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
               }
             />
             <Input
-              label="Max Passengers"
+              label={t("filters.maxPassengers")}
               type="number"
               min={1}
               value={filters.maxPassengers}
@@ -280,7 +279,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
               }
             />
             <Input
-              label="Min Price (LKR)"
+              label={t("filters.minPrice")}
               type="number"
               min={0}
               value={filters.minPrice}
@@ -292,7 +291,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
               }
             />
             <Input
-              label="Max Price (LKR)"
+              label={t("filters.maxPrice")}
               type="number"
               min={0}
               value={filters.maxPrice}
@@ -315,7 +314,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
 
       {isLoading ? (
         <div className="rounded-lg border border-border bg-background p-8 text-center">
-          Loading packages...
+          {t("loading")}
         </div>
       ) : filteredPackages.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -331,7 +330,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
         </div>
       ) : (
         <div className="rounded-lg border border-border bg-background p-8 text-center text-sm text-muted-foreground">
-          No packages match your filters.
+          {t("empty")}
         </div>
       )}
 
@@ -339,14 +338,14 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-foreground">
-              Compare Packages
+              {t("compare.title")}
             </h3>
             <button
               type="button"
               className="text-sm text-muted-foreground hover:text-foreground"
               onClick={() => setSelectedIds([])}
             >
-              Clear
+              {t("compare.clear")}
             </button>
           </div>
 
@@ -354,7 +353,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="py-2 pr-4">Feature</th>
+                  <th className="py-2 pr-4">{t("compare.feature")}</th>
                   {selectedPackages.map((pkg) => (
                     <th key={pkg.id} className="min-w-[200px] py-2 pr-4">
                       <div className="flex items-center justify-between gap-2">
@@ -375,7 +374,9 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
               </thead>
               <tbody className="divide-y divide-border">
                 <tr>
-                  <td className="py-3 pr-4 text-muted-foreground">Route</td>
+                  <td className="py-3 pr-4 text-muted-foreground">
+                    {t("compare.route")}
+                  </td>
                   {selectedPackages.map((pkg) => (
                     <td key={pkg.id} className="py-3 pr-4">
                       {pkg.startLocation} → {pkg.endLocation}
@@ -383,16 +384,18 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
                   ))}
                 </tr>
                 <tr>
-                  <td className="py-3 pr-4 text-muted-foreground">Duration</td>
+                  <td className="py-3 pr-4 text-muted-foreground">
+                    {t("compare.duration")}
+                  </td>
                   {selectedPackages.map((pkg) => (
                     <td key={pkg.id} className="py-3 pr-4">
-                      {pkg.durationDays} day(s)
+                      {t("durationDays", { count: pkg.durationDays })}
                     </td>
                   ))}
                 </tr>
                 <tr>
                   <td className="py-3 pr-4 text-muted-foreground">
-                    Passengers
+                    {t("compare.passengers")}
                   </td>
                   {selectedPackages.map((pkg) => (
                     <td key={pkg.id} className="py-3 pr-4">
@@ -401,15 +404,19 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
                   ))}
                 </tr>
                 <tr>
-                  <td className="py-3 pr-4 text-muted-foreground">Vehicle</td>
+                  <td className="py-3 pr-4 text-muted-foreground">
+                    {t("compare.vehicle")}
+                  </td>
                   {selectedPackages.map((pkg) => (
                     <td key={pkg.id} className="py-3 pr-4">
-                      {pkg.vehicle?.name || "Vehicle"}
+                      {pkg.vehicle?.name || t("vehicleFallback")}
                     </td>
                   ))}
                 </tr>
                 <tr>
-                  <td className="py-3 pr-4 text-muted-foreground">Price</td>
+                  <td className="py-3 pr-4 text-muted-foreground">
+                    {t("compare.price")}
+                  </td>
                   {selectedPackages.map((pkg) => (
                     <td key={pkg.id} className="py-3 pr-4 font-semibold">
                       LKR {pkg.price.toLocaleString()}
@@ -425,19 +432,25 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
       <Modal
         isOpen={!!bookingPackage}
         onClose={() => setBookingPackage(null)}
-        title={bookingPackage ? `Book ${bookingPackage.title}` : "Book Package"}
+        title={
+          bookingPackage
+            ? t("modal.titleWithName", { name: bookingPackage.title })
+            : t("modal.title")
+        }
         size="md"
       >
         {bookingPackage && (
           <div className="space-y-4">
             <DatePicker
-              label="Start Date"
+              label={t("modal.startDate")}
               value={bookingDate}
               onChange={(e) => setBookingDate(e.target.value)}
               min={new Date().toISOString().split("T")[0]}
             />
             <Input
-              label={`Passenger Count (min ${bookingPackage.minPassengers})`}
+              label={t("modal.passengerCount", {
+                min: bookingPackage.minPassengers,
+              })}
               type="number"
               min={bookingPackage.minPassengers}
               max={bookingPackage.maxPassengers}
@@ -445,17 +458,17 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
               onChange={(e) => setBookingPassengers(Number(e.target.value))}
             />
             <Input
-              label="Notes (optional)"
+              label={t("modal.notes")}
               value={bookingNotes}
               onChange={(e) => setBookingNotes(e.target.value)}
             />
 
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setBookingPackage(null)}>
-                Cancel
+                {t("modal.cancel")}
               </Button>
               <Button isLoading={isBooking} onClick={handleBooking}>
-                Confirm Booking
+                {t("modal.confirm")}
               </Button>
             </div>
           </div>

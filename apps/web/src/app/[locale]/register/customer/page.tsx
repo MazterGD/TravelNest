@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   FaUser,
   FaEnvelope,
@@ -23,6 +24,7 @@ import { useAuthStore } from "@/store";
 import { useGuestGuard } from "@/hooks";
 
 export default function CustomerRegistrationPage() {
+  const t = useTranslations("auth.customerRegister");
   const params = useParams();
   const router = useRouter();
   const locale = params.locale as string;
@@ -84,9 +86,9 @@ export default function CustomerRegistrationPage() {
   };
 
   const getPasswordStrengthText = () => {
-    if (passwordStrength < 50) return "Weak";
-    if (passwordStrength < 75) return "Medium";
-    return "Strong";
+    if (passwordStrength < 50) return t("passwordStrength.weak");
+    if (passwordStrength < 75) return t("passwordStrength.medium");
+    return t("passwordStrength.strong");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,13 +99,13 @@ export default function CustomerRegistrationPage() {
 
     // Client-side validation
     if (formData.password !== formData.confirmPassword) {
-      setFieldErrors({ confirmPassword: "Passwords do not match" });
+      setFieldErrors({ confirmPassword: t("errors.passwordMismatch") });
       setIsLoading(false);
       return;
     }
 
     if (!formData.termsAccepted || !formData.privacyAccepted) {
-      setError("Please accept the Terms and Conditions and Privacy Policy");
+      setError(t("errors.acceptTerms"));
       setIsLoading(false);
       return;
     }
@@ -132,7 +134,7 @@ export default function CustomerRegistrationPage() {
           setError(err.message);
         }
       } else {
-        setError("An unexpected error occurred. Please try again.");
+        setError(t("errors.unexpected"));
       }
     } finally {
       setIsLoading(false);
@@ -160,10 +162,10 @@ export default function CustomerRegistrationPage() {
               <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-gray-100 sticky top-8">
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-gray-900 mb-3">
-                    Join TraveNest
+                    {t("sidebar.title")}
                   </h2>
                   <p className="text-gray-600 leading-relaxed">
-                    Create your account to start booking buses across Sri Lanka
+                    {t("sidebar.subtitle")}
                   </p>
                 </div>
 
@@ -184,10 +186,10 @@ export default function CustomerRegistrationPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 mb-1">
-                        Easy Booking
+                        {t("sidebar.benefits.easyBooking.title")}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        Search and book buses in minutes
+                        {t("sidebar.benefits.easyBooking.description")}
                       </p>
                     </div>
                   </div>
@@ -197,10 +199,10 @@ export default function CustomerRegistrationPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 mb-1">
-                        Verified Operators
+                        {t("sidebar.benefits.verifiedOperators.title")}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        All bus owners are verified for safety
+                        {t("sidebar.benefits.verifiedOperators.description")}
                       </p>
                     </div>
                   </div>
@@ -210,10 +212,10 @@ export default function CustomerRegistrationPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 mb-1">
-                        24/7 Support
+                        {t("sidebar.benefits.support.title")}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        We&apos;re here to help anytime
+                        {t("sidebar.benefits.support.description")}
                       </p>
                     </div>
                   </div>
@@ -221,13 +223,13 @@ export default function CustomerRegistrationPage() {
 
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <p className="text-sm text-gray-600 mb-3">
-                    Already have an account?
+                    {t("sidebar.hasAccount")}
                   </p>
                   <Link
                     href={`/${locale}/login`}
                     className="block w-full py-3 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold text-center"
                   >
-                    Sign In
+                    {t("sidebar.signIn")}
                   </Link>
                 </div>
               </div>
@@ -238,11 +240,9 @@ export default function CustomerRegistrationPage() {
               <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 border-2 border-gray-100">
                 <div className="mb-8">
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    Customer Registration
+                    {t("title")}
                   </h1>
-                  <p className="text-lg text-gray-600">
-                    Fill in your details to create an account
-                  </p>
+                  <p className="text-lg text-gray-600">{t("subtitle")}</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
@@ -255,12 +255,12 @@ export default function CustomerRegistrationPage() {
                   {/* Personal Information Section */}
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary/20">
-                      Personal Information
+                      {t("sections.personalInfo")}
                     </h2>
                     <div className="grid md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-lg font-semibold text-gray-800 mb-2">
-                          First Name *
+                          {t("fields.firstName.label")}
                         </label>
                         <div className="relative group">
                           <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -270,7 +270,7 @@ export default function CustomerRegistrationPage() {
                             required
                             value={formData.firstName}
                             onChange={handleChange}
-                            placeholder="Enter first name"
+                            placeholder={t("fields.firstName.placeholder")}
                             className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
@@ -283,7 +283,7 @@ export default function CustomerRegistrationPage() {
 
                       <div>
                         <label className="block text-lg font-semibold text-gray-800 mb-2">
-                          Last Name *
+                          {t("fields.lastName.label")}
                         </label>
                         <div className="relative group">
                           <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -293,7 +293,7 @@ export default function CustomerRegistrationPage() {
                             required
                             value={formData.lastName}
                             onChange={handleChange}
-                            placeholder="Enter last name"
+                            placeholder={t("fields.lastName.placeholder")}
                             className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
@@ -306,7 +306,7 @@ export default function CustomerRegistrationPage() {
 
                       <div>
                         <label className="block text-lg font-semibold text-gray-800 mb-2">
-                          Email Address *
+                          {t("fields.email.label")}
                         </label>
                         <div className="relative group">
                           <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -316,7 +316,7 @@ export default function CustomerRegistrationPage() {
                             required
                             value={formData.email}
                             onChange={handleChange}
-                            placeholder="your@email.com"
+                            placeholder={t("fields.email.placeholder")}
                             className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
@@ -329,7 +329,7 @@ export default function CustomerRegistrationPage() {
 
                       <div>
                         <label className="block text-lg font-semibold text-gray-800 mb-2">
-                          Phone Number *
+                          {t("fields.phone.label")}
                         </label>
                         <div className="relative group">
                           <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -339,7 +339,7 @@ export default function CustomerRegistrationPage() {
                             required
                             value={formData.phone}
                             onChange={handleChange}
-                            placeholder="+94 XX XXX XXXX"
+                            placeholder={t("fields.phone.placeholder")}
                             className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
@@ -401,12 +401,12 @@ export default function CustomerRegistrationPage() {
                   {/* Address Section */}
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary/20">
-                      Address Information
+                      {t("sections.addressInfo")}
                     </h2>
                     <div className="space-y-6">
                       <div>
                         <label className="block text-lg font-semibold text-gray-800 mb-2">
-                          Address *
+                          {t("fields.address.label")}
                         </label>
                         <div className="relative group">
                           <FaMapMarkerAlt className="absolute left-4 top-4 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -416,7 +416,7 @@ export default function CustomerRegistrationPage() {
                             value={formData.address}
                             onChange={handleChange}
                             rows={3}
-                            placeholder="Enter your full address"
+                            placeholder={t("fields.address.placeholder")}
                             className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white resize-none"
                           />
                         </div>
@@ -425,7 +425,7 @@ export default function CustomerRegistrationPage() {
                       <div className="grid md:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-lg font-semibold text-gray-800 mb-2">
-                            City *
+                            {t("fields.city.label")}
                           </label>
                           <input
                             type="text"
@@ -433,21 +433,21 @@ export default function CustomerRegistrationPage() {
                             required
                             value={formData.city}
                             onChange={handleChange}
-                            placeholder="Enter city"
+                            placeholder={t("fields.city.placeholder")}
                             className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
 
                         <div>
                           <label className="block text-lg font-semibold text-gray-800 mb-2">
-                            Postal Code
+                            {t("fields.postalCode.label")}
                           </label>
                           <input
                             type="text"
                             name="postalCode"
                             value={formData.postalCode}
                             onChange={handleChange}
-                            placeholder="Enter postal code"
+                            placeholder={t("fields.postalCode.placeholder")}
                             className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
@@ -458,12 +458,12 @@ export default function CustomerRegistrationPage() {
                   {/* Password Section */}
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary/20">
-                      Create Password
+                      {t("sections.password")}
                     </h2>
                     <div className="space-y-6">
                       <div>
                         <label className="block text-lg font-semibold text-gray-800 mb-2">
-                          Password *
+                          {t("fields.password.label")}
                         </label>
                         <div className="relative group">
                           <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -473,7 +473,7 @@ export default function CustomerRegistrationPage() {
                             required
                             value={formData.password}
                             onChange={handleChange}
-                            placeholder="Create a strong password"
+                            placeholder={t("fields.password.placeholder")}
                             className="w-full pl-12 pr-12 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                           <button
@@ -497,7 +497,7 @@ export default function CustomerRegistrationPage() {
                           <div className="mt-3">
                             <div className="flex justify-between items-center mb-2">
                               <span className="text-sm text-gray-600">
-                                Password Strength:
+                                {t("passwordStrength.label")}
                               </span>
                               <span
                                 className={`text-sm font-semibold ${
@@ -523,7 +523,7 @@ export default function CustomerRegistrationPage() {
 
                       <div>
                         <label className="block text-lg font-semibold text-gray-800 mb-2">
-                          Confirm Password *
+                          {t("fields.confirmPassword.label")}
                         </label>
                         <div className="relative group">
                           <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -533,7 +533,9 @@ export default function CustomerRegistrationPage() {
                             required
                             value={formData.confirmPassword}
                             onChange={handleChange}
-                            placeholder="Re-enter your password"
+                            placeholder={t(
+                              "fields.confirmPassword.placeholder",
+                            )}
                             className="w-full pl-12 pr-12 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                           <button
@@ -571,12 +573,12 @@ export default function CustomerRegistrationPage() {
                         className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-1"
                       />
                       <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
-                        I accept the{" "}
+                        {t("terms.accept")}{" "}
                         <Link
                           href={`/${locale}/terms`}
                           className="text-primary hover:underline font-semibold"
                         >
-                          Terms and Conditions
+                          {t("terms.termsLink")}
                         </Link>{" "}
                         *
                       </span>
@@ -592,12 +594,12 @@ export default function CustomerRegistrationPage() {
                         className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-1"
                       />
                       <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
-                        I have read and agree to the{" "}
+                        {t("terms.privacyAccept")}{" "}
                         <Link
                           href={`/${locale}/privacy`}
                           className="text-primary hover:underline font-semibold"
                         >
-                          Privacy Policy
+                          {t("terms.privacyLink")}
                         </Link>{" "}
                         *
                       </span>
@@ -613,7 +615,7 @@ export default function CustomerRegistrationPage() {
                     {isLoading ? (
                       <LoadingSpinner size="sm" className="text-white" />
                     ) : (
-                      "Create Account"
+                      t("submit")
                     )}
                   </button>
                 </form>

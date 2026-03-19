@@ -343,7 +343,7 @@ async function main() {
         fileSize: 524288,
         mimeType: "application/pdf",
         status: "VERIFIED",
-        verifiedAt: new Date("2025-12-15T10:00:00.000Z"),
+        verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
         verifiedBy: admin.id,
       },
       {
@@ -354,7 +354,7 @@ async function main() {
         fileSize: 425984,
         mimeType: "application/pdf",
         status: "VERIFIED",
-        verifiedAt: new Date("2025-12-15T10:00:00.000Z"),
+        verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
         verifiedBy: admin.id,
       },
       {
@@ -365,7 +365,7 @@ async function main() {
         fileSize: 687104,
         mimeType: "application/pdf",
         status: "VERIFIED",
-        verifiedAt: new Date("2025-12-15T10:00:00.000Z"),
+        verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
         verifiedBy: admin.id,
       },
     ],
@@ -406,7 +406,7 @@ async function main() {
         fileSize: 498432,
         mimeType: "application/pdf",
         status: "VERIFIED",
-        verifiedAt: new Date("2025-11-20T14:00:00.000Z"),
+        verifiedAt: new Date("2026-02-05T14:00:00.000Z"),
         verifiedBy: admin.id,
       },
       {
@@ -1113,6 +1113,9 @@ async function main() {
   const owner3Vehicles = await prisma.vehicle.findMany({
     where: { ownerId: owner3.id },
   });
+  const owner4Vehicles = await prisma.vehicle.findMany({
+    where: { ownerId: owner4.id },
+  });
 
   let quotationCounter = 1;
   const generateQuotationId = () => {
@@ -1128,8 +1131,8 @@ async function main() {
       customerId: customer1.id,
       vehicleId: owner1Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-02-15T08:00:00.000Z"),
-      endDate: new Date("2026-02-16T20:00:00.000Z"),
+      startDate: new Date("2026-02-25T08:00:00.000Z"),
+      endDate: new Date("2026-02-26T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Colombo - Galle Face Green",
       dropoffLocation: "Kandy - Temple of the Tooth",
@@ -1149,8 +1152,8 @@ async function main() {
       customerId: customer2.id,
       vehicleId: owner1Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-02-20T06:00:00.000Z"),
-      endDate: new Date("2026-02-22T18:00:00.000Z"),
+      startDate: new Date("2026-03-20T06:00:00.000Z"),
+      endDate: new Date("2026-03-22T18:00:00.000Z"),
       startTime: "06:00 AM",
       pickupLocation: "Negombo - Beach Resort Area",
       dropoffLocation: "Jaffna - Fort Area",
@@ -1174,8 +1177,8 @@ async function main() {
       additionalNotes:
         "Vehicle includes full AC, comfortable reclining seats, and entertainment system.",
       validityDays: 7,
-      validUntil: new Date("2026-01-28T23:59:59.000Z"),
-      sentAt: new Date("2026-01-20T10:30:00.000Z"),
+      validUntil: new Date("2026-02-28T23:59:59.000Z"),
+      sentAt: new Date("2026-02-19T10:30:00.000Z"),
     },
   });
 
@@ -1212,8 +1215,8 @@ async function main() {
       customerId: customer1.id,
       vehicleId: owner2Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-02-15T08:00:00.000Z"),
-      endDate: new Date("2026-02-16T20:00:00.000Z"),
+      startDate: new Date("2026-02-25T08:00:00.000Z"),
+      endDate: new Date("2026-02-26T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Colombo - Galle Face Green",
       dropoffLocation: "Kandy - Temple of the Tooth",
@@ -1237,8 +1240,8 @@ async function main() {
       additionalNotes:
         "Experienced driver with 15+ years in hill country routes. Vehicle equipped with GPS and emergency kit.",
       validityDays: 5,
-      validUntil: new Date("2026-02-10T23:59:59.000Z"),
-      sentAt: new Date("2026-01-28T14:00:00.000Z"),
+      validUntil: new Date("2026-02-27T23:59:59.000Z"),
+      sentAt: new Date("2026-02-19T14:00:00.000Z"),
     },
   });
 
@@ -1249,8 +1252,8 @@ async function main() {
       customerId: customer1.id,
       vehicleId: owner3Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-02-15T08:00:00.000Z"),
-      endDate: new Date("2026-02-16T20:00:00.000Z"),
+      startDate: new Date("2026-02-25T08:00:00.000Z"),
+      endDate: new Date("2026-02-26T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Colombo - Galle Face Green",
       dropoffLocation: "Kandy - Temple of the Tooth",
@@ -1275,8 +1278,8 @@ async function main() {
       additionalNotes:
         "Panoramic windows perfect for scenic views. Driver will take you via the most picturesque route through tea plantations.",
       validityDays: 6,
-      validUntil: new Date("2026-02-12T23:59:59.000Z"),
-      sentAt: new Date("2026-01-29T09:30:00.000Z"),
+      validUntil: new Date("2026-02-28T23:59:59.000Z"),
+      sentAt: new Date("2026-02-19T09:30:00.000Z"),
     },
   });
 
@@ -1287,8 +1290,8 @@ async function main() {
       customerId: customer1.id,
       vehicleId: owner1Vehicles[1]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-02-15T08:00:00.000Z"),
-      endDate: new Date("2026-02-16T20:00:00.000Z"),
+      startDate: new Date("2026-02-25T08:00:00.000Z"),
+      endDate: new Date("2026-02-26T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Colombo - Galle Face Green",
       dropoffLocation: "Kandy - Temple of the Tooth",
@@ -1309,9 +1312,9 @@ async function main() {
       additionalNotes:
         "Budget-friendly option without compromising on comfort. Clean vehicle with reliable service.",
       validityDays: 5,
-      validUntil: new Date("2026-02-10T23:59:59.000Z"),
-      sentAt: new Date("2026-01-28T11:00:00.000Z"),
-      viewedAt: new Date("2026-01-29T16:45:00.000Z"),
+      validUntil: new Date("2026-02-27T23:59:59.000Z"),
+      sentAt: new Date("2026-02-19T11:00:00.000Z"),
+      viewedAt: new Date("2026-02-20T16:45:00.000Z"),
     },
   });
 
@@ -1478,6 +1481,271 @@ async function main() {
     },
   });
 
+  // Add more quotations for better demo (Feb 21, 2026)
+  // Quotation 9: PENDING - New urgent request
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer3.id,
+      vehicleId: owner1Vehicles[0]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-02-22T09:00:00.000Z"),
+      endDate: new Date("2026-02-22T18:00:00.000Z"),
+      startTime: "09:00 AM",
+      pickupLocation: "Colombo - Mount Lavinia Hotel",
+      dropoffLocation: "Bentota - Beach Resorts",
+      passengerCount: 42,
+      estimatedDistance: "85 km",
+      estimatedDuration: "2 hours",
+      specialRequests:
+        "Urgent request for weekend beach party. Full AC luxury bus needed.",
+      status: "PENDING",
+    },
+  });
+
+  // Quotation 10: SENT - Recent quotation sent today
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer4.id,
+      vehicleId: owner2Vehicles[1]?.id,
+      vehicleType: "SEMI_LUXURY",
+      startDate: new Date("2026-02-25T07:00:00.000Z"),
+      endDate: new Date("2026-02-27T19:00:00.000Z"),
+      startTime: "07:00 AM",
+      pickupLocation: "Negombo - Hotels Area",
+      dropoffLocation: "Anuradhapura - Sacred City",
+      passengerCount: 35,
+      estimatedDistance: "165 km",
+      estimatedDuration: "4 hours",
+      specialRequests: "Buddhist pilgrimage tour, need respectful driver",
+      status: "SENT",
+      vehicleRentalCost: 42000,
+      driverCost: 9000,
+      fuelCost: 14000,
+      tollCharges: 2500,
+      permitFees: 2000,
+      customItems: [
+        { description: "Temple visit coordination", amount: 2500 },
+        { description: "Refreshments", amount: 3000 },
+      ],
+      subtotal: 75000,
+      tax: 7500,
+      totalAmount: 82500,
+      additionalNotes:
+        "Driver experienced with temple routes and protocols. Vehicle includes comfortable seating for long journey.",
+      validityDays: 5,
+      validUntil: new Date("2026-02-26T23:59:59.000Z"),
+      sentAt: new Date("2026-02-20T08:30:00.000Z"),
+    },
+  });
+
+  // Quotation 11: VIEWED - Customer viewed this morning
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer5.id,
+      vehicleId: owner3Vehicles[2]?.id,
+      vehicleType: "SEMI_LUXURY",
+      startDate: new Date("2026-02-23T10:00:00.000Z"),
+      endDate: new Date("2026-02-23T17:00:00.000Z"),
+      startTime: "10:00 AM",
+      pickupLocation: "Matara - City Center",
+      dropoffLocation: "Mirissa - Whale Watching Point",
+      passengerCount: 18,
+      estimatedDistance: "25 km",
+      estimatedDuration: "45 minutes",
+      specialRequests: "Short coastal trip for whale watching tour group",
+      status: "VIEWED",
+      vehicleRentalCost: 18000,
+      driverCost: 4000,
+      fuelCost: 3000,
+      tollCharges: 500,
+      permitFees: 500,
+      subtotal: 26000,
+      tax: 2600,
+      totalAmount: 28600,
+      additionalNotes:
+        "Perfect mini bus for small groups. Driver familiar with coastal routes.",
+      validityDays: 3,
+      validUntil: new Date("2026-02-23T23:59:59.000Z"),
+      sentAt: new Date("2026-02-19T15:00:00.000Z"),
+      viewedAt: new Date("2026-02-20T09:15:00.000Z"),
+    },
+  });
+
+  // Quotation 12: ACCEPTED - Just accepted today!
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer1.id,
+      vehicleId: owner1Vehicles[2]?.id,
+      vehicleType: "SEMI_LUXURY",
+      startDate: new Date("2026-02-24T08:00:00.000Z"),
+      endDate: new Date("2026-02-24T20:00:00.000Z"),
+      startTime: "08:00 AM",
+      pickupLocation: "Nugegoda - Public Library",
+      dropoffLocation: "Yala National Park - Main Entrance",
+      passengerCount: 25,
+      estimatedDistance: "250 km",
+      estimatedDuration: "5.5 hours",
+      specialRequests: "Safari day trip, early morning departure required",
+      status: "ACCEPTED",
+      vehicleRentalCost: 38000,
+      driverCost: 8000,
+      fuelCost: 15000,
+      tollCharges: 3000,
+      permitFees: 2000,
+      customItems: [{ description: "Park entry coordination", amount: 5000 }],
+      subtotal: 71000,
+      tax: 7100,
+      totalAmount: 78100,
+      additionalNotes:
+        "Mini bus perfect for safari tours. Driver experienced with wildlife routes.",
+      validityDays: 4,
+      validUntil: new Date("2026-02-24T23:59:59.000Z"),
+      sentAt: new Date("2026-02-18T10:00:00.000Z"),
+      viewedAt: new Date("2026-02-19T14:30:00.000Z"),
+      respondedAt: new Date("2026-02-20T10:45:00.000Z"),
+    },
+  });
+
+  // Quotation 13: REJECTED - Recently rejected
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer2.id,
+      vehicleId: owner4Vehicles[0]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-02-26T06:00:00.000Z"),
+      endDate: new Date("2026-02-28T18:00:00.000Z"),
+      startTime: "06:00 AM",
+      pickupLocation: "Wellawatte - Sea Beach Hotel",
+      dropoffLocation: "Trincomalee - Fort Area",
+      passengerCount: 48,
+      estimatedDistance: "280 km",
+      estimatedDuration: "6.5 hours",
+      specialRequests: "Multi-day eastern province tour",
+      status: "REJECTED",
+      vehicleRentalCost: 95000,
+      driverCost: 18000,
+      fuelCost: 22000,
+      tollCharges: 4000,
+      permitFees: 3000,
+      customItems: [
+        { description: "Overnight accommodation for driver", amount: 8000 },
+      ],
+      subtotal: 150000,
+      tax: 15000,
+      totalAmount: 165000,
+      additionalNotes: "Premium service with experienced driver.",
+      validityDays: 7,
+      validUntil: new Date("2026-02-27T23:59:59.000Z"),
+      sentAt: new Date("2026-02-17T11:00:00.000Z"),
+      viewedAt: new Date("2026-02-18T09:00:00.000Z"),
+      respondedAt: new Date("2026-02-19T15:30:00.000Z"),
+      rejectionReason: "Budget exceeded, found alternative option",
+    },
+  });
+
+  // Quotation 14: PENDING - Multiple vehicles comparison scenario
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer3.id,
+      vehicleId: owner2Vehicles[0]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-03-01T07:00:00.000Z"),
+      endDate: new Date("2026-03-05T18:00:00.000Z"),
+      startTime: "07:00 AM",
+      pickupLocation: "Kandy - City Center",
+      dropoffLocation: "Kandy - City Center",
+      passengerCount: 40,
+      estimatedDistance: "800 km",
+      estimatedDuration: "Multi-day tour",
+      specialRequests:
+        "5-day cultural triangle tour: Kandy, Sigiriya, Polonnaruwa, Dambulla, Anuradhapura",
+      status: "PENDING",
+    },
+  });
+
+  // Quotation 15: SENT - Same route as #14 for comparison
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer3.id,
+      vehicleId: owner3Vehicles[0]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-03-01T07:00:00.000Z"),
+      endDate: new Date("2026-03-05T18:00:00.000Z"),
+      startTime: "07:00 AM",
+      pickupLocation: "Kandy - City Center",
+      dropoffLocation: "Kandy - City Center",
+      passengerCount: 40,
+      estimatedDistance: "800 km",
+      estimatedDuration: "Multi-day tour",
+      specialRequests:
+        "5-day cultural triangle tour: Kandy, Sigiriya, Polonnaruwa, Dambulla, Anuradhapura",
+      status: "SENT",
+      vehicleRentalCost: 175000,
+      driverCost: 35000,
+      fuelCost: 50000,
+      tollCharges: 5000,
+      permitFees: 5000,
+      customItems: [
+        { description: "Driver accommodation (4 nights)", amount: 20000 },
+        { description: "Tour guide services", amount: 25000 },
+        { description: "Site entrance coordination", amount: 10000 },
+      ],
+      subtotal: 325000,
+      tax: 32500,
+      totalAmount: 357500,
+      additionalNotes:
+        "Comprehensive cultural triangle package with experienced guide-driver. All logistics handled.",
+      validityDays: 10,
+      validUntil: new Date("2026-03-01T23:59:59.000Z"),
+      sentAt: new Date("2026-02-19T14:00:00.000Z"),
+    },
+  });
+
+  // Quotation 16: SENT - Same route as #14 #15 for triple comparison
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer3.id,
+      vehicleId: owner4Vehicles[1]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-03-01T07:00:00.000Z"),
+      endDate: new Date("2026-03-05T18:00:00.000Z"),
+      startTime: "07:00 AM",
+      pickupLocation: "Kandy - City Center",
+      dropoffLocation: "Kandy - City Center",
+      passengerCount: 40,
+      estimatedDistance: "800 km",
+      estimatedDuration: "Multi-day tour",
+      specialRequests:
+        "5-day cultural triangle tour: Kandy, Sigiriya, Polonnaruwa, Dambulla, Anuradhapura",
+      status: "SENT",
+      vehicleRentalCost: 165000,
+      driverCost: 30000,
+      fuelCost: 45000,
+      tollCharges: 5000,
+      permitFees: 5000,
+      customItems: [
+        { description: "Driver accommodation (4 nights)", amount: 16000 },
+        { description: "Refreshments package", amount: 12000 },
+      ],
+      subtotal: 278000,
+      tax: 27800,
+      totalAmount: 305800,
+      additionalNotes:
+        "Budget-friendly cultural tour package. Clean vehicle with knowledgeable driver.",
+      validityDays: 10,
+      validUntil: new Date("2026-03-01T23:59:59.000Z"),
+      sentAt: new Date("2026-02-19T16:30:00.000Z"),
+    },
+  });
+
   console.log(
     `Created ${quotationCounter - 1} quotations covering all statuses\n`,
   );
@@ -1487,23 +1755,17 @@ async function main() {
   // ===========================================
   console.log("Creating sample bookings...\n");
 
-  // Get vehicles for owner 4 (others already fetched for quotations)
-  const owner4Vehicles = await prisma.vehicle.findMany({
-    where: { ownerId: owner4.id },
-    take: 2,
-  });
-
   let totalBookings = 0;
 
   // OWNER 1 BOOKINGS (Nuwan Perera - Colombo)
   if (owner1Vehicles.length > 0) {
-    // Confirmed booking - upcoming
+    // Confirmed booking - upcoming next week
     const booking1 = await prisma.booking.create({
       data: {
         customerId: customer1.id,
         vehicleId: owner1Vehicles[0].id,
-        startDate: new Date("2026-01-25T06:00:00.000Z"),
-        endDate: new Date("2026-01-27T18:00:00.000Z"),
+        startDate: new Date("2026-02-26T06:00:00.000Z"),
+        endDate: new Date("2026-02-28T18:00:00.000Z"),
         pickupLocation: "Colombo - Fort Railway Station",
         dropoffLocation: "Nuwara Eliya - Grand Hotel",
         totalPassengers: 40,
@@ -1524,13 +1786,42 @@ async function main() {
     });
     totalBookings++;
 
+    // Demo booking for payment redirection (Dilshan)
+    const demoBooking = await prisma.booking.create({
+      data: {
+        customerId: customer1.id,
+        vehicleId: owner1Vehicles[0].id,
+        startDate: new Date("2026-02-22T07:30:00.000Z"),
+        endDate: new Date("2026-02-22T19:30:00.000Z"),
+        pickupLocation: "Colombo - Town Hall",
+        dropoffLocation: "Galle - Fort",
+        totalPassengers: 32,
+        totalAmount: 60000,
+        status: "PENDING",
+        notes: "Demo booking for payment redirection",
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer1.id,
+        bookingId: demoBooking.id,
+        amount: 60000,
+        currency: "LKR",
+        status: "PENDING",
+        method: "PayHere",
+        payherePaymentId: "PH-DEMO-20260221-001",
+        payhereCustomerId: customer1.id,
+      },
+    });
+    totalBookings++;
+
     // Pending booking - awaiting confirmation
     await prisma.booking.create({
       data: {
         customerId: customer2.id,
         vehicleId: owner1Vehicles[1].id,
-        startDate: new Date("2026-02-05T08:00:00.000Z"),
-        endDate: new Date("2026-02-07T20:00:00.000Z"),
+        startDate: new Date("2026-03-05T08:00:00.000Z"),
+        endDate: new Date("2026-03-07T20:00:00.000Z"),
         pickupLocation: "Colombo - Cinnamon Grand Hotel",
         dropoffLocation: "Galle - Lighthouse Hotel",
         totalPassengers: 50,
@@ -1546,8 +1837,8 @@ async function main() {
       data: {
         customerId: customer3.id,
         vehicleId: owner1Vehicles[0].id,
-        startDate: new Date("2025-12-15T06:00:00.000Z"),
-        endDate: new Date("2025-12-18T18:00:00.000Z"),
+        startDate: new Date("2026-02-10T06:00:00.000Z"),
+        endDate: new Date("2026-02-13T18:00:00.000Z"),
         pickupLocation: "Colombo Airport",
         dropoffLocation: "Colombo Airport",
         totalPassengers: 35,
@@ -1573,8 +1864,8 @@ async function main() {
       data: {
         customerId: customer1.id,
         vehicleId: owner1Vehicles[2].id,
-        startDate: new Date("2026-01-22T10:00:00.000Z"),
-        endDate: new Date("2026-01-22T18:00:00.000Z"),
+        startDate: new Date("2026-02-29T10:00:00.000Z"),
+        endDate: new Date("2026-02-29T18:00:00.000Z"),
         pickupLocation: "Colombo - Slave Island",
         dropoffLocation: "Kandy",
         totalPassengers: 25,
@@ -1593,8 +1884,8 @@ async function main() {
       data: {
         customerId: customer2.id,
         vehicleId: owner2Vehicles[0].id,
-        startDate: new Date("2026-02-10T08:00:00.000Z"),
-        endDate: new Date("2026-02-10T18:00:00.000Z"),
+        startDate: new Date("2026-03-10T08:00:00.000Z"),
+        endDate: new Date("2026-03-10T18:00:00.000Z"),
         pickupLocation: "Jaffna - Railway Station",
         dropoffLocation: "Nallur Kandaswamy Kovil",
         totalPassengers: 45,
@@ -1620,8 +1911,8 @@ async function main() {
       data: {
         customerId: customer3.id,
         vehicleId: owner2Vehicles[1].id,
-        startDate: new Date("2026-01-28T06:00:00.000Z"),
-        endDate: new Date("2026-01-30T20:00:00.000Z"),
+        startDate: new Date("2026-02-28T06:00:00.000Z"),
+        endDate: new Date("2026-03-02T20:00:00.000Z"),
         pickupLocation: "Jaffna - City Center",
         dropoffLocation: "Trincomalee Beach",
         totalPassengers: 30,
@@ -1637,8 +1928,8 @@ async function main() {
       data: {
         customerId: customer1.id,
         vehicleId: owner2Vehicles[0].id,
-        startDate: new Date("2026-01-10T08:00:00.000Z"),
-        endDate: new Date("2026-01-12T18:00:00.000Z"),
+        startDate: new Date("2026-02-08T08:00:00.000Z"),
+        endDate: new Date("2026-02-10T18:00:00.000Z"),
         pickupLocation: "Jaffna",
         dropoffLocation: "Jaffna",
         totalPassengers: 40,
@@ -1667,8 +1958,8 @@ async function main() {
       data: {
         customerId: customer3.id,
         vehicleId: owner3Vehicles[0].id,
-        startDate: new Date("2026-01-30T06:00:00.000Z"),
-        endDate: new Date("2026-02-01T18:00:00.000Z"),
+        startDate: new Date("2026-03-08T06:00:00.000Z"),
+        endDate: new Date("2026-03-10T18:00:00.000Z"),
         pickupLocation: "Kandy - City Center",
         dropoffLocation: "Ella - Railway Station",
         totalPassengers: 38,
@@ -1694,8 +1985,8 @@ async function main() {
       data: {
         customerId: customer2.id,
         vehicleId: owner3Vehicles[1].id,
-        startDate: new Date("2025-12-20T06:00:00.000Z"),
-        endDate: new Date("2025-12-22T20:00:00.000Z"),
+        startDate: new Date("2026-02-12T06:00:00.000Z"),
+        endDate: new Date("2026-02-14T20:00:00.000Z"),
         pickupLocation: "Kandy - Temple of the Tooth",
         dropoffLocation: "Nuwara Eliya - Victoria Park",
         totalPassengers: 12,
@@ -1721,14 +2012,14 @@ async function main() {
       data: {
         customerId: customer1.id,
         vehicleId: owner3Vehicles[2].id,
-        startDate: new Date("2026-01-19T06:00:00.000Z"),
-        endDate: new Date("2026-01-21T18:00:00.000Z"),
+        startDate: new Date("2026-02-20T06:00:00.000Z"),
+        endDate: new Date("2026-02-22T18:00:00.000Z"),
         pickupLocation: "Kandy",
         dropoffLocation: "Sigiriya",
         totalPassengers: 28,
         totalAmount: 55000,
         status: "ONGOING",
-        notes: "Cultural triangle tour",
+        notes: "Cultural triangle tour - currently in progress",
       },
     });
     totalBookings++;
@@ -1741,8 +2032,8 @@ async function main() {
       data: {
         customerId: customer1.id,
         vehicleId: owner4Vehicles[0].id,
-        startDate: new Date("2026-02-15T06:00:00.000Z"),
-        endDate: new Date("2026-02-17T18:00:00.000Z"),
+        startDate: new Date("2026-03-15T06:00:00.000Z"),
+        endDate: new Date("2026-03-17T18:00:00.000Z"),
         pickupLocation: "Batticaloa - Bus Stand",
         dropoffLocation: "Colombo - Fort",
         totalPassengers: 48,
@@ -1768,8 +2059,8 @@ async function main() {
       data: {
         customerId: customer3.id,
         vehicleId: owner4Vehicles[1].id,
-        startDate: new Date("2026-01-05T08:00:00.000Z"),
-        endDate: new Date("2026-01-07T18:00:00.000Z"),
+        startDate: new Date("2026-02-05T08:00:00.000Z"),
+        endDate: new Date("2026-02-07T18:00:00.000Z"),
         pickupLocation: "Batticaloa",
         dropoffLocation: "Arugam Bay",
         totalPassengers: 20,
@@ -1934,6 +2225,335 @@ async function main() {
   );
 
   // ===========================================
+  // Add More Demo Bookings (Feb 21, 2026 relevant dates)
+  // ===========================================
+  console.log("Creating additional demo bookings for Feb 21, 2026...\n");
+
+  // Create more customers for diverse bookings
+  const customer6 = await prisma.user.create({
+    data: {
+      email: "rashmi.perera@gmail.com",
+      password: customerPassword,
+      firstName: "Rashmi",
+      lastName: "Perera",
+      phone: "+94779012345",
+      role: "CUSTOMER",
+      status: "ACTIVE",
+      isVerified: true,
+      city: "Panadura",
+      district: "Kalutara",
+    },
+  });
+
+  const customer7 = await prisma.user.create({
+    data: {
+      email: "ruwan.fernando@yahoo.com",
+      password: customerPassword,
+      firstName: "Ruwan",
+      lastName: "Fernando",
+      phone: "+94770123456",
+      role: "CUSTOMER",
+      status: "ACTIVE",
+      isVerified: true,
+      address: "No. 12, Temple Road",
+      city: "Kelaniya",
+      district: "Gampaha",
+    },
+  });
+
+  console.log(`Customer 6: ${customer6.firstName} ${customer6.lastName}`);
+  console.log(`Customer 7: ${customer7.firstName} ${customer7.lastName}\n`);
+
+  // Booking: ONGOING - Trip happening right now!
+  const ongoingBooking2 = await prisma.booking.create({
+    data: {
+      customerId: customer6.id,
+      vehicleId: owner2Vehicles[0]?.id,
+      startDate: new Date("2026-02-20T06:00:00.000Z"),
+      endDate: new Date("2026-02-21T18:00:00.000Z"),
+      pickupLocation: "Colombo - Shangri-La Hotel",
+      dropoffLocation: "Trincomalee - Uppuveli Beach",
+      totalPassengers: 44,
+      totalAmount: 98000,
+      status: "ONGOING",
+      notes: "Corporate beach retreat - currently en route",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer6.id,
+      bookingId: ongoingBooking2.id,
+      amount: 98000,
+      currency: "LKR",
+      status: "COMPLETED",
+      method: "Card",
+    },
+  });
+  totalBookings++;
+
+  // Booking: CONFIRMED - Starting tomorrow
+  const tomorrowBooking = await prisma.booking.create({
+    data: {
+      customerId: customer7.id,
+      vehicleId: owner1Vehicles[0]?.id,
+      startDate: new Date("2026-02-22T05:00:00.000Z"),
+      endDate: new Date("2026-02-22T22:00:00.000Z"),
+      pickupLocation: "Kelaniya - Raja Maha Vihara",
+      dropoffLocation: "Kataragama - Temple",
+      totalPassengers: 50,
+      totalAmount: 145000,
+      status: "CONFIRMED",
+      notes: "Full day pilgrimage tour - early morning departure",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer7.id,
+      bookingId: tomorrowBooking.id,
+      amount: 145000,
+      currency: "LKR",
+      status: "COMPLETED",
+      method: "Bank Transfer",
+    },
+  });
+  totalBookings++;
+
+  // Booking: CONFIRMED - Weekend trip
+  const weekendBooking = await prisma.booking.create({
+    data: {
+      customerId: customer4.id,
+      vehicleId: owner3Vehicles[1]?.id,
+      startDate: new Date("2026-02-28T07:00:00.000Z"),
+      endDate: new Date("2026-03-02T19:00:00.000Z"),
+      pickupLocation: "Negombo - St. Mary's Church",
+      dropoffLocation: "Negombo - St. Mary's Church",
+      totalPassengers: 35,
+      totalAmount: 125000,
+      status: "CONFIRMED",
+      notes: "Weekend cultural tour - round trip from Negombo",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer4.id,
+      bookingId: weekendBooking.id,
+      amount: 125000,
+      currency: "LKR",
+      status: "COMPLETED",
+      method: "Card",
+    },
+  });
+  totalBookings++;
+
+  // Booking: PENDING - Just submitted today
+  const newPendingBooking = await prisma.booking.create({
+    data: {
+      customerId: customer6.id,
+      vehicleId: owner3Vehicles[0]?.id,
+      startDate: new Date("2026-02-27T08:00:00.000Z"),
+      endDate: new Date("2026-02-27T20:00:00.000Z"),
+      pickupLocation: "Panadura - Town",
+      dropoffLocation: "Galle - Dutch Fort",
+      totalPassengers: 38,
+      totalAmount: 52000,
+      status: "PENDING",
+      notes: "Day trip to Galle Fort - awaiting owner confirmation",
+    },
+  });
+  totalBookings++;
+
+  // Booking: CONFIRMED - Next week
+  const nextWeekBooking = await prisma.booking.create({
+    data: {
+      customerId: customer5.id,
+      vehicleId: owner4Vehicles[0]?.id,
+      startDate: new Date("2026-03-03T06:00:00.000Z"),
+      endDate: new Date("2026-03-05T18:00:00.000Z"),
+      pickupLocation: "Matara - Railway Station",
+      dropoffLocation: "Arugam Bay - Beach",
+      totalPassengers: 42,
+      totalAmount: 135000,
+      status: "CONFIRMED",
+      notes: "Surfing trip to east coast",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer5.id,
+      bookingId: nextWeekBooking.id,
+      amount: 135000,
+      currency: "LKR",
+      status: "COMPLETED",
+      method: "Card",
+    },
+  });
+  totalBookings++;
+
+  // Booking: COMPLETED - Just completed yesterday
+  const recentCompletedBooking = await prisma.booking.create({
+    data: {
+      customerId: customer7.id,
+      vehicleId: owner2Vehicles[1]?.id,
+      startDate: new Date("2026-02-18T07:00:00.000Z"),
+      endDate: new Date("2026-02-19T19:00:00.000Z"),
+      pickupLocation: "Gampaha - Town",
+      dropoffLocation: "Polonnaruwa - Ancient City",
+      totalPassengers: 32,
+      totalAmount: 88000,
+      status: "COMPLETED",
+      notes: "Historical site tour - completed successfully",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer7.id,
+      bookingId: recentCompletedBooking.id,
+      amount: 88000,
+      currency: "LKR",
+      status: "COMPLETED",
+      method: "Card",
+    },
+  });
+  totalBookings++;
+
+  // Booking: COMPLETED - Ready for review
+  const readyForReviewBooking = await prisma.booking.create({
+    data: {
+      customerId: customer6.id,
+      vehicleId: owner1Vehicles[1]?.id,
+      startDate: new Date("2026-02-17T08:00:00.000Z"),
+      endDate: new Date("2026-02-17T18:00:00.000Z"),
+      pickupLocation: "Panadura - Beach Road",
+      dropoffLocation: "Colombo - Bandaranaike Airport",
+      totalPassengers: 28,
+      totalAmount: 42000,
+      status: "COMPLETED",
+      notes: "Airport transfer service - Customer can now leave review",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer6.id,
+      bookingId: readyForReviewBooking.id,
+      amount: 42000,
+      currency: "LKR",
+      status: "COMPLETED",
+      method: "Card",
+    },
+  });
+  totalBookings++;
+
+  // Booking: PENDING with payment issues
+  const pendingPaymentIssue = await prisma.booking.create({
+    data: {
+      customerId: customer7.id,
+      vehicleId: owner4Vehicles[1]?.id,
+      startDate: new Date("2026-02-25T09:00:00.000Z"),
+      endDate: new Date("2026-02-25T17:00:00.000Z"),
+      pickupLocation: "Kelaniya - University",
+      dropoffLocation: "Hikkaduwa - Beach",
+      totalPassengers: 22,
+      totalAmount: 38000,
+      status: "PENDING",
+      notes: "Beach day trip - payment pending",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer7.id,
+      bookingId: pendingPaymentIssue.id,
+      amount: 38000,
+      currency: "LKR",
+      status: "PENDING",
+      method: "Bank Transfer",
+    },
+  });
+  totalBookings++;
+
+  // Booking: CONFIRMED - For Yala Safari (from accepted quotation #12)
+  const safariBooking = await prisma.booking.create({
+    data: {
+      customerId: customer1.id,
+      vehicleId: owner1Vehicles[2]?.id,
+      startDate: new Date("2026-02-24T08:00:00.000Z"),
+      endDate: new Date("2026-02-24T20:00:00.000Z"),
+      pickupLocation: "Nugegoda - Public Library",
+      dropoffLocation: "Yala National Park - Main Entrance",
+      totalPassengers: 25,
+      totalAmount: 78100,
+      status: "CONFIRMED",
+      notes: "Safari day trip (from accepted quotation QUO-2026-012)",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer1.id,
+      bookingId: safariBooking.id,
+      amount: 78100,
+      currency: "LKR",
+      status: "COMPLETED",
+      method: "Card",
+    },
+  });
+  totalBookings++;
+
+  // Booking: ONGOING - Multi-day trip in progress
+  const multiDayOngoing = await prisma.booking.create({
+    data: {
+      customerId: customer3.id,
+      vehicleId: owner3Vehicles[2]?.id,
+      startDate: new Date("2026-02-19T06:00:00.000Z"),
+      endDate: new Date("2026-02-23T18:00:00.000Z"),
+      pickupLocation: "Kandy - Queens Hotel",
+      dropoffLocation: "Kandy - Queens Hotel",
+      totalPassengers: 30,
+      totalAmount: 185000,
+      status: "ONGOING",
+      notes: "5-day hill country exploration - mid-trip",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer3.id,
+      bookingId: multiDayOngoing.id,
+      amount: 185000,
+      currency: "LKR",
+      status: "COMPLETED",
+      method: "Bank Transfer",
+    },
+  });
+  totalBookings++;
+
+  // Booking: CANCELLED - Recent cancellation
+  const recentCancellation = await prisma.booking.create({
+    data: {
+      customerId: customer4.id,
+      vehicleId: owner2Vehicles[0]?.id,
+      startDate: new Date("2026-02-23T10:00:00.000Z"),
+      endDate: new Date("2026-02-23T18:00:00.000Z"),
+      pickupLocation: "Negombo - Beach Hotels",
+      dropoffLocation: "Sigiriya - Rock Fortress",
+      totalPassengers: 30,
+      totalAmount: 68000,
+      status: "CANCELLED",
+      notes: "Cancelled by customer - last minute schedule change",
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      userId: customer4.id,
+      bookingId: recentCancellation.id,
+      amount: 68000,
+      currency: "LKR",
+      status: "REFUNDED",
+      method: "Card",
+    },
+  });
+  totalBookings++;
+
+  console.log(`Added 11 more bookings for comprehensive demo\n`);
+
+  // ===========================================
   // Create Reviews for Completed Bookings
   // ===========================================
   console.log("Creating reviews for completed bookings...\n");
@@ -2068,6 +2688,76 @@ async function main() {
   }
 
   console.log(`Created ${totalReviews} reviews total\n`);
+
+  // ===========================================
+  // Add Reviews for Recent Demo Bookings
+  // ===========================================
+  console.log("Creating additional reviews for demo...\n");
+
+  // Review for recentCompletedBooking
+  const recentCompletedReview = await prisma.review.findUnique({
+    where: { bookingId: recentCompletedBooking.id },
+  });
+  if (recentCompletedReview) {
+    await prisma.review.update({
+      where: { bookingId: recentCompletedBooking.id },
+      data: {
+        rating: 5,
+        comment:
+          "Fantastic experience exploring Polonnaruwa! The driver was very knowledgeable about the historical sites and gave us excellent recommendations. The bus was spotless and comfortable. AC worked perfectly in the hot weather. Will definitely book again for our next heritage tour!",
+      },
+    });
+  } else {
+    await prisma.review.create({
+      data: {
+        bookingId: recentCompletedBooking.id,
+        vehicleId: recentCompletedBooking.vehicleId,
+        customerId: recentCompletedBooking.customerId,
+        rating: 5,
+        comment:
+          "Fantastic experience exploring Polonnaruwa! The driver was very knowledgeable about the historical sites and gave us excellent recommendations. The bus was spotless and comfortable. AC worked perfectly in the hot weather. Will definitely book again for our next heritage tour!",
+      },
+    });
+    totalReviews++;
+  }
+
+  // Review for readyForReviewBooking (recent, shows pending review opportunity)
+  const readyForReview = await prisma.review.findUnique({
+    where: { bookingId: readyForReviewBooking.id },
+  });
+  if (readyForReview) {
+    await prisma.review.update({
+      where: { bookingId: readyForReviewBooking.id },
+      data: {
+        rating: 4,
+        comment:
+          "Good airport transfer service. Driver arrived 10 minutes early which was perfect. The minibus was clean and comfortable. Smooth ride to the airport with no issues. Only suggestion would be to provide bottled water. Overall very satisfied!",
+      },
+    });
+  } else {
+    await prisma.review.create({
+      data: {
+        bookingId: readyForReviewBooking.id,
+        vehicleId: readyForReviewBooking.vehicleId,
+        customerId: readyForReviewBooking.customerId,
+        rating: 4,
+        comment:
+          "Good airport transfer service. Driver arrived 10 minutes early which was perfect. The minibus was clean and comfortable. Smooth ride to the airport with no issues. Only suggestion would be to provide bottled water. Overall very satisfied!",
+      },
+    });
+    totalReviews++;
+  }
+
+  // Owner response to recent review
+  await prisma.review.update({
+    where: { bookingId: recentCompletedBooking.id },
+    data: {
+      ownerResponse:
+        "Thank you for your wonderful feedback! We're delighted you enjoyed the Polonnaruwa tour. Our drivers take pride in their historical knowledge. Looking forward to your next booking!",
+    },
+  });
+
+  console.log(`Created ${totalReviews} reviews total with demo data\n`);
 
   // ===========================================
   // Create Notifications
@@ -2207,6 +2897,252 @@ async function main() {
 
   console.log(`Created ${notificationCount} notifications\n`);
 
+  // ===========================================
+  // Add More Demo-Relevant Notifications (Feb 21, 2026)
+  // ===========================================
+  console.log("Creating additional demo notifications...\n");
+
+  // Notifications for customer3 (multiple quotations for comparison)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: customer3.id,
+        title: "Multiple Quotations Received",
+        message:
+          "You have received 3 quotations for your Cultural Triangle tour. Compare and choose the best option!",
+        type: "info",
+        isRead: false,
+      },
+      {
+        userId: customer3.id,
+        title: "New Quotation Available",
+        message:
+          "Check out the latest quotation for your beach party trip to Bentota!",
+        type: "info",
+        isRead: false,
+      },
+      {
+        userId: customer3.id,
+        title: "Booking In Progress",
+        message:
+          "Your 5-day hill country tour is currently ongoing. Have a great trip!",
+        type: "success",
+        isRead: true,
+      },
+    ],
+  });
+  notificationCount += 3;
+
+  // Notifications for customer6 (new customer, active)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: customer6.id,
+        title: "Trip In Progress",
+        message:
+          "Your trip to Trincomalee is currently in progress. Safe travels!",
+        type: "success",
+        isRead: true,
+      },
+      {
+        userId: customer6.id,
+        title: "Review Request",
+        message:
+          "How was your airport transfer? Please leave a review to help other travelers!",
+        type: "info",
+        isRead: false,
+      },
+      {
+        userId: customer6.id,
+        title: "Booking Pending",
+        message:
+          "Your booking for Galle Fort day trip is awaiting owner confirmation.",
+        type: "warning",
+        isRead: false,
+      },
+    ],
+  });
+  notificationCount += 3;
+
+  // Notifications for customer7 (new customer)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: customer7.id,
+        title: "Booking Confirmed",
+        message:
+          "Your pilgrimage tour to Kataragama starting tomorrow has been confirmed!",
+        type: "success",
+        isRead: true,
+      },
+      {
+        userId: customer7.id,
+        title: "Payment Reminder",
+        message:
+          "Payment pending for your Hikkaduwa beach trip. Please complete payment to confirm booking.",
+        type: "warning",
+        isRead: false,
+      },
+      {
+        userId: customer7.id,
+        title: "Trip Reminder",
+        message:
+          "Reminder: Your trip starts tomorrow at 5:00 AM. Please be at pickup location 15 minutes early.",
+        type: "warning",
+        isRead: false,
+      },
+    ],
+  });
+  notificationCount += 3;
+
+  // Notifications for customer1 (quotation accepted, booking created)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: customer1.id,
+        title: "Quotation Accepted",
+        message:
+          "Your quotation for Yala Safari trip has been accepted! Booking created successfully.",
+        type: "success",
+        isRead: true,
+      },
+      {
+        userId: customer1.id,
+        title: "Payment Successful",
+        message: "Payment of LKR 78,100 received for your Yala Safari booking.",
+        type: "success",
+        isRead: true,
+      },
+    ],
+  });
+  notificationCount += 2;
+
+  // Notifications for customer4 (quotation sent, cancellation)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: customer4.id,
+        title: "Quotation Available",
+        message:
+          "New quotation received for your Anuradhapura pilgrimage tour!",
+        type: "info",
+        isRead: false,
+      },
+      {
+        userId: customer4.id,
+        title: "Cancellation Confirmed",
+        message:
+          "Your booking to Sigiriya has been cancelled. Refund will be processed within 5-7 business days.",
+        type: "info",
+        isRead: true,
+      },
+    ],
+  });
+  notificationCount += 2;
+
+  // Notifications for owner3 (multiple quotations sent, booking confirmed)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: owner3.id,
+        title: "Quotation Sent Successfully",
+        message:
+          "Your quotation for the 5-day Cultural Triangle tour has been sent to the customer.",
+        type: "success",
+        isRead: true,
+      },
+      {
+        userId: owner3.id,
+        title: "Multiple Quotation Requests",
+        message: "You have 2 new quotation requests awaiting your response!",
+        type: "warning",
+        isRead: false,
+      },
+      {
+        userId: owner3.id,
+        title: "Trip In Progress",
+        message:
+          "Your vehicle is currently on a 5-day hill country tour. Trip ends on Feb 23.",
+        type: "info",
+        isRead: true,
+      },
+      {
+        userId: owner3.id,
+        title: "Booking Confirmed",
+        message:
+          "New booking confirmed for Cultural Triangle tour starting Feb 28!",
+        type: "success",
+        isRead: false,
+      },
+    ],
+  });
+  notificationCount += 4;
+
+  // Notifications for owner4 (quotations, bookings)
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: owner4.id,
+        title: "Quotation Rejected",
+        message:
+          "Customer rejected your quotation for Trincomalee tour. View feedback for improvement.",
+        type: "warning",
+        isRead: true,
+      },
+      {
+        userId: owner4.id,
+        title: "New Booking",
+        message:
+          "New booking confirmed for Arugam Bay surfing trip starting March 3!",
+        type: "success",
+        isRead: false,
+      },
+      {
+        userId: owner4.id,
+        title: "Payment Received",
+        message: "Payment of LKR 135,000 has been credited to your account.",
+        type: "success",
+        isRead: false,
+      },
+    ],
+  });
+  notificationCount += 3;
+
+  // Notifications for admin
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: admin.id,
+        title: "New Owner Registration",
+        message:
+          "Owner Kasun Fernando has submitted documents for verification.",
+        type: "warning",
+        isRead: false,
+      },
+      {
+        userId: admin.id,
+        title: "System Activity",
+        message:
+          "Today: 8 new quotations, 5 bookings confirmed, 2 trips ongoing.",
+        type: "info",
+        isRead: false,
+      },
+      {
+        userId: admin.id,
+        title: "Document Rejection",
+        message:
+          "Insurance document rejected for owner Sivakumar. Owner notified to resubmit.",
+        type: "info",
+        isRead: true,
+      },
+    ],
+  });
+  notificationCount += 3;
+
+  console.log(
+    `Created ${notificationCount} total notifications for comprehensive demo\n`,
+  );
+
   const totalVehicles =
     owner1VehicleData.length +
     owner2VehicleData.length +
@@ -2219,26 +3155,54 @@ async function main() {
   // ===========================================
   console.log("\n" + "=".repeat(60));
   console.log("Sri Lankan TraveNest Database Seed Completed!");
+  console.log("ENHANCED FOR DEMO - February 21, 2026");
   console.log("=".repeat(60));
   console.log("\nSummary:");
   console.log(`   • Admin users: 1`);
   console.log(`   • Bus owners: ${owners.length}`);
-  console.log(`   • Customers: 5`);
+  console.log(`   • Customers: 7 (2 new for demo)`);
   console.log(`   • Business profiles: 3`);
   console.log(`   • Owner documents: 7 (with various statuses)`);
   console.log(`   • Total vehicles: ${totalVehicles}`);
-  console.log(`   • Total bookings: ${totalBookings}`);
-  console.log(`   • Total quotations: ${quotationCounter - 1}`);
-  console.log(`   • Total reviews: ${totalReviews}`);
-  console.log(`   • Total notifications: ${notificationCount}`);
+  console.log(`   • Total bookings: ${totalBookings} (11 new for demo)`);
+  console.log(
+    `   • Total quotations: ${quotationCounter - 1} (8 new for demo)`,
+  );
+  console.log(`   • Total reviews: ${totalReviews} (2 new for demo)`);
+  console.log(
+    `   • Total notifications: ${notificationCount} (23 new for demo)`,
+  );
   console.log("\nQuotation Statuses Covered:");
-  console.log("   ✓ PENDING, SENT, VIEWED, ACCEPTED, REJECTED, EXPIRED");
+  console.log("   ✓ PENDING (4) - New requests awaiting owner response");
+  console.log("   ✓ SENT (5) - Quotations sent, awaiting customer decision");
+  console.log("   ✓ VIEWED (3) - Customers have viewed quotations");
+  console.log("   ✓ ACCEPTED (2) - Customers accepted, bookings created");
+  console.log("   ✓ REJECTED (2) - Customers declined quotations");
+  console.log("   ✓ EXPIRED (1) - Validity period passed");
   console.log("\nBooking Statuses Covered:");
-  console.log("   ✓ PENDING, CONFIRMED, ONGOING, COMPLETED, CANCELLED");
+  console.log("   ✓ PENDING - New bookings awaiting confirmation");
+  console.log("   ✓ CONFIRMED - Upcoming trips scheduled");
+  console.log("   ✓ ONGOING (3) - Trips currently in progress");
+  console.log("   ✓ COMPLETED - Past trips finished successfully");
+  console.log("   ✓ CANCELLED - Cancelled bookings with refunds");
   console.log("\nPayment Statuses Covered:");
-  console.log("   ✓ PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED");
+  console.log("   ✓ PENDING - Awaiting payment completion");
+  console.log("   ✓ PROCESSING - Payment being processed");
+  console.log("   ✓ COMPLETED - Successful payments");
+  console.log("   ✓ FAILED - Failed payment attempts");
+  console.log("   ✓ REFUNDED - Refunded payments for cancellations");
   console.log("\nDocument Statuses Covered:");
-  console.log("   ✓ PENDING, VERIFIED, REJECTED");
+  console.log("   ✓ PENDING - Documents awaiting admin verification");
+  console.log("   ✓ VERIFIED - Approved documents");
+  console.log("   ✓ REJECTED - Documents requiring resubmission");
+  console.log("\nDemo Features Highlighted:");
+  console.log("   • Multiple quotations for same trip (comparison feature)");
+  console.log("   • Ongoing bookings (real-time tracking)");
+  console.log("   • Recent completions ready for reviews");
+  console.log("   • Pending payments and confirmations");
+  console.log("   • Various notification types");
+  console.log("   • Owner with pending verification");
+  console.log("   • Document rejection workflow");
   console.log("\nLogin Credentials:");
   console.log("   Admin:      admin@travenest.lk / admin@123");
   console.log("   Owner 1:    nuwan.perera@gmail.com / owner@123 (Verified)");
@@ -2255,6 +3219,19 @@ async function main() {
   console.log("   Customer 3: amal.senanayake@outlook.com / customer@123");
   console.log("   Customer 4: tharaka.wijesinghe@hotmail.com / customer@123");
   console.log("   Customer 5: nadeeka.silva@outlook.com / customer@123");
+  console.log("   Customer 6: rashmi.perera@gmail.com / customer@123 (New)");
+  console.log("   Customer 7: ruwan.fernando@yahoo.com / customer@123 (New)");
+  console.log("\nDemo Scenarios to Showcase:");
+  console.log(
+    "   1. Customer3 has 3 quotations for same trip - show comparison",
+  );
+  console.log("   2. Customer6 & Customer3 have ongoing trips - show tracking");
+  console.log("   3. Customer7 has trip starting tomorrow - show reminders");
+  console.log("   4. Multiple pending quotations - show owner workflow");
+  console.log("   5. Recent completed trips - show review system");
+  console.log("   6. Payment variations - show all payment states");
+  console.log("   7. Owner5 pending verification - show admin approval flow");
+  console.log("   8. Notification system - show various alert types");
   console.log("=".repeat(60) + "\n");
 }
 

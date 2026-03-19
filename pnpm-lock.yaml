@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@supabase/ssr':
         specifier: github:supabase/ssr
-        version: https://codeload.github.com/supabase/ssr/tar.gz/f9fb1dd19c8bab14e953f2f2b829392cd858942c(@supabase/supabase-js@2.95.3)
+        version: https://codeload.github.com/supabase/ssr/tar.gz/885f227e99c2cda93467cc794eb2496d12ad5af1(@supabase/supabase-js@2.95.3)
     devDependencies:
       rimraf:
         specifier: ^5.0.5
@@ -142,6 +142,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      lucide-react:
+        specifier: ^0.577.0
+        version: 0.577.0(react@19.2.0)
       next:
         specifier: ^16.1.2
         version: 16.1.3(@babel/core@7.28.6)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -1842,11 +1845,11 @@ packages:
     peerDependencies:
       '@supabase/supabase-js': ^2.76.1
 
-  '@supabase/ssr@https://codeload.github.com/supabase/ssr/tar.gz/f9fb1dd19c8bab14e953f2f2b829392cd858942c':
-    resolution: {tarball: https://codeload.github.com/supabase/ssr/tar.gz/f9fb1dd19c8bab14e953f2f2b829392cd858942c}
-    version: 0.0.0
+  '@supabase/ssr@https://codeload.github.com/supabase/ssr/tar.gz/885f227e99c2cda93467cc794eb2496d12ad5af1':
+    resolution: {tarball: https://codeload.github.com/supabase/ssr/tar.gz/885f227e99c2cda93467cc794eb2496d12ad5af1}
+    version: 0.9.0
     peerDependencies:
-      '@supabase/supabase-js': ^2.76.1
+      '@supabase/supabase-js': ^2.99.1
 
   '@supabase/storage-js@2.95.3':
     resolution: {integrity: sha512-4GxkJiXI3HHWjxpC3sDx1BVrV87O0hfX+wvJdqGv67KeCu+g44SPnII8y0LL/Wr677jB7tpjAxKdtVWf+xhc9A==}
@@ -3727,6 +3730,11 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
+
+  lucide-react@0.577.0:
+    resolution: {integrity: sha512-4LjoFv2eEPwYDPg/CUdBJQSDfPyzXCRrVW1X7jrx/trgxnxkHFjnVZINbzvzxjN70dxychOfg+FTYwBiS3pQ5A==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   magic-string@0.25.9:
     resolution: {integrity: sha512-RmF0AsMzgt25qzqqLc1+MbHmhdx0ojF2Fvs4XnOqz2ZOBXzzkEwc/dJQZCYHAn7v1jbVOjAZfK8msRn4BxO4VQ==}
@@ -6829,7 +6837,7 @@ snapshots:
       '@supabase/supabase-js': 2.95.3
       cookie: 1.1.1
 
-  '@supabase/ssr@https://codeload.github.com/supabase/ssr/tar.gz/f9fb1dd19c8bab14e953f2f2b829392cd858942c(@supabase/supabase-js@2.95.3)':
+  '@supabase/ssr@https://codeload.github.com/supabase/ssr/tar.gz/885f227e99c2cda93467cc794eb2496d12ad5af1(@supabase/supabase-js@2.95.3)':
     dependencies:
       '@supabase/supabase-js': 2.95.3
       cookie: 1.1.1
@@ -8931,6 +8939,10 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  lucide-react@0.577.0(react@19.2.0):
+    dependencies:
+      react: 19.2.0
 
   magic-string@0.25.9:
     dependencies:

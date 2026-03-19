@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils/cn";
 import {
   FaHome,
@@ -25,41 +26,42 @@ interface CustomerSidebarProps {
 
 export function CustomerSidebar({ locale }: CustomerSidebarProps) {
   const pathname = usePathname();
+  const t = useTranslations("dashboard");
 
   const menuItems: SidebarItem[] = [
     {
       id: "overview",
-      label: "Overview",
+      label: t("overview"),
       href: `/${locale}/dashboard`,
       icon: FaHome,
     },
     {
       id: "quotations",
-      label: "Quotations",
+      label: t("quotations"),
       href: `/${locale}/dashboard/quotations`,
       icon: FaClipboardList,
     },
     {
       id: "packages",
-      label: "Packages",
+      label: t("packages"),
       href: `/${locale}/dashboard/packages`,
       icon: FaMapMarkerAlt,
     },
     {
       id: "bookings",
-      label: "Bookings",
+      label: t("bookings"),
       href: `/${locale}/dashboard/bookings`,
       icon: FaCalendarAlt,
     },
     {
       id: "reviews",
-      label: "Reviews",
+      label: t("reviews"),
       href: `/${locale}/dashboard/reviews`,
       icon: FaStar,
     },
     {
       id: "profile",
-      label: "Profile",
+      label: t("profile"),
       href: `/${locale}/dashboard/profile`,
       icon: FaUser,
     },

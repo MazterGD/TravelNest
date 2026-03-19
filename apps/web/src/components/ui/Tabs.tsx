@@ -41,7 +41,7 @@ export function Tabs({
   const activeContent = tabs.find((tab) => tab.id === activeTab)?.content;
 
   const baseTabClasses =
-    "inline-flex items-center justify-center gap-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex min-h-11 items-center justify-center gap-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
 
   const variantClasses = {
     default: {
@@ -50,16 +50,16 @@ export function Tabs({
         baseTabClasses,
         "px-4 py-2.5 -mb-px border-b-2 border-transparent",
         "hover:text-foreground hover:border-muted",
-        "data-[active=true]:border-primary data-[active=true]:text-primary"
+        "data-[active=true]:border-primary data-[active=true]:text-primary",
       ),
     },
     pills: {
-      container: "bg-muted p-1 rounded-lg",
+      container: "rounded-[20px] bg-muted p-1",
       tab: cn(
         baseTabClasses,
-        "px-4 py-2 rounded-md",
+        "rounded-xl px-4 py-2",
         "hover:bg-muted-foreground/10",
-        "data-[active=true]:bg-background data-[active=true]:shadow-sm"
+        "data-[active=true]:bg-background data-[active=true]:shadow-sm",
       ),
     },
     underline: {
@@ -68,7 +68,7 @@ export function Tabs({
         baseTabClasses,
         "px-1 py-2 mr-6 border-b-2 border-transparent",
         "hover:border-muted-foreground",
-        "data-[active=true]:border-primary data-[active=true]:text-primary"
+        "data-[active=true]:border-primary data-[active=true]:text-primary",
       ),
     },
   };
@@ -92,7 +92,9 @@ export function Tabs({
             disabled={tab.disabled}
             className={cn(
               variantClasses[variant].tab,
-              activeTab === tab.id ? "text-foreground" : "text-muted-foreground"
+              activeTab === tab.id
+                ? "text-foreground"
+                : "text-muted-foreground",
             )}
           >
             {tab.icon}
@@ -103,7 +105,7 @@ export function Tabs({
                   "ml-1 px-2 py-0.5 text-xs rounded-full",
                   activeTab === tab.id
                     ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground",
                 )}
               >
                 {tab.badge}
@@ -149,7 +151,7 @@ export function TabsList({
   className,
 }: ControlledTabsProps) {
   const baseTabClasses =
-    "inline-flex items-center justify-center gap-2 font-medium transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex min-h-11 items-center justify-center gap-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
 
   const variantClasses = {
     default: {
@@ -157,16 +159,16 @@ export function TabsList({
       tab: cn(
         baseTabClasses,
         "px-4 py-2.5 -mb-px border-b-2 border-transparent",
-        "hover:text-foreground hover:border-muted"
+        "hover:text-foreground hover:border-muted",
       ),
       active: "border-primary text-primary",
     },
     pills: {
-      container: "bg-muted p-1 rounded-lg",
+      container: "rounded-[20px] bg-muted p-1",
       tab: cn(
         baseTabClasses,
-        "px-4 py-2 rounded-md",
-        "hover:bg-muted-foreground/10"
+        "rounded-xl px-4 py-2",
+        "hover:bg-muted-foreground/10",
       ),
       active: "bg-background shadow-sm",
     },
@@ -175,7 +177,7 @@ export function TabsList({
       tab: cn(
         baseTabClasses,
         "px-1 py-2 mr-6 border-b-2 border-transparent",
-        "hover:border-muted-foreground"
+        "hover:border-muted-foreground",
       ),
       active: "border-primary text-primary",
     },
@@ -198,7 +200,7 @@ export function TabsList({
             variantClasses[variant].tab,
             activeTab === tab.id
               ? variantClasses[variant].active
-              : "text-muted-foreground"
+              : "text-muted-foreground",
           )}
         >
           {tab.icon}
@@ -209,7 +211,7 @@ export function TabsList({
                 "ml-1 px-2 py-0.5 text-xs rounded-full",
                 activeTab === tab.id
                   ? "bg-primary/10 text-primary"
-                  : "bg-muted text-muted-foreground"
+                  : "bg-muted text-muted-foreground",
               )}
             >
               {tab.badge}

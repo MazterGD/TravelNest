@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { LoadingSpinner, Badge } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useProtectedRoute } from "@/hooks";
@@ -64,6 +65,7 @@ interface DashboardPageProps {
 }
 
 export function DashboardContent({ locale }: DashboardPageProps) {
+  const t = useTranslations("dashboard");
   const { user } = useAuthStore();
   const params = useParams();
   const currentLocale = (params.locale as string) || locale;
@@ -166,41 +168,41 @@ export function DashboardContent({ locale }: DashboardPageProps) {
           {
             id: "1",
             type: "quotation",
-            title: "New Quotation Received",
-            message: "You received 3 new quotations for your Kandy trip",
-            time: "2 hours ago",
+            title: t("notifications.items.0.title"),
+            message: t("notifications.items.0.message"),
+            time: t("notifications.items.0.time"),
             isRead: false,
           },
           {
             id: "2",
             type: "booking",
-            title: "Booking Confirmed",
-            message: "Your booking BK-001 has been confirmed",
-            time: "5 hours ago",
+            title: t("notifications.items.1.title"),
+            message: t("notifications.items.1.message"),
+            time: t("notifications.items.1.time"),
             isRead: false,
           },
           {
             id: "3",
             type: "payment",
-            title: "Payment Successful",
-            message: "Payment of LKR 15,000 processed successfully",
-            time: "1 day ago",
+            title: t("notifications.items.2.title"),
+            message: t("notifications.items.2.message"),
+            time: t("notifications.items.2.time"),
             isRead: true,
           },
           {
             id: "4",
             type: "general",
-            title: "Trip Reminder",
-            message: "Your trip to Galle is scheduled for tomorrow",
-            time: "1 day ago",
+            title: t("notifications.items.3.title"),
+            message: t("notifications.items.3.message"),
+            time: t("notifications.items.3.time"),
             isRead: true,
           },
           {
             id: "5",
             type: "general",
-            title: "Review Request",
-            message: "Please review your recent trip with Kamal Perera",
-            time: "2 days ago",
+            title: t("notifications.items.4.title"),
+            message: t("notifications.items.4.message"),
+            time: t("notifications.items.4.time"),
             isRead: true,
           },
         ]);
@@ -253,6 +255,9 @@ export function DashboardContent({ locale }: DashboardPageProps) {
     }
   };
 
+  const formatStatusLabel = (status: string) =>
+    t(`status.${status.toLowerCase()}`, { defaultValue: status });
+
   return (
     <>
       {/* Header */}
@@ -261,10 +266,10 @@ export function DashboardContent({ locale }: DashboardPageProps) {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">
-                Customer Dashboard
+                {t("customerDashboard")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Welcome back, {user.firstName}!
+                {t("welcomeUser", { name: user.firstName })}
               </p>
             </div>
           </div>
@@ -275,7 +280,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
         {/* Quick Actions Widget */}
         <div className="mb-8">
           <h2 className="mb-4 text-lg font-semibold text-gray-900">
-            Quick Actions
+            {t("quickActions")}
           </h2>
           <div className="grid gap-4 md:grid-cols-3">
             <Link
@@ -286,8 +291,12 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                 <FaSearch className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Search Buses</h3>
-                <p className="text-sm text-gray-500">Find your next ride</p>
+                <h3 className="font-medium text-gray-900">
+                  {t("actions.searchBuses")}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {t("actions.searchBusesHint")}
+                </p>
               </div>
             </Link>
 
@@ -299,9 +308,13 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                 <FaClipboardList className="h-6 w-6 text-yellow-600" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">View Quotations</h3>
+                <h3 className="font-medium text-gray-900">
+                  {t("actions.viewQuotations")}
+                </h3>
                 <p className="text-sm text-gray-500">
-                  {metrics.pendingQuotations} pending
+                  {t("pendingCount", {
+                    count: metrics.pendingQuotations,
+                  })}
                 </p>
               </div>
             </Link>
@@ -314,8 +327,12 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                 <FaEye className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h3 className="font-medium text-gray-900">Track Booking</h3>
-                <p className="text-sm text-gray-500">View your trips</p>
+                <h3 className="font-medium text-gray-900">
+                  {t("actions.trackBooking")}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {t("actions.trackBookingHint")}
+                </p>
               </div>
             </Link>
           </div>
@@ -328,7 +345,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">
-                  Total Bookings
+                  {t("metrics.totalBookings")}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">
                   {metrics.totalBookings}
@@ -345,7 +362,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">
-                  Completed Trips
+                  {t("metrics.completedTrips")}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">
                   {metrics.completedTrips}
@@ -362,7 +379,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">
-                  Pending Quotations
+                  {t("metrics.pendingQuotations")}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">
                   {metrics.pendingQuotations}
@@ -378,7 +395,9 @@ export function DashboardContent({ locale }: DashboardPageProps) {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Total Spent</p>
+                <p className="text-sm font-medium text-gray-500">
+                  {t("metrics.totalSpent")}
+                </p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">
                   {metrics.totalSpent}
                 </p>
@@ -398,17 +417,19 @@ export function DashboardContent({ locale }: DashboardPageProps) {
               <div className="flex items-center justify-between border-b border-gray-200 p-6">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Upcoming Bookings
+                    {t("upcomingBookings.title")}
                   </h2>
                   <p className="text-sm text-gray-500">
-                    Your next {upcomingBookings.length} trips
+                    {t("upcomingBookings.subtitle", {
+                      count: upcomingBookings.length,
+                    })}
                   </p>
                 </div>
                 <Link
                   href={`/${currentLocale}/dashboard/bookings`}
                   className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
-                  View All
+                  {t("actions.viewAll")}
                   <FaArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -433,7 +454,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                           <Badge
                             variant={getStatusBadgeColor(booking.status) as any}
                           >
-                            {booking.status}
+                            {formatStatusLabel(booking.status)}
                           </Badge>
                         </div>
 
@@ -457,7 +478,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                             href={`/${currentLocale}/dashboard/bookings/${booking.id}`}
                             className="flex-1 rounded-lg bg-gray-900 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-gray-800"
                           >
-                            View Details
+                            {t("actions.viewDetails")}
                           </Link>
                           <button className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
                             <FaPhone className="mx-auto h-4 w-4" />
@@ -472,17 +493,17 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                       <FaBus className="h-8 w-8 text-gray-400" />
                     </div>
                     <h3 className="mb-2 font-semibold text-gray-900">
-                      No Upcoming Bookings
+                      {t("upcomingBookings.emptyTitle")}
                     </h3>
                     <p className="mb-4 text-sm text-gray-600">
-                      Start planning your next trip
+                      {t("upcomingBookings.emptySubtitle")}
                     </p>
                     <Link
                       href={`/${currentLocale}/search`}
                       className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
                     >
                       <FaSearch className="h-4 w-4" />
-                      Search Buses
+                      {t("actions.searchBuses")}
                     </Link>
                   </div>
                 )}
@@ -494,17 +515,17 @@ export function DashboardContent({ locale }: DashboardPageProps) {
               <div className="flex items-center justify-between border-b border-gray-200 p-6">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Recent Quotations
+                    {t("recentQuotations.title")}
                   </h2>
                   <p className="text-sm text-gray-500">
-                    Your latest quotation requests
+                    {t("recentQuotations.subtitle")}
                   </p>
                 </div>
                 <Link
                   href={`/${currentLocale}/dashboard/quotations`}
                   className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
-                  View All
+                  {t("actions.viewAll")}
                   <FaArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -525,7 +546,9 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                             </h3>
                             {quotation.quotationsCount > 0 && (
                               <span className="rounded-full bg-[#20B0E9] px-2 py-0.5 text-xs font-medium text-white">
-                                {quotation.quotationsCount} quotes
+                                {t("recentQuotations.quotesCount", {
+                                  count: quotation.quotationsCount,
+                                })}
                               </span>
                             )}
                           </div>
@@ -541,7 +564,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                   <div className="py-8 text-center">
                     <FaClipboardList className="mx-auto mb-3 h-8 w-8 text-gray-300" />
                     <p className="text-sm text-gray-500">
-                      No quotation requests yet
+                      {t("recentQuotations.empty")}
                     </p>
                   </div>
                 )}
@@ -554,7 +577,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
             <div className="rounded-lg border border-gray-200 bg-white">
               <div className="flex items-center justify-between border-b border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  Notifications
+                  {t("notifications.title")}
                 </h2>
                 <span className="rounded-full bg-[#20B0E9] px-2 py-0.5 text-xs font-medium text-white">
                   {notifications.filter((n) => !n.isRead).length}
@@ -622,7 +645,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                   href={`/${currentLocale}/dashboard/notifications`}
                   className="flex items-center justify-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
-                  View All Notifications
+                  {t("notifications.viewAll")}
                   <FaArrowRight className="h-3 w-3" />
                 </Link>
               </div>

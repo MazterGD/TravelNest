@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils/cn";
+import { useTranslations } from "next-intl";
 
 interface ModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export function Modal({
   closeOnOverlayClick = true,
   className,
 }: ModalProps) {
+  const t = useTranslations("common");
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Close on escape key
@@ -78,7 +80,7 @@ export function Modal({
     >
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/55 backdrop-blur-sm transition-opacity"
         onClick={closeOnOverlayClick ? onClose : undefined}
         aria-hidden="true"
       />
@@ -88,10 +90,10 @@ export function Modal({
         ref={modalRef}
         tabIndex={-1}
         className={cn(
-          "relative w-full bg-background rounded-xl shadow-xl",
+          "relative w-full rounded-[20px] border border-border bg-background shadow-xl",
           "animate-in fade-in-0 zoom-in-95 duration-200",
           sizeClasses[size],
-          className
+          className,
         )}
       >
         {/* Header */}
@@ -110,13 +112,13 @@ export function Modal({
                 type="button"
                 onClick={onClose}
                 className={cn(
-                  "p-2 rounded-lg text-muted-foreground",
+                  "rounded-xl p-2 text-muted-foreground",
                   "hover:bg-muted hover:text-foreground",
-                  "focus:outline-none focus:ring-2 focus:ring-primary",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   "transition-colors",
-                  !title && "ml-auto"
+                  !title && "ml-auto",
                 )}
-                aria-label="Close modal"
+                aria-label={t("closeModal")}
               >
                 <svg
                   className="w-5 h-5"

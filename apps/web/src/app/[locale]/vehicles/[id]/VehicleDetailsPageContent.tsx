@@ -112,7 +112,7 @@ export default function VehicleDetailsPageContent({
       const v = vehicleData.data?.vehicle || vehicleData.vehicle || vehicleData;
 
       if (!v || !v.id) {
-        throw new Error("Invalid vehicle data received");
+        throw new Error(t("errors.invalidVehicleData"));
       }
 
       // Ensure images array exists and has at least a placeholder
@@ -137,7 +137,7 @@ export default function VehicleDetailsPageContent({
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Failed to fetch vehicle details");
+        setError(t("errors.fetchVehicle"));
       }
     } finally {
       setIsLoading(false);
@@ -191,7 +191,7 @@ export default function VehicleDetailsPageContent({
             <CardContent className="p-8 text-center">
               <p className="text-destructive">{error || "Vehicle not found"}</p>
               <Button onClick={() => router.back()} className="mt-4">
-                Go Back
+                {t("actions.goBack")}
               </Button>
             </CardContent>
           </Card>
@@ -224,7 +224,7 @@ export default function VehicleDetailsPageContent({
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            Back to Search
+            {t("actions.backToSearch")}
           </Link>
 
           {/* Main Image */}
@@ -239,7 +239,7 @@ export default function VehicleDetailsPageContent({
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
                 <FaCar className="h-32 w-32 text-gray-600 mb-4" />
-                <p className="text-gray-400 text-sm">No images available</p>
+                <p className="text-gray-400 text-sm">{t("empty.noImages")}</p>
               </div>
             )}
           </div>
@@ -294,7 +294,7 @@ export default function VehicleDetailsPageContent({
                     </div>
                     {vehicle.isAvailable && vehicle.isActive && (
                       <Badge variant="success" className="text-sm">
-                        Available
+                        {t("status.available")}
                       </Badge>
                     )}
                   </div>
@@ -306,7 +306,7 @@ export default function VehicleDetailsPageContent({
                       <span className="text-lg font-semibold">{avgRating}</span>
                     </div>
                     <span className="text-muted-foreground">
-                      {reviews.length} reviews
+                      {t("reviewsCount", { count: reviews.length })}
                     </span>
                     <span className="text-muted-foreground">•</span>
                     <span className="text-muted-foreground">
@@ -320,24 +320,30 @@ export default function VehicleDetailsPageContent({
                       <FaUsers className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">
-                          Capacity
+                          {t("specs.capacity")}
                         </p>
-                        <p className="font-semibold">{vehicle.seats} Seats</p>
+                        <p className="font-semibold">
+                          {t("specs.seatsCount", { count: vehicle.seats })}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <FaSnowflake className="h-5 w-5 text-muted-foreground" />
                       <div>
-                        <p className="text-sm text-muted-foreground">AC Type</p>
+                        <p className="text-sm text-muted-foreground">
+                          {t("specs.acType")}
+                        </p>
                         <p className="font-semibold">
-                          {vehicle.acType || "N/A"}
+                          {vehicle.acType || t("specs.notAvailable")}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <FaCar className="h-5 w-5 text-muted-foreground" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Type</p>
+                        <p className="text-sm text-muted-foreground">
+                          {t("specs.type")}
+                        </p>
                         <p className="font-semibold capitalize">
                           {vehicle.type.replace(/_/g, " ")}
                         </p>
@@ -347,10 +353,10 @@ export default function VehicleDetailsPageContent({
                       <FaShieldAlt className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">
-                          Condition
+                          {t("specs.condition")}
                         </p>
                         <p className="font-semibold capitalize">
-                          {vehicle.condition || "Good"}
+                          {vehicle.condition || t("specs.good")}
                         </p>
                       </div>
                     </div>
@@ -362,7 +368,9 @@ export default function VehicleDetailsPageContent({
               {vehicle.description && (
                 <Card>
                   <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Description</h2>
+                    <h2 className="text-xl font-bold mb-4">
+                      {t("sections.description")}
+                    </h2>
                     <p className="text-muted-foreground leading-relaxed">
                       {vehicle.description}
                     </p>
@@ -373,35 +381,47 @@ export default function VehicleDetailsPageContent({
               {/* Detailed Specifications */}
               <Card>
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4">Specifications</h2>
+                  <h2 className="text-xl font-bold mb-4">
+                    {t("sections.specifications")}
+                  </h2>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="border-b border-border pb-3">
-                      <p className="text-sm text-muted-foreground">Brand</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("specs.brand")}
+                      </p>
                       <p className="font-semibold">{vehicle.brand}</p>
                     </div>
                     <div className="border-b border-border pb-3">
-                      <p className="text-sm text-muted-foreground">Model</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("specs.model")}
+                      </p>
                       <p className="font-semibold">{vehicle.model}</p>
                     </div>
                     <div className="border-b border-border pb-3">
-                      <p className="text-sm text-muted-foreground">Year</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("specs.year")}
+                      </p>
                       <p className="font-semibold">{vehicle.year}</p>
                     </div>
                     <div className="border-b border-border pb-3">
-                      <p className="text-sm text-muted-foreground">Color</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("specs.color")}
+                      </p>
                       <p className="font-semibold capitalize">
                         {vehicle.color}
                       </p>
                     </div>
                     <div className="border-b border-border pb-3">
-                      <p className="text-sm text-muted-foreground">Fuel Type</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("specs.fuelType")}
+                      </p>
                       <p className="font-semibold capitalize">
                         {vehicle.fuelType}
                       </p>
                     </div>
                     <div className="border-b border-border pb-3">
                       <p className="text-sm text-muted-foreground">
-                        Transmission
+                        {t("specs.transmission")}
                       </p>
                       <p className="font-semibold capitalize">
                         {vehicle.transmission}
@@ -409,14 +429,16 @@ export default function VehicleDetailsPageContent({
                     </div>
                     <div className="border-b border-border pb-3">
                       <p className="text-sm text-muted-foreground">
-                        Seating Capacity
+                        {t("specs.seatingCapacity")}
                       </p>
                       <p className="font-semibold">
-                        {vehicle.seats} Passengers
+                        {t("specs.passengersCount", { count: vehicle.seats })}
                       </p>
                     </div>
                     <div className="border-b border-border pb-3">
-                      <p className="text-sm text-muted-foreground">AC Type</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("specs.acType")}
+                      </p>
                       <p className="font-semibold">{vehicle.acType}</p>
                     </div>
                   </div>
@@ -427,7 +449,9 @@ export default function VehicleDetailsPageContent({
               {vehicle.amenities && vehicle.amenities.length > 0 && (
                 <Card>
                   <CardContent className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Amenities</h2>
+                    <h2 className="text-xl font-bold mb-4">
+                      {t("sections.amenities")}
+                    </h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       {vehicle.amenities.map((amenityId) => {
                         const amenity = VEHICLE_AMENITIES.find(
@@ -452,12 +476,12 @@ export default function VehicleDetailsPageContent({
               <Card>
                 <CardContent className="p-6">
                   <h2 className="text-xl font-bold mb-4">
-                    Reviews ({reviews.length})
+                    {t("reviewsTitle", { count: reviews.length })}
                   </h2>
 
                   {reviews.length === 0 ? (
                     <p className="text-muted-foreground text-center py-8">
-                      No reviews yet. Be the first to review this vehicle!
+                      {t("empty.noReviews")}
                     </p>
                   ) : (
                     <div className="space-y-6">
@@ -469,7 +493,7 @@ export default function VehicleDetailsPageContent({
                           </p>
                           <StarRating rating={avgRating} />
                           <p className="text-sm text-muted-foreground mt-1">
-                            {reviews.length} reviews
+                            {t("reviewsCount", { count: reviews.length })}
                           </p>
                         </div>
                       </div>
@@ -483,7 +507,8 @@ export default function VehicleDetailsPageContent({
                           <div className="flex items-start justify-between mb-2">
                             <div>
                               <p className="font-semibold">
-                                {review.customer?.firstName || "Anonymous"}{" "}
+                                {review.customer?.firstName ||
+                                  t("reviews.anonymous")}{" "}
                                 {review.customer?.lastName || ""}
                               </p>
                               <p className="text-sm text-muted-foreground">
@@ -500,7 +525,7 @@ export default function VehicleDetailsPageContent({
 
                       {reviews.length > 5 && (
                         <Button variant="outline" className="w-full">
-                          View All Reviews
+                          {t("actions.viewAllReviews")}
                         </Button>
                       )}
                     </div>
@@ -514,23 +539,27 @@ export default function VehicleDetailsPageContent({
               {/* Pricing Card */}
               <Card className="sticky top-4">
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4">Pricing</h2>
+                  <h2 className="text-xl font-bold mb-4">
+                    {t("sections.pricing")}
+                  </h2>
 
                   <div className="space-y-4">
                     <div className="bg-primary/10 p-4 rounded-lg">
                       <p className="text-sm text-muted-foreground">
-                        Base Price
+                        {t("pricing.basePrice")}
                       </p>
                       <p className="text-3xl font-bold text-primary">
                         {formatCurrency(vehicle.pricePerDay)}
                       </p>
-                      <p className="text-sm text-muted-foreground">per day</p>
+                      <p className="text-sm text-muted-foreground">
+                        {tCommon("perDay")}
+                      </p>
                     </div>
 
                     {vehicle.pricePerKm && (
                       <div className="flex justify-between py-2 border-b border-border">
                         <span className="text-muted-foreground">
-                          Price per km
+                          {t("pricing.pricePerKm")}
                         </span>
                         <span className="font-semibold">
                           {formatCurrency(vehicle.pricePerKm)}
@@ -541,7 +570,7 @@ export default function VehicleDetailsPageContent({
                     {vehicle.pricePerHour && (
                       <div className="flex justify-between py-2 border-b border-border">
                         <span className="text-muted-foreground">
-                          Price per hour
+                          {t("pricing.pricePerHour")}
                         </span>
                         <span className="font-semibold">
                           {formatCurrency(vehicle.pricePerHour)}
@@ -552,7 +581,7 @@ export default function VehicleDetailsPageContent({
                     {vehicle.driverAllowance && (
                       <div className="flex justify-between py-2 border-b border-border">
                         <span className="text-muted-foreground">
-                          Driver allowance
+                          {t("pricing.driverAllowance")}
                         </span>
                         <span className="font-semibold">
                           {formatCurrency(vehicle.driverAllowance)}/day
@@ -561,15 +590,13 @@ export default function VehicleDetailsPageContent({
                     )}
 
                     <div className="bg-muted p-3 rounded-lg text-sm text-muted-foreground">
-                      <p className="mb-2">
-                        * Final price will be calculated based on:
-                      </p>
+                      <p className="mb-2">{t("pricing.noteTitle")}</p>
                       <ul className="list-disc list-inside space-y-1 text-xs">
-                        <li>Trip duration</li>
-                        <li>Distance traveled</li>
-                        <li>Fuel costs</li>
-                        <li>Toll charges (if applicable)</li>
-                        <li>Permit fees (if applicable)</li>
+                        <li>{t("pricing.notes.tripDuration")}</li>
+                        <li>{t("pricing.notes.distanceTraveled")}</li>
+                        <li>{t("pricing.notes.fuelCosts")}</li>
+                        <li>{t("pricing.notes.tollCharges")}</li>
+                        <li>{t("pricing.notes.permitFees")}</li>
                       </ul>
                     </div>
 
@@ -580,12 +607,12 @@ export default function VehicleDetailsPageContent({
                       disabled={!vehicle.isAvailable || !vehicle.isActive}
                     >
                       <FaCalendarAlt className="mr-2" />
-                      Request Quotation
+                      {t("actions.requestQuotation")}
                     </Button>
 
                     {(!vehicle.isAvailable || !vehicle.isActive) && (
                       <p className="text-sm text-destructive text-center">
-                        This vehicle is currently unavailable
+                        {t("status.unavailable")}
                       </p>
                     )}
                   </div>
@@ -596,11 +623,13 @@ export default function VehicleDetailsPageContent({
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">Owner Information</h2>
+                    <h2 className="text-xl font-bold">
+                      {t("sections.ownerInfo")}
+                    </h2>
                     {vehicle.owner.isVerified && (
                       <Badge variant="success" className="text-xs">
                         <FaCheckCircle className="mr-1" />
-                        Verified
+                        {t("status.verified")}
                       </Badge>
                     )}
                   </div>
@@ -609,7 +638,7 @@ export default function VehicleDetailsPageContent({
                     {vehicle.owner.businessProfile?.businessName ? (
                       <div>
                         <p className="text-sm text-muted-foreground">
-                          Business Name
+                          {t("owner.businessName")}
                         </p>
                         <p className="font-semibold">
                           {vehicle.owner.businessProfile.businessName}
@@ -618,7 +647,7 @@ export default function VehicleDetailsPageContent({
                     ) : (
                       <div>
                         <p className="text-sm text-muted-foreground">
-                          Owner Name
+                          {t("owner.label")}
                         </p>
                         <p className="font-semibold">
                           {vehicle.owner.firstName} {vehicle.owner.lastName}
@@ -628,7 +657,7 @@ export default function VehicleDetailsPageContent({
 
                     <div>
                       <p className="text-sm text-muted-foreground">
-                        Base Location
+                        {t("owner.baseLocation")}
                       </p>
                       <p className="font-semibold">
                         <FaMapMarkerAlt className="inline mr-1" />
@@ -638,12 +667,12 @@ export default function VehicleDetailsPageContent({
 
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Rating
+                        {t("owner.rating")}
                       </p>
                       <div className="flex items-center gap-2">
                         <StarRating rating={avgRating} />
                         <span className="text-sm text-muted-foreground">
-                          ({reviews.length} reviews)
+                          ({t("reviewsCount", { count: reviews.length })})
                         </span>
                       </div>
                     </div>
@@ -654,7 +683,7 @@ export default function VehicleDetailsPageContent({
                       onClick={() => window.open(`tel:${vehicle.owner.phone}`)}
                     >
                       <FaPhone className="mr-2" />
-                      Contact Owner
+                      {t("actions.contactOwner")}
                     </Button>
                   </div>
                 </CardContent>
@@ -663,11 +692,13 @@ export default function VehicleDetailsPageContent({
               {/* Availability Calendar - Placeholder */}
               <Card>
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4">Availability</h2>
+                  <h2 className="text-xl font-bold mb-4">
+                    {t("sections.availability")}
+                  </h2>
                   <div className="bg-muted p-4 rounded-lg text-center">
                     <FaCalendarAlt className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      Check availability by requesting a quotation
+                      {t("availability.note")}
                     </p>
                   </div>
                 </CardContent>
@@ -681,7 +712,9 @@ export default function VehicleDetailsPageContent({
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 lg:hidden z-50">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Starting from</p>
+            <p className="text-sm text-muted-foreground">
+              {t("pricing.startingFrom")}
+            </p>
             <p className="text-xl font-bold text-primary">
               {formatCurrency(vehicle.pricePerDay)}
             </p>
@@ -691,7 +724,7 @@ export default function VehicleDetailsPageContent({
             size="lg"
             disabled={!vehicle.isAvailable || !vehicle.isActive}
           >
-            Request Quotation
+            {t("actions.requestQuotation")}
           </Button>
         </div>
       </div>

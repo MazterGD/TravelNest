@@ -25,7 +25,7 @@ interface ReviewFormProps {
   vehicleName: string;
   ownerName: string;
   onSubmit: (
-    data: ReviewInput
+    data: ReviewInput,
   ) => Promise<{ success: boolean; error?: string }>;
   onCancel?: () => void;
   isLoading?: boolean;
@@ -118,12 +118,10 @@ export function ReviewForm({
             <TextArea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder={t("commentPlaceholder")}
+              placeholder={t("reviewPlaceholder")}
               rows={4}
             />
-            <p className="text-xs text-muted-foreground">
-              {t("commentHelper")}
-            </p>
+            <p className="text-xs text-muted-foreground">{t("reviewHint")}</p>
           </div>
 
           {/* Actions */}

@@ -27,7 +27,7 @@ export function Footer() {
 
   const supportLinks = [
     { name: tNav("contact"), href: `/${locale}/contact` },
-    { name: "FAQ", href: `/${locale}/faq` },
+    { name: t("faq"), href: `/${locale}/faq` },
   ];
 
   const legalLinks = [
@@ -37,25 +37,27 @@ export function Footer() {
   ];
 
   const socialLinks = [
-    { name: "Facebook", icon: FaFacebookF, href: "#" },
-    { name: "Twitter", icon: FaTwitter, href: "#" },
-    { name: "Instagram", icon: FaInstagram, href: "#" },
-    { name: "LinkedIn", icon: FaLinkedinIn, href: "#" },
+    { name: t("social.facebook"), icon: FaFacebookF, href: "#" },
+    { name: t("social.twitter"), icon: FaTwitter, href: "#" },
+    { name: t("social.instagram"), icon: FaInstagram, href: "#" },
+    { name: t("social.linkedin"), icon: FaLinkedinIn, href: "#" },
   ];
 
   return (
-    <footer className="bg-primary text-white">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <footer className="border-t border-white/10 bg-foreground py-16 text-white">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+        <div className="mb-12 grid grid-cols-1 gap-12 md:grid-cols-3">
           {/* Brand Section */}
-          <div className="lg:col-span-1">
+          <div>
             <Link href={`/${locale}`} className="flex items-center space-x-2">
-              <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
-                <span className="text-primary font-bold text-xl">TN</span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+                <span className="text-xl font-bold text-white">TN</span>
               </div>
               <span className="text-xl font-bold">TravelNest</span>
             </Link>
-            <p className="mt-4 text-sm text-muted">{t("description")}</p>
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-text-tertiary">
+              {t("description")}
+            </p>
             <div className="mt-6 flex space-x-4">
               {socialLinks.map((item) => {
                 const Icon = item.icon;
@@ -63,7 +65,7 @@ export function Footer() {
                   <a
                     key={item.name}
                     href={item.href}
-                    className="text-muted hover:text-accent transition-colors"
+                    className="text-text-tertiary transition-colors hover:text-primary"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -77,15 +79,15 @@ export function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider">
+            <h3 className="mb-5 text-[16px] font-semibold text-white">
               {t("quickLinks")}
             </h3>
-            <ul className="mt-4 space-y-3">
+            <ul className="space-y-3">
               {quickLinks.map((item) => (
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-sm text-muted hover:text-accent transition-colors"
+                    className="text-sm text-text-tertiary transition-colors hover:text-primary"
                   >
                     {item.name}
                   </Link>
@@ -94,36 +96,27 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Support */}
+          {/* Get in touch */}
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider">
+            <h3 className="mb-5 text-[16px] font-semibold text-white">
               {t("support")}
             </h3>
-            <ul className="mt-4 space-y-3">
+            <ul className="space-y-3">
               {supportLinks.map((item) => (
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-sm text-muted hover:text-accent transition-colors"
+                    className="text-sm text-text-tertiary transition-colors hover:text-primary"
                   >
                     {item.name}
                   </Link>
                 </li>
               ))}
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider">
-              {t("legal")}
-            </h3>
-            <ul className="mt-4 space-y-3">
               {legalLinks.map((item) => (
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className="text-sm text-muted hover:text-accent transition-colors"
+                    className="text-sm text-text-tertiary transition-colors hover:text-primary"
                   >
                     {item.name}
                   </Link>
@@ -134,10 +127,24 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 border-t border-secondary pt-8">
-          <p className="text-center text-sm text-muted">
-            © {currentYear} TravelNest. All rights reserved.
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 md:flex-row">
+          <p className="text-center text-sm text-text-tertiary md:text-left">
+            {t("copyright", { year: currentYear })}
           </p>
+          <div className="flex gap-6">
+            <Link
+              href={`/${locale}/privacy`}
+              className="text-sm text-text-tertiary transition-colors hover:text-primary"
+            >
+              {t("privacyPolicy")}
+            </Link>
+            <Link
+              href={`/${locale}/terms`}
+              className="text-sm text-text-tertiary transition-colors hover:text-primary"
+            >
+              {t("termsOfService")}
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

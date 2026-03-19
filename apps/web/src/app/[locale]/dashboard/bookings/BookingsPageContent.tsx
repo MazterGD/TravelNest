@@ -88,7 +88,7 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Failed to fetch bookings");
+        setError(t("errors.fetchBookings"));
       }
     } finally {
       setIsLoading(false);
@@ -148,7 +148,7 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
       if (err instanceof ApiError) {
         alert(err.message);
       } else {
-        alert("Failed to cancel booking");
+        alert(t("errors.cancelFailed"));
       }
     } finally {
       setIsCancelling(false);
@@ -221,10 +221,10 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
           setBookingToCancel(null);
         }}
         onConfirm={confirmCancelBooking}
-        title="Cancel Booking"
-        message="Are you sure you want to cancel this booking? This action cannot be undone and may affect your refund eligibility."
-        confirmText="Yes, Cancel Booking"
-        cancelText="Keep Booking"
+        title={t("cancelDialog.title")}
+        message={t("cancelDialog.message")}
+        confirmText={t("cancelDialog.confirm")}
+        cancelText={t("cancelDialog.cancel")}
         variant="danger"
         isLoading={isCancelling}
       />

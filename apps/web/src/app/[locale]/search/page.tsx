@@ -1,7 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { useParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import {
@@ -37,22 +36,21 @@ interface Vehicle {
 }
 
 const VEHICLE_TYPES = [
-  { value: "ORDINARY", label: "Ordinary" },
-  { value: "SEMI_LUXURY", label: "Semi-Luxury" },
-  { value: "LUXURY_AC", label: "Luxury AC" },
+  { value: "ORDINARY", labelKey: "filters.vehicleTypes.ordinary" },
+  { value: "SEMI_LUXURY", labelKey: "filters.vehicleTypes.semiLuxury" },
+  { value: "LUXURY_AC", labelKey: "filters.vehicleTypes.luxuryAc" },
 ];
 
 const AC_TYPES = [
-  { value: "FULL_AC", label: "Full AC" },
-  { value: "AC", label: "AC" },
-  { value: "NON_AC", label: "Non-AC" },
+  { value: "FULL_AC", labelKey: "filters.acTypes.fullAc" },
+  { value: "AC", labelKey: "filters.acTypes.ac" },
+  { value: "NON_AC", labelKey: "filters.acTypes.nonAc" },
 ];
 
 export default function SearchPage() {
   const t = useTranslations("search");
   const tCommon = useTranslations("common");
-  const params = useParams();
-  const locale = (params?.locale as string) || "en";
+  const locale = useLocale();
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]); // Store unfiltered list
@@ -91,7 +89,7 @@ export default function SearchPage() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Failed to fetch vehicles");
+        setError(t("errors.fetchVehicles"));
       }
       console.error("Error fetching vehicles:", err);
     } finally {
@@ -216,10 +214,10 @@ export default function SearchPage() {
                       }
                       className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                     >
-                      <option value="">All Types</option>
+                      <option value="">{t("filters.allTypes")}</option>
                       {VEHICLE_TYPES.map((type) => (
                         <option key={type.value} value={type.value}>
-                          {type.label}
+                          {t(type.labelKey)}
                         </option>
                       ))}
                     </select>
@@ -233,7 +231,7 @@ export default function SearchPage() {
                     <div className="flex gap-2">
                       <Input
                         type="number"
-                        placeholder="Min"
+                        placeholder={t("filters.min")}
                         value={filters.minCapacity}
                         onChange={(e) =>
                           setFilters({
@@ -245,7 +243,7 @@ export default function SearchPage() {
                       />
                       <Input
                         type="number"
-                        placeholder="Max"
+                        placeholder={t("filters.max")}
                         value={filters.maxCapacity}
                         onChange={(e) =>
                           setFilters({
@@ -281,7 +279,7 @@ export default function SearchPage() {
                               : "border-border hover:border-muted-foreground",
                           )}
                         >
-                          {type.label}
+                          {t(type.labelKey)}
                         </button>
                       ))}
                     </div>
@@ -299,7 +297,7 @@ export default function SearchPage() {
                       }
                       className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                     >
-                      <option value="">All Districts</option>
+                      <option value="">{t("filters.allDistricts")}</option>
                       {SRI_LANKAN_DISTRICTS.map((district) => (
                         <option key={district} value={district}>
                           {district}
@@ -375,7 +373,7 @@ export default function SearchPage() {
               {error && !isLoading && (
                 <Card className="text-center py-12">
                   <p className="text-destructive mb-4">{error}</p>
-                  <Button onClick={fetchVehicles}>Retry</Button>
+                  <Button onClick={fetchVehicles}>{tCommon("retry")}</Button>
                 </Card>
               )}
 
@@ -413,7 +411,7 @@ export default function SearchPage() {
                               <div className="flex flex-wrap gap-3 mt-3">
                                 <div className="flex items-center text-sm text-muted-foreground">
                                   <FaUsers className="mr-1.5 h-4 w-4" />
-                                  {bus.seats} Seats
+                                  {t("seatsCount", { count: bus.seats })}
                                 </div>
                                 {bus.acType && (
                                   <div className="flex items-center text-sm text-muted-foreground">
@@ -450,19 +448,28 @@ export default function SearchPage() {
                             {/* Price & Action */}
                             <div className="text-right">
                               <p className="text-2xl font-bold text-primary">
-                                Rs. {bus.pricePerDay.toLocaleString()}
+                                {new Intl.NumberFormat(locale, {
+                                  style: "currency",
+                                  currency: "LKR",
+                                  minimumFractionDigits: 0,
+                                }).format(bus.pricePerDay)}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                per day
+                                {tCommon("perDay")}
                               </p>
                               {bus.pricePerKm && (
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  Rs. {bus.pricePerKm}/km
+                                  {new Intl.NumberFormat(locale, {
+                                    style: "currency",
+                                    currency: "LKR",
+                                    minimumFractionDigits: 0,
+                                  }).format(bus.pricePerKm)}{" "}
+                                  {tCommon("perKm")}
                                 </p>
                               )}
                               <Link href={`/${locale}/vehicles/${bus.id}`}>
                                 <Button className="mt-4" size="sm">
-                                  View Details
+                                  {t("viewDetails")}
                                 </Button>
                               </Link>
                             </div>
