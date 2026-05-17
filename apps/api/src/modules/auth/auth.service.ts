@@ -5,7 +5,12 @@ import xss from "xss";
 import prisma from "@travenest/database";
 import { config } from "../../config/index.js";
 import { ApiError } from "../../middleware/errorHandler.js";
-import type { RegisterInput, LoginInput } from "./auth.schemas.js";
+import type {
+  RegisterInput,
+  LoginInput,
+  SendOtpInput,
+  VerifyOtpInput,
+} from "./auth.schemas.js";
 
 // ============================================
 // Enums (matching Prisma schema)
@@ -59,6 +64,30 @@ interface SafeUser {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const OTP_EXPIRY_MS = 5 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const normalizeIdentifier = (identifier: string) => identifier.trim();
+
+const isEmailIdentifier = (identifier: string) => EMAIL_REGEX.test(identifier);
+
+const maskIdentifier = (identifier: string) => {
+  if (isEmailIdentifier(identifier)) {
+    const [name, domain] = identifier.split("@");
+    if (!name || !domain) return "***";
+    const visible = name.slice(0, 2);
+    return `${visible}${"*".repeat(Math.max(1, name.length - 2))}@${domain}`;
+  }
+
+  if (identifier.length <= 4) {
+    return "*".repeat(identifier.length);
+  }
+
+  return `${"*".repeat(identifier.length - 4)}${identifier.slice(-4)}`;
+};
 
 // ============================================
 // Token Generation
@@ -322,6 +351,158 @@ export const loginUser = async (data: LoginInput) => {
 
   // Return user without password
   return {
+    user: excludePassword(user),
+    ...tokens,
+  };
+};
+
+export const sendOtpCode = async (data: SendOtpInput) => {
+  const identifier = normalizeIdentifier(data.identifier);
+  const isEmail = isEmailIdentifier(identifier);
+
+  let user = null as Awaited<ReturnType<typeof prisma.user.findUnique>> | null;
+
+  if (data.purpose === "LOGIN") {
+    user = isEmail
+      ? await prisma.user.findUnique({
+          where: { email: identifier.toLowerCase() },
+        })
+      : await prisma.user.findFirst({
+          where: { phone: identifier },
+        });
+
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      return {
+        sent: true,
+        destination: maskIdentifier(identifier),
+        expiresInSeconds: OTP_EXPIRY_MS / 1000,
+      };
+    }
+  }
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedCode = await bcrypt.hash(code, 10);
+
+  await prisma.otpToken.updateMany({
+    where: {
+      usedAt: null,
+      purpose: data.purpose,
+      OR: [
+        ...(isEmail ? [{ email: identifier.toLowerCase() }] : []),
+        ...(!isEmail ? [{ phone: identifier }] : []),
+      ],
+    },
+    data: {
+      usedAt: new Date(),
+    },
+  });
+
+  await prisma.otpToken.create({
+    data: {
+      userId: user?.id,
+      email: isEmail ? identifier.toLowerCase() : null,
+      phone: isEmail ? null : identifier,
+      code: hashedCode,
+      purpose: data.purpose,
+      expiresAt: new Date(Date.now() + OTP_EXPIRY_MS),
+    },
+  });
+
+  if (config.env === "development") {
+    console.log(`[OTP:${data.purpose}] ${identifier} -> ${code}`);
+  }
+
+  return {
+    sent: true,
+    destination: maskIdentifier(identifier),
+    expiresInSeconds: OTP_EXPIRY_MS / 1000,
+  };
+};
+
+export const verifyOtpCode = async (data: VerifyOtpInput) => {
+  const identifier = normalizeIdentifier(data.identifier);
+  const isEmail = isEmailIdentifier(identifier);
+
+  const otpRecord = await prisma.otpToken.findFirst({
+    where: {
+      usedAt: null,
+      purpose: data.purpose,
+      expiresAt: { gt: new Date() },
+      OR: [
+        ...(isEmail ? [{ email: identifier.toLowerCase() }] : []),
+        ...(!isEmail ? [{ phone: identifier }] : []),
+      ],
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  if (!otpRecord) {
+    throw ApiError.badRequest("Invalid or expired OTP");
+  }
+
+  if (otpRecord.attempts >= OTP_MAX_ATTEMPTS) {
+    throw ApiError.forbidden("Too many OTP attempts. Please request a new code.");
+  }
+
+  const isValid = await bcrypt.compare(data.code, otpRecord.code);
+
+  if (!isValid) {
+    await prisma.otpToken.update({
+      where: { id: otpRecord.id },
+      data: { attempts: { increment: 1 } },
+    });
+    throw ApiError.badRequest("Invalid OTP code");
+  }
+
+  await prisma.otpToken.update({
+    where: { id: otpRecord.id },
+    data: {
+      usedAt: new Date(),
+    },
+  });
+
+  if (data.purpose !== "LOGIN") {
+    return { verified: true };
+  }
+
+  const user = otpRecord.userId
+    ? await prisma.user.findUnique({ where: { id: otpRecord.userId } })
+    : isEmail
+      ? await prisma.user.findUnique({ where: { email: identifier.toLowerCase() } })
+      : await prisma.user.findFirst({ where: { phone: identifier } });
+
+  if (!user) {
+    throw ApiError.unauthorized("User account not found for OTP login");
+  }
+
+  if (user.status !== UserStatus.ACTIVE) {
+    throw ApiError.forbidden(
+      user.status === UserStatus.SUSPENDED
+        ? "Your account has been suspended"
+        : "Your account is not active",
+    );
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      lastLoginAt: new Date(),
+    },
+  });
+
+  const tokens = generateTokens({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    tokenVersion: user.tokenVersion,
+  });
+
+  return {
+    verified: true,
     user: excludePassword(user),
     ...tokens,
   };

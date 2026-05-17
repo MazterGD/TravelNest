@@ -12,6 +12,8 @@ import {
   changePasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  sendOtpSchema,
+  verifyOtpSchema,
 } from "./auth.schemas.js";
 
 const router = Router();
@@ -29,8 +31,9 @@ const authRateLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // Skip rate limiting in test environment
-  skip: () => config.env === "test",
+  // Skip rate limiting outside production — brute-force risk applies to public
+  // deployments only; local dev hammers /login during HMR + manual testing.
+  skip: () => config.env !== "production",
 });
 
 // Public routes with stricter rate limiting
@@ -50,6 +53,18 @@ router.post(
   authRateLimiter,
   validate(loginSchema),
   authController.login,
+);
+router.post(
+  "/otp/send",
+  authRateLimiter,
+  validate(sendOtpSchema),
+  authController.sendOtp,
+);
+router.post(
+  "/otp/verify",
+  authRateLimiter,
+  validate(verifyOtpSchema),
+  authController.verifyOtp,
 );
 router.post(
   "/refresh-token",

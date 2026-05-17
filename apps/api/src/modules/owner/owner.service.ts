@@ -1,9 +1,19 @@
 import bcrypt from "bcryptjs";
 import xss from "xss";
-import prisma from "@travenest/database";
+import prisma, {
+  encryptSettlementBankValue,
+  decryptSettlementBankValue,
+  maskSettlementBankAccountNumber,
+} from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { generateTokens, UserRole, UserStatus } from "../auth/auth.service.js";
-import type { OwnerRegistrationInput, VehicleInput } from "./owner.schemas.js";
+import type {
+  OwnerRegistrationInput,
+  VehicleInput,
+  AddOwnerDocumentInput,
+  EarningsTransactionsQuery,
+  UpsertBankAccountInput,
+} from "./owner.schemas.js";
 
 // Allowed MIME types for validation
 const ALLOWED_IMAGE_TYPES = [
@@ -54,12 +64,28 @@ const validateFileSize = (fileSize: number, fileName: string) => {
 // Valid VehicleType enum values: ORDINARY, SEMI_LUXURY, LUXURY_AC
 const mapVehicleType = (type: string) => {
   const typeMap: Record<string, string> = {
+    ORDINARY: "ORDINARY",
+    SEMI_LUXURY: "SEMI_LUXURY",
+    LUXURY_AC: "LUXURY_AC",
     luxury: "LUXURY_AC",
     "semi-luxury": "SEMI_LUXURY",
     standard: "ORDINARY",
     mini: "ORDINARY",
   };
   return typeMap[type] || "ORDINARY";
+};
+
+const mapAcType = (acType: string) => {
+  const acTypeMap: Record<string, string> = {
+    FULL_AC: "full-ac",
+    AC: "ac",
+    NON_AC: "non-ac",
+    "full-ac": "full-ac",
+    ac: "ac",
+    "non-ac": "non-ac",
+  };
+
+  return acTypeMap[acType] || "ac";
 };
 
 // Map document type string to database enum
@@ -171,6 +197,26 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
     whiteList: {},
     stripIgnoreTag: true,
   });
+  const sanitizedBusinessInfo = data.businessInfo
+    ? {
+        businessName: xss(data.businessInfo.businessName.trim(), {
+          whiteList: {},
+          stripIgnoreTag: true,
+        }),
+        businessType: xss(data.businessInfo.businessType.trim(), {
+          whiteList: {},
+          stripIgnoreTag: true,
+        }),
+        businessRegNumber: xss(data.businessInfo.businessRegNumber.trim(), {
+          whiteList: {},
+          stripIgnoreTag: true,
+        }),
+        tinNumber: xss(data.businessInfo.tinNumber.trim(), {
+          whiteList: {},
+          stripIgnoreTag: true,
+        }),
+      }
+    : null;
 
   // Create owner with all related data in a transaction
   const result = await prisma.$transaction(async (tx) => {
@@ -183,6 +229,10 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
         lastName: sanitizedLastName,
         phone: data.phone || null,
         nicNumber: sanitizedNicNumber,
+        businessName: sanitizedBusinessInfo?.businessName || null,
+        businessType: sanitizedBusinessInfo?.businessType || null,
+        businessRegNumber: sanitizedBusinessInfo?.businessRegNumber || null,
+        tinNumber: sanitizedBusinessInfo?.tinNumber || null,
         role: UserRole.VEHICLE_OWNER,
         status: UserStatus.PENDING_VERIFICATION,
         isVerified: false,
@@ -216,7 +266,7 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
           year: vehicleData.year,
           licensePlate: xss(vehicleData.registrationNumber.trim()),
           seats: vehicleData.seatingCapacity,
-          acType: vehicleData.acType,
+          acType: mapAcType(vehicleData.acType),
           fuelType: "DIESEL", // Default for buses
           transmission: "MANUAL", // Default for buses
           location: data.address.baseLocation,
@@ -386,6 +436,10 @@ export const updatePersonalInfo = async (
     lastName?: string;
     phone?: string;
     nicNumber?: string;
+    businessName?: string;
+    businessType?: string;
+    businessRegNumber?: string;
+    tinNumber?: string;
   },
 ) => {
   const sanitizedData: any = {};
@@ -394,6 +448,13 @@ export const updatePersonalInfo = async (
   if (data.lastName) sanitizedData.lastName = xss(data.lastName.trim());
   if (data.phone) sanitizedData.phone = xss(data.phone.trim());
   if (data.nicNumber) sanitizedData.nicNumber = xss(data.nicNumber.trim());
+  if (data.businessName)
+    sanitizedData.businessName = xss(data.businessName.trim());
+  if (data.businessType)
+    sanitizedData.businessType = xss(data.businessType.trim());
+  if (data.businessRegNumber)
+    sanitizedData.businessRegNumber = xss(data.businessRegNumber.trim());
+  if (data.tinNumber) sanitizedData.tinNumber = xss(data.tinNumber.trim());
 
   const updatedUser = await prisma.user.update({
     where: { id: ownerId },
@@ -436,34 +497,676 @@ export const updateAddress = async (
 };
 
 /**
+ * List all owner documents
+ */
+export const getOwnerDocuments = async (ownerId: string) => {
+  return prisma.ownerDocument.findMany({
+    where: { ownerId },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
+/**
+ * Add (or replace) an owner document of a given type.
+ * Only one document of each type is kept — the previous one is deleted first.
+ */
+export const addOwnerDocument = async (
+  ownerId: string,
+  data: AddOwnerDocumentInput,
+) => {
+  validateMimeType(
+    data.mimeType,
+    data.type === "PROFILE_PHOTO" ? ALLOWED_IMAGE_TYPES : ALLOWED_DOCUMENT_TYPES,
+    data.fileName,
+  );
+  validateFileSize(data.fileSize, data.fileName);
+
+  return prisma.$transaction(async (tx) => {
+    await tx.ownerDocument.deleteMany({
+      where: { ownerId, type: data.type as any },
+    });
+
+    return tx.ownerDocument.create({
+      data: {
+        ownerId,
+        type: data.type as any,
+        url: data.url,
+        fileName: data.fileName,
+        fileSize: data.fileSize,
+        mimeType: data.mimeType,
+        status: "PENDING",
+      },
+    });
+  });
+};
+
+/**
+ * Delete an owner document by ID (ownership-verified)
+ */
+export const deleteOwnerDocument = async (
+  ownerId: string,
+  docId: string,
+) => {
+  const doc = await prisma.ownerDocument.findUnique({ where: { id: docId } });
+
+  if (!doc) {
+    throw ApiError.notFound("Document not found");
+  }
+
+  if (doc.ownerId !== ownerId) {
+    throw ApiError.forbidden("You do not own this document");
+  }
+
+  await prisma.ownerDocument.delete({ where: { id: docId } });
+};
+
+/**
+ * Get revenue chart data for the last 6 months
+ */
+export const getRevenueChart = async (ownerId: string) => {
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    return {
+      label: d.toLocaleString("en-US", { month: "short", year: "2-digit" }),
+      start: d,
+      end: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59),
+    };
+  });
+
+  const results = await Promise.all(
+    months.map(({ start, end }) =>
+      prisma.booking.aggregate({
+        where: {
+          vehicle: { ownerId },
+          status: "COMPLETED",
+          updatedAt: { gte: start, lte: end },
+        },
+        _sum: { totalAmount: true },
+      }),
+    ),
+  );
+
+  return months.map(({ label }, i) => ({
+    month: label,
+    revenue: results[i]._sum.totalAmount ?? 0,
+  }));
+};
+
+/**
+ * Get the 5 most recent reviews across all owner vehicles
+ */
+export const getRecentReviews = async (ownerId: string) => {
+  const reviews = await prisma.review.findMany({
+    where: { vehicle: { ownerId } },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    include: {
+      vehicle: { select: { name: true, licensePlate: true } },
+      customer: { select: { firstName: true, lastName: true } },
+    },
+  });
+
+  return reviews.map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.createdAt,
+    vehicleName: r.vehicle.name || r.vehicle.licensePlate,
+    customerName:
+      `${r.customer.firstName} ${r.customer.lastName}`.trim() || "Customer",
+    ownerResponse: r.ownerResponse,
+  }));
+};
+
+/**
  * Get dashboard statistics for owner
  */
 export const getDashboardStats = async (ownerId: string) => {
-  const [totalVehicles, activeVehicles, totalBookings, pendingBookings] =
-    await Promise.all([
-      prisma.vehicle.count({
-        where: { ownerId },
-      }),
-      prisma.vehicle.count({
-        where: { ownerId, isActive: true },
-      }),
-      prisma.booking.count({
-        where: {
-          vehicle: { ownerId },
-        },
-      }),
-      prisma.booking.count({
-        where: {
-          vehicle: { ownerId },
-          status: "PENDING",
-        },
-      }),
-    ]);
+  const [
+    totalVehicles,
+    activeVehicles,
+    inactiveVehicles,
+    pendingReviewVehicles,
+    totalBookings,
+    pendingBookings,
+    activeBookings,
+    pendingQuotes,
+    completedRevenue,
+    reviewStats,
+  ] = await Promise.all([
+    prisma.vehicle.count({
+      where: { ownerId },
+    }),
+    prisma.vehicle.count({
+      where: { ownerId, isActive: true, isAvailable: true },
+    }),
+    prisma.vehicle.count({
+      where: { ownerId, isActive: true, isAvailable: false },
+    }),
+    prisma.vehicle.count({
+      where: { ownerId, isActive: false },
+    }),
+    prisma.booking.count({
+      where: {
+        vehicle: { ownerId },
+      },
+    }),
+    prisma.booking.count({
+      where: {
+        vehicle: { ownerId },
+        status: "PENDING",
+      },
+    }),
+    prisma.booking.count({
+      where: {
+        vehicle: { ownerId },
+        status: { in: ["CONFIRMED", "ONGOING"] },
+      },
+    }),
+    prisma.quotation.count({
+      where: {
+        status: "PENDING",
+        OR: [{ vehicle: { ownerId } }, { vehicleId: null }],
+      },
+    }),
+    prisma.booking.aggregate({
+      where: {
+        vehicle: { ownerId },
+        status: "COMPLETED",
+      },
+      _sum: {
+        totalAmount: true,
+      },
+    }),
+    prisma.review.aggregate({
+      where: {
+        vehicle: { ownerId },
+      },
+      _avg: {
+        rating: true,
+      },
+    }),
+  ]);
+
+  const utilization =
+    totalVehicles > 0 ? Math.round((activeVehicles / totalVehicles) * 100) : 0;
 
   return {
+    // Legacy fields retained for backward compatibility and existing tests.
     totalVehicles,
     activeVehicles,
     totalBookings,
     pendingBookings,
+
+    // New dashboard metrics consumed by the owner web module.
+    totalRevenue: completedRevenue._sum.totalAmount ?? 0,
+    activeBookings,
+    pendingQuotes,
+    averageRating: Number((reviewStats._avg.rating ?? 0).toFixed(1)),
+    fleetStats: {
+      active: activeVehicles,
+      inactive: inactiveVehicles,
+      pendingReview: pendingReviewVehicles,
+      utilization,
+    },
   };
+};
+
+export interface OwnerReviewQuery {
+  page?: number;
+  limit?: number;
+  rating?: number;
+  hasResponse?: string;
+}
+
+export const getOwnerReviews = async (
+  ownerId: string,
+  query: OwnerReviewQuery,
+) => {
+  const { page = 1, limit = 10, rating, hasResponse } = query;
+  const skip = (page - 1) * limit;
+
+  const where: {
+    vehicle: { ownerId: string };
+    rating?: number;
+    ownerResponse?: { not: null } | null;
+  } = { vehicle: { ownerId } };
+
+  if (rating) where.rating = rating;
+  if (hasResponse === "true") where.ownerResponse = { not: null };
+  if (hasResponse === "false") where.ownerResponse = null;
+
+  const [reviews, total] = await Promise.all([
+    prisma.review.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        customer: { select: { firstName: true, lastName: true, avatar: true } },
+        vehicle: { select: { id: true, name: true, licensePlate: true } },
+        booking: { select: { startDate: true } },
+      },
+    }),
+    prisma.review.count({ where }),
+  ]);
+
+  return {
+    reviews: reviews.map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      ownerResponse: r.ownerResponse,
+      createdAt: r.createdAt.toISOString(),
+      tripDate: r.booking.startDate.toISOString(),
+      customerName: `${r.customer.firstName} ${r.customer.lastName.charAt(0)}.`,
+      customerAvatar: r.customer.avatar,
+      vehicleId: r.vehicle.id,
+      vehicleName: r.vehicle.name || r.vehicle.licensePlate,
+    })),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+export const getOwnerReviewSummary = async (ownerId: string) => {
+  const [aggregate, ratingGroups, pendingCount] = await Promise.all([
+    prisma.review.aggregate({
+      where: { vehicle: { ownerId } },
+      _avg: { rating: true },
+      _count: { id: true },
+    }),
+    prisma.review.groupBy({
+      by: ["rating"],
+      where: { vehicle: { ownerId } },
+      _count: { id: true },
+    }),
+    prisma.review.count({
+      where: { vehicle: { ownerId }, ownerResponse: null },
+    }),
+  ]);
+
+  const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  ratingGroups.forEach((g) => {
+    distribution[g.rating] = g._count.id;
+  });
+
+  const totalReviews = aggregate._count.id;
+  const responded = totalReviews - pendingCount;
+
+  return {
+    averageRating: parseFloat((aggregate._avg.rating ?? 0).toFixed(1)),
+    totalReviews,
+    pendingResponses: pendingCount,
+    responseRate:
+      totalReviews > 0 ? Math.round((responded / totalReviews) * 100) : 0,
+    ratingDistribution: distribution,
+  };
+};
+
+export const getAnalyticsOverview = async (ownerId: string) => {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  const [
+    totalRevenueAgg,
+    thisMonthRevenueAgg,
+    lastMonthRevenueAgg,
+    totalBookings,
+    completedBookings,
+    totalVehicles,
+    activeVehicles,
+    avgRatingAgg,
+  ] = await Promise.all([
+    prisma.booking.aggregate({
+      where: { vehicle: { ownerId }, status: "COMPLETED" },
+      _sum: { totalAmount: true },
+    }),
+    prisma.booking.aggregate({
+      where: { vehicle: { ownerId }, status: "COMPLETED", updatedAt: { gte: startOfMonth } },
+      _sum: { totalAmount: true },
+    }),
+    prisma.booking.aggregate({
+      where: {
+        vehicle: { ownerId },
+        status: "COMPLETED",
+        updatedAt: { gte: startOfLastMonth, lte: endOfLastMonth },
+      },
+      _sum: { totalAmount: true },
+    }),
+    prisma.booking.count({ where: { vehicle: { ownerId } } }),
+    prisma.booking.count({ where: { vehicle: { ownerId }, status: "COMPLETED" } }),
+    prisma.vehicle.count({ where: { ownerId } }),
+    prisma.vehicle.count({ where: { ownerId, isActive: true } }),
+    prisma.review.aggregate({ where: { vehicle: { ownerId } }, _avg: { rating: true } }),
+  ]);
+
+  const lastMonth = lastMonthRevenueAgg._sum.totalAmount ?? 0;
+  const thisMonth = thisMonthRevenueAgg._sum.totalAmount ?? 0;
+  const revenueGrowth =
+    lastMonth > 0
+      ? parseFloat((((thisMonth - lastMonth) / lastMonth) * 100).toFixed(1))
+      : 0;
+
+  return {
+    totalRevenue: totalRevenueAgg._sum.totalAmount ?? 0,
+    thisMonthRevenue: thisMonth,
+    revenueGrowth,
+    totalBookings,
+    completedBookings,
+    completionRate:
+      totalBookings > 0 ? Math.round((completedBookings / totalBookings) * 100) : 0,
+    totalVehicles,
+    activeVehicles,
+    fleetUtilization:
+      totalVehicles > 0 ? Math.round((activeVehicles / totalVehicles) * 100) : 0,
+    averageRating: parseFloat((avgRatingAgg._avg.rating ?? 0).toFixed(1)),
+  };
+};
+
+export const getAnalyticsRevenue = async (ownerId: string) => {
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    return {
+      label: d.toLocaleString("en-US", { month: "short", year: "2-digit" }),
+      start: d,
+      end: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59),
+    };
+  });
+
+  const [revenueResults, bookingResults] = await Promise.all([
+    Promise.all(
+      months.map(({ start, end }) =>
+        prisma.booking.aggregate({
+          where: { vehicle: { ownerId }, status: "COMPLETED", updatedAt: { gte: start, lte: end } },
+          _sum: { totalAmount: true },
+        }),
+      ),
+    ),
+    Promise.all(
+      months.map(({ start, end }) =>
+        prisma.booking.count({
+          where: { vehicle: { ownerId }, createdAt: { gte: start, lte: end } },
+        }),
+      ),
+    ),
+  ]);
+
+  return months.map(({ label }, i) => ({
+    month: label,
+    revenue: revenueResults[i]._sum.totalAmount ?? 0,
+    bookings: bookingResults[i],
+  }));
+};
+
+export const getAnalyticsVehicles = async (ownerId: string) => {
+  const vehicles = await prisma.vehicle.findMany({
+    where: { ownerId },
+    select: {
+      id: true,
+      name: true,
+      licensePlate: true,
+      isActive: true,
+      bookings: {
+        select: { id: true, totalAmount: true, status: true },
+      },
+      reviews: {
+        select: { rating: true },
+      },
+    },
+  });
+
+  return vehicles
+    .map((v) => {
+      const completedBookings = v.bookings.filter((b) => b.status === "COMPLETED");
+      const revenue = completedBookings.reduce((sum, b) => sum + (b.totalAmount ?? 0), 0);
+      const avgRating =
+        v.reviews.length > 0
+          ? parseFloat(
+              (v.reviews.reduce((sum, r) => sum + r.rating, 0) / v.reviews.length).toFixed(1),
+            )
+          : 0;
+      return {
+        id: v.id,
+        name: v.name || v.licensePlate,
+        isActive: v.isActive,
+        totalBookings: v.bookings.length,
+        completedBookings: completedBookings.length,
+        revenue,
+        averageRating: avgRating,
+        reviewCount: v.reviews.length,
+      };
+    })
+    .sort((a, b) => b.revenue - a.revenue);
+};
+
+/**
+ * Earnings summary — lifetime / this-month / this-year completed-booking earnings
+ * plus the balance still pending settlement payout.
+ */
+export const getEarningsSummary = async (ownerId: string) => {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  const [lifetimeAgg, monthAgg, yearAgg, pendingAgg] = await Promise.all([
+    prisma.booking.aggregate({
+      where: { vehicle: { ownerId }, status: "COMPLETED" },
+      _sum: { totalAmount: true },
+    }),
+    prisma.booking.aggregate({
+      where: {
+        vehicle: { ownerId },
+        status: "COMPLETED",
+        updatedAt: { gte: startOfMonth },
+      },
+      _sum: { totalAmount: true },
+    }),
+    prisma.booking.aggregate({
+      where: {
+        vehicle: { ownerId },
+        status: "COMPLETED",
+        updatedAt: { gte: startOfYear },
+      },
+      _sum: { totalAmount: true },
+    }),
+    prisma.settlement.aggregate({
+      where: { ownerId, status: { in: ["PENDING", "PROCESSING"] } },
+      _sum: { netAmount: true },
+    }),
+  ]);
+
+  return {
+    lifetimeEarnings: lifetimeAgg._sum.totalAmount ?? 0,
+    thisMonthEarnings: monthAgg._sum.totalAmount ?? 0,
+    thisYearEarnings: yearAgg._sum.totalAmount ?? 0,
+    pendingBalance: pendingAgg._sum.netAmount ?? 0,
+  };
+};
+
+/**
+ * Paginated payment history scoped to the owner's vehicles, with optional
+ * payment-status and created-date range filters.
+ */
+export const getTransactions = async (
+  ownerId: string,
+  query: EarningsTransactionsQuery,
+) => {
+  const { page = 1, limit = 10, status, from, to } = query;
+  const skip = (page - 1) * limit;
+
+  const where: {
+    booking: { vehicle: { ownerId: string } };
+    status?: EarningsTransactionsQuery["status"];
+    createdAt?: { gte?: Date; lte?: Date };
+  } = { booking: { vehicle: { ownerId } } };
+
+  if (status) where.status = status;
+  if (from || to) {
+    where.createdAt = {};
+    if (from) where.createdAt.gte = new Date(from);
+    if (to) where.createdAt.lte = new Date(to);
+  }
+
+  const [payments, total] = await Promise.all([
+    prisma.payment.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        booking: {
+          select: {
+            id: true,
+            pickupLocation: true,
+            dropoffLocation: true,
+          },
+        },
+      },
+    }),
+    prisma.payment.count({ where }),
+  ]);
+
+  return {
+    transactions: payments.map((p) => ({
+      id: p.id,
+      date: p.createdAt.toISOString(),
+      bookingId: p.bookingId,
+      bookingRef: `BK-${p.bookingId.slice(0, 8).toUpperCase()}`,
+      route:
+        p.booking.pickupLocation && p.booking.dropoffLocation
+          ? `${p.booking.pickupLocation} → ${p.booking.dropoffLocation}`
+          : p.booking.pickupLocation || "—",
+      amount: p.amount,
+      currency: p.currency,
+      method: p.method,
+      status: p.status,
+    })),
+    total,
+    page,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+  };
+};
+
+/**
+ * Settlement payout history for the owner. Bank fields are intentionally
+ * omitted — the list view only needs period / amounts / status.
+ */
+export const getSettlements = async (ownerId: string) => {
+  const settlements = await prisma.settlement.findMany({
+    where: { ownerId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return settlements.map((s) => ({
+    id: s.id,
+    settlementCode: s.settlementCode,
+    period: s.period,
+    totalBookings: s.totalBookings,
+    grossAmount: s.grossAmount,
+    commissionAmount: s.commissionAmount,
+    netAmount: s.netAmount,
+    status: s.status,
+    processedAt: s.processedAt ? s.processedAt.toISOString() : null,
+    createdAt: s.createdAt.toISOString(),
+  }));
+};
+
+/**
+ * Shape an OwnerBankAccount row for the client — the stored account number is
+ * encrypted at rest, so it is decrypted then re-masked to the last 4 digits.
+ */
+const serializeBankAccount = (account: {
+  id: string;
+  accountHolderName: string;
+  accountNumber: string;
+  bankName: string;
+  bankCode: string | null;
+  branchName: string | null;
+  branchCode: string | null;
+  isPrimary: boolean;
+  updatedAt: Date;
+}) => {
+  let accountNumberMasked: string | null = null;
+  try {
+    accountNumberMasked = maskSettlementBankAccountNumber(
+      decryptSettlementBankValue(account.accountNumber),
+    );
+  } catch {
+    // Decryption failure (malformed ciphertext or key rotation) — return null mask
+    // rather than crash the entire earnings page.
+    accountNumberMasked = null;
+  }
+
+  return {
+    id: account.id,
+    accountHolderName: account.accountHolderName,
+    accountNumberMasked,
+    bankName: account.bankName,
+    bankCode: account.bankCode,
+    branchName: account.branchName,
+    branchCode: account.branchCode,
+    isPrimary: account.isPrimary,
+    updatedAt: account.updatedAt.toISOString(),
+  };
+};
+
+/**
+ * Get the owner's saved bank account — account number masked to last 4 digits.
+ */
+export const getBankAccount = async (ownerId: string) => {
+  const account = await prisma.ownerBankAccount.findFirst({
+    where: { ownerId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return account ? serializeBankAccount(account) : null;
+};
+
+/**
+ * Create or replace the owner's bank account. The account number is encrypted
+ * at rest via settlementBankEncryption.ts; one primary account per owner is
+ * enforced by atomically replacing any existing record.
+ */
+export const upsertBankAccount = async (
+  ownerId: string,
+  data: UpsertBankAccountInput,
+) => {
+  const sanitize = (value: string) =>
+    xss(value.trim(), { whiteList: {}, stripIgnoreTag: true });
+
+  const encryptedAccountNumber = encryptSettlementBankValue(
+    data.accountNumber.replace(/[\s-]/g, ""),
+  );
+
+  if (!encryptedAccountNumber) {
+    throw ApiError.badRequest("A valid account number is required");
+  }
+
+  const account = await prisma.$transaction(async (tx) => {
+    await tx.ownerBankAccount.deleteMany({ where: { ownerId } });
+
+    return tx.ownerBankAccount.create({
+      data: {
+        ownerId,
+        accountHolderName: sanitize(data.accountHolderName),
+        accountNumber: encryptedAccountNumber,
+        bankName: sanitize(data.bankName),
+        bankCode: data.bankCode ? sanitize(data.bankCode) : null,
+        branchName: data.branchName ? sanitize(data.branchName) : null,
+        branchCode: data.branchCode ? sanitize(data.branchCode) : null,
+        isPrimary: true,
+      },
+    });
+  });
+
+  return serializeBankAccount(account);
 };

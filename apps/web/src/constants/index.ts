@@ -122,3 +122,27 @@ export const VEHICLE_TYPES = [
   { value: "luxury_bus", label: "Luxury Bus (40-50 seats)" },
   { value: "semi_luxury_bus", label: "Semi-Luxury Bus (35-45 seats)" },
 ] as const;
+
+export const MARKETING_STATS = {
+  verifiedBuses: "500+",
+  happyCustomers: "5000+",
+  averageRating: "4.8★",
+} as const;
+
+export const DEFAULT_SOCIAL_LINKS = {
+  facebook: "https://facebook.com/travelnest",
+  instagram: "https://instagram.com/travelnest",
+  twitter: "https://x.com/travelnest",
+  linkedin: "https://linkedin.com/company/travelnest",
+} as const;
+
+export const DEFAULT_MAP_CONFIG = {
+  embedUrl:
+    "https://www.google.com/maps?q=No.+45,+Galle+Road,+Colombo+03&output=embed",
+  lat: 6.9271,
+  lng: 79.8612,
+  zoom: 15,
+} as const;
+
+export const OTP_LENGTH = 6;
+export const OTP_RESEND_COOLDOWN_SECONDS = 60;

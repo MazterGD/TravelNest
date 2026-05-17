@@ -2,27 +2,27 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
-import { quotationService } from "@/lib/api/services";
-import { formatDate, formatCurrency } from "@/lib/utils/formatters";
+import { quotationService, landingContentService } from "@/lib/api/services";
+import { formatDate } from "@/lib/utils/formatters";
 import type { Quotation } from "@/types";
 import {
-  FaArrowLeft,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaEye,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaClock,
-  FaSearch,
-  FaFilter,
-  FaFileExport,
-  FaRedo,
-  FaFileAlt,
-} from "react-icons/fa";
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Search,
+  Filter,
+  RotateCw,
+  FileText,
+} from "lucide-react";
 import { useParams } from "next/navigation";
 
 type QuotationStatus =
@@ -37,13 +37,16 @@ export default function SentQuotationsPage() {
   const { user } = useAuthStore();
   const params = useParams();
   const locale = params.locale as string;
+  const t = useTranslations("sentQuotations");
   const [activeTab, setActiveTab] = useState<QuotationStatus>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [vehicleTypeOptions, setVehicleTypeOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
 
-  // Protect this route - only vehicle owners can access
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
   useEffect(() => {
@@ -54,8 +57,8 @@ export default function SentQuotationsPage() {
           status: activeTab !== "all" ? activeTab : undefined,
         });
         setQuotations(response.quotations || []);
-      } catch (error) {
-        console.error("Failed to fetch sent quotations:", error);
+      } catch {
+        setQuotations([]);
       } finally {
         setLoading(false);
       }
@@ -66,9 +69,22 @@ export default function SentQuotationsPage() {
     }
   }, [isAuthorized, activeTab]);
 
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await landingContentService.getPublicConfig();
+        setVehicleTypeOptions(response.options.vehicleTypes || []);
+      } catch {
+        // non-critical — filter will show without vehicle type options
+      }
+    };
+
+    fetchConfig();
+  }, []);
+
   const filteredQuotations = quotations.filter((quot) => {
     const matchesTab =
-      activeTab === "all" || quot.status === activeTab.toUpperCase();
+      activeTab === "all" || (quot.status as string) === activeTab;
     const matchesSearch =
       searchQuery === "" ||
       `${quot.customer?.firstName || ""} ${quot.customer?.lastName || ""}`
@@ -82,59 +98,42 @@ export default function SentQuotationsPage() {
 
   const tabCounts: Record<QuotationStatus, number> = {
     all: quotations.length,
-    SENT: quotations.filter((q) => q.status === "SENT").length,
-    VIEWED: quotations.filter((q) => q.status === "VIEWED").length,
-    ACCEPTED: quotations.filter((q) => q.status === "ACCEPTED").length,
-    REJECTED: quotations.filter((q) => q.status === "REJECTED").length,
-    EXPIRED: quotations.filter((q) => q.status === "EXPIRED").length,
+    SENT: quotations.filter((q) => (q.status as string) === "SENT").length,
+    VIEWED: quotations.filter((q) => (q.status as string) === "VIEWED").length,
+    ACCEPTED: quotations.filter((q) => (q.status as string) === "ACCEPTED").length,
+    REJECTED: quotations.filter((q) => (q.status as string) === "REJECTED").length,
+    EXPIRED: quotations.filter((q) => (q.status as string) === "EXPIRED").length,
   };
 
   const getStatusBadge = (status: QuotationStatus) => {
     const styles: Record<QuotationStatus, string> = {
-      SENT: "bg-blue-100 text-blue-800",
-      VIEWED: "bg-purple-100 text-purple-800",
-      ACCEPTED: "bg-green-100 text-green-800",
-      REJECTED: "bg-red-100 text-red-800",
-      EXPIRED: "bg-gray-100 text-gray-800",
-      all: "bg-gray-100 text-gray-800",
+      SENT: "bg-primary/10 text-primary",
+      VIEWED: "bg-primary/15 text-primary",
+      ACCEPTED: "bg-[var(--color-success-bg)] text-success-foreground",
+      REJECTED: "bg-[var(--color-error-bg)] text-error-foreground",
+      EXPIRED: "bg-muted text-muted-foreground",
+      all: "bg-muted text-muted-foreground",
     };
 
     const icons: Record<QuotationStatus, React.JSX.Element> = {
-      SENT: <FaFileAlt className="h-3 w-3" />,
-      VIEWED: <FaEye className="h-3 w-3" />,
-      ACCEPTED: <FaCheckCircle className="h-3 w-3" />,
-      REJECTED: <FaTimesCircle className="h-3 w-3" />,
-      EXPIRED: <FaClock className="h-3 w-3" />,
-      all: <FaFileAlt className="h-3 w-3" />,
+      SENT: <FileText className="h-3 w-3" />,
+      VIEWED: <Eye className="h-3 w-3" />,
+      ACCEPTED: <CheckCircle className="h-3 w-3" />,
+      REJECTED: <XCircle className="h-3 w-3" />,
+      EXPIRED: <Clock className="h-3 w-3" />,
+      all: <FileText className="h-3 w-3" />,
     };
 
-    const labels: Record<QuotationStatus, string> = {
-      SENT: "Sent",
-      VIEWED: "Viewed",
-      ACCEPTED: "Accepted",
-      REJECTED: "Rejected",
-      EXPIRED: "Expired",
-      all: "All",
-    };
+    const statusKey = status === "all" ? "all" : status;
 
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status]}`}
+        className={`inline-flex items-center gap-1.5 rounded-sm px-2.5 py-0.5 text-xs font-medium ${styles[statusKey]}`}
       >
-        {icons[status]}
-        {labels[status]}
+        {icons[statusKey]}
+        {t(`status.${statusKey}`)}
       </span>
     );
-  };
-
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    alert("Export functionality will be implemented");
-  };
-
-  const handleResend = (quotationId: string) => {
-    // TODO: Implement resend functionality
-    alert(`Resend quotation ${quotationId}`);
   };
 
   if (guardLoading || !isAuthorized || !user) {
@@ -149,125 +148,119 @@ export default function SentQuotationsPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted">
         {/* Header */}
-        <header className="border-b border-gray-200 bg-white">
-          <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+        <header className="border-b border-border bg-card">
+          <div className="mx-auto max-w-[1280px] px-6 py-4 lg:px-8">
             <Link
               href={`/${locale}/owner/dashboard`}
-              className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <FaArrowLeft className="h-4 w-4" />
-              Back to Dashboard
+              <ArrowLeft className="h-4 w-4" />
+              {t("backToDashboard")}
             </Link>
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">
-                  Sent Quotations
+                <h1 className="text-xl font-semibold text-foreground">
+                  {t("title")}
                 </h1>
-                <p className="mt-0.5 text-sm text-gray-500">
-                  {filteredQuotations.length} quotation
-                  {filteredQuotations.length !== 1 && "s"}
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {t("quotationCount", { count: filteredQuotations.length })}
                 </p>
               </div>
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-              >
-                <FaFileExport className="h-4 w-4" />
-                Export Data
-              </button>
             </div>
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-6 py-8 lg:px-8">
           {/* Filters & Tabs */}
-          <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
+          <div className="mb-8 rounded-lg border border-border bg-card p-6">
             <div className="mb-4 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
               <div className="flex flex-wrap gap-2">
                 {(
                   [
-                    { id: "all" as QuotationStatus, label: "All" },
-                    { id: "SENT" as QuotationStatus, label: "Sent" },
-                    { id: "VIEWED" as QuotationStatus, label: "Viewed" },
-                    { id: "ACCEPTED" as QuotationStatus, label: "Accepted" },
-                    { id: "REJECTED" as QuotationStatus, label: "Rejected" },
-                    { id: "EXPIRED" as QuotationStatus, label: "Expired" },
+                    { id: "all" as QuotationStatus },
+                    { id: "SENT" as QuotationStatus },
+                    { id: "VIEWED" as QuotationStatus },
+                    { id: "ACCEPTED" as QuotationStatus },
+                    { id: "REJECTED" as QuotationStatus },
+                    { id: "EXPIRED" as QuotationStatus },
                   ] as const
                 ).map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    className={`rounded-sm px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       activeTab === tab.id
-                        ? "bg-gray-900 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
+                        ? "bg-foreground text-background"
+                        : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    {tab.label} ({tabCounts[tab.id]})
+                    {t(`tabs.${tab.id}`)} ({tabCounts[tab.id]})
                   </button>
                 ))}
               </div>
 
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                className="flex h-11 items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <FaFilter className="h-4 w-4" />
-                Filters
+                <Filter className="h-4 w-4" />
+                {t("filters")}
               </button>
             </div>
 
             {/* Search */}
             <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
               <input
                 type="text"
-                placeholder="Search by customer name, quotation ID, or route..."
+                placeholder={t("searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="h-11 w-full rounded-md border border-border bg-card py-2 pl-10 pr-3 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
             {/* Filter Panel */}
             {showFilters && (
-              <div className="mt-4 grid gap-4 border-t border-gray-200 pt-4 md:grid-cols-3">
+              <div className="mt-4 grid gap-4 border-t border-border pt-4 md:grid-cols-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Date Range
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    {t("filterPanel.dateRange")}
                   </label>
-                  <select className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option>All Time</option>
-                    <option>Last 7 days</option>
-                    <option>Last 30 days</option>
-                    <option>Last 3 months</option>
+                  <select className="h-11 w-full appearance-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <option>{t("filterPanel.allTime")}</option>
+                    <option>{t("filterPanel.last7Days")}</option>
+                    <option>{t("filterPanel.last30Days")}</option>
+                    <option>{t("filterPanel.last3Months")}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Vehicle Type
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    {t("filterPanel.vehicleType")}
                   </label>
-                  <select className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option>All Types</option>
-                    <option>Luxury</option>
-                    <option>Semi-Luxury</option>
-                    <option>Standard</option>
+                  <select className="h-11 w-full appearance-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <option>{t("filterPanel.allTypes")}</option>
+                    {vehicleTypeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Sort By
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    {t("filterPanel.sortBy")}
                   </label>
-                  <select className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option>Newest First</option>
-                    <option>Oldest First</option>
-                    <option>Amount (High to Low)</option>
-                    <option>Amount (Low to High)</option>
-                    <option>Expiring Soon</option>
+                  <select className="h-11 w-full appearance-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <option>{t("filterPanel.newestFirst")}</option>
+                    <option>{t("filterPanel.oldestFirst")}</option>
+                    <option>{t("filterPanel.amountHighLow")}</option>
+                    <option>{t("filterPanel.amountLowHigh")}</option>
+                    <option>{t("filterPanel.expiringSoon")}</option>
                   </select>
                 </div>
               </div>
@@ -284,13 +277,12 @@ export default function SentQuotationsPage() {
               {filteredQuotations.map((quotation) => {
                 const customerName =
                   `${quotation.customer?.firstName || ""} ${quotation.customer?.lastName || ""}`.trim() ||
-                  "Unknown";
+                  t("card.unknownCustomer");
                 const sentDate = quotation.sentAt
                   ? formatDate(quotation.sentAt, "short")
-                  : "Not sent";
+                  : t("card.notSent");
                 const startDate = formatDate(quotation.startDate, "short");
 
-                // Calculate days remaining from validityDays
                 let daysRemaining = 0;
                 if (quotation.sentAt && quotation.validityDays) {
                   const sentTime = new Date(quotation.sentAt).getTime();
@@ -302,32 +294,34 @@ export default function SentQuotationsPage() {
                   );
                 }
 
+                const isExpiredOrUrgent = daysRemaining <= 2;
+
                 return (
                   <div
                     key={quotation.id}
-                    className="rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300"
+                    className="rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary/30"
                   >
                     <div className="mb-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                       <div className="flex-1">
                         <div className="mb-2 flex flex-wrap items-center gap-3">
-                          <h3 className="font-semibold text-gray-900">
+                          <h3 className="font-semibold text-foreground">
                             {customerName}
                           </h3>
                           {getStatusBadge(quotation.status as QuotationStatus)}
                         </div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           {quotation.quotationId}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Sent: {sentDate}
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {t("card.timestamps.sent")}: {sentDate}
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <div className="text-lg font-bold text-gray-900">
+                        <div className="text-lg font-bold text-foreground">
                           LKR {(quotation.totalAmount || 0).toLocaleString()}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-muted-foreground">
                           {quotation.vehicleType}
                         </div>
                       </div>
@@ -336,10 +330,10 @@ export default function SentQuotationsPage() {
                     {/* Trip Summary */}
                     <div className="mb-4 grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-3">
                       <div className="flex items-start gap-2">
-                        <FaMapMarkerAlt className="mt-0.5 h-4 w-4 text-gray-400" />
+                        <MapPin className="mt-0.5 h-4 w-4 text-[var(--color-text-tertiary)]" />
                         <div>
-                          <div className="text-xs text-gray-500">Route</div>
-                          <div className="font-medium text-gray-900">
+                          <div className="text-xs text-muted-foreground">{t("card.route")}</div>
+                          <div className="font-medium text-foreground">
                             {quotation.pickupLocation} →{" "}
                             {quotation.dropoffLocation}
                           </div>
@@ -347,61 +341,59 @@ export default function SentQuotationsPage() {
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <FaCalendarAlt className="mt-0.5 h-4 w-4 text-gray-400" />
+                        <Calendar className="mt-0.5 h-4 w-4 text-[var(--color-text-tertiary)]" />
                         <div>
-                          <div className="text-xs text-gray-500">Trip Date</div>
-                          <div className="font-medium text-gray-900">
+                          <div className="text-xs text-muted-foreground">{t("card.tripDate")}</div>
+                          <div className="font-medium text-foreground">
                             {startDate}
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <FaClock className="mt-0.5 h-4 w-4 text-gray-400" />
+                        <Clock className="mt-0.5 h-4 w-4 text-[var(--color-text-tertiary)]" />
                         <div>
-                          <div className="text-xs text-gray-500">Validity</div>
+                          <div className="text-xs text-muted-foreground">{t("card.validity")}</div>
                           <div
                             className={`font-medium ${
-                              daysRemaining < 0
-                                ? "text-red-600"
-                                : daysRemaining <= 2
-                                  ? "text-yellow-600"
-                                  : "text-gray-900"
+                              isExpiredOrUrgent
+                                ? "text-error-foreground"
+                                : "text-foreground"
                             }`}
                           >
                             {daysRemaining < 0
-                              ? "Expired"
+                              ? t("card.expired")
                               : daysRemaining === 0
-                                ? "Expires today"
-                                : `${daysRemaining} days left`}
+                                ? t("card.expiresToday")
+                                : t("card.daysLeft", { days: daysRemaining })}
                           </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Dates Timeline */}
-                    <div className="mb-4 flex flex-wrap gap-4 border-t border-gray-200 pt-4 text-xs text-gray-600">
+                    <div className="mb-4 flex flex-wrap gap-4 border-t border-border pt-4 text-xs text-muted-foreground">
                       {quotation.sentAt && (
                         <div>
-                          <span className="font-medium">Sent:</span>{" "}
+                          <span className="font-medium">{t("card.timestamps.sent")}:</span>{" "}
                           {new Date(quotation.sentAt).toLocaleString()}
                         </div>
                       )}
                       {quotation.viewedAt && (
                         <div>
-                          <span className="font-medium">Viewed:</span>{" "}
+                          <span className="font-medium">{t("card.timestamps.viewed")}:</span>{" "}
                           {new Date(quotation.viewedAt).toLocaleString()}
                         </div>
                       )}
                       {quotation.respondedAt && (
                         <div>
-                          <span className="font-medium">Responded:</span>{" "}
+                          <span className="font-medium">{t("card.timestamps.responded")}:</span>{" "}
                           {formatDate(quotation.respondedAt, "full")}
                         </div>
                       )}
                       {quotation.validityDays && quotation.sentAt && (
                         <div>
-                          <span className="font-medium">Expires:</span>{" "}
+                          <span className="font-medium">{t("card.timestamps.expires")}:</span>{" "}
                           {formatDate(
                             new Date(
                               new Date(quotation.sentAt).getTime() +
@@ -417,25 +409,25 @@ export default function SentQuotationsPage() {
                     <div className="flex flex-wrap gap-3">
                       <Link
                         href={`/${locale}/owner/quotations/sent/${quotation.id}`}
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                        className="flex h-9 items-center rounded-md border border-border px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        View Details
+                        {t("card.viewDetails")}
                       </Link>
 
                       {quotation.status === "EXPIRED" && (
-                        <button
-                          onClick={() => handleResend(quotation.quotationId)}
-                          className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+                        <Link
+                          href={`/${locale}/owner/quotations`}
+                          className="flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                          <FaRedo className="h-3 w-3" />
-                          Resend
-                        </button>
+                          <RotateCw className="h-3 w-3" />
+                          {t("card.resend")}
+                        </Link>
                       )}
 
-                      {quotation.status === "ACCEPTED" && (
-                        <div className="rounded-lg bg-green-100 px-4 py-2 text-sm font-medium text-green-800">
-                          Booking Created
-                        </div>
+                      {(quotation.status as string) === "ACCEPTED" && (
+                        <span className="inline-flex h-9 items-center rounded-sm bg-[var(--color-success-bg)] px-3 text-sm font-medium text-success-foreground">
+                          {t("card.bookingCreated")}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -444,24 +436,26 @@ export default function SentQuotationsPage() {
             </div>
           ) : (
             /* Empty State */
-            <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
+            <div className="rounded-lg border border-border bg-card p-12 text-center">
               <div className="mx-auto max-w-sm">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-                  <FaFileAlt className="h-8 w-8 text-gray-400" />
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <FileText className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="mb-2 font-semibold text-gray-900">
-                  No {activeTab === "all" ? "" : activeTab} quotations
-                </h3>
-                <p className="mb-6 text-sm text-gray-600">
+                <h3 className="mb-2 font-semibold text-foreground">
                   {activeTab === "all"
-                    ? "You haven't sent any quotations yet. Start by responding to quotation requests."
-                    : `No ${activeTab} quotations at the moment.`}
+                    ? t("empty.allTitle")
+                    : t("empty.title", { status: activeTab })}
+                </h3>
+                <p className="mb-6 text-sm text-muted-foreground">
+                  {activeTab === "all"
+                    ? t("empty.description")
+                    : t("empty.filteredDescription", { status: activeTab })}
                 </p>
                 <Link
                   href={`/${locale}/owner/quotations`}
-                  className="inline-block rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+                  className="inline-flex h-11 items-center rounded-md bg-primary px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  View Quotation Requests
+                  {t("empty.viewRequests")}
                 </Link>
               </div>
             </div>

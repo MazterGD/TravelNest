@@ -26,6 +26,7 @@ export { useBookings } from "./useBookings";
 
 // Form
 export { useForm } from "./useForm";
+export { useDialogPrompts } from "./useDialogPrompts";
 
 // Utilities
 export {

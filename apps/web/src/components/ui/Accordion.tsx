@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FaChevronDown } from "react-icons/fa";
+import { ChevronDown } from 'lucide-react';
 import { cn } from "@/lib/utils/cn";
 
 interface AccordionItemProps {
@@ -26,7 +26,7 @@ export function AccordionItem({
         aria-expanded={isOpen}
       >
         <span>{title}</span>
-        <FaChevronDown
+        <ChevronDown
           className={cn(
             "h-4 w-4 transition-transform duration-200",
             isOpen && "rotate-180"

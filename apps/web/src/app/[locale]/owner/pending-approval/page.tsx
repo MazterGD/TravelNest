@@ -4,18 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import {
-  FaClock,
-  FaCheckCircle,
-  FaFileAlt,
-  FaPhone,
-  FaEnvelope,
-  FaSignOutAlt,
-  FaBuilding,
-  FaBus,
-  FaIdCard,
-  FaExclamationTriangle,
-} from "react-icons/fa";
+import { Clock, CheckCircle, FileText, Phone, Mail, LogOut, Building, Bus, Contact, AlertTriangle } from 'lucide-react';
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
@@ -71,7 +60,7 @@ export default function PendingApprovalPage() {
             {/* Header with pending status */}
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-12 text-center">
               <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
-                <FaClock className="w-12 h-12 text-white animate-pulse" />
+                <Clock className="w-12 h-12 text-white animate-pulse bg-muted rounded-xl" />
               </div>
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
                 Registration Pending Approval
@@ -87,13 +76,13 @@ export default function PendingApprovalPage() {
               {/* Timeline */}
               <div className="mb-10">
                 <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <FaFileAlt className="text-amber-500" />
+                  <FileText className="text-amber-500" />
                   Verification Process
                 </h2>
                 <div className="space-y-4">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <FaCheckCircle className="w-5 h-5 text-white" />
+                      <CheckCircle className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 pb-4 border-l-2 border-green-200 pl-6 -ml-5">
                       <h3 className="font-semibold text-gray-900">
@@ -105,8 +94,8 @@ export default function PendingApprovalPage() {
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
-                      <FaClock className="w-5 h-5 text-white" />
+                    <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse bg-muted rounded-xl">
+                      <Clock className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 pb-4 border-l-2 border-amber-200 pl-6 -ml-5">
                       <h3 className="font-semibold text-gray-900">
@@ -119,7 +108,7 @@ export default function PendingApprovalPage() {
                   </div>
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                      <FaCheckCircle className="w-5 h-5 text-gray-400" />
+                      <CheckCircle className="w-5 h-5 text-gray-400" />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-400">
@@ -137,7 +126,7 @@ export default function PendingApprovalPage() {
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 mb-8 border border-amber-200">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <FaClock className="w-7 h-7 text-amber-600" />
+                    <Clock className="w-7 h-7 text-amber-600" />
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-900 text-lg">
@@ -153,7 +142,7 @@ export default function PendingApprovalPage() {
               {/* Your Registration Details */}
               <div className="bg-gray-50 rounded-2xl p-6 mb-8">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <FaIdCard className="text-gray-500" />
+                  <Contact className="text-gray-500" />
                   Your Registration Details
                 </h3>
                 <div className="grid md:grid-cols-2 gap-4">
@@ -170,14 +159,14 @@ export default function PendingApprovalPage() {
                   <div className="flex items-center gap-3 text-gray-700">
                     <span className="font-medium">Status:</span>
                     <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
-                      <FaClock className="w-3 h-3" />
+                      <Clock className="w-3 h-3" />
                       Pending Verification
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-gray-700">
                     <span className="font-medium">Role:</span>
                     <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                      <FaBus className="w-3 h-3" />
+                      <Bus className="w-3 h-3" />
                       Bus Owner
                     </span>
                   </div>
@@ -187,7 +176,7 @@ export default function PendingApprovalPage() {
               {/* What You Cannot Do */}
               <div className="bg-red-50 rounded-2xl p-6 mb-8 border border-red-200">
                 <h3 className="font-bold text-red-800 mb-4 flex items-center gap-2">
-                  <FaExclamationTriangle className="text-red-500" />
+                  <AlertTriangle className="text-red-500" />
                   Account Restrictions
                 </h3>
                 <p className="text-red-700 mb-4">
@@ -221,7 +210,7 @@ export default function PendingApprovalPage() {
               {/* What Happens Next */}
               <div className="bg-blue-50 rounded-2xl p-6 mb-8 border border-blue-200">
                 <h3 className="font-bold text-blue-800 mb-4 flex items-center gap-2">
-                  <FaBuilding className="text-blue-500" />
+                  <Building className="text-blue-500" />
                   What Happens Next?
                 </h3>
                 <ul className="space-y-3 text-blue-800">
@@ -276,14 +265,14 @@ export default function PendingApprovalPage() {
                     href="mailto:support@travenest.lk"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-semibold"
                   >
-                    <FaEnvelope className="w-4 h-4" />
+                    <Mail className="w-4 h-4" />
                     Email Support
                   </a>
                   <a
                     href="tel:+94112345678"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:border-primary hover:text-primary transition-colors font-semibold"
                   >
-                    <FaPhone className="w-4 h-4" />
+                    <Phone className="w-4 h-4" />
                     Call Support
                   </a>
                 </div>
@@ -302,7 +291,7 @@ export default function PendingApprovalPage() {
                 onClick={handleLogout}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors font-semibold"
               >
-                <FaSignOutAlt className="w-4 h-4" />
+                <LogOut className="w-4 h-4" />
                 Sign Out
               </button>
             </div>

@@ -72,6 +72,25 @@ export const resetPasswordSchema = z.object({
   }),
 });
 
+export const sendOtpSchema = z.object({
+  body: z.object({
+    identifier: z.string().trim().min(1, "Identifier is required"),
+    purpose: z.enum(["LOGIN", "REGISTRATION", "PHONE_VERIFICATION"]),
+  }),
+});
+
+export const verifyOtpSchema = z.object({
+  body: z.object({
+    identifier: z.string().trim().min(1, "Identifier is required"),
+    code: z
+      .string()
+      .trim()
+      .length(6, "OTP must be 6 digits")
+      .regex(/^\d{6}$/, "OTP must contain only digits"),
+    purpose: z.enum(["LOGIN", "REGISTRATION", "PHONE_VERIFICATION"]),
+  }),
+});
+
 // Type exports
 export type RegisterInput = z.infer<typeof registerSchema>["body"];
 export type LoginInput = z.infer<typeof loginSchema>["body"];
@@ -79,3 +98,5 @@ export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>["body"];
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>["body"];
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>["body"];
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>["body"];
+export type SendOtpInput = z.infer<typeof sendOtpSchema>["body"];
+export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>["body"];

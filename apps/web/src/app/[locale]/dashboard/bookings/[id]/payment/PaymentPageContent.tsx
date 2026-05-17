@@ -17,16 +17,7 @@ import {
 } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
 import { bookingService, paymentService, ApiError } from "@/lib/api";
-import {
-  FaArrowLeft,
-  FaCheckCircle,
-  FaClock,
-  FaCreditCard,
-  FaExclamationTriangle,
-  FaLock,
-  FaMoneyBillWave,
-  FaUniversity,
-} from "react-icons/fa";
+import { ArrowLeft, CheckCircle, Clock, CreditCard, AlertTriangle, Lock, Banknote, University } from 'lucide-react';
 
 interface BookingPaymentDetails {
   id: string;
@@ -70,31 +61,31 @@ const fallbackBankDetails = {
 
 const statusConfig: Record<
   string,
-  { label: string; icon: typeof FaClock; className: string }
+  { label: string; icon: typeof Clock; className: string }
 > = {
   pending: {
     label: "Pending",
-    icon: FaClock,
+    icon: Clock,
     className: "bg-yellow-100 text-yellow-800",
   },
   processing: {
     label: "Processing",
-    icon: FaClock,
+    icon: Clock,
     className: "bg-blue-100 text-blue-800",
   },
   completed: {
     label: "Completed",
-    icon: FaCheckCircle,
+    icon: CheckCircle,
     className: "bg-green-100 text-green-800",
   },
   failed: {
     label: "Failed",
-    icon: FaExclamationTriangle,
+    icon: AlertTriangle,
     className: "bg-red-100 text-red-800",
   },
   refunded: {
     label: "Refunded",
-    icon: FaCheckCircle,
+    icon: CheckCircle,
     className: "bg-purple-100 text-purple-800",
   },
 };
@@ -285,12 +276,12 @@ export default function PaymentPageContent({
     {
       id: "card",
       label: "Credit/Debit Card",
-      icon: <FaCreditCard className="text-sm" />,
+      icon: <CreditCard className="text-sm" />,
     },
     {
       id: "bank",
       label: "Bank Transfer",
-      icon: <FaUniversity className="text-sm" />,
+      icon: <University className="text-sm" />,
     },
   ];
 
@@ -304,7 +295,7 @@ export default function PaymentPageContent({
                 href={`/${locale}/dashboard/bookings/${booking.id}`}
                 className="text-gray-600 hover:text-[#20B0E9] transition-colors"
               >
-                <FaArrowLeft className="text-xl" />
+                <ArrowLeft className="text-xl" />
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Payment</h1>
@@ -350,7 +341,7 @@ export default function PaymentPageContent({
                       <Input label="CVC" placeholder="123" />
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <FaLock className="text-[#20B0E9]" />
+                      <Lock className="text-[#20B0E9]" />
                       Card details are processed securely by PayHere.
                     </div>
                   </div>
@@ -499,11 +490,11 @@ export default function PaymentPageContent({
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
-                  <FaLock className="text-[#20B0E9]" />
+                  <Lock className="text-[#20B0E9]" />
                   PCI compliant payment processing
                 </div>
                 <div className="flex items-center gap-2">
-                  <FaLock className="text-[#20B0E9]" />
+                  <Lock className="text-[#20B0E9]" />
                   Encrypted checkout powered by PayHere
                 </div>
               </CardContent>

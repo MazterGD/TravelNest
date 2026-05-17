@@ -9,7 +9,7 @@ import { useOwnerGuard } from "@/hooks";
 import { vehicleService, tripPackageService, ApiError } from "@/lib/api";
 import type { TripPackage, Vehicle } from "@/types";
 import { TripPackageForm } from "@/components/features/owner/TripPackageForm";
-import { FaArrowLeft } from "react-icons/fa";
+import { ArrowLeft } from 'lucide-react';
 
 export default function EditTripPackagePage() {
   const params = useParams();
@@ -94,7 +94,7 @@ export default function EditTripPackagePage() {
               href={`/${locale}/owner/packages`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
             >
-              <FaArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" />
               Back to Packages
             </Link>
             <h1 className="text-xl font-semibold text-gray-900">

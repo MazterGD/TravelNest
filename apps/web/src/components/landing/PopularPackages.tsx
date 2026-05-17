@@ -8,17 +8,22 @@ import { tripPackageService } from "@/lib/api/services";
 import type { TripPackage } from "@/types";
 import { ImageWithFallback } from "./ImageWithFallback";
 import { CTAButton } from "@/components/ui";
+import { localizePlaceName } from "@/lib/i18n/placeName";
 
 interface PopularPackagesProps {
-  searchHref: string;
+  packagesHref: string;
 }
 
-export function PopularPackages({ searchHref }: PopularPackagesProps) {
+export function PopularPackages({ packagesHref }: PopularPackagesProps) {
   const t = useTranslations("landing.popularPackages");
+  const tLocations = useTranslations("locations");
   const locale = useLocale();
   const [packages, setPackages] = useState<TripPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const getLocalizedPlace = (placeName: string) =>
+    localizePlaceName(placeName, (key) => tLocations(key));
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat(locale, {
@@ -72,7 +77,7 @@ export function PopularPackages({ searchHref }: PopularPackagesProps) {
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="h-64 animate-pulse rounded-[20px] bg-border"
+                className="h-64 animate-pulse bg-muted rounded-xl rounded-[20px] bg-border"
               />
             ))}
           </div>
@@ -96,71 +101,81 @@ export function PopularPackages({ searchHref }: PopularPackagesProps) {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {packages.map((pkg) => (
-            <Link
-              key={pkg.id}
-              href={`${searchHref}?search=${encodeURIComponent(pkg.startLocation + " to " + pkg.endLocation)}`}
-              className="group cursor-pointer overflow-hidden rounded-[20px] border border-border bg-white transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="relative aspect-video overflow-hidden bg-primary/10">
-                <ImageWithFallback
-                  src={`https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=2070&auto=format&fit=crop`}
-                  alt={pkg.title}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
+          {packages.map((pkg) => {
+            const localizedStart = getLocalizedPlace(pkg.startLocation);
+            const localizedEnd = getLocalizedPlace(pkg.endLocation);
+            const localizedTitle = t("generatedTitle", {
+              from: localizedStart,
+              to: localizedEnd,
+              days: pkg.durationDays,
+            });
 
-              <div className="p-6">
-                <h3 className="mb-3 line-clamp-1 text-[18px] font-semibold text-foreground">
-                  {pkg.title}
-                </h3>
-
-                <div className="mb-5 space-y-2">
-                  <div className="flex items-center gap-2 text-[14px] text-muted-foreground">
-                    <MapPin className="h-4 w-4 text-text-tertiary" />
-                    <span className="line-clamp-1">
-                      {pkg.startLocation} → {pkg.endLocation}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[14px] text-muted-foreground">
-                    <Calendar className="h-4 w-4 text-text-tertiary" />
-                    <span>
-                      {pkg.durationDays} {t("days")}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[14px] text-muted-foreground">
-                    <Users className="h-4 w-4 text-text-tertiary" />
-                    <span>
-                      {pkg.minPassengers}-{pkg.maxPassengers}{" "}
-                      {t("capacityLabel")}
-                    </span>
-                  </div>
+            return (
+              <Link
+                key={pkg.id}
+                href={`${packagesHref}/${pkg.id}`}
+                className="group cursor-pointer overflow-hidden rounded-[20px] border border-border bg-white transition-all duration-300 hover:-translate-y-1"
+              >
+                <div className="relative aspect-video overflow-hidden bg-primary/10">
+                  <ImageWithFallback
+                    src={`https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=2070&auto=format&fit=crop`}
+                    alt={localizedTitle}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
                 </div>
 
-                <div className="flex items-center justify-between border-t border-border pt-4">
-                  <div>
-                    <div className="mb-1 text-[12px] text-text-tertiary">
-                      {t("priceLabel")}
+                <div className="p-6">
+                  <h3 className="mb-3 line-clamp-1 text-[18px] font-semibold text-foreground">
+                    {localizedTitle}
+                  </h3>
+
+                  <div className="mb-5 space-y-2">
+                    <div className="flex items-center gap-2 text-[14px] text-muted-foreground">
+                      <MapPin className="h-4 w-4 text-text-tertiary" />
+                      <span className="line-clamp-1">
+                        {localizedStart} → {localizedEnd}
+                      </span>
                     </div>
-                    <div className="text-[20px] font-bold text-foreground">
-                      {formatCurrency(pkg.price)}
-                      <span className="ml-1 text-[12px] font-medium text-text-tertiary">
-                        {t("perPerson")}
+                    <div className="flex items-center gap-2 text-[14px] text-muted-foreground">
+                      <Calendar className="h-4 w-4 text-text-tertiary" />
+                      <span>
+                        {pkg.durationDays} {t("days")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[14px] text-muted-foreground">
+                      <Users className="h-4 w-4 text-text-tertiary" />
+                      <span>
+                        {pkg.minPassengers}-{pkg.maxPassengers}{" "}
+                        {t("capacityLabel")}
                       </span>
                     </div>
                   </div>
-                  <CTAButton size="sm" className="px-3">
-                    {t("viewDetails")}
-                  </CTAButton>
+
+                  <div className="flex items-center justify-between border-t border-border pt-4">
+                    <div>
+                      <div className="mb-1 text-[12px] text-text-tertiary">
+                        {t("priceLabel")}
+                      </div>
+                      <div className="text-[20px] font-bold text-foreground">
+                        {formatCurrency(pkg.price)}
+                        <span className="ml-1 text-[12px] font-medium text-text-tertiary">
+                          {t("perPerson")}
+                        </span>
+                      </div>
+                    </div>
+                    <CTAButton size="sm" className="px-3">
+                      {t("viewDetails")}
+                    </CTAButton>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="mt-10 text-center">
           <CTAButton
-            href={searchHref}
+            href={packagesHref}
             rightIcon={<ChevronRight className="h-4 w-4" />}
             variant="secondary"
           >

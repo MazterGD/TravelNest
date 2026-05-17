@@ -6,7 +6,7 @@ type CTAButtonVariant = "primary" | "secondary";
 type CTAButtonSize = "sm" | "md" | "lg";
 
 interface CTAButtonBaseProps {
-  children: ReactNode;
+  children?: ReactNode;
   variant?: CTAButtonVariant;
   size?: CTAButtonSize;
   className?: string;

@@ -1,26 +1,110 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { LoadingSpinner } from "@/components/ui";
+import { Button, CTAButton, Input, LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
-import { quotationService } from "@/lib/api/services";
-import type { Quotation } from "@/types";
+import { landingContentService, quotationService } from "@/lib/api/services";
+import type { Quotation, QuotationStatus } from "@/types";
 import {
-  FaArrowLeft,
-  FaClock,
-  FaMapMarkerAlt,
-  FaUsers,
-  FaCalendarAlt,
-  FaSearch,
-  FaFilter,
-  FaFileAlt,
-} from "react-icons/fa";
-import { useParams } from "next/navigation";
+  ArrowLeft,
+  Calendar,
+  Clock,
+  FileText,
+  Filter,
+  MapPin,
+  Search,
+  Users,
+} from "lucide-react";
+
+type PassengerRangeValue =
+  | "all"
+  | "16-20"
+  | "21-30"
+  | "31-40"
+  | "41-50"
+  | "50-plus";
+
+type SortValue =
+  | "newest"
+  | "oldest"
+  | "tripDate"
+  | "passengersHigh"
+  | "passengersLow";
+
+const passengerRanges: Array<{
+  value: PassengerRangeValue;
+  min?: number;
+  max?: number;
+  labelKey: string;
+}> = [
+  { value: "all", labelKey: "ownerQuotations.filters.passengerRanges.all" },
+  {
+    value: "16-20",
+    min: 16,
+    max: 20,
+    labelKey: "ownerQuotations.filters.passengerRanges.range16_20",
+  },
+  {
+    value: "21-30",
+    min: 21,
+    max: 30,
+    labelKey: "ownerQuotations.filters.passengerRanges.range21_30",
+  },
+  {
+    value: "31-40",
+    min: 31,
+    max: 40,
+    labelKey: "ownerQuotations.filters.passengerRanges.range31_40",
+  },
+  {
+    value: "41-50",
+    min: 41,
+    max: 50,
+    labelKey: "ownerQuotations.filters.passengerRanges.range41_50",
+  },
+  {
+    value: "50-plus",
+    min: 50,
+    labelKey: "ownerQuotations.filters.passengerRanges.range50_plus",
+  },
+];
+
+const sortOptions: Array<{ value: SortValue; labelKey: string }> = [
+  { value: "newest", labelKey: "ownerQuotations.filters.sortOptions.newest" },
+  { value: "oldest", labelKey: "ownerQuotations.filters.sortOptions.oldest" },
+  {
+    value: "tripDate",
+    labelKey: "ownerQuotations.filters.sortOptions.tripDate",
+  },
+  {
+    value: "passengersHigh",
+    labelKey: "ownerQuotations.filters.sortOptions.passengersHigh",
+  },
+  {
+    value: "passengersLow",
+    labelKey: "ownerQuotations.filters.sortOptions.passengersLow",
+  },
+];
+
+const getStatusStyles = (status: QuotationStatus) => {
+  if (status === "ACCEPTED") {
+    return "border border-success bg-[var(--color-success-bg)] text-success-foreground";
+  }
+
+  if (status === "REJECTED" || status === "EXPIRED") {
+    return "border border-error bg-[var(--color-error-bg)] text-error-foreground";
+  }
+
+  return "border border-border bg-muted text-muted-foreground";
+};
 
 export default function QuotationRequestsPage() {
+  const t = useTranslations();
   const { user } = useAuthStore();
   const params = useParams();
   const locale = params.locale as string;
@@ -29,9 +113,23 @@ export default function QuotationRequestsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [requests, setRequests] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [vehicleTypeOptions, setVehicleTypeOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState("all");
+  const [passengerRange, setPassengerRange] =
+    useState<PassengerRangeValue>("all");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
+  const [sortBy, setSortBy] = useState<SortValue>("newest");
 
   // Protect this route - only vehicle owners can access
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
+
+  const passengerRangeOption = useMemo(
+    () => passengerRanges.find((range) => range.value === passengerRange),
+    [passengerRange],
+  );
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -39,6 +137,13 @@ export default function QuotationRequestsPage() {
         setLoading(true);
         const response = await quotationService.getOwnerRequests({
           status: activeTab === "PENDING" ? "PENDING" : undefined,
+          vehicleType:
+            vehicleTypeFilter === "all" ? undefined : vehicleTypeFilter,
+          passengerMin: passengerRangeOption?.min,
+          passengerMax: passengerRangeOption?.max,
+          startDate: startDateFilter || undefined,
+          endDate: endDateFilter || undefined,
+          sortBy,
         });
         setRequests(response.quotations || []);
       } catch (error) {
@@ -51,22 +156,107 @@ export default function QuotationRequestsPage() {
     if (isAuthorized) {
       fetchRequests();
     }
-  }, [isAuthorized, activeTab]);
+  }, [
+    isAuthorized,
+    activeTab,
+    vehicleTypeFilter,
+    passengerRangeOption?.min,
+    passengerRangeOption?.max,
+    startDateFilter,
+    endDateFilter,
+    sortBy,
+  ]);
 
-  const filteredRequests = requests.filter((req) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      `${req.customer?.firstName || ""} ${req.customer?.lastName || ""}`
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      req.pickupLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.dropoffLocation.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await landingContentService.getPublicConfig();
+        setVehicleTypeOptions(response.options.vehicleTypes || []);
+      } catch (configError) {
+        console.error(
+          "Failed to fetch quotation request filters config:",
+          configError,
+        );
+      }
+    };
+
+    fetchConfig();
+  }, []);
+
+  const filteredRequests = useMemo(() => {
+    if (!searchQuery) return requests;
+
+    const query = searchQuery.toLowerCase();
+    return requests.filter((request) => {
+      const customerName = `${request.customer?.firstName || ""} ${
+        request.customer?.lastName || ""
+      }`
+        .trim()
+        .toLowerCase();
+      const pickup = request.pickupLocation?.toLowerCase() || "";
+      const dropoff = request.dropoffLocation?.toLowerCase() || "";
+      const quotationId = request.quotationId?.toLowerCase() || "";
+
+      return (
+        customerName.includes(query) ||
+        pickup.includes(query) ||
+        dropoff.includes(query) ||
+        quotationId.includes(query)
+      );
+    });
+  }, [requests, searchQuery]);
 
   const tabCounts = {
     PENDING: requests.filter((r) => r.status === "PENDING").length,
     all: requests.length,
+  };
+
+  const formatDate = (value: Date | string, withYear = true) => {
+    const dateValue = new Date(value);
+    if (Number.isNaN(dateValue.getTime())) return "";
+
+    return new Intl.DateTimeFormat(locale, {
+      month: "short",
+      day: "numeric",
+      year: withYear ? "numeric" : undefined,
+    }).format(dateValue);
+  };
+
+  const getExpiryBadge = (validUntil?: Date) => {
+    if (!validUntil) return null;
+
+    const daysRemaining = Math.ceil(
+      (new Date(validUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (daysRemaining < 0) {
+      return {
+        label: t("ownerQuotations.badges.expired"),
+        className:
+          "border border-error bg-[var(--color-error-bg)] text-error-foreground",
+      };
+    }
+
+    if (daysRemaining === 0) {
+      return {
+        label: t("ownerQuotations.badges.expiresToday"),
+        className: "border border-border bg-muted text-muted-foreground",
+      };
+    }
+
+    return {
+      label: t("ownerQuotations.badges.expiresIn", { days: daysRemaining }),
+      className: "border border-border bg-muted text-muted-foreground",
+    };
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setVehicleTypeFilter("all");
+    setPassengerRange("all");
+    setStartDateFilter("");
+    setEndDateFilter("");
+    setSortBy("newest");
   };
 
   // Show loading while checking auth state
@@ -82,38 +272,41 @@ export default function QuotationRequestsPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="border-b border-gray-200 bg-white">
-          <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-background">
+          <div className="mx-auto max-w-[1280px] px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/dashboard`}
-              className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              className="mb-3 flex items-center gap-2 rounded-md text-caption font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <FaArrowLeft className="h-4 w-4" />
-              Back to Dashboard
+              <ArrowLeft className="h-5 w-5" />
+              {t("ownerQuotations.backToDashboard")}
             </Link>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">
-                  Quotation Requests
+                <h1 className="text-heading-lg font-bold text-foreground">
+                  {t("ownerQuotations.title")}
                 </h1>
-                <p className="mt-0.5 text-sm text-gray-500">
-                  {filteredRequests.length} request
-                  {filteredRequests.length !== 1 && "s"}
+                <p className="mt-1 text-body text-muted-foreground">
+                  {t("ownerQuotations.requestCount", {
+                    count: filteredRequests.length,
+                  })}
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <Link
+              <div className="flex flex-wrap items-center gap-2">
+                <CTAButton
                   href={`/${locale}/owner/quotations/sent`}
-                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={<FileText className="h-5 w-5" />}
                 >
-                  <FaFileAlt className="h-4 w-4" />
-                  Sent Quotations
-                </Link>
+                  {t("ownerQuotations.actions.sentQuotations")}
+                </CTAButton>
                 {tabCounts.PENDING > 0 && (
-                  <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-white">
-                    {tabCounts.PENDING} New
+                  <span className="rounded-lg border border-border bg-muted px-2.5 py-1 text-caption font-medium text-muted-foreground">
+                    {t("ownerQuotations.newBadge", {
+                      count: tabCounts.PENDING,
+                    })}
                   </span>
                 )}
               </div>
@@ -121,96 +314,167 @@ export default function QuotationRequestsPage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-          {/* Filters & Tabs */}
-          <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-            <div className="mb-4 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-              <div className="flex gap-2">
+        <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-8 rounded-[20px] border border-border bg-muted p-6">
+            <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-4">
                 <button
+                  type="button"
                   onClick={() => setActiveTab("PENDING")}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-2 border-b-2 px-1 pb-2 text-body font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     activeTab === "PENDING"
-                      ? "bg-gray-900 text-white"
-                      : "text-gray-600 hover:bg-gray-100"
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Pending ({tabCounts.PENDING})
+                  {t("ownerQuotations.tabs.pending")}
+                  <span className="text-caption text-[var(--color-text-tertiary)]">
+                    ({tabCounts.PENDING})
+                  </span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setActiveTab("all")}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-2 border-b-2 px-1 pb-2 text-body font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     activeTab === "all"
-                      ? "bg-gray-900 text-white"
-                      : "text-gray-600 hover:bg-gray-100"
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  All ({tabCounts.all})
+                  {t("ownerQuotations.tabs.all")}
+                  <span className="text-caption text-[var(--color-text-tertiary)]">
+                    ({tabCounts.all})
+                  </span>
                 </button>
               </div>
 
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-              >
-                Filters
-              </button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowFilters((value) => !value)}
+                >
+                  <Filter className="h-5 w-5" />
+                  {t("ownerQuotations.filters.toggle")}
+                </Button>
+              </div>
             </div>
 
-            {/* Search */}
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
+            <div className="mt-4">
+              <Input
                 type="text"
-                placeholder="Search by customer name or route..."
+                placeholder={t("ownerQuotations.filters.searchPlaceholder")}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                icon={<Search className="h-5 w-5" />}
+                aria-label={t("ownerQuotations.filters.searchPlaceholder")}
+                className="text-body"
               />
             </div>
 
-            {/* Filter Panel */}
             {showFilters && (
-              <div className="mt-4 grid gap-4 border-t border-gray-200 pt-4 md:grid-cols-3">
+              <div className="mt-6 grid gap-4 border-t border-border pt-6 sm:grid-cols-2 lg:grid-cols-5">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Vehicle Type
+                  <label className="mb-2 block text-caption font-medium text-muted-foreground">
+                    {t("ownerQuotations.filters.vehicleType")}
                   </label>
-                  <select className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option>All Types</option>
-                    <option>Luxury Coach</option>
-                    <option>Semi-Luxury</option>
-                    <option>Standard</option>
+                  <select
+                    value={vehicleTypeFilter}
+                    onChange={(event) =>
+                      setVehicleTypeFilter(event.target.value)
+                    }
+                    className="w-full min-h-11 appearance-none rounded-xl border border-border bg-background px-3 py-2 text-body text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    <option value="all">
+                      {t("ownerQuotations.filters.allTypes")}
+                    </option>
+                    {vehicleTypeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Passenger Count
+                  <label className="mb-2 block text-caption font-medium text-muted-foreground">
+                    {t("ownerQuotations.filters.passengerCount")}
                   </label>
-                  <select className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option>All Capacities</option>
-                    <option>16-20</option>
-                    <option>21-30</option>
-                    <option>31-40</option>
-                    <option>41-50</option>
+                  <select
+                    value={passengerRange}
+                    onChange={(event) =>
+                      setPassengerRange(
+                        event.target.value as PassengerRangeValue,
+                      )
+                    }
+                    className="w-full min-h-11 appearance-none rounded-xl border border-border bg-background px-3 py-2 text-body text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    {passengerRanges.map((range) => (
+                      <option key={range.value} value={range.value}>
+                        {t(range.labelKey)}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Sort By
+                  <label className="mb-2 block text-caption font-medium text-muted-foreground">
+                    {t("ownerQuotations.filters.dateFrom")}
                   </label>
-                  <select className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option>Newest First</option>
-                    <option>Expiring Soon</option>
-                    <option>Distance</option>
+                  <input
+                    type="date"
+                    value={startDateFilter}
+                    onChange={(event) => setStartDateFilter(event.target.value)}
+                    className="w-full min-h-11 rounded-xl border border-border bg-background px-3 py-2 text-body text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-caption font-medium text-muted-foreground">
+                    {t("ownerQuotations.filters.dateTo")}
+                  </label>
+                  <input
+                    type="date"
+                    value={endDateFilter}
+                    onChange={(event) => setEndDateFilter(event.target.value)}
+                    className="w-full min-h-11 rounded-xl border border-border bg-background px-3 py-2 text-body text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-caption font-medium text-muted-foreground">
+                    {t("ownerQuotations.filters.sortBy")}
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(event) =>
+                      setSortBy(event.target.value as SortValue)
+                    }
+                    className="w-full min-h-11 appearance-none rounded-xl border border-border bg-background px-3 py-2 text-body text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    {sortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </option>
+                    ))}
                   </select>
+                </div>
+
+                <div className="sm:col-span-2 lg:col-span-5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearFilters}
+                  >
+                    {t("ownerQuotations.filters.clearFilters")}
+                  </Button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Request Cards */}
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <LoadingSpinner size="lg" />
@@ -219,115 +483,135 @@ export default function QuotationRequestsPage() {
             <div className="space-y-4">
               {filteredRequests.map((request) => {
                 const customerName =
-                  `${request.customer?.firstName || ""} ${request.customer?.lastName || ""}`.trim() ||
-                  "Unknown";
-                const startDate = new Date(
-                  request.startDate,
-                ).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                });
-                const createdTime = new Date(
-                  request.createdAt,
-                ).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                });
+                  `${request.customer?.firstName || ""} ${
+                    request.customer?.lastName || ""
+                  }`.trim() || t("ownerQuotations.unknownCustomer");
+                const requestDate = formatDate(request.createdAt, false);
+                const tripDate = formatDate(request.startDate);
+                const statusLabel = t(
+                  `ownerQuotations.status.${request.status}`,
+                  {
+                    defaultValue: request.status,
+                  },
+                );
+                const expiryBadge = request.validUntil
+                  ? getExpiryBadge(request.validUntil)
+                  : null;
 
                 return (
                   <div
                     key={request.id}
-                    className="rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-gray-300"
+                    className="rounded-[20px] border border-border bg-card p-6"
                   >
-                    <div className="mb-4 flex items-start justify-between">
+                    <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <div className="mb-2 flex items-center gap-3">
-                          <h3 className="font-semibold text-gray-900">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <h3 className="text-body-lg font-semibold text-foreground">
                             {customerName}
                           </h3>
-                          <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-white">
-                            {request.status}
+                          <span
+                            className={`rounded-lg px-2.5 py-1 text-caption font-medium ${getStatusStyles(
+                              request.status,
+                            )}`}
+                          >
+                            {statusLabel}
                           </span>
+                          {expiryBadge && (
+                            <span
+                              className={`rounded-lg px-2.5 py-1 text-caption font-medium ${expiryBadge.className}`}
+                            >
+                              {expiryBadge.label}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-caption text-muted-foreground">
                           {request.quotationId}
                         </p>
                       </div>
-                      <div className="text-right text-sm">
-                        <div className="mb-1 text-gray-500">{createdTime}</div>
+                      <div className="text-caption text-[var(--color-text-tertiary)]">
+                        {t("ownerQuotations.labels.requestedOn", {
+                          date: requestDate,
+                        })}
                       </div>
                     </div>
 
-                    <div className="mb-5 grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
-                      <div className="flex items-center gap-2">
-                        <FaMapMarkerAlt className="h-4 w-4 text-gray-400" />
+                    <div className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="mt-1 h-5 w-5 text-[var(--color-text-tertiary)]" />
                         <div>
-                          <div className="text-xs text-gray-500">Route</div>
-                          <div className="font-medium text-gray-900">
-                            {request.pickupLocation} → {request.dropoffLocation}
+                          <div className="text-caption text-[var(--color-text-tertiary)]">
+                            {t("ownerQuotations.labels.route")}
+                          </div>
+                          <div className="text-body font-medium text-foreground">
+                            {request.pickupLocation} →
+                            {request.dropoffLocation ||
+                              t("ownerQuotations.labels.dropoffPending")}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <FaCalendarAlt className="h-4 w-4 text-gray-400" />
+                      <div className="flex items-start gap-2">
+                        <Calendar className="mt-1 h-5 w-5 text-[var(--color-text-tertiary)]" />
                         <div>
-                          <div className="text-xs text-gray-500">Date</div>
-                          <div className="font-medium text-gray-900">
-                            {startDate}
+                          <div className="text-caption text-[var(--color-text-tertiary)]">
+                            {t("ownerQuotations.labels.date")}
+                          </div>
+                          <div className="text-body font-medium text-foreground">
+                            {tripDate}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <FaUsers className="h-4 w-4 text-gray-400" />
+                      <div className="flex items-start gap-2">
+                        <Users className="mt-1 h-5 w-5 text-[var(--color-text-tertiary)]" />
                         <div>
-                          <div className="text-xs text-gray-500">
-                            Passengers
+                          <div className="text-caption text-[var(--color-text-tertiary)]">
+                            {t("ownerQuotations.labels.passengers")}
                           </div>
-                          <div className="font-medium text-gray-900">
-                            {request.passengerCount}
+                          <div className="text-body font-medium text-foreground">
+                            {request.passengerCount || "—"}
                           </div>
                         </div>
                       </div>
 
                       <div>
-                        <div className="mb-1 text-xs text-gray-500">
-                          Vehicle Type
+                        <div className="text-caption text-[var(--color-text-tertiary)]">
+                          {t("ownerQuotations.labels.vehicleType")}
                         </div>
-                        <div className="font-medium text-gray-900">
-                          {request.vehicleType}
+                        <div className="text-body font-medium text-foreground">
+                          {request.vehicleType || "—"}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex gap-3">
-                      <Link
+                    {request.status === "PENDING" && (
+                      <CTAButton
                         href={`/${locale}/owner/quotations/send/${request.id}`}
-                        className="flex-1 rounded-lg bg-[#20B0E9] px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:[#1a8fc4]"
+                        fullWidth
+                        size="md"
                       >
-                        Send Quotation
-                      </Link>
-                    </div>
+                        {t("ownerQuotations.actions.sendQuotation")}
+                      </CTAButton>
+                    )}
                   </div>
                 );
               })}
             </div>
           ) : (
-            /* Empty State */
-            <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
-              <div className="mx-auto max-w-sm">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-                  <FaClock className="h-8 w-8 text-gray-400" />
+            <div className="rounded-[20px] border border-border bg-muted p-12 text-center">
+              <div className="mx-auto flex max-w-sm flex-col items-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-border bg-background">
+                  <Clock className="h-8 w-8 text-[var(--color-text-tertiary)]" />
                 </div>
-                <h3 className="mb-2 font-semibold text-gray-900">
-                  No {activeTab === "PENDING" ? "pending" : ""} requests
-                </h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="text-body-lg font-semibold text-foreground">
                   {activeTab === "PENDING"
-                    ? "You're all caught up! New quotation requests will appear here."
-                    : "No quotation requests at the moment."}
+                    ? t("ownerQuotations.empty.pendingTitle")
+                    : t("ownerQuotations.empty.allTitle")}
+                </h3>
+                <p className="mt-2 text-body text-muted-foreground">
+                  {activeTab === "PENDING"
+                    ? t("ownerQuotations.empty.pendingDescription")
+                    : t("ownerQuotations.empty.allDescription")}
                 </p>
               </div>
             </div>

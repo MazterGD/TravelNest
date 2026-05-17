@@ -230,6 +230,17 @@ export interface QuotationQuery {
   status?: QuotationStatus;
   page?: number;
   limit?: number;
+  startDate?: string;
+  endDate?: string;
+  vehicleType?: VehicleType;
+  passengerMin?: number;
+  passengerMax?: number;
+  sortBy?:
+    | "newest"
+    | "oldest"
+    | "tripDate"
+    | "passengersHigh"
+    | "passengersLow";
 }
 
 export interface CreateQuotationRequestData {
@@ -238,13 +249,30 @@ export interface CreateQuotationRequestData {
   startDate: string | Date;
   endDate: string | Date;
   startTime?: string;
-  pickupLocation: string;
-  dropoffLocation?: string;
+  pickupLocation:
+    | string
+    | { address?: string; city?: string; district?: string };
+  dropoffLocation?:
+    | string
+    | { address?: string; city?: string; district?: string };
   passengerCount?: number;
   estimatedDistance?: string;
   estimatedDuration?: string;
   specialRequests?: string;
 }
+
+const normalizeLocationInput = (
+  location?: string | { address?: string; city?: string; district?: string },
+) => {
+  if (!location) return "";
+  if (typeof location === "string") return location;
+
+  const combined = [location.address, location.city, location.district]
+    .filter(Boolean)
+    .join(", ");
+
+  return combined;
+};
 
 export interface SendQuotationData {
   vehicleId: string;
@@ -277,7 +305,17 @@ export const getOwnerQuotationRequests = async (
   ownerId: string,
   query: QuotationQuery,
 ) => {
-  const { status, page = 1, limit = 10 } = query;
+  const {
+    status,
+    page = 1,
+    limit = 10,
+    startDate,
+    endDate,
+    vehicleType,
+    passengerMin,
+    passengerMax,
+    sortBy = "newest",
+  } = query;
   const skip = (page - 1) * limit;
 
   // First, get the owner's vehicles to know their capabilities
@@ -294,7 +332,47 @@ export const getOwnerQuotationRequests = async (
   const ownerVehicleTypes = [...new Set(ownerVehicles.map((v) => v.type))];
   const maxSeats = Math.max(...ownerVehicles.map((v) => v.seats), 0);
 
-  const where: any = {
+  const normalizedStatus = status
+    ? ((status as string).toUpperCase() as QuotationStatus)
+    : undefined;
+  const normalizedVehicleType = vehicleType
+    ? ((vehicleType as string).toUpperCase() as VehicleType)
+    : undefined;
+
+  const filterClauses: any[] = [];
+
+  if (normalizedStatus) {
+    filterClauses.push({ status: normalizedStatus });
+  }
+
+  if (normalizedVehicleType) {
+    filterClauses.push({
+      OR: [
+        { vehicleType: normalizedVehicleType },
+        { vehicle: { type: normalizedVehicleType } },
+      ],
+    });
+  }
+
+  if (passengerMin || passengerMax) {
+    const passengerRange: { gte?: number; lte?: number } = {};
+    if (passengerMin) passengerRange.gte = passengerMin;
+    if (passengerMax) passengerRange.lte = passengerMax;
+    filterClauses.push({ passengerCount: passengerRange });
+  }
+
+  if (startDate || endDate) {
+    const dateRange: { gte?: Date; lte?: Date } = {};
+    if (startDate) dateRange.gte = new Date(startDate);
+    if (endDate) {
+      const endDateValue = new Date(endDate);
+      endDateValue.setHours(23, 59, 59, 999);
+      dateRange.lte = endDateValue;
+    }
+    filterClauses.push({ startDate: dateRange });
+  }
+
+  const baseScope = {
     OR: [
       // Quotations for owner's specific vehicles
       { vehicle: { ownerId } },
@@ -326,10 +404,20 @@ export const getOwnerQuotationRequests = async (
     ],
   };
 
-  if (status) {
-    // Convert status to uppercase to match Prisma enum (PENDING, SENT, etc.)
-    where.status = (status as string).toUpperCase();
-  }
+  const where: any = {
+    AND: [baseScope, ...filterClauses],
+  };
+
+  const orderBy =
+    sortBy === "oldest"
+      ? { createdAt: "asc" }
+      : sortBy === "tripDate"
+        ? { startDate: "asc" }
+        : sortBy === "passengersHigh"
+          ? { passengerCount: "desc" }
+          : sortBy === "passengersLow"
+            ? { passengerCount: "asc" }
+            : { createdAt: "desc" };
 
   const [quotations, total] = await Promise.all([
     prisma.quotation.findMany({
@@ -353,7 +441,7 @@ export const getOwnerQuotationRequests = async (
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy,
     }),
     prisma.quotation.count({ where }),
   ]);
@@ -589,7 +677,10 @@ export const createQuotationRequest = async (
   data: CreateQuotationRequestData,
 ) => {
   // Validate required fields
-  if (!data.pickupLocation) {
+  const pickupLocation = normalizeLocationInput(data.pickupLocation);
+  const dropoffLocation = normalizeLocationInput(data.dropoffLocation);
+
+  if (!pickupLocation) {
     throw ApiError.badRequest("Pickup location is required");
   }
   if (!data.startDate) {
@@ -658,8 +749,8 @@ export const createQuotationRequest = async (
       startDate,
       endDate,
       startTime: data.startTime || null,
-      pickupLocation: data.pickupLocation,
-      dropoffLocation: data.dropoffLocation || null,
+      pickupLocation,
+      dropoffLocation: dropoffLocation || null,
       passengerCount: data.passengerCount || null,
       estimatedDistance: data.estimatedDistance || null,
       estimatedDuration: data.estimatedDuration || null,

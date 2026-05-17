@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FaUpload, FaCheckCircle, FaTimes, FaFile } from "react-icons/fa";
+import { Upload, CheckCircle, X, FileText } from 'lucide-react';
 import { cn } from "@/lib/utils/cn";
 import { useTranslations } from "next-intl";
 
@@ -10,12 +10,20 @@ export interface UploadedFile {
   preview?: string;
 }
 
+export interface ExistingFile {
+  url: string;
+  fileName: string;
+  fileSize?: number;
+  status?: string;
+}
+
 interface FileUploadProps {
   label: string;
   required?: boolean;
   accept?: string;
   maxSize?: number; // in MB
   value?: UploadedFile | null;
+  existingFile?: ExistingFile | null;
   onChange: (file: UploadedFile | null) => void;
   error?: string;
   helpText?: string;
@@ -28,6 +36,7 @@ export function FileUpload({
   accept = ".pdf,.jpg,.jpeg,.png",
   maxSize = 5,
   value,
+  existingFile,
   onChange,
   error,
   helpText,
@@ -116,6 +125,32 @@ export function FileUpload({
 
   const displayError = error || localError;
   const isImage = value?.file.type.startsWith("image/");
+  const isExistingImage = existingFile?.fileName
+    ? /\.(jpg|jpeg|png|webp|gif)$/i.test(existingFile.fileName)
+    : false;
+
+  const statusLabel = (status?: string) => {
+    if (!status) return null;
+    const s = status.toUpperCase();
+    if (s === "VERIFIED")
+      return (
+        <span className="flex items-center gap-1 rounded-lg bg-[var(--color-success-bg)] px-2 py-0.5 text-xs font-medium text-[var(--color-success-text)]">
+          <CheckCircle className="h-3 w-3" />
+          {t("verified")}
+        </span>
+      );
+    if (s === "REJECTED")
+      return (
+        <span className="rounded-lg bg-[var(--color-error-bg)] px-2 py-0.5 text-xs font-medium text-[var(--color-error-text)]">
+          {t("rejected")}
+        </span>
+      );
+    return (
+      <span className="rounded-lg bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+        {t("pending")}
+      </span>
+    );
+  };
 
   return (
     <div className={cn("w-full", className)}>
@@ -123,9 +158,9 @@ export function FileUpload({
         <label className="text-lg font-semibold text-foreground">
           {label} {required && "*"}
         </label>
-        {value && (
+        {(value || existingFile) && (
           <span className="flex items-center gap-2 text-sm text-success">
-            <FaCheckCircle className="w-4 h-4" />
+            <CheckCircle className="w-4 h-4" />
             {t("uploaded")}
           </span>
         )}
@@ -160,7 +195,7 @@ export function FileUpload({
                 </div>
               ) : (
                 <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
-                  <FaFile className="w-8 h-8 text-muted-foreground" />
+                  <FileText className="w-8 h-8 text-muted-foreground" />
                 </div>
               )}
             </div>
@@ -181,13 +216,64 @@ export function FileUpload({
               onClick={handleRemove}
               className="rounded-xl bg-error-bg p-3 text-error hover:bg-error-bg/80 transition-all"
             >
-              <FaTimes className="w-5 h-5" />
+              <X className="w-5 h-5" />
             </button>
+          </div>
+        ) : existingFile ? (
+          <div className="space-y-3">
+            {/* Existing file display */}
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-3">
+              <div className="flex-shrink-0">
+                {isExistingImage ? (
+                  <div className="h-16 w-16 overflow-hidden rounded-lg bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={existingFile.url}
+                      alt={existingFile.fileName}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
+                    <FileText className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="truncate font-medium text-foreground">
+                  {existingFile.fileName}
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  {existingFile.fileSize != null && (
+                    <span className="text-sm text-muted-foreground">
+                      {(existingFile.fileSize / 1024 / 1024).toFixed(2)} MB
+                    </span>
+                  )}
+                  {statusLabel(existingFile.status)}
+                </div>
+              </div>
+            </div>
+            {/* Replace option */}
+            <label className="flex flex-col items-center cursor-pointer">
+              <div className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-muted px-6 py-3 transition-all hover:bg-muted/80">
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">
+                  {t("replace")}
+                </span>
+              </div>
+              <input
+                ref={inputRef}
+                type="file"
+                accept={accept}
+                onChange={handleInputChange}
+                className="hidden"
+              />
+            </label>
           </div>
         ) : (
           <label className="flex flex-col items-center cursor-pointer">
             <div className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-muted px-6 py-4 transition-all hover:bg-muted/80">
-              <FaUpload className="h-6 w-6 text-muted-foreground" />
+              <Upload className="h-6 w-6 text-muted-foreground" />
               <span className="font-medium text-muted-foreground">
                 {t("prompt")}
               </span>
@@ -198,7 +284,7 @@ export function FileUpload({
               accept={accept}
               onChange={handleInputChange}
               className="hidden"
-              required={required && !value}
+              required={required && !value && !existingFile}
             />
           </label>
         )}

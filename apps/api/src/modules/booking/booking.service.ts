@@ -7,6 +7,42 @@ export interface BookingQuery {
   limit?: number;
 }
 
+const getConfiguredCommissionRate = async (): Promise<number> => {
+  const activePercentageRule = await prisma.commissionRule.findFirst({
+    where: {
+      isActive: true,
+      type: "PERCENTAGE",
+      percentage: { not: null },
+    },
+    orderBy: [{ createdAt: "desc" }],
+    select: { percentage: true },
+  });
+
+  if (activePercentageRule && activePercentageRule.percentage !== null) {
+    return activePercentageRule.percentage / 100;
+  }
+
+  const settings = await prisma.platformSettings.findFirst({
+    orderBy: { createdAt: "asc" },
+    select: { paymentSettings: true },
+  });
+
+  const paymentSettings = settings?.paymentSettings as
+    | Record<string, unknown>
+    | null
+    | undefined;
+  const configuredRate =
+    typeof paymentSettings?.commissionRate === "number"
+      ? paymentSettings.commissionRate
+      : null;
+
+  if (configuredRate !== null && configuredRate >= 0) {
+    return configuredRate;
+  }
+
+  return 0;
+};
+
 /**
  * Get customer's bookings
  */
@@ -185,10 +221,42 @@ export const getBookingById = async (
     throw ApiError.forbidden("Not authorized to view this booking");
   }
 
-  // Calculate payment breakdown
-  const platformCommissionRate = 0.1;
+  // Read commission rate from configured rules/settings instead of hardcoding.
+  const platformCommissionRate = await getConfiguredCommissionRate();
   const platformCommission = booking.totalAmount * platformCommissionRate;
   const netAmount = booking.totalAmount - platformCommission;
+
+  // Derive cost breakdown from the linked quotation (stored in notes as
+  // "Booking created from quotation QUO-xxxxx").
+  let breakdown: {
+    basePrice: number;
+    driverAllowance: number;
+    additionalCharges: number;
+  } | null = null;
+
+  const quotationIdMatch = booking.notes?.match(/from quotation (QUO-[\w-]+)/);
+  if (quotationIdMatch) {
+    const quotation = await prisma.quotation.findUnique({
+      where: { quotationId: quotationIdMatch[1] },
+      select: {
+        vehicleRentalCost: true,
+        driverCost: true,
+        fuelCost: true,
+        tollCharges: true,
+        permitFees: true,
+      },
+    });
+    if (quotation) {
+      breakdown = {
+        basePrice: quotation.vehicleRentalCost ?? 0,
+        driverAllowance: quotation.driverCost ?? 0,
+        additionalCharges:
+          (quotation.fuelCost ?? 0) +
+          (quotation.tollCharges ?? 0) +
+          (quotation.permitFees ?? 0),
+      };
+    }
+  }
 
   return {
     id: booking.id,
@@ -229,8 +297,10 @@ export const getBookingById = async (
       status: booking.payment?.status?.toLowerCase() || "pending",
       method: booking.payment?.method || "Pending",
       receiptUrl: booking.payment?.bankReceiptUrl || null,
+      commissionRate: platformCommissionRate,
       platformCommission,
       netAmount,
+      breakdown,
     },
     status: booking.status.toLowerCase(),
     notes: booking.notes,

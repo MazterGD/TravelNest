@@ -4,25 +4,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
-import {
-  FaGoogle,
-  FaFacebook,
-  FaEye,
-  FaEyeSlash,
-  FaEnvelope,
-  FaLock,
-  FaBus,
-  FaUsers,
-  FaStar,
-} from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { Chrome, Facebook, Eye, EyeOff, Mail, Lock, Bus, Users, Star } from 'lucide-react';
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
-import { authService, ApiError } from "@/lib/api";
+import { authService, landingContentService, ApiError } from "@/lib/api";
 import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 import { useAuthStore } from "@/store";
 import { useGuestGuard } from "@/hooks";
 import { cn } from "@/lib/utils/cn";
+import { MARKETING_STATS, OTP_LENGTH, OTP_RESEND_COOLDOWN_SECONDS } from "@/constants";
 
 type LoginMethod = "password" | "otp";
 
@@ -45,6 +36,71 @@ export default function LoginPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submitCooldown, setSubmitCooldown] = useState(0);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpDestination, setOtpDestination] = useState("");
+  const [otpCooldown, setOtpCooldown] = useState(0);
+
+  const SUBMIT_COOLDOWN_SECONDS = 30;
+  const [marketingStats, setMarketingStats] = useState<{
+    verifiedBuses: string;
+    happyCustomers: string;
+    averageRating: string;
+  }>({
+    verifiedBuses: MARKETING_STATS.verifiedBuses,
+    happyCustomers: MARKETING_STATS.happyCustomers,
+    averageRating: MARKETING_STATS.averageRating,
+  });
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const config = await landingContentService.getPublicConfig();
+        if (config.loginMarketingStats) {
+          setMarketingStats({
+            verifiedBuses:
+              config.loginMarketingStats.verifiedBuses ||
+              MARKETING_STATS.verifiedBuses,
+            happyCustomers:
+              config.loginMarketingStats.happyCustomers ||
+              MARKETING_STATS.happyCustomers,
+            averageRating:
+              config.loginMarketingStats.averageRating ||
+              MARKETING_STATS.averageRating,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load login marketing stats", err);
+      }
+    };
+
+    fetchConfig();
+  }, []);
+
+  useEffect(() => {
+    if (otpCooldown <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setOtpCooldown((value) => Math.max(0, value - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [otpCooldown]);
+
+  useEffect(() => {
+    if (submitCooldown <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setSubmitCooldown((value) => Math.max(0, value - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [submitCooldown]);
 
   const handleOAuthLogin = (provider: "google" | "facebook") => {
     const apiBaseUrl =
@@ -57,10 +113,42 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitCooldown > 0) {
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
     try {
+      if (loginMethod === "otp") {
+        if (!otpSent) {
+          const sendOtpResult = await authService.sendOtp({
+            identifier: formData.emailOrPhone.trim(),
+            purpose: "LOGIN",
+          });
+
+          setOtpSent(true);
+          setOtpDestination(sendOtpResult.destination);
+          setOtpCooldown(OTP_RESEND_COOLDOWN_SECONDS);
+          setIsLoading(false);
+          return;
+        }
+
+        const verificationResult = await authService.verifyOtp({
+          identifier: formData.emailOrPhone.trim(),
+          code: otpCode.trim(),
+          purpose: "LOGIN",
+        });
+
+        if (!verificationResult.user || !verificationResult.accessToken) {
+          throw new ApiError(401, "Unable to complete OTP login");
+        }
+
+        login(verificationResult.user, verificationResult.accessToken);
+        router.push(getDashboardUrl(verificationResult.user, locale));
+        return;
+      }
+
       const response = await authService.login({
         email: formData.emailOrPhone,
         password: formData.password,
@@ -72,10 +160,41 @@ export default function LoginPage() {
       // Redirect to role-specific dashboard
       router.push(getDashboardUrl(response.user, locale));
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (err instanceof ApiError && err.status === 429) {
+        setError(t("errors.rateLimited"));
+        setSubmitCooldown(SUBMIT_COOLDOWN_SECONDS);
+      } else if (err instanceof ApiError) {
         setError(err.message);
       } else {
         setError(t("errors.unexpected"));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (otpCooldown > 0 || !formData.emailOrPhone.trim()) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const sendOtpResult = await authService.sendOtp({
+        identifier: formData.emailOrPhone.trim(),
+        purpose: "LOGIN",
+      });
+      setOtpDestination(sendOtpResult.destination);
+      setOtpCooldown(OTP_RESEND_COOLDOWN_SECONDS);
+      setError(null);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 429) {
+        setError(t("errors.rateLimited"));
+        setOtpCooldown(OTP_RESEND_COOLDOWN_SECONDS);
+      } else if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to resend OTP. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -96,7 +215,7 @@ export default function LoginPage() {
   return (
     <MainLayout>
       <div className="min-h-[calc(100vh-200px)] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-8 items-center">
+        <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-6 items-center">
           {/* Left Side - Image/Illustration */}
           <div className="hidden lg:block">
             <div className="bg-white rounded-3xl shadow-2xl p-12 border-2 border-gray-100">
@@ -121,10 +240,10 @@ export default function LoginPage() {
               <div className="mt-8 grid grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
                   <div className="flex justify-center mb-2">
-                    <FaBus className="w-6 h-6 text-primary" />
+                    <Bus className="w-6 h-6 text-primary" />
                   </div>
                   <div className="text-2xl font-bold text-primary mb-1">
-                    500+
+                    {marketingStats.verifiedBuses}
                   </div>
                   <div className="text-sm text-gray-600">
                     {t("marketing.stats.buses")}
@@ -132,10 +251,10 @@ export default function LoginPage() {
                 </div>
                 <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
                   <div className="flex justify-center mb-2">
-                    <FaUsers className="w-6 h-6 text-primary" />
+                    <Users className="w-6 h-6 text-primary" />
                   </div>
                   <div className="text-2xl font-bold text-primary mb-1">
-                    5000+
+                    {marketingStats.happyCustomers}
                   </div>
                   <div className="text-sm text-gray-600">
                     {t("marketing.stats.customers")}
@@ -143,10 +262,10 @@ export default function LoginPage() {
                 </div>
                 <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
                   <div className="flex justify-center mb-2">
-                    <FaStar className="w-6 h-6 text-primary" />
+                    <Star className="w-6 h-6 text-primary" />
                   </div>
                   <div className="text-2xl font-bold text-primary mb-1">
-                    4.8★
+                    {marketingStats.averageRating}
                   </div>
                   <div className="text-sm text-gray-600">
                     {t("marketing.stats.rating")}
@@ -166,7 +285,7 @@ export default function LoginPage() {
             </div>
 
             {/* Login Method Toggle */}
-            <div className="flex gap-2 bg-gray-100 p-1 rounded-xl mb-8">
+            <div className="flex gap-2 bg-gray-100 p-1 rounded-lg mb-8">
               <button
                 type="button"
                 onClick={() => setLoginMethod("password")}
@@ -206,10 +325,11 @@ export default function LoginPage() {
                   {t("emailOrPhone")}
                 </label>
                 <div className="relative group">
-                  <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                   <input
                     type="text"
                     required
+                    autoComplete="username"
                     value={formData.emailOrPhone}
                     onChange={(e) =>
                       setFormData({ ...formData, emailOrPhone: e.target.value })
@@ -220,6 +340,37 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {loginMethod === "otp" && otpSent && (
+                <div>
+                  <label className="block text-lg font-semibold text-gray-800 mb-2">
+                    OTP Code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={OTP_LENGTH}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Enter 6-digit OTP"
+                    className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                    required
+                  />
+                  <p className="mt-2 text-sm text-gray-500">
+                    Code sent to {otpDestination || formData.emailOrPhone}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={otpCooldown > 0 || isLoading}
+                    className="mt-2 text-sm font-semibold text-primary disabled:text-gray-400"
+                  >
+                    {otpCooldown > 0
+                      ? `Resend OTP in ${otpCooldown}s`
+                      : "Resend OTP"}
+                  </button>
+                </div>
+              )}
+
               {/* Password Input (only for password login) */}
               {loginMethod === "password" && (
                 <div>
@@ -227,10 +378,11 @@ export default function LoginPage() {
                     {t("password")}
                   </label>
                   <div className="relative group">
-                    <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                     <input
                       type={showPassword ? "text" : "password"}
                       required
+                      autoComplete="current-password"
                       value={formData.password}
                       onChange={(e) =>
                         setFormData({ ...formData, password: e.target.value })
@@ -244,9 +396,9 @@ export default function LoginPage() {
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
                     >
                       {showPassword ? (
-                        <FaEyeSlash className="w-5 h-5" />
+                        <EyeOff className="w-5 h-5" />
                       ) : (
-                        <FaEye className="w-5 h-5" />
+                        <Eye className="w-5 h-5" />
                       )}
                     </button>
                   </div>
@@ -284,13 +436,17 @@ export default function LoginPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || submitCooldown > 0}
                 className="w-full bg-gradient-to-r from-primary to-primary/90 text-white py-5 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <LoadingSpinner size="sm" className="text-white" />
+                ) : submitCooldown > 0 ? (
+                  t("errors.cooldown", { seconds: submitCooldown })
                 ) : loginMethod === "password" ? (
                   t("submit")
+                ) : otpSent ? (
+                  "Verify OTP"
                 ) : (
                   t("sendOtp")
                 )}
@@ -316,7 +472,7 @@ export default function LoginPage() {
                 onClick={() => handleOAuthLogin("google")}
                 className="flex items-center justify-center gap-3 py-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
               >
-                <FaGoogle className="w-5 h-5 text-red-500" />
+                <Chrome className="w-5 h-5 text-red-500" />
                 <span className="font-semibold text-gray-700">
                   {t("social.google")}
                 </span>
@@ -326,7 +482,7 @@ export default function LoginPage() {
                 onClick={() => handleOAuthLogin("facebook")}
                 className="flex items-center justify-center gap-3 py-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
               >
-                <FaFacebook className="w-5 h-5 text-blue-600" />
+                <Facebook className="w-5 h-5 text-blue-600" />
                 <span className="font-semibold text-gray-700">
                   {t("social.facebook")}
                 </span>

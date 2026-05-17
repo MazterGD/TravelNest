@@ -14,7 +14,7 @@ import {
 import { TripPackageCard } from "@/components/features/customer";
 import { tripPackageService, ApiError } from "@/lib/api";
 import type { TripPackage } from "@/types";
-import { FaFilter, FaTimes } from "react-icons/fa";
+import { Filter, X } from 'lucide-react';
 
 interface PackagesPageContentProps {
   locale: string;
@@ -211,7 +211,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
               variant="outline"
               onClick={() => setShowFilters(!showFilters)}
             >
-              <FaFilter className="mr-2 h-4 w-4" />
+              <Filter className="mr-2 h-4 w-4" />
               {t("filters.title")}
             </Button>
             <Button variant="ghost" onClick={clearFilters}>
@@ -365,7 +365,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
                           onClick={() => toggleCompare(pkg.id)}
                           className="text-xs text-muted-foreground hover:text-foreground"
                         >
-                          <FaTimes />
+                          <X />
                         </button>
                       </div>
                     </th>

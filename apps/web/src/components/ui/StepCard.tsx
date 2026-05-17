@@ -136,7 +136,7 @@ export function StepCardGrid({
 
   return (
     <div
-      className={cn("grid grid-cols-1 gap-8", columnStyles[columns], className)}
+      className={cn("grid grid-cols-1 gap-6", columnStyles[columns], className)}
     >
       {children}
     </div>

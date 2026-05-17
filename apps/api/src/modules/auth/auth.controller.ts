@@ -87,6 +87,38 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+export const sendOtp = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.sendOtpCode(req.body);
+  return ResponseHelper.success(res, result, "OTP sent successfully");
+});
+
+export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.verifyOtpCode(req.body);
+
+  if (
+    "accessToken" in result &&
+    "refreshToken" in result &&
+    "user" in result
+  ) {
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    setCSRFToken(res);
+
+    return ResponseHelper.success(res, {
+      verified: true,
+      user: result.user,
+      accessToken: result.accessToken,
+    });
+  }
+
+  return ResponseHelper.success(res, { verified: true });
+});
+
 // Refresh tokens
 export const refreshToken = asyncHandler(
   async (req: Request, res: Response) => {

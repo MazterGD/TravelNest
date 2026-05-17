@@ -1,29 +1,55 @@
 import { useTranslations } from "next-intl";
+import type { LandingStat } from "@/lib/api/services";
 
-export function TrustIndicators() {
+interface TrustIndicatorsProps {
+  stats: LandingStat[];
+}
+
+export function TrustIndicators({ stats }: TrustIndicatorsProps) {
   const t = useTranslations("landing.trustIndicators");
-  const stats = [
+
+  const localizedByDbKey: Record<string, { label: string; sublabel: string }> =
     {
-      number: "500+",
-      label: t("stats.verifiedBuses.label"),
-      sublabel: t("stats.verifiedBuses.sublabel"),
-    },
+      verified_buses: {
+        label: t("stats.verifiedBuses.label"),
+        sublabel: t("stats.verifiedBuses.sublabel"),
+      },
+      active_routes: {
+        label: t("stats.activeRoutes.label"),
+        sublabel: t("stats.activeRoutes.sublabel"),
+      },
+      happy_customers: {
+        label: t("stats.happyTravelers.label"),
+        sublabel: t("stats.happyTravelers.sublabel"),
+      },
+      trips_completed: {
+        label: t("stats.tripsCompleted.label"),
+        sublabel: t("stats.tripsCompleted.sublabel"),
+      },
+    };
+
+  const localizedByLabel: Record<string, { label: string; sublabel: string }> =
     {
-      number: "10,000+",
-      label: t("stats.successfulTrips.label"),
-      sublabel: t("stats.successfulTrips.sublabel"),
-    },
-    {
-      number: "5,000+",
-      label: t("stats.travelersTrustUs.label"),
-      sublabel: t("stats.travelersTrustUs.sublabel"),
-    },
-    {
-      number: "4.9/5",
-      label: "Average Rating",
-      sublabel: "Based on real reviews",
-    },
-  ];
+      "verified buses": localizedByDbKey.verified_buses,
+      "active routes": localizedByDbKey.active_routes,
+      "happy travelers": localizedByDbKey.happy_customers,
+      "happy customers": localizedByDbKey.happy_customers,
+      "trips completed": localizedByDbKey.trips_completed,
+      "successful trips": localizedByDbKey.trips_completed,
+    };
+
+  const normalizedStats = stats.map((stat) => {
+    const dbKey = stat.key?.toLowerCase();
+    const labelKey = stat.label.trim().toLowerCase();
+    const localized =
+      (dbKey && localizedByDbKey[dbKey]) || localizedByLabel[labelKey];
+
+    return {
+      number: stat.value,
+      label: localized?.label || stat.label,
+      sublabel: localized?.sublabel || stat.sublabel || "",
+    };
+  });
 
   return (
     <section className="border-b border-border bg-white py-16">
@@ -34,8 +60,8 @@ export function TrustIndicators() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-          {stats.map((stat, index) => {
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+          {normalizedStats.map((stat, index) => {
             return (
               <div key={index} className="text-center">
                 <div className="mb-1 text-[32px] font-bold tracking-[-0.02em] text-foreground sm:text-[40px]">

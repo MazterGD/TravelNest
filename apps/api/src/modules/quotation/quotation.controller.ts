@@ -10,12 +10,28 @@ export const getOwnerQuotationRequests = async (
   res: Response,
 ) => {
   const ownerId = req.user!.id;
-  const { status, page, limit } = req.query;
+  const {
+    status,
+    page,
+    limit,
+    startDate,
+    endDate,
+    vehicleType,
+    passengerMin,
+    passengerMax,
+    sortBy,
+  } = req.query;
 
   const result = await quotationService.getOwnerQuotationRequests(ownerId, {
     status: status as any,
     page: page ? Number(page) : undefined,
     limit: limit ? Number(limit) : undefined,
+    startDate: typeof startDate === "string" ? startDate : undefined,
+    endDate: typeof endDate === "string" ? endDate : undefined,
+    vehicleType: typeof vehicleType === "string" ? vehicleType : undefined,
+    passengerMin: passengerMin ? Number(passengerMin) : undefined,
+    passengerMax: passengerMax ? Number(passengerMax) : undefined,
+    sortBy: typeof sortBy === "string" ? sortBy : undefined,
   });
 
   return ResponseHelper.success(res, result);

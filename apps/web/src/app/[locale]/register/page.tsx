@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { FaBus, FaUser, FaCheckCircle, FaArrowRight } from "react-icons/fa";
+import { Bus, User, CheckCircle, ArrowRight } from 'lucide-react';
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useGuestGuard } from "@/hooks";
@@ -43,7 +43,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Account Type Selection Cards */}
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6">
             {/* Customer Card */}
             <Link
               href={`/${locale}/register/customer`}
@@ -60,7 +60,7 @@ export default function RegisterPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                 <div className="absolute bottom-4 left-4">
                   <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                    <FaUser className="w-7 h-7 text-primary" />
+                    <User className="w-7 h-7 text-primary" />
                   </div>
                 </div>
               </div>
@@ -75,15 +75,15 @@ export default function RegisterPage() {
 
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-3 text-gray-700">
-                    <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                     <span>{t("customerCard.bullets.0")}</span>
                   </li>
                   <li className="flex items-center gap-3 text-gray-700">
-                    <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                     <span>{t("customerCard.bullets.1")}</span>
                   </li>
                   <li className="flex items-center gap-3 text-gray-700">
-                    <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                     <span>{t("customerCard.bullets.2")}</span>
                   </li>
                 </ul>
@@ -93,7 +93,7 @@ export default function RegisterPage() {
                     {t("customerCard.cta")}
                   </span>
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                    <FaArrowRight className="w-4 h-4 text-primary group-hover:text-white transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-primary group-hover:text-white transition-colors" />
                   </div>
                 </div>
               </div>
@@ -115,7 +115,7 @@ export default function RegisterPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                 <div className="absolute bottom-4 left-4">
                   <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                    <FaBus className="w-7 h-7 text-primary" />
+                    <Bus className="w-7 h-7 text-primary" />
                   </div>
                 </div>
               </div>
@@ -130,15 +130,15 @@ export default function RegisterPage() {
 
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-3 text-gray-700">
-                    <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                     <span>{t("ownerCard.bullets.0")}</span>
                   </li>
                   <li className="flex items-center gap-3 text-gray-700">
-                    <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                     <span>{t("ownerCard.bullets.1")}</span>
                   </li>
                   <li className="flex items-center gap-3 text-gray-700">
-                    <FaCheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                     <span>{t("ownerCard.bullets.2")}</span>
                   </li>
                 </ul>
@@ -148,7 +148,7 @@ export default function RegisterPage() {
                     {t("ownerCard.cta")}
                   </span>
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                    <FaArrowRight className="w-4 h-4 text-primary group-hover:text-white transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-primary group-hover:text-white transition-colors" />
                   </div>
                 </div>
               </div>

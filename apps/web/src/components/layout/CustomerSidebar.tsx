@@ -4,14 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils/cn";
-import {
-  FaHome,
-  FaClipboardList,
-  FaCalendarAlt,
-  FaStar,
-  FaUser,
-  FaMapMarkerAlt,
-} from "react-icons/fa";
+import { Home, ClipboardList, Calendar, Star, User, MapPin } from 'lucide-react';
 
 interface SidebarItem {
   id: string;
@@ -33,37 +26,37 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
       id: "overview",
       label: t("overview"),
       href: `/${locale}/dashboard`,
-      icon: FaHome,
+      icon: Home,
     },
     {
       id: "quotations",
       label: t("quotations"),
       href: `/${locale}/dashboard/quotations`,
-      icon: FaClipboardList,
+      icon: ClipboardList,
     },
     {
       id: "packages",
       label: t("packages"),
       href: `/${locale}/dashboard/packages`,
-      icon: FaMapMarkerAlt,
+      icon: MapPin,
     },
     {
       id: "bookings",
       label: t("bookings"),
       href: `/${locale}/dashboard/bookings`,
-      icon: FaCalendarAlt,
+      icon: Calendar,
     },
     {
       id: "reviews",
       label: t("reviews"),
       href: `/${locale}/dashboard/reviews`,
-      icon: FaStar,
+      icon: Star,
     },
     {
       id: "profile",
       label: t("profile"),
       href: `/${locale}/dashboard/profile`,
-      icon: FaUser,
+      icon: User,
     },
   ];
 

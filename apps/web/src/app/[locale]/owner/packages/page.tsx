@@ -9,15 +9,7 @@ import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { tripPackageService, ApiError } from "@/lib/api";
 import type { TripPackage } from "@/types";
-import {
-  FaArrowLeft,
-  FaPlus,
-  FaMapMarkerAlt,
-  FaUsers,
-  FaClock,
-  FaEdit,
-  FaTrash,
-} from "react-icons/fa";
+import { ArrowLeft, Plus, MapPin, Users, Clock, Edit, Trash } from 'lucide-react';
 
 export default function OwnerPackagesPage() {
   const params = useParams();
@@ -85,7 +77,7 @@ export default function OwnerPackagesPage() {
               href={`/${locale}/owner/dashboard`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
             >
-              <FaArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" />
               Back to Dashboard
             </Link>
             <div className="flex items-center justify-between">
@@ -101,7 +93,7 @@ export default function OwnerPackagesPage() {
                 href={`/${locale}/owner/packages/new`}
                 className="flex items-center gap-2 rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
               >
-                <FaPlus className="h-4 w-4" />
+                <Plus className="h-4 w-4" />
                 Add Package
               </Link>
             </div>
@@ -142,15 +134,15 @@ export default function OwnerPackagesPage() {
 
                   <div className="space-y-2 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
-                      <FaMapMarkerAlt className="h-4 w-4 text-gray-400" />
+                      <MapPin className="h-4 w-4 text-gray-400" />
                       {item.startLocation} → {item.endLocation}
                     </div>
                     <div className="flex items-center gap-2">
-                      <FaClock className="h-4 w-4 text-gray-400" />
+                      <Clock className="h-4 w-4 text-gray-400" />
                       {item.durationDays} day(s)
                     </div>
                     <div className="flex items-center gap-2">
-                      <FaUsers className="h-4 w-4 text-gray-400" />
+                      <Users className="h-4 w-4 text-gray-400" />
                       {item.minPassengers} - {item.maxPassengers} passengers
                     </div>
                   </div>
@@ -167,7 +159,7 @@ export default function OwnerPackagesPage() {
                         href={`/${locale}/owner/packages/${item.id}/edit`}
                         className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                       >
-                        <FaEdit className="h-4 w-4" />
+                        <Edit className="h-4 w-4" />
                         Edit
                       </Link>
                       <button
@@ -175,7 +167,7 @@ export default function OwnerPackagesPage() {
                         onClick={() => setDeleteId(item.id)}
                         className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
                       >
-                        <FaTrash className="h-4 w-4" />
+                        <Trash className="h-4 w-4" />
                         Delete
                       </button>
                     </div>
@@ -193,7 +185,7 @@ export default function OwnerPackagesPage() {
                 href={`/${locale}/owner/packages/new`}
                 className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#20B0E9] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1a8fc4]"
               >
-                <FaPlus className="h-4 w-4" />
+                <Plus className="h-4 w-4" />
                 Add Package
               </Link>
             </div>

@@ -7,31 +7,20 @@ import {
   LoadingSpinner,
   Button,
   Badge,
-  TextArea,
-  Input,
+  TextArea
 } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
 import { bookingService } from "@/lib/api/services";
-import {
-  FaArrowLeft,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaClock,
-  FaUsers,
-  FaBus,
-  FaStar,
-  FaPhoneAlt,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaDownload,
-  FaFileInvoiceDollar,
-  FaMapMarkedAlt,
-  FaComments,
-  FaExclamationTriangle,
-  FaEdit,
-  FaTrash,
-  FaInfoCircle,
-} from "react-icons/fa";
+import { ArrowLeft, MapPin, Calendar, Users, Star, Phone, XCircle, Download, ReceiptText, Map, AlertTriangle } from 'lucide-react';
+
+export interface Message {
+  id: string;
+  senderId: string;
+  senderName: string;
+  message: string;
+  timestamp: string;
+  isOwner: boolean;
+}
 
 interface BookingDetails {
   id: string;
@@ -84,11 +73,11 @@ interface BookingDetails {
   updatedAt: string;
 
   // Fields available in DB but not currently populated via API
+  messages: Message[];
   // startTime?: string;
   // stops?: Array<{address: string; city: string; district: string}>;
   // vehicleAmenities?: string[];
   // gpsTrackingEnabled?: boolean;
-  // messages?: Array<{id: string; senderId: string; senderName: string; message: string; timestamp: string; isOwner: boolean}>;
   // timeline?: Array<{id: string; title: string; description: string; timestamp: string; status: string}>;
 }
 
@@ -216,7 +205,7 @@ export default function BookingDetailsContent({
         if (!prev) return prev;
         return {
           ...prev,
-          messages: [...prev.messages, message],
+          messages: [...(prev.messages || []), message],
         };
       });
 
@@ -312,7 +301,7 @@ export default function BookingDetailsContent({
                 href={`/${locale}/dashboard/bookings`}
                 className="text-gray-600 hover:text-[#20B0E9] transition-colors"
               >
-                <FaArrowLeft className="text-xl" />
+                <ArrowLeft className="text-xl" />
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
@@ -360,7 +349,7 @@ export default function BookingDetailsContent({
               {/* Dates */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="flex items-start gap-3">
-                  <FaCalendarAlt className="text-[#20B0E9] mt-1" />
+                  <Calendar className="text-[#20B0E9] mt-1" />
                   <div>
                     <p className="text-sm text-gray-600">Start Date</p>
                     <p className="font-medium">
@@ -369,7 +358,7 @@ export default function BookingDetailsContent({
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <FaCalendarAlt className="text-[#20B0E9] mt-1" />
+                  <Calendar className="text-[#20B0E9] mt-1" />
                   <div>
                     <p className="text-sm text-gray-600">End Date</p>
                     <p className="font-medium">
@@ -383,7 +372,7 @@ export default function BookingDetailsContent({
               {/* Route with Map placeholder */}
               <div className="mb-6">
                 <div className="bg-gray-100 rounded-lg h-48 flex items-center justify-center mb-4">
-                  <FaMapMarkedAlt className="text-gray-400 text-4xl" />
+                  <Map className="text-gray-400 text-4xl" />
                 </div>
 
                 {/* Route Details */}
@@ -408,7 +397,7 @@ export default function BookingDetailsContent({
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <FaMapMarkerAlt className="text-blue-500 text-sm" />
+                          <MapPin className="text-blue-500 text-sm" />
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">
@@ -430,7 +419,7 @@ export default function BookingDetailsContent({
 
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <FaMapMarkerAlt className="text-red-500" />
+                      <MapPin className="text-red-500" />
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Drop-off Location</p>
@@ -445,7 +434,7 @@ export default function BookingDetailsContent({
               {/* Additional Info */}
               <div className="flex items-center gap-6 pt-4 border-t">
                 <div className="flex items-center gap-2">
-                  <FaUsers className="text-[#20B0E9]" />
+                  <Users className="text-[#20B0E9]" />
                   <span className="font-medium">
                     {booking.trip.passengers} Passengers
                   </span>
@@ -457,7 +446,7 @@ export default function BookingDetailsContent({
                     size="sm"
                     className="border-[#20B0E9] text-[#20B0E9]"
                   >
-                    <FaMapMarkedAlt className="mr-2" />
+                    <Map className="mr-2" />
                     Track Live
                   </Button>
                 )}
@@ -538,7 +527,7 @@ export default function BookingDetailsContent({
                     </p>
                     {/* NOTE: Owner rating and trips count are not stored in the database yet
                     <div className="flex items-center gap-2 mb-1">
-                      <FaStar className="text-yellow-400" />
+                      <Star className="text-yellow-400" />
                       <span className="text-sm font-medium">
                         {booking.ownerRating} ({booking.ownerTrips} trips)
                       </span>
@@ -555,7 +544,7 @@ export default function BookingDetailsContent({
                   }
                   className="bg-[#20B0E9] hover:bg-[#0B5F7F] text-white"
                 >
-                  <FaPhoneAlt className="mr-2" />
+                  <Phone className="mr-2" />
                   Contact Owner
                 </Button>
               </div>
@@ -564,7 +553,7 @@ export default function BookingDetailsContent({
             {/* NOTE: Messages feature is not integrated yet - will be added in future updates
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <FaComments />
+                <MessageSquare />
                 Messages with Owner
               </h2>
               <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
@@ -626,9 +615,9 @@ export default function BookingDetailsContent({
                               : "bg-gray-100 text-gray-400"
                         }`}
                       >
-                        {event.status === "completed" && <FaCheckCircle />}
-                        {event.status === "current" && <FaClock />}
-                        {event.status === "upcoming" && <FaClock />}
+                        {event.status === "completed" && <CheckCircle />}
+                        {event.status === "current" && <Clock />}
+                        {event.status === "upcoming" && <Clock />}
                       </div>
                       {index < booking.timeline.length - 1 && (
                         <div
@@ -775,12 +764,12 @@ export default function BookingDetailsContent({
               {/* Download Buttons */}
               <div className="space-y-2">
                 <Button variant="outline" className="w-full" size="sm">
-                  <FaDownload className="mr-2" />
+                  <Download className="mr-2" />
                   Download Invoice
                 </Button>
                 {booking.payment.receiptUrl && (
                   <Button variant="outline" className="w-full" size="sm">
-                    <FaFileInvoiceDollar className="mr-2" />
+                    <ReceiptText className="mr-2" />
                     Download Receipt
                   </Button>
                 )}
@@ -797,7 +786,7 @@ export default function BookingDetailsContent({
                     variant="outline"
                     className="w-full border-red-500 text-red-500 hover:bg-red-50"
                   >
-                    <FaTimesCircle className="mr-2" />
+                    <XCircle className="mr-2" />
                     Cancel Booking
                   </Button>
                 )}
@@ -806,7 +795,7 @@ export default function BookingDetailsContent({
                     onClick={() => setShowRatingDialog(true)}
                     className="w-full bg-[#20B0E9] hover:bg-[#0B5F7F] text-white"
                   >
-                    <FaStar className="mr-2" />
+                    <Star className="mr-2" />
                     Rate Service
                   </Button>
                 )}
@@ -814,7 +803,7 @@ export default function BookingDetailsContent({
                   variant="outline"
                   className="w-full border-orange-500 text-orange-500 hover:bg-orange-50"
                 >
-                  <FaExclamationTriangle className="mr-2" />
+                  <AlertTriangle className="mr-2" />
                   Raise Dispute
                 </Button>
               </div>
@@ -876,7 +865,7 @@ export default function BookingDetailsContent({
                     onClick={() => setRating(star)}
                     className="text-3xl transition-colors"
                   >
-                    <FaStar
+                    <Star
                       className={
                         star <= rating ? "text-yellow-400" : "text-gray-300"
                       }

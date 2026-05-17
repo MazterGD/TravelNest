@@ -26,11 +26,30 @@ import notificationRoutes from "./modules/notification/notification.routes.js";
 import ownerRoutes from "./modules/owner/owner.routes.js";
 import tripPackageRoutes from "./modules/trip-package/trip-package.routes.js";
 import uploadsRoutes from "./modules/uploads/uploads.routes.js";
+import adminRoutes from "./modules/admin/admin.routes.js";
+import landingRoutes from "./modules/landing/landing.routes.js";
 
 const app: Express = express();
 
 // Security middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: ["'self'", "https:"],
+        fontSrc: ["'self'", "https:", "data:"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  })
+);
 app.use(
   cors({
     origin: config.corsOrigin,
@@ -45,17 +64,19 @@ app.use(
   }),
 );
 
-// Rate limiting (disabled in test environment to avoid rate limit errors during tests)
-if (config.env !== "test") {
-  const limiter = rateLimit({
-    windowMs: config.rateLimitWindowMs,
-    max: config.rateLimitMaxRequests,
-    message: { error: "Too many requests, please try again later." },
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-  app.use(limiter);
-}
+// Rate limiting — enforced in production only.
+// In development/test, navigation triggers many parallel requests (dashboard widgets,
+// config polls) that legitimately exceed the production threshold; brute-force risk
+// is absent locally where the API is only reachable from the dev machine.
+const limiter = rateLimit({
+  windowMs: config.rateLimitWindowMs,
+  max: config.rateLimitMaxRequests,
+  message: { error: "Too many requests, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => config.env !== "production",
+});
+app.use(limiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
@@ -63,7 +84,25 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
 // Serve uploaded files
-app.use("/uploads", express.static(path.resolve(config.upload.uploadDir)));
+const uploadsDir = path.resolve(config.upload.uploadDir);
+const uploadsCacheControl =
+  config.env === "production"
+    ? "public, max-age=604800, stale-while-revalidate=86400"
+    : "no-cache";
+
+app.use(
+  "/uploads",
+  express.static(uploadsDir, {
+    etag: true,
+    lastModified: true,
+    maxAge: config.env === "production" ? "7d" : 0,
+    setHeaders: (res, filePath) => {
+      if (/\.(?:png|jpg|jpeg|webp|gif|svg)$/i.test(filePath)) {
+        res.setHeader("Cache-Control", uploadsCacheControl);
+      }
+    },
+  }),
+);
 
 // Logging
 if (config.env === "development") {
@@ -95,6 +134,8 @@ app.use(`${apiBase}/notifications`, notificationRoutes);
 app.use(`${apiBase}/owner`, ownerRoutes);
 app.use(`${apiBase}/packages`, tripPackageRoutes);
 app.use(`${apiBase}/uploads`, uploadsRoutes);
+app.use(`${apiBase}/admin`, adminRoutes);
+app.use(`${apiBase}/landing`, landingRoutes);
 
 // API documentation endpoint
 app.get(`${apiBase}`, (_req: Request, res: Response) => {
@@ -113,6 +154,8 @@ app.get(`${apiBase}`, (_req: Request, res: Response) => {
       notifications: `${apiBase}/notifications`,
       owner: `${apiBase}/owner`,
       packages: `${apiBase}/packages`,
+      admin: `${apiBase}/admin`,
+      landing: `${apiBase}/landing`,
     },
   });
 });

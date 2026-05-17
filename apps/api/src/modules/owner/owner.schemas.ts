@@ -24,7 +24,7 @@ const vehicleSchema = z.object({
     .string()
     .min(1, "Registration number is required")
     .max(20, "Registration number must be at most 20 characters"),
-  vehicleType: z.enum(["luxury", "semi-luxury", "standard", "mini"]),
+  vehicleType: z.enum(["ORDINARY", "SEMI_LUXURY", "LUXURY_AC"]),
   make: z.string().min(1, "Make is required").max(50),
   model: z.string().min(1, "Model is required").max(50),
   year: z
@@ -37,7 +37,7 @@ const vehicleSchema = z.object({
     .int()
     .min(1, "Seating capacity must be at least 1")
     .max(100),
-  acType: z.enum(["full-ac", "ac", "non-ac"]),
+  acType: z.enum(["FULL_AC", "AC", "NON_AC"]),
   photos: z.array(vehiclePhotoSchema).optional().default([]),
   documents: z
     .array(vehicleDocumentSchema)
@@ -60,6 +60,13 @@ const addressSchema = z.object({
   district: z.string().min(1, "District is required").max(100),
   postalCode: z.string().optional(),
   baseLocation: z.string().min(1, "Base location is required").max(100),
+});
+
+const businessInfoSchema = z.object({
+  businessName: z.string().trim().min(2).max(120),
+  businessType: z.string().trim().min(2).max(80),
+  businessRegNumber: z.string().trim().min(2).max(80),
+  tinNumber: z.string().trim().min(2).max(80),
 });
 
 // Full owner registration schema
@@ -94,6 +101,9 @@ export const ownerRegistrationSchema = z.object({
     // Address
     address: addressSchema,
 
+    // Business info
+    businessInfo: businessInfoSchema.optional(),
+
     // Owner documents (NIC, Profile Photo)
     ownerDocuments: z
       .array(ownerDocumentSchema)
@@ -121,6 +131,10 @@ export const updatePersonalInfoSchema = z.object({
     lastName: z.string().min(2).max(50).optional(),
     phone: z.string().min(1).max(20).optional(),
     nicNumber: z.string().min(1).max(20).optional(),
+    businessName: z.string().trim().min(2).max(120).optional(),
+    businessType: z.string().trim().min(2).max(80).optional(),
+    businessRegNumber: z.string().trim().min(2).max(80).optional(),
+    tinNumber: z.string().trim().min(2).max(80).optional(),
   }),
 });
 
@@ -138,3 +152,59 @@ export type UpdatePersonalInfoInput = z.infer<
   typeof updatePersonalInfoSchema
 >["body"];
 export type UpdateAddressInput = z.infer<typeof updateAddressSchema>["body"];
+
+export const addOwnerDocumentSchema = z.object({
+  body: z.object({
+    type: z.enum(["NIC", "PROFILE_PHOTO"]),
+    url: z.string().url("Document URL is required"),
+    fileName: z.string().min(1, "File name is required"),
+    fileSize: z.number().positive("File size must be positive"),
+    mimeType: z.string().min(1, "MIME type is required"),
+  }),
+});
+
+export type AddOwnerDocumentInput = z.infer<
+  typeof addOwnerDocumentSchema
+>["body"];
+
+// Earnings transaction history query (status / date filters + pagination)
+export const earningsTransactionsQuerySchema = z.object({
+  query: z.object({
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(50).optional(),
+    status: z
+      .enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED", "REFUNDED"])
+      .optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
+  }),
+});
+
+export type EarningsTransactionsQuery = z.infer<
+  typeof earningsTransactionsQuerySchema
+>["query"];
+
+// Owner bank account upsert (used for settlement payouts)
+export const upsertBankAccountSchema = z.object({
+  body: z.object({
+    accountHolderName: z
+      .string()
+      .trim()
+      .min(2, "Account holder name is required")
+      .max(120),
+    accountNumber: z
+      .string()
+      .trim()
+      .min(5, "Account number is required")
+      .max(40)
+      .regex(/^[0-9\s-]+$/, "Account number may only contain digits"),
+    bankName: z.string().trim().min(2, "Bank name is required").max(120),
+    bankCode: z.string().trim().min(1).max(40).optional(),
+    branchName: z.string().trim().min(1).max(120).optional(),
+    branchCode: z.string().trim().min(1).max(40).optional(),
+  }),
+});
+
+export type UpsertBankAccountInput = z.infer<
+  typeof upsertBankAccountSchema
+>["body"];

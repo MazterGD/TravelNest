@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LoadingSpinner, Badge, Button, Input, Select } from "@/components/ui";
+import { LoadingSpinner, Button, Select } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
 import {
   useQuotationStore,
@@ -11,25 +11,7 @@ import {
   type QuotationRequest,
 } from "@/store";
 import { quotationService } from "@/lib/api/services";
-import {
-  FaArrowLeft,
-  FaCheck,
-  FaTimes,
-  FaPhoneAlt,
-  FaStar,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaUsers,
-  FaBus,
-  FaSnowflake,
-  FaChevronDown,
-  FaChevronUp,
-  FaDownload,
-  FaPlus,
-  FaMinus,
-  FaTrophy,
-  FaFileDownload,
-} from "react-icons/fa";
+import { ArrowLeft, Check, X, Phone, Star, MapPin, Calendar, Users, ChevronDown, ChevronUp, Plus, Trophy, Download } from 'lucide-react';
 
 interface PriceBreakdown {
   vehicleRentalCost: number;
@@ -415,7 +397,7 @@ export default function ComparisonPageContent({
                 href={`/${locale}/dashboard/quotations`}
                 className="text-gray-600 hover:text-[#20B0E9] transition-colors"
               >
-                <FaArrowLeft className="text-xl" />
+                <ArrowLeft className="text-xl" />
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
@@ -430,7 +412,7 @@ export default function ComparisonPageContent({
               onClick={handleDownloadPDF}
               className="flex items-center gap-2 bg-[#20B0E9] hover:bg-[#0B5F7F] text-white"
             >
-              <FaFileDownload />
+              <Download />
               Download PDF
             </Button>
           </div>
@@ -446,7 +428,7 @@ export default function ComparisonPageContent({
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-start gap-3">
-                <FaMapMarkerAlt className="text-[#20B0E9] mt-1" />
+                <MapPin className="text-[#20B0E9] mt-1" />
                 <div>
                   <p className="text-sm text-gray-600">Route</p>
                   <p className="font-medium text-gray-900">
@@ -456,7 +438,7 @@ export default function ComparisonPageContent({
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <FaCalendarAlt className="text-[#20B0E9] mt-1" />
+                <Calendar className="text-[#20B0E9] mt-1" />
                 <div>
                   <p className="text-sm text-gray-600">Dates</p>
                   <p className="font-medium text-gray-900">
@@ -466,7 +448,7 @@ export default function ComparisonPageContent({
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <FaUsers className="text-[#20B0E9] mt-1" />
+                <Users className="text-[#20B0E9] mt-1" />
                 <div>
                   <p className="text-sm text-gray-600">Passengers</p>
                   <p className="font-medium text-gray-900">
@@ -559,7 +541,7 @@ export default function ComparisonPageContent({
                   {/* Best Value Badge */}
                   {isBestValue && (
                     <div className="bg-green-500 text-white px-4 py-2 flex items-center justify-center gap-2">
-                      <FaTrophy />
+                      <Trophy />
                       <span className="font-semibold">Best Value</span>
                     </div>
                   )}
@@ -576,9 +558,9 @@ export default function ComparisonPageContent({
                       className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100"
                     >
                       {selectedQuotations.has(quotation.id) ? (
-                        <FaCheck className="text-green-500" />
+                        <Check className="text-green-500" />
                       ) : (
-                        <FaPlus className="text-gray-600" />
+                        <Plus className="text-gray-600" />
                       )}
                     </button>
                   </div>
@@ -602,7 +584,7 @@ export default function ComparisonPageContent({
                           {quotation.ownerName}
                         </p>
                         <div className="flex items-center gap-1">
-                          <FaStar className="text-yellow-400 text-xs" />
+                          <Star className="text-yellow-400 text-xs" />
                           <span className="text-xs text-gray-600">
                             {quotation.rating} ({quotation.totalTrips} trips)
                           </span>
@@ -625,7 +607,7 @@ export default function ComparisonPageContent({
                         className="w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-[#20B0E9] transition-colors"
                       >
                         <span>Price Breakdown</span>
-                        {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+                        {isExpanded ? <ChevronUp /> : <ChevronDown />}
                       </button>
 
                       {isExpanded && quotation.priceBreakdown && (
@@ -737,7 +719,7 @@ export default function ComparisonPageContent({
                         onClick={() => handleAcceptQuotation(quotation.id)}
                         className="w-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2"
                       >
-                        <FaCheck />
+                        <Check />
                         Accept & Book
                       </Button>
                       <Button
@@ -748,7 +730,7 @@ export default function ComparisonPageContent({
                         }
                         className="w-full bg-[#20B0E9] hover:bg-[#1a9ad1] text-white flex items-center justify-center gap-2"
                       >
-                        <FaCheck />
+                        <Check />
                         Select Quotation
                       </Button>
                       <Button
@@ -756,7 +738,7 @@ export default function ComparisonPageContent({
                         variant="outline"
                         className="w-full border-red-500 text-red-500 hover:bg-red-50 flex items-center justify-center gap-2"
                       >
-                        <FaTimes />
+                        <X />
                         Reject
                       </Button>
                       <Button
@@ -766,7 +748,7 @@ export default function ComparisonPageContent({
                         variant="outline"
                         className="w-full border-[#20B0E9] text-[#20B0E9] hover:bg-blue-50 flex items-center justify-center gap-2"
                       >
-                        <FaPhoneAlt />
+                        <Phone />
                         Contact Owner
                       </Button>
                     </div>
@@ -809,7 +791,7 @@ export default function ComparisonPageContent({
                             Rs. {quotation.price.toLocaleString()}
                           </p>
                         </div>
-                        <FaPlus className="text-gray-400" />
+                        <Plus className="text-gray-400" />
                       </div>
                     </div>
                   ))}

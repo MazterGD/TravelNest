@@ -7,19 +7,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner, Badge, Button, Card } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
 import { quotationService, bookingService } from "@/lib/api/services";
-import {
-  FaArrowLeft,
-  FaCalendarAlt,
-  FaMapMarkerAlt,
-  FaUsers,
-  FaClock,
-  FaPhone,
-  FaEnvelope,
-  FaBus,
-  FaSnowflake,
-  FaCheckCircle,
-  FaMoneyBillWave,
-} from "react-icons/fa";
+import { ArrowLeft, Calendar, MapPin, Users, Clock, Phone, Mail, Bus, Snowflake, CheckCircle, Banknote } from 'lucide-react';
 
 interface BookingConfirmPageContentProps {
   locale: string;
@@ -175,7 +163,7 @@ export default function BookingConfirmPageContent({
           variant="outline"
           className="mb-4"
         >
-          <FaArrowLeft className="mr-2" />
+          <ArrowLeft className="mr-2" />
           Back
         </Button>
         <h1 className="text-3xl font-bold text-gray-900">Confirm Booking</h1>
@@ -205,11 +193,11 @@ export default function BookingConfirmPageContent({
                 </p>
                 <div className="flex flex-wrap gap-3 mt-3">
                   <div className="flex items-center text-sm text-gray-600">
-                    <FaUsers className="mr-1.5" />
+                    <Users className="mr-1.5" />
                     {quotation.passengerCount} Passengers
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
-                    <FaSnowflake className="mr-1.5" />
+                    <Snowflake className="mr-1.5" />
                     {quotation.vehicleType.replace(/_/g, " ")}
                   </div>
                 </div>
@@ -224,7 +212,7 @@ export default function BookingConfirmPageContent({
             </h2>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <FaMapMarkerAlt className="text-[#20B0E9] mt-1" />
+                <MapPin className="text-[#20B0E9] mt-1" />
                 <div>
                   <p className="text-sm text-gray-600">Pickup Location</p>
                   <p className="font-medium text-gray-900">
@@ -233,7 +221,7 @@ export default function BookingConfirmPageContent({
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <FaMapMarkerAlt className="text-[#20B0E9] mt-1" />
+                <MapPin className="text-[#20B0E9] mt-1" />
                 <div>
                   <p className="text-sm text-gray-600">Dropoff Location</p>
                   <p className="font-medium text-gray-900">
@@ -242,7 +230,7 @@ export default function BookingConfirmPageContent({
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <FaCalendarAlt className="text-[#20B0E9] mt-1" />
+                <Calendar className="text-[#20B0E9] mt-1" />
                 <div>
                   <p className="text-sm text-gray-600">Duration</p>
                   <p className="font-medium text-gray-900">
@@ -259,7 +247,7 @@ export default function BookingConfirmPageContent({
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <FaCalendarAlt className="text-[#20B0E9] mt-1" />
+                <Calendar className="text-[#20B0E9] mt-1" />
                 <div>
                   <p className="text-sm text-gray-600">Duration</p>
                   <p className="font-medium text-gray-900">
@@ -275,7 +263,7 @@ export default function BookingConfirmPageContent({
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <FaUsers className="text-[#20B0E9] mt-1" />
+                <Users className="text-[#20B0E9] mt-1" />
                 <div>
                   <p className="text-sm text-gray-600">Passengers</p>
                   <p className="font-medium text-gray-900">
@@ -285,7 +273,7 @@ export default function BookingConfirmPageContent({
               </div>
               {quotation.specialRequests && (
                 <div className="flex items-start gap-3">
-                  <FaClock className="text-[#20B0E9] mt-1" />
+                  <Clock className="text-[#20B0E9] mt-1" />
                   <div>
                     <p className="text-sm text-gray-600">
                       Special Requirements
@@ -310,12 +298,12 @@ export default function BookingConfirmPageContent({
                 {quotation.vehicle.owner.lastName}
               </p>
               <div className="flex items-center gap-2 text-gray-600">
-                <FaEnvelope className="text-[#20B0E9]" />
+                <Mail className="text-[#20B0E9]" />
                 <span className="text-sm">{quotation.vehicle.owner.email}</span>
               </div>
               {quotation.vehicle.owner.phone && (
                 <div className="flex items-center gap-2 text-gray-600">
-                  <FaPhone className="text-[#20B0E9]" />
+                  <Phone className="text-[#20B0E9]" />
                   <span className="text-sm">
                     {quotation.vehicle.owner.phone}
                   </span>
@@ -408,7 +396,7 @@ export default function BookingConfirmPageContent({
                   </>
                 ) : (
                   <>
-                    <FaCheckCircle className="mr-2" />
+                    <CheckCircle className="mr-2" />
                     Confirm Booking
                   </>
                 )}
@@ -425,7 +413,7 @@ export default function BookingConfirmPageContent({
 
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <div className="flex items-start gap-2">
-                <FaMoneyBillWave className="text-[#20B0E9] mt-1" />
+                <Banknote className="text-[#20B0E9] mt-1" />
                 <div className="text-sm text-gray-700">
                   <p className="font-medium mb-1">Payment Note</p>
                   <p>

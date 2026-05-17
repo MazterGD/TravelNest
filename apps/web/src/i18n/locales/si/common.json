@@ -3,7 +3,572 @@
     "name": "TravelNest",
     "tagline": "ඔබේ ගමන, අපගේ කැපවීම"
   },
-  "ownerDashboard": "හිමිකරු උපකරණ පුවරුව",
+  "ownerDashboard": {
+    "title": "හිමිකරු උපකරණ පුවරුව",
+    "welcome": "නැවත සාදරයෙන් පිළිගනිමු",
+    "addVehicle": "වාහනය එකතු කරන්න",
+    "addVehicleDesc": "නව වාහනයක් ලැයිස්තු ගත කරන්න",
+    "totalRevenue": "මුළු ආදායම",
+    "activeBookings": "ක්‍රියාකාරී වෙන්කිරීම්",
+    "pendingQuotes": "අපේක්ෂිත ගිණුම්",
+    "averageRating": "සාමාන්‍ය ශ්‍රේණිය",
+    "quickActions": "ඉක්මන් ක්‍රියා",
+    "manageFleet": "වාහන කළමනාකරණය",
+    "manageFleetDesc": "සියලු වාහන බලන්න",
+    "viewAllQuotes": "සියලු ගිණුම් බලන්න",
+    "viewAllQuotesDesc": "ගිණුම් කළමනාකරණය",
+    "tripPackages": "සංචාර පැකේජ",
+    "tripPackagesDesc": "නිශ්චිත මාර්ග සාදන්න",
+    "reviews": "සමාලෝචන",
+    "reviewsDesc": "කියවා ප්‍රතිචාර දක්වන්න",
+    "analytics": "විශ්ලේෂණ",
+    "analyticsDesc": "වාර්තා සහ අවබෝධ",
+    "earnings": "ඉපැයීම් සහ ගෙවීම්",
+    "earningsDesc": "පියවීම් සහ ගෙවීම්",
+    "revenueChart": "ආදායම (පසු මාස 6)",
+    "noRevenueData": "සම්පූර්ණ කළ වෙන්කිරීම් ලැබෙන විට ආදායම් දත්ත මෙහි දිස්වනු ඇත.",
+    "recentReviews": "මෑත සමාලෝචන",
+    "viewAll": "සියල්ල බලන්න",
+    "noReviews": "තවම සමාලෝචන නැත",
+    "quotationRequests": "ගිණුම් ඉල්ලීම්",
+    "quotationRequestsDesc": "ගාහකයින්ගේ විමසීම්වලට ප්‍රතිචාර දක්වන්න",
+    "filterAll": "සියල්ල",
+    "filterNew": "නව",
+    "filterPending": "ප්‍රතිචාරය අපේක්ෂිත",
+    "statusNew": "නව",
+    "passengers": "මගීන්",
+    "noQuotationRequests": "ගිණුම් ඉල්ලීම් නැත",
+    "noQuotationRequestsDesc": "ගාහකයින්ගේ නව ගිණුම් ඉල්ලීම් මෙහි දිස්වනු ඇත.",
+    "upcomingBookings": "ඉදිරි වෙන්කිරීම්",
+    "noUpcomingBookings": "ඉදිරි වෙන්කිරීම් නැත",
+    "fleetOverview": "වාහන කළමනාකරණ දළ විශ්ලේෂණය",
+    "manage": "කළමනාකරණය",
+    "fleetActive": "ක්‍රියාකාරී",
+    "fleetInactive": "අක්‍රිය",
+    "fleetPendingReview": "සමාලෝචනය අපේක්ෂිත",
+    "vehicles": "වාහන",
+    "fleetUtilization": "වාහන කළමනාකරණ භාවිතය",
+    "verificationRejected": "සත්‍යාපනය අනුමත නොවීය",
+    "verificationRejectedDesc": "ඔබගේ ලේඛන අනුමත නොවීය. කරුණාකර ඔබගේ පැතිකඩ පිටුවෙන් නැවත ඉදිරිපත් කරන්න.",
+    "resubmit": "නැවත ඉදිරිපත් කරන්න",
+    "pendingVerification": "ගිණුම් සත්‍යාපනය ලිහිල් කිරීම",
+    "pendingVerificationDesc": "අපේ කණ්ඩායම ඔබගේ ලේඛන සමාලෝචනය කරයි. අනුමත වූ විට ඔබට දැනුම් දෙනු ඇත — මෙය සාමාන්‍යයෙන් ව්‍යාපාරික දින 1–2 ක් ගනු ලැබේ."
+  },
+  "ownerQuotations": {
+    "title": "ගිණුම් ඉල්ලීම්",
+    "backToDashboard": "උපකරණ පුවරුවට ආපසු",
+    "requestCount": "{count, plural, one {# ඉල්ලීම} other {# ඉල්ලීම්}}",
+    "newBadge": "{count} නව",
+    "tabs": {
+      "pending": "අපේක්ෂිත",
+      "all": "සියල්ල"
+    },
+    "filters": {
+      "toggle": "පෙරහන්",
+      "searchPlaceholder": "ගාහක නම, මාර්ගය හෝ ID අනුව සොයන්න...",
+      "vehicleType": "වාහන වර්ගය",
+      "allTypes": "සියලු වර්ග",
+      "passengerCount": "මගී ගණන",
+      "dateFrom": "ආරම්භක දිනය",
+      "dateTo": "අවසන් දිනය",
+      "sortBy": "පිළිවෙල",
+      "clearFilters": "පෙරහන් ඉවත් කරන්න",
+      "passengerRanges": {
+        "all": "සියලු ධාරිතාවන්",
+        "range16_20": "16-20",
+        "range21_30": "21-30",
+        "range31_40": "31-40",
+        "range41_50": "41-50",
+        "range50_plus": "50+"
+      },
+      "sortOptions": {
+        "newest": "නවතම පළමුව",
+        "oldest": "පැරණිම පළමුව",
+        "tripDate": "ගමන දිනය",
+        "passengersHigh": "මගීන්: වැඩි සිට අඩු",
+        "passengersLow": "මගීන්: අඩු සිට වැඩි"
+      }
+    },
+    "labels": {
+      "route": "මාර්ගය",
+      "date": "ගමන දිනය",
+      "passengers": "මගීන්",
+      "vehicleType": "වාහන වර්ගය",
+      "requestedOn": "ඉල්ලීම {date}",
+      "dropoffPending": "තහවුරු කිරීමට ඉතිරි"
+    },
+    "actions": {
+      "sendQuotation": "ගිණුම යවන්න",
+      "sentQuotations": "යවන ලද ගිණුම්"
+    },
+    "badges": {
+      "expiresIn": "{days} දින තුළ අවසන්",
+      "expiresToday": "අද අවසන් වේ",
+      "expired": "කල් ඉකුත්"
+    },
+    "status": {
+      "PENDING": "අපේක්ෂිත",
+      "SENT": "යවා ඇත",
+      "VIEWED": "නැරඹුවා",
+      "ACCEPTED": "පිළිගත්",
+      "REJECTED": "ප්‍රතික්ෂේපිත",
+      "EXPIRED": "කල් ඉකුත්"
+    },
+    "empty": {
+      "pendingTitle": "අපේක්ෂිත ඉල්ලීම් නැත",
+      "pendingDescription": "ඔබ සියල්ල සම්පූර්ණ කළා! නව ගිණුම් ඉල්ලීම් මෙහි දිස්වනු ඇත.",
+      "allTitle": "ගිණුම් ඉල්ලීම් නැත",
+      "allDescription": "දැනට ගිණුම් ඉල්ලීම් නොමැත."
+    },
+    "unknownCustomer": "නොහඳුනාගත්"
+  },
+  "sendQuotation": {
+    "title": "ගිණුම යවන්න",
+    "backToQuotations": "ගිණුම් ඉල්ලීම්වලට ආපසු",
+    "pageDescription": "{name} සඳහා පුද්ගලීකරණය කළ ගිණුමක් සාදා යවන්න",
+    "requestDetails": {
+      "title": "ඉල්ලීමේ විස්තර",
+      "customerInfo": "ගාහක තොරතුරු",
+      "nameLabel": "නම",
+      "emailLabel": "ඊමේල්",
+      "phoneLabel": "දුරකථන",
+      "route": "මාර්ගය",
+      "dateAndTime": "දිනය සහ වේලාව",
+      "passengers": "මගීන්",
+      "vehiclePreference": "වාහන මනාපය",
+      "specialRequirements": "විශේෂ අවශ්‍යතා"
+    },
+    "vehicleSelection": {
+      "requested": "ඉල්ලූ වාහනය",
+      "select": "වාහනයක් තෝරන්න",
+      "requestedBannerTitle": "ගාහකයා මෙම නිශ්චිත වාහනය ඉල්ලා සිටී",
+      "requestedBannerDesc": "ගාහකයා ඔබේ ගාලේ සිට මෙම වාහනය තෝරා ගත්තා. ගිණුම මෙම වාහනය සඳහා පමණක් යවනු ලැබේ.",
+      "customerRequirements": "ගාහක අවශ්‍යතා",
+      "passengersCount": "මගීන් {count} ක්",
+      "preferred": "{type} කැමැත්ත",
+      "noVehicles": "වාහන නොමැත. කරුණාකර ඔබේ ගාලට වාහන එකතු කරන්න.",
+      "addVehicle": "වාහනය එකතු කරන්න",
+      "suitable": "සුදුසු",
+      "checkIssues": "ගැටළු පරීක්ෂා කරන්න",
+      "insufficientCapacity": "ප්‍රමාණවත් ධාරිතාවක් නැත ({capacity} ආසන {passengers} මගීන් සඳහා)",
+      "typeMismatch": "වර්ග නොගැලපීම (ගාහකයා ඉල්ලූ: {type})",
+      "capacityMatches": "ධාරිතාව ගැලපේ ({capacity} ආසන {passengers} මගීන් සඳහා)",
+      "baseRate": "මූල ගාස්තුව",
+      "perDay": "දිනකට",
+      "requestedByCustomer": "ගාහකයා විසින් ඉල්ලා ඇත",
+      "selected": "මෙම ගිණුම සඳහා තෝරාගත්",
+      "warningTitle": "තෝරාගත් වාහනය ගාහකයාගේ සියලු අවශ්‍යතා සපුරාලීමට නොහැකි විය හැකිය",
+      "warningDesc": "ඔබට ගිණුම යැවිය හැකිය, නමුත් ගාහකයා වෙනත් වාහනයක් කැමති විය හැකිය. ඔබේ අතිරේක සටහන්වල මෙය සඳහන් කිරීම සලකා බලන්න."
+    },
+    "pricing": {
+      "title": "මිල ගණන් විස්තරය",
+      "vehicleRental": "වාහන කුලිය",
+      "driverCost": "රියදුරු වියදම",
+      "fuelCost": "ඇස්තමේන්තු ඉන්ධන වියදම",
+      "tollCharges": "ටෝල් ගාස්තු",
+      "permitFees": "බලපත්‍ර ගාස්තු",
+      "otherCharges": "වෙනත් ගාස්තු",
+      "addItem": "අයිතමයක් එකතු කරන්න",
+      "descriptionPlaceholder": "විස්තරය",
+      "amountPlaceholder": "මුදල",
+      "removeItem": "අයිතමය ඉවත් කරන්න"
+    },
+    "settings": {
+      "title": "ගිණුම් සැකසීම්",
+      "validityPeriod": "වලංගු කාල සීමාව",
+      "validityDays": "දින {days}",
+      "additionalNotes": "අතිරේක සටහන්",
+      "notesPlaceholder": "ඕනෑම අතිරේක තොරතුරු හෝ නියම සහ කොන්දේසි එකතු කරන්න..."
+    },
+    "preview": {
+      "title": "ගිණුම් පෙරදසුන",
+      "selectVehiclePrompt": "ගිණුම් පෙරදසුන බැලීමට වාහනයක් තෝරන්න",
+      "vehicleRental": "වාහන කුලිය",
+      "driverCost": "රියදුරු වියදම",
+      "fuelCost": "ඉන්ධන වියදම",
+      "tollCharges": "ටෝල් ගාස්තු",
+      "permitFees": "බලපත්‍ර ගාස්තු",
+      "other": "වෙනත්",
+      "subtotal": "උප එකතුව",
+      "tax": "බදු ({rate}%)",
+      "grandTotal": "මුළු එකතුව",
+      "validFor": "දින {days} ක් සඳහා වලංගු",
+      "expiresOn": "{date} දින අවසන් වේ"
+    },
+    "actions": {
+      "send": "ගිණුම යවන්න",
+      "sending": "යවමින්..."
+    },
+    "errors": {
+      "notFound": "ඉල්ලීම හමු නොවීය",
+      "backToQuotations": "ගිණුම් ඉල්ලීම්වලට ආපසු",
+      "noVehicleSelected": "යැවීමට පෙර වාහනයක් තෝරන්න.",
+      "missingTripDetails": "ගමන් විස්තර අසම්පූර්ණ ය — දුර සහ කාලය සපයා ඇති බව සහතික කරන්න.",
+      "sendFailed": "ගිණුම යැවීමට අසමත් විය. නැවත උත්සාහ කරන්න.",
+      "generic": "දෝෂයක් ඇති විය. නැවත උත්සාහ කරන්න."
+    }
+  },
+  "sentQuotations": {
+    "title": "යවන ලද ගිණුම්",
+    "backToDashboard": "ඩෑෂ්බෝඩ් වෙත ආපසු",
+    "quotationCount": "ගිණුම් {count}ක්",
+    "filters": "පෙරීම",
+    "searchPlaceholder": "ගනුදෙනුකරු නමින්, ගිණුම් ID හෝ මාර්ගය අනුව සොයන්න...",
+    "filterPanel": {
+      "dateRange": "දිනය පරාසය",
+      "allTime": "සියලු කාලය",
+      "last7Days": "පසුගිය දින 7",
+      "last30Days": "පසුගිය දින 30",
+      "last3Months": "පසුගිය මාස 3",
+      "vehicleType": "වාහන වර්ගය",
+      "allTypes": "සියලු වර්ග",
+      "sortBy": "අනුපිළිවෙලකට",
+      "newestFirst": "අලුත්ම පළමු",
+      "oldestFirst": "පැරණිම පළමු",
+      "amountHighLow": "මුදල (ඉහළ සිට පහළ)",
+      "amountLowHigh": "මුදල (පහළ සිට ඉහළ)",
+      "expiringSoon": "ඉක්මනින් කල් ඉකුත්වන"
+    },
+    "tabs": {
+      "all": "සියල්ල",
+      "SENT": "යැවූ",
+      "VIEWED": "බලන ලද",
+      "ACCEPTED": "පිළිගත්",
+      "REJECTED": "ප්‍රතික්ෂේප",
+      "EXPIRED": "කල් ඉකුත්"
+    },
+    "status": {
+      "all": "සියල්ල",
+      "SENT": "යැවූ",
+      "VIEWED": "බලන ලද",
+      "ACCEPTED": "පිළිගත්",
+      "REJECTED": "ප්‍රතික්ෂේප",
+      "EXPIRED": "කල් ඉකුත්"
+    },
+    "card": {
+      "unknownCustomer": "නොදනී",
+      "notSent": "නොයැවිය",
+      "route": "මාර්ගය",
+      "tripDate": "ගමන් දිනය",
+      "validity": "වලංගු කාලය",
+      "expired": "කල් ඉකුත්",
+      "expiresToday": "අද කල් ඉකුත්",
+      "daysLeft": "දින {days}ක් ඉතිරිව",
+      "viewDetails": "විස්තර බලන්න",
+      "resend": "නැවත යවන්න",
+      "bookingCreated": "වෙන්කිරීම සිදුකළා",
+      "timestamps": {
+        "sent": "යැවූ",
+        "viewed": "බලන ලද",
+        "responded": "ප්‍රතිචාර දැක්වූ",
+        "expires": "කල් ඉකුත්"
+      }
+    },
+    "empty": {
+      "allTitle": "තවම ගිණුම් යවා නැත",
+      "title": "{status} ගිණුම් නැත",
+      "description": "ඔබ තවම ගිණුම් යවා නැත. ගිණුම් ඉල්ලීම් වෙත ප්‍රතිචාර දක්වන්න.",
+      "filteredDescription": "මේ වනවිට {status} ගිණුම් නැත.",
+      "viewRequests": "ගිණුම් ඉල්ලීම් බලන්න"
+    },
+    "detail": {
+      "backToSent": "යවන ලද ගිණුම් වෙත ආපසු",
+      "quotationFor": "{name} සඳහා ගිණුම",
+      "timeline": {
+        "title": "කාලරේඛාව",
+        "sent": "ගිණුම යවන ලදී",
+        "viewedByCustomer": "ගනුදෙනුකරු විසින් බලන ලදී",
+        "acceptedByCustomer": "ගනුදෙනුකරු විසින් පිළිගනු ලැබිණි",
+        "rejectedByCustomer": "ගනුදෙනුකරු විසින් ප්‍රතික්ෂේප කරන ලදී",
+        "reason": "හේතුව"
+      },
+      "customer": {
+        "title": "ගනුදෙනුකරු තොරතුරු",
+        "name": "නම",
+        "email": "විද්‍යුත් තැපෑල",
+        "phone": "දුරකතන"
+      },
+      "trip": {
+        "title": "ගමන් විස්තර",
+        "route": "මාර්ගය",
+        "dateTime": "දිනය සහ වේලාව",
+        "passengersLabel": "මගීන්",
+        "passengers": "මගීන් {count}ක්",
+        "vehicle": "වාහනය",
+        "vehicleSeats": "{type} • ආසන {capacity}ක්",
+        "additionalNotes": "අමතර සටහන්"
+      },
+      "pricing": {
+        "title": "මිළ ගණනය",
+        "vehicleRental": "වාහන කුලී",
+        "driverCost": "රියදුරු පිරිවැය",
+        "fuelCost": "ඇස්තමේන්තු ඉන්ධන",
+        "tollCharges": "ටෝල් ගාස්තු",
+        "permitFees": "බලපත්‍ර ගාස්තු",
+        "subtotal": "උප එකතුව",
+        "tax": "බද්ද",
+        "grandTotal": "මුළු එකතුව"
+      },
+      "validity": {
+        "title": "වලංගු කාලය",
+        "expired": "කල් ඉකුත්",
+        "daysRemaining": "දින {days}ක් ඉතිරිව",
+        "validUntil": "{date} දක්වා වලංගු"
+      },
+      "accepted": {
+        "title": "ගිණුම පිළිගත්!",
+        "description": "ගනුදෙනුකරු ගිණුම පිළිගෙන ඇත. ඉදිරියට යෑමට වෙන්කිරීමක් සාදන්න.",
+        "createBooking": "වෙන්කිරීම සාදන්න"
+      },
+      "notFound": {
+        "title": "ගිණුම හමු නොවිණි",
+        "back": "යවන ලද ගිණුම් වෙත ආපසු"
+      }
+    }
+  },
+  "ownerReviews": {
+    "title": "සමාලෝචන සහ ශ්‍රේණිගත කිරීම්",
+    "subtitle": "ගනුදෙනුකරුවන්ගේ ප්‍රතිපෝෂණ කළමනාකරණය කර ඔබේ කීර්තිනාමය ගොඩනගන්න.",
+    "backToDashboard": "උපකරණ පුවරුවට ආපසු",
+    "summary": {
+      "averageRating": "සාමාන්‍ය ශ්‍රේණිය",
+      "totalReviews": "මුළු සමාලෝචන",
+      "pendingResponses": "පිළිතුරු අවශ්‍යයි",
+      "responseRate": "ප්‍රතිචාර අනුපාතය",
+      "ratingDistribution": "ශ්‍රේණි බෙදාහැරීම"
+    },
+    "tabs": {
+      "all": "සියලු සමාලෝචන",
+      "pending": "පිළිතුරු අවශ්‍යයි",
+      "responded": "පිළිතුරු දී ඇත"
+    },
+    "noReviews": {
+      "allTitle": "තවම සමාලෝචන නැත",
+      "description": "ගනුදෙනුකරුවන් ඔබේ වාහන සමඟ සංචාර සම්පූර්ණ කළ පසු, ඔවුන්ගේ සමාලෝචන මෙහි දිස්වේ.",
+      "pendingTitle": "සියල්ල හරි!",
+      "pendingDescription": "ඔබ ඔබේ සියලු සමාලෝචනවලට පිළිතුරු දී ඇත.",
+      "respondedTitle": "තවම පිළිතුරු නැත",
+      "respondedDescription": "ඔබ තවම කිසිදු සමාලෝචනයකට පිළිතුරු දී නැත."
+    },
+    "card": {
+      "responded": "පිළිතුරු දී ඇත",
+      "yourResponse": "ඔබේ ප්‍රතිචාරය",
+      "responseLabel": "ඔබේ ප්‍රතිචාරය",
+      "responsePlaceholder": "ගනුදෙනුකරුට ස්තූති කර ඔවුන්ගේ අත්දැකීම ගැන කතා කරන්න...",
+      "respond": "ප්‍රතිචාර දක්වන්න",
+      "submit": "ප්‍රතිචාරය ප්‍රකාශ කරන්න",
+      "cancel": "අවලංගු කරන්න"
+    },
+    "error": {
+      "loadFailed": "සමාලෝචන පූරණය කළ නොහැකි විය. ඔබේ සම්බන්ධතාව පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
+      "tryAgain": "නැවත උත්සාහ කරන්න",
+      "respondFailed": "ඔබේ ප්‍රතිචාරය ඉදිරිපත් කළ නොහැකි විය. නැවත උත්සාහ කරන්න."
+    }
+  },
+  "ownerAnalytics": {
+    "title": "කාර්ය සාධනය සහ විශ්ලේෂණය",
+    "subtitle": "ඔබේ ව්‍යාපාරය සඳහා ආදායම් ප්‍රවණතා, වෙන්කරවීම් තොරතුරු සහ ෆ්ලීට් කාර්ය සාධනය.",
+    "backToDashboard": "උපකරණ පුවරුවට ආපසු",
+    "overview": {
+      "totalRevenue": "මුළු ආදායම",
+      "thisMonth": "මෙම මාසය",
+      "growth": "පෙර මාසයට සාපේක්ෂව",
+      "totalBookings": "මුළු වෙන්කරවීම්",
+      "completionRate": "සම්පූර්ණ කිරීමේ අනුපාතය",
+      "fleetUtilization": "ෆ්ලීට් ක්‍රියාකාරී",
+      "averageRating": "සාමාන්‍ය ශ්‍රේණිගත කිරීම"
+    },
+    "revenueChart": {
+      "title": "ආදායම් ප්‍රවණතාව (පසුගිය මාස 6)",
+      "tooltip": "රු.",
+      "noData": "තවම ආදායම් දත්ත නැත",
+      "noDataDesc": "ඔබට සම්පූර්ණ කළ වෙන්කරවීම් ලැබෙන විට ආදායම මෙහි දිස්වනු ඇත."
+    },
+    "bookingsChart": {
+      "title": "මාසික වෙන්කරවීම්",
+      "tooltipLabel": "වෙන්කරවීම්"
+    },
+    "vehicleTable": {
+      "title": "රථ කාර්ය සාධනය",
+      "vehicle": "රථය",
+      "status": "තත්ත්වය",
+      "bookings": "වෙන්කරවීම්",
+      "completed": "සම්පූර්ණ",
+      "revenue": "ආදායම",
+      "rating": "ශ්‍රේණිගත කිරීම",
+      "active": "ක්‍රියාකාරී",
+      "inactive": "අක්‍රිය",
+      "noRating": "ශ්‍රේණිගත කිරීම් නැත",
+      "noVehicles": "ඔබේ ෆ්ලීට් එකේ තවම රථ නැත.",
+      "noVehiclesDesc": "කාර්ය සාධනය ලුහුබැඳීම ආරම්භ කිරීමට ඔබේ පළමු රථය එකතු කරන්න."
+    },
+    "error": {
+      "loadFailed": "විශ්ලේෂණය පූරණය කළ නොහැකි විය. ඔබේ සම්බන්ධතාව පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
+      "tryAgain": "නැවත උත්සාහ කරන්න"
+    }
+  },
+  "ownerEarnings": {
+    "title": "ඉපැයීම් සහ ගෙවීම්",
+    "subtitle": "ඔබේ ඉපැයීම්, ගෙවීම් ඉතිහාසය සහ පියවීම් ගෙවීම් නිරීක්ෂණය කරන්න.",
+    "backToDashboard": "උපකරණ පුවරුවට ආපසු",
+    "currency": "රු.",
+    "summary": {
+      "pendingBalance": "පොරොත්තු ශේෂය",
+      "pendingBalanceDesc": "පියවීම් ගෙවීම සඳහා පොරොත්තුවෙන්",
+      "thisMonth": "මෙම මාසය",
+      "thisYear": "මෙම වසර",
+      "lifetime": "සමස්ත ඉපැයීම්"
+    },
+    "transactions": {
+      "title": "ගනුදෙනු ඉතිහාසය",
+      "filterLabel": "තත්ත්වය",
+      "filterAll": "සියලු තත්ත්ව",
+      "date": "දිනය",
+      "bookingRef": "වෙන්කරවීම",
+      "amount": "මුදල",
+      "status": "තත්ත්වය",
+      "emptyTitle": "තවම ගනුදෙනු නැත",
+      "emptyDesc": "ගනුදෙනුකරුවන් ගෙවීම් ආරම්භ කළ පසු ඔබේ වෙන්කරවීම් වලින් ගෙවීම් මෙහි දිස්වනු ඇත.",
+      "pageOf": "පිටුව {page} / {totalPages}",
+      "prev": "පෙර පිටුව",
+      "next": "ඊළඟ පිටුව"
+    },
+    "status": {
+      "PENDING": "පොරොත්තුවෙන්",
+      "PROCESSING": "සැකසෙමින්",
+      "COMPLETED": "සම්පූර්ණයි",
+      "FAILED": "අසාර්ථකයි",
+      "REFUNDED": "ආපසු ගෙවා ඇත",
+      "CANCELLED": "අවලංගු කර ඇත"
+    },
+    "settlements": {
+      "title": "පියවීම් ඉතිහාසය",
+      "period": "කාල සීමාව",
+      "bookings": "වෙන්කරවීම්",
+      "gross": "දළ මුදල",
+      "commission": "කොමිස්",
+      "net": "ශුද්ධ ගෙවීම",
+      "status": "තත්ත්වය",
+      "emptyTitle": "තවම පියවීම් නැත",
+      "emptyDesc": "ඔබේ සම්පූර්ණ කළ වෙන්කරවීම් පියවූ පසු, ඔබේ ගෙවීම් වාර්තා මෙහි දිස්වනු ඇත."
+    },
+    "bank": {
+      "title": "බැංකු ගිණුම",
+      "accountHolder": "ගිණුම් හිමියාගේ නම",
+      "accountNumber": "ගිණුම් අංකය",
+      "accountNumberHint": "ආරක්ෂාව සඳහා, ඔබේ සම්පූර්ණ ගිණුම් අංකය කිසිවිටෙක නොපෙන්වයි. යාවත්කාලීන කිරීමට එය නැවත ඇතුළු කරන්න.",
+      "bankName": "බැංකුවේ නම",
+      "bankCode": "බැංකු කේතය",
+      "branchName": "ශාඛාවේ නම",
+      "branchCode": "ශාඛා කේතය",
+      "save": "සුරකින්න",
+      "cancel": "අවලංගු කරන්න",
+      "edit": "බැංකු ගිණුම සංස්කරණය කරන්න",
+      "addAccount": "බැංකු ගිණුමක් එක් කරන්න",
+      "emptyTitle": "ගොනුවේ බැංකු ගිණුමක් නැත",
+      "emptyDesc": "ඔබේ පියවීම් ගෙවීම් මාරු කළ හැකි වන පරිදි ඔබේ බැංකු විස්තර එක් කරන්න.",
+      "errorRequired": "ගිණුම් හිමියාගේ නම, ගිණුම් අංකය සහ බැංකුවේ නම අවශ්‍යයි. ඉදිරියට යාමට තුනම පුරවන්න.",
+      "errorSave": "ඔබේ බැංකු ගිණුම සුරැකිය නොහැකි විය. ඔබේ විස්තර පරීක්ෂා කර නැවත උත්සාහ කරන්න."
+    },
+    "error": {
+      "loadFailed": "ඔබේ ඉපැයීම් පූරණය කළ නොහැකි විය. ඔබේ සම්බන්ධතාව පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
+      "tryAgain": "නැවත උත්සාහ කරන්න"
+    }
+  },
+  "bookingsManagement": {
+    "title": "වෙන්කිරීම් කළමනාකරණය",
+    "backToDashboard": "උදාවෙත ආපසු",
+    "exportBtn": "අපනයනය",
+    "bookingSingular": "වෙන්කිරීමක්",
+    "bookingPlural": "වෙන්කිරීම්",
+    "tabUpcoming": "ඉදිරි",
+    "tabInProgress": "ක්‍රියාත්මක",
+    "tabCompleted": "සම්පූර්ණ",
+    "tabCancelled": "අවලංගු",
+    "viewList": "ලැයිස්තුව",
+    "viewCalendar": "දිනදර්ශනය",
+    "searchPlaceholder": "වෙන්කිරීම් සංඛ්‍යාව, ගනුදෙනුකරු, හෝ වාහනය සොයන්න...",
+    "bookedOn": "වෙන්කළ දිනය",
+    "totalAmount": "මුළු මුදල",
+    "currency": "රු.",
+    "vehicleLabel": "වාහනය",
+    "tripDatesLabel": "ගමන් දිනයන්",
+    "to": "දක්වා",
+    "routeLabel": "මාර්ගය",
+    "passengers": "මගීන්",
+    "paymentLabel": "ගෙවීම",
+    "viewDetails": "විස්තර බලන්න",
+    "call": "අමතන්න",
+    "emailBtn": "ඊමේල්",
+    "emptyUpcomingTitle": "ඉදිරි වෙන්කිරීම් නොමැත",
+    "emptyUpcomingDesc": "ඔබට තවම ඉදිරි වෙන්කිරීම් නොමැත.",
+    "emptyTitle": "{status} වෙන්කිරීම් නොමැත",
+    "emptyDesc": "{status} වෙන්කිරීම් හමු නොවීය.",
+    "calendarTitle": "දිනදර්ශන දර්ශනය",
+    "calendarComingSoon": "දිනදර්ශන දර්ශනය ඉක්මනින් ලබා ගත හැකි වේ.",
+    "errorLoad": "වෙන්කිරීම් පූරණය කිරීමට අසමත් විය"
+  },
+  "bookingDetails": {
+    "backToBookings": "වෙන්කිරීම් වෙත ආපසු",
+    "createdOn": "සාදන ලද්දේ",
+    "startTrip": "ගමන ආරම්භ කරන්න",
+    "cancelTrip": "අවලංගු කරන්න",
+    "sectionCustomer": "ගනුදෙනුකරු තොරතුරු",
+    "message": "පණිවිඩය",
+    "nameLabel": "නම",
+    "phoneLabel": "දුරකථනය",
+    "emailLabel": "විද්‍යුත් තැපෑල",
+    "sectionTrip": "ගමන් විස්තර",
+    "tripDatesLabel": "ගමන් දිනයන්",
+    "to": "දක්වා",
+    "durationLabel": "කාලසීමාව",
+    "passengersLabel": "මගීන්",
+    "routeMapTitle": "මාර්ග සản",
+    "routeUnavailable": "මාර්ග තොරතුරු නොමැත",
+    "itineraryTitle": "සැලැස්ම",
+    "noItinerary": "සැලැස්ම නොමැත",
+    "sectionVehicleDriver": "වාහනය සහ රියදුරු",
+    "assignedVehicle": "පවරා ඇති වාහනය",
+    "driverAssignment": "රියදුරු පැවරීම",
+    "capacityLabel": "ධාරිතාව",
+    "seats": "ආසන",
+    "noDriver": "රියදුරෙකු තවම පවරා නොමැත",
+    "licenseLabel": "බලපත්‍රය",
+    "gpsEnabled": "GPS ට්‍රැකිං සක්‍රිය",
+    "gpsDesc": "මෙම ගමන සඳහා සජීවී ස්ථාන ට්‍රැකිං ලබා ගත හැකිය",
+    "viewLocation": "සජීවී ස්ථානය බලන්න →",
+    "sectionMessages": "පණිවිඩ",
+    "noMessages": "තවම පණිවිඩ නොමැත",
+    "sectionPayment": "ගෙවීම් තොරතුරු",
+    "basePrice": "මූල මිල",
+    "driverAllowance": "රියදුරු දීමනාව",
+    "additionalCharges": "අමතර ගාස්තු",
+    "totalAmount": "මුළු මුදල",
+    "platformCommission": "වේදිකා කොමිසම",
+    "yourNetAmount": "ඔබේ ශුද්ධ මුදල",
+    "currency": "රු.",
+    "paymentLabel": "ගෙවීම",
+    "sectionTimeline": "වෙන්කිරීම් කාල රේඛාව",
+    "bookingCreated": "වෙන්කිරීම සාදන ලදී",
+    "bookingCreatedDesc": "ගනුදෙනුකරු වෙන්කිරීම ඉදිරිපත් කළේය",
+    "paymentReceived": "ගෙවීම ලැබිණ",
+    "paymentReceivedDesc": "ගනුදෙනුකරු ගෙවීම සම්පූර්ණ කළේය",
+    "sectionActions": "ඉක්මන් ක්‍රියා",
+    "generateInvoice": "ඉන්වොයිසිය ජනනය කරන්න",
+    "reportIssue": "ගැටළු වාර්තා කරන්න",
+    "cancelModal": {
+      "title": "වෙන්කිරීම අවලංගු කරන්න",
+      "desc": "ඔබට මෙම වෙන්කිරීම අවලංගු කිරීමට අවශ්‍ය බව ඔබ නිශ්චිතද? මෙම ක්‍රියාව undo කළ නොහැක.",
+      "reasonLabel": "අවලංගු කිරීමේ හේතුව",
+      "reasonRequired": "අවලංගු කිරීමේ හේතුව *",
+      "reasonPlaceholder": "අවලංගු කිරීමේ හේතුව සඳහන් කරන්න...",
+      "keepBooking": "වෙන්කිරීම රඳවා ගන්න",
+      "confirm": "වෙන්කිරීම අවලංගු කරන්න"
+    },
+    "errorLoad": "වෙන්කිරීම පූරණය කිරීමට අසමත් විය",
+    "notFound": "වෙන්කිරීම හමු නොවීය",
+    "na": "N/A"
+  },
   "welcomeBack": "නැවත සාදරයෙන් පිළිගනිමු",
   "navigation": {
     "home": "මුල් පිටුව",
@@ -18,6 +583,26 @@
     "logout": "ඉවත් වන්න",
     "openMenu": "ප්‍රධාන මෙනුව විවෘත කරන්න",
     "dashboardFor": "{name}ගේ උපකරණ පුවරුව"
+  },
+  "locations": {
+    "colombo": "කොළඹ",
+    "kandy": "මහනුවර",
+    "galle": "ගාල්ල",
+    "ella": "ඇල්ල",
+    "anuradhapura": "අනුරාධපුර",
+    "negombo": "මීගමුව",
+    "sigiriya": "සීගිරිය",
+    "batticaloa": "මඩකලපුව",
+    "kurunegala": "කුරුණෑගල",
+    "badulla": "බදුල්ල",
+    "jaffna": "යාපනය",
+    "matara": "මාතර",
+    "trincomalee": "ත්‍රිකුණාමලය",
+    "nuwaraEliya": "නුවරඑළිය",
+    "kalutara": "කළුතර",
+    "ratnapura": "රත්නපුර",
+    "hambantota": "හම්බන්තොට",
+    "puttalam": "පුත්තලම"
   },
   "auth": {
     "login": {
@@ -53,7 +638,9 @@
       "registerCustomer": "පාරිභෝගිකයෙකු ලෙස ලියාපදිංචි වන්න",
       "registerOwner": "බස් හිමිකරුවෙකු ලෙස ලියාපදිංචි වන්න",
       "errors": {
-        "unexpected": "අනපේක්ෂිත දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න."
+        "unexpected": "අනපේක්ෂිත දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.",
+        "rateLimited": "උත්සාහයන් වැඩියි. කරුණාකර මොහොතක් රැඳී නැවත උත්සාහ කරන්න.",
+        "cooldown": "තත්පර {seconds} කින් නැවත උත්සාහ කරන්න"
       }
     },
     "register": {
@@ -185,6 +772,268 @@
         "unexpected": "අනපේක්ෂිත දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න."
       }
     },
+    "ownerRegister": {
+      "title": "බස් හිමිකරු ලියාපදිංචිය",
+      "progress": {
+        "stepOf": "පියවර {current} / {total}",
+        "steps": {
+          "personal": "පුද්ගලික",
+          "address": "ලිපිනය",
+          "vehicle": "වාහනය",
+          "password": "මුරපදය",
+          "terms": "කොන්දේසි"
+        }
+      },
+      "sidebar": {
+        "title": "සහකරු වන්න",
+        "subtitle": "ඔබගේ බස් ලැයිස්තුගත කර ශ්‍රී ලංකාව පුරා පාරිභෝගිකයන් දහස් ගණනකට ළඟා වන්න",
+        "imageAlt": "බස් ව්‍යාපාරය",
+        "benefits": {
+          "noListingFees": {
+            "title": "ලැයිස්තුගත කිරීමේ ගාස්තු නැත",
+            "description": "අසීමිත වාහන නොමිලේ ලැයිස්තුගත කරන්න"
+          },
+          "commission": {
+            "title": "10% කොමිස්",
+            "description": "තහවුරු කළ වෙන්කරවීම් මත පමණක් ගෙවන්න"
+          },
+          "dashboard": {
+            "title": "ව්‍යාපාර උපකරණ පුවරුව",
+            "description": "වෙන්කරවීම් සහ ආදායම් නිරීක්ෂණය කරන්න"
+          }
+        },
+        "alreadyRegistered": "දැනටමත් ලියාපදිංචි වී ඇතද?",
+        "signIn": "පුරන්න"
+      },
+      "sections": {
+        "personalInfo": "පුද්ගලික තොරතුරු",
+        "personalInfoDescription": "ඔබ පිළිබඳ තොරතුරු අපට කියන්න",
+        "identityVerification": "හැඳුනුම්පත් සත්‍යාපනය",
+        "addressInfo": "ලිපිනය සහ මූලික ස්ථානය",
+        "addressInfoDescription": "ඔබගේ මූලික ස්ථානය කුමක්ද?",
+        "vehicleInfo": "වාහන තොරතුරු සහ ලේඛන",
+        "vehicleInfoDescription": "ලියාපදිංචිය සම්පූර්ණ කිරීමට අවම වශයෙන් බස් එකක් එක් කරන්න",
+        "vehicleInfoNote": "සටහන: අවශ්‍ය සියලුම ලේඛන සමඟ අවම වශයෙන් වාහනයක් එක් කළ යුතුය",
+        "password": "මුරපදයක් සාදන්න",
+        "passwordDescription": "ශක්තිමත් මුරපදයකින් ඔබගේ ගිණුම ආරක්ෂා කරන්න",
+        "terms": "නියමයන් සහ කොන්දේසි",
+        "termsDescription": "කරුණාකර අපගේ කොන්දේසි සමාලෝචනය කර පිළිගන්න"
+      },
+      "badges": {
+        "required": "අවශ්‍යයි",
+        "optional": "විකල්ප"
+      },
+      "fields": {
+        "firstName": {
+          "label": "මුල් නම *",
+          "placeholder": "මුල් නම ඇතුළත් කරන්න"
+        },
+        "lastName": {
+          "label": "අවසාන නම *",
+          "placeholder": "අවසාන නම ඇතුළත් කරන්න"
+        },
+        "email": {
+          "label": "විද්‍යුත් තැපැල් ලිපිනය *",
+          "placeholder": "your@email.com"
+        },
+        "phone": {
+          "label": "දුරකථන අංකය *",
+          "placeholder": "+94 XX XXX XXXX"
+        },
+        "nicNumber": {
+          "label": "ජා.හැ. අංකය *",
+          "placeholder": "උදා: 199012345678 හෝ 901234567V"
+        },
+        "ownerPhoto": {
+          "label": "පැතිකඩ ඡායාරූපය *",
+          "alt": "හිමිකරු ඡායාරූපය",
+          "uploaded": "ඡායාරූපය උඩුගත කරන ලදී",
+          "uploadPrompt": "ඔබගේ ඡායාරූපය උඩුගත කිරීමට ක්ලික් කරන්න",
+          "uploadHelp": "JPG, PNG (උපරිම 5MB)"
+        },
+        "nicDocument": {
+          "label": "ජා.හැ. ලේඛනය",
+          "helpText": "ඔබගේ ජා.හැ. පතෙහි පැහැදිලි පිටපතක් උඩුගත කරන්න (ඉදිරිපස සහ පිටුපස)"
+        },
+        "address": {
+          "label": "ලිපිනය *",
+          "placeholder": "ඔබගේ සම්පූර්ණ ලිපිනය ඇතුළත් කරන්න"
+        },
+        "city": {
+          "label": "නගරය *",
+          "placeholder": "නගරය ඇතුළත් කරන්න"
+        },
+        "district": {
+          "label": "දිස්ත්‍රික්කය *",
+          "select": "දිස්ත්‍රික්කය තෝරන්න"
+        },
+        "postalCode": {
+          "label": "තැපැල් කේතය",
+          "placeholder": "තැපැල් කේතය"
+        },
+        "baseLocation": {
+          "label": "බස් සඳහා මූලික ස්ථානය *",
+          "placeholder": "උදා: කොළඹ, මහනුවර",
+          "helpText": "මෙය පාරිභෝගිකයන්ට ඔබගේ ප්‍රධාන සේවා ප්‍රදේශය ලෙස පෙන්වනු ඇත"
+        },
+        "registrationNumber": {
+          "label": "ලියාපදිංචි අංකය *",
+          "placeholder": "ABC-1234"
+        },
+        "vehicleType": {
+          "label": "වාහන වර්ගය *",
+          "select": "වර්ගය තෝරන්න"
+        },
+        "make": {
+          "label": "නිෂ්පාදකයා *",
+          "placeholder": "උදා: Ashok Leyland"
+        },
+        "model": {
+          "label": "මාදිලිය *",
+          "placeholder": "උදා: 2820"
+        },
+        "year": {
+          "label": "වසර *",
+          "placeholder": "2022"
+        },
+        "seatingCapacity": {
+          "label": "ආසන සංඛ්‍යාව *",
+          "placeholder": "45"
+        },
+        "acType": {
+          "label": "AC වර්ගය *",
+          "select": "AC වර්ගය තෝරන්න"
+        },
+        "color": {
+          "label": "වර්ණය *",
+          "placeholder": "සුදු"
+        },
+        "condition": {
+          "label": "තත්ත්වය *",
+          "select": "තත්ත්වය තෝරන්න",
+          "options": {
+            "excellent": "ඉතා හොඳ",
+            "good": "හොඳ",
+            "fair": "සාමාන්‍ය",
+            "needsRepair": "අලුත්වැඩියා අවශ්‍ය"
+          }
+        },
+        "pricePerKilometer": {
+          "label": "කිලෝමීටරයකට මිල *",
+          "placeholder": "85",
+          "helpText": "කිලෝමීටරයකට LKR"
+        },
+        "pricePerDay": {
+          "label": "දිනකට මිල *",
+          "placeholder": "25000",
+          "helpText": "දිනකට LKR"
+        },
+        "driverAllowance": {
+          "label": "රියදුරු දීමනාව",
+          "placeholder": "5000",
+          "helpText": "දෛනික රියදුරු දීමනාව (LKR)"
+        },
+        "description": {
+          "label": "විස්තරය",
+          "placeholder": "ඔබගේ වාහනය, ආසන සැලසුම සහ විශේෂ පහසුකම් විස්තර කරන්න..."
+        },
+        "password": {
+          "label": "මුරපදය *",
+          "placeholder": "ශක්තිමත් මුරපදයක් සාදන්න"
+        },
+        "confirmPassword": {
+          "label": "මුරපදය තහවුරු කරන්න *",
+          "placeholder": "ඔබගේ මුරපදය නැවත ඇතුළත් කරන්න"
+        },
+        "documents": {
+          "drivingLicense": {
+            "label": "රියදුරු බලපත්‍රය",
+            "helpText": "වලංගු බර වාහන රියදුරු බලපත්‍රය"
+          },
+          "insuranceCertificate": {
+            "label": "රක්ෂණ සහතිකය",
+            "helpText": "වත්මන් වාහන රක්ෂණ ලේඛනය"
+          },
+          "registrationCertificate": {
+            "label": "ලියාපදිංචි සහතිකය",
+            "helpText": "වාහන ලියාපදිංචි සහතිකය (CR)"
+          }
+        }
+      },
+      "vehicle": {
+        "cardTitle": "වාහනය {index}",
+        "remove": "ඉවත් කරන්න",
+        "amenitiesTitle": "පහසුකම්",
+        "photosTitle": "වාහන ඡායාරූප",
+        "photoAlt": "වාහනය {vehicleIndex} ඡායාරූපය {photoIndex}",
+        "addPhoto": "ඡායාරූපය එක් කරන්න",
+        "photosHelpText": "ඔබගේ වාහනයේ ඡායාරූප 8ක් දක්වා උඩුගත කරන්න (ඇතුළත සහ පිටත)",
+        "documentsTitle": "වාහන ලේඛන",
+        "addAnother": "තවත් වාහනයක් එක් කරන්න",
+        "descriptionCount": "අක්ෂර {count}/500",
+        "documentGuidelines": {
+          "title": "ලේඛන මාර්ගෝපදේශ",
+          "points": {
+            "clear": "සියලුම ලේඛන පැහැදිලිව සහ කියවිය හැකි විය යුතුය",
+            "valid": "ලේඛන වත්මන් සහ වලංගු විය යුතුය",
+            "formats": "පිළිගන්නා ආකෘති: PDF, JPG, PNG (උපරිම 5MB)",
+            "verificationTime": "සත්‍යාපනයට සාමාන්‍යයෙන් ව්‍යාපාරික දින 2-3ක් ගතවේ"
+          }
+        }
+      },
+      "passwordStrength": {
+        "label": "මුරපද ශක්තිය:",
+        "weak": "දුර්වල",
+        "medium": "මධ්‍යම",
+        "strong": "ශක්තිමත්"
+      },
+      "passwordRequirements": {
+        "title": "මුරපද අවශ්‍යතා:",
+        "minLength": "අවම වශයෙන් අක්ෂර 8ක්",
+        "upperLower": "මහා අකුරු සහ කුඩා අකුරු දෙකම ඇතුළත් කරන්න",
+        "number": "අවම වශයෙන් එක් සංඛ්‍යාවක් ඇතුළත් කරන්න",
+        "special": "අවම වශයෙන් එක් විශේෂ අක්ෂරයක් ඇතුළත් කරන්න"
+      },
+      "terms": {
+        "summaryTitle": "හවුල්කාරිත්ව ගිවිසුම් සාරාංශය",
+        "summaryIntro": "TravelNest හි බස් හිමිකරුවෙකු ලෙස ලියාපදිංචි වීමෙන් ඔබ මෙයට එකඟ වේ:",
+        "points": {
+          "accurateInfo": "ඔබගේ වාහන පිළිබඳ නිවැරදි සහ යාවත්කාලීන තොරතුරු ලබා දීම",
+          "licenses": "අවශ්‍ය සියලුම බලපත්‍ර, අවසරපත් සහ රක්ෂණය පවත්වා ගැනීම",
+          "commission": "තහවුරු කළ වෙන්කරවීම් මත 10% කොමිස් ගෙවීම",
+          "respond": "පැය 24ක් ඇතුළත මිල ඉල්ලීම්වලට ප්‍රතිචාර දක්වීම",
+          "safety": "වාහන තත්ත්වය සහ ආරක්ෂක ප්‍රමිතීන් පවත්වා ගැනීම",
+          "compliance": "දේශීය ප්‍රවාහන නීති හා රෙගුලාසි සියල්ලට අනුකූල වීම"
+        },
+        "acceptPrefix": "මම පිළිගනිමි",
+        "termsLink": "නියමයන් සහ කොන්දේසි",
+        "privacyPrefix": "මම කියවා ඇති අතර එකඟ වෙමි",
+        "privacyLink": "රහස්‍යතා ප්‍රතිපත්තිය",
+        "dataProcessing": "ව්‍යාපාරික කටයුතු සහ අලෙවිකරණ කටයුතු සඳහා දත්ත සැකසීමට මම එකඟ වෙමි"
+      },
+      "actions": {
+        "previous": "පෙර",
+        "continue": "ඉදිරියට",
+        "completeRegistration": "ලියාපදිංචිය සම්පූර්ණ කරන්න"
+      },
+      "errors": {
+        "requiredFields": "කරුණාකර අවශ්‍ය සියලු ක්ෂේත්‍ර පුරවන්න",
+        "invalidEmail": "කරුණාකර වලංගු විද්‍යුත් තැපැල් ලිපිනයක් ඇතුළත් කරන්න",
+        "profilePhotoRequired": "පැතිකඩ ඡායාරූපය අවශ්‍යයි",
+        "nicDocumentRequired": "ජා.හැ. ලේඛනය අවශ්‍යයි",
+        "identityDocsRequired": "කරුණාකර අවශ්‍ය හැඳුනුම් ලේඛන උඩුගත කරන්න",
+        "requiredAddressFields": "කරුණාකර අවශ්‍ය ලිපින ක්ෂේත්‍ර සියල්ල පුරවන්න",
+        "requiredVehicleFields": "කරුණාකර වාහනය {index} සඳහා අවශ්‍ය සියලු ක්ෂේත්‍ර පුරවන්න",
+        "requiredVehicleDocs": "කරුණාකර වාහනය {index} සඳහා අවශ්‍ය සියලු ලේඛන උඩුගත කරන්න",
+        "passwordRequired": "කරුණාකර ඔබගේ මුරපදය ඇතුළත් කර තහවුරු කරන්න",
+        "passwordMismatch": "මුරපද නොගැලපේ",
+        "weakPassword": "කරුණාකර වඩා ශක්තිමත් මුරපදයක් තෝරන්න",
+        "acceptTerms": "කරුණාකර නියමයන් සහ කොන්දේසි සියල්ල පිළිගන්න",
+        "unexpected": "අනපේක්ෂිත දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.",
+        "otpSendFailed": "OTP යැවීමට අසමත් විය. කරුණාකර නැවත උත්සාහ කරන්න.",
+        "invalidOtp": "OTP අවලංගුයි හෝ කල් ඉකුත් වී ඇත."
+      }
+    },
     "oauth": {
       "title": "OAuth පිවිසුම අසාර්ථක විය",
       "loading": "ඔබේ සමාජ පිවිසුම අවසන් කරමින්...",
@@ -305,6 +1154,7 @@
   "footer": {
     "description": "ශ්‍රී ලංකාවේ ප්‍රමுඛ බස් කුලී වෙළඳපොල",
     "quickLinks": "ඉක්මන් සබැඳි",
+    "tripPackages": "සංචාර පැකේජ",
     "support": "සහාය",
     "legal": "නීතිමය",
     "followUs": "අපව අනුගමනය කරන්න",
@@ -339,7 +1189,7 @@
         "dateLabel": "දිනය",
         "passengersLabel": "මගීන්",
         "fromPlaceholder": "කොළඹ",
-        "toPlaceholder": "කැන්ඩි",
+        "toPlaceholder": "මහනුවර",
         "passengersPlaceholder": "35",
         "searchButton": "බස් රථ සොයන්න"
       },
@@ -351,6 +1201,18 @@
         "verifiedBuses": {
           "label": "සත්‍යාපිත බස් රථ",
           "sublabel": "ගාල්ලෙන් ජාෆ්නා දක්වා"
+        },
+        "activeRoutes": {
+          "label": "ක්‍රියාකාරී මාර්ග",
+          "sublabel": "දිවයින පුරා ආවරණය"
+        },
+        "happyTravelers": {
+          "label": "සතුටු සංචාරකයින්",
+          "sublabel": "පවුල් හා සමාගම් විශ්වාසය"
+        },
+        "tripsCompleted": {
+          "label": "සම්පූර්ණ කළ ගමන්",
+          "sublabel": "ආරක්ෂිත හා විශ්වාසදායක ගමන්"
         },
         "successfulTrips": {
           "label": "සාර්ථක ගමන්",
@@ -382,6 +1244,7 @@
       "capacityLabel": "ධාරිතා",
       "priceLabel": "මිල",
       "startingFrom": "සිට",
+      "generatedTitle": "{from} සිට {to} දක්වා {days}-දින සංචාරය",
       "perPerson": "පුද්ගලයෙන් එක",
       "days": "දින",
       "viewDetails": "විස්තර බලන්න",
@@ -517,7 +1380,7 @@
         {
           "name": "සංචාරක බස්",
           "capacity": "මගීන් {count}",
-          "location": "කැන්ඩි"
+          "location": "මහනුවර"
         },
         {
           "name": "නවීන කෝච්",
@@ -580,6 +1443,16 @@
         "fullAc": "සම්පූර්ණ AC",
         "ac": "AC",
         "nonAc": "AC නැති"
+      },
+      "amenityOptions": {
+        "wifi": "WiFi",
+        "ac": "වායු සමීකරණය",
+        "music": "සංගීත පද්ධතිය",
+        "usb": "USB චාජිං",
+        "tv": "ටීවී/විනෝදාස්වාදය",
+        "reclining": "යටට හැරෙන ආසන",
+        "reading": "කියවීමේ ලාම්පු",
+        "gps": "GPS අනුවීක්ෂණය"
       }
     },
     "sort": {
@@ -602,6 +1475,21 @@
     "hero": {
       "title": "TravelNest ගැන",
       "subtitle": "2024 සිට විශ්වාසදායක බස් රථ හිමියන් සමඟ සංචාරකයන් සම්බන්ධ කරමින්"
+    },
+    "story": {
+      "title": "අපගේ කතාව",
+      "paragraph1": "TravelNest ආරම්භ වුණේ කණ්ඩායම් සංචාරයේ සාමාන්‍ය ගැටලුවක් විසඳීමටයි: සාධාරණ මිලකරණය සහ විශ්වාසදායක සේවාව සමඟ විශ්වාස කළ හැකි බස් රථ සොයා ගැනීම.",
+      "paragraph2": "කුඩා අදහසක් ලෙස ආරම්භ වූ මෙය, විනිවිද පෙනෙන ක්‍රියාවලි, වේගවත් උපුටා දැක්වීම් සහ ආරක්ෂිත ගමන් හරහා සංචාරකයන් සහ සත්‍යාපිත හිමිකරුවන් සම්බන්ධ කරන වේදිකාවක් ලෙස වර්ධනය වී ඇත."
+    },
+    "statistics": {
+      "title": "අපගේ බලපෑම",
+      "empty": "සංඛ්‍යාත දත්ත ඉක්මනින් ලබා ගත හැක.",
+      "items": {
+        "verifiedBuses": "සත්‍යාපිත බස් රථ",
+        "happyCustomers": "සතුටු ගනුදෙනුකරුවන්",
+        "districtsCovered": "ආවරණය කළ දිස්ත්‍රික්ක",
+        "averageRating": "සාමාන්‍ය ශ්‍රේණිගත කිරීම"
+      }
     },
     "mission": {
       "title": "අපගේ මෙහෙවර",
@@ -628,6 +1516,23 @@
       "innovation": {
         "title": "නවෝත්පාදනය",
         "description": "සාම්ප්‍රදායික සංචාර සඳහා නවීන විසඳුම්"
+      }
+    },
+    "usp": {
+      "title": "TravelNest තෝරාගන්නේ ඇයි",
+      "items": {
+        "verified": {
+          "title": "සත්‍යාපිත හිමිකරුවන්",
+          "description": "ලැයිස්තුගත කිරීමට පෙර සෑම හිමිකරුවෙකුම සහ වාහන සමූහයම ලේඛන සහ ආරක්ෂක පරීක්ෂාවන් හරහා යයි."
+        },
+        "pricing": {
+          "title": "විනිවිද පෙනෙන උපුටා දැක්වීම්",
+          "description": "සැඟවුණු වේදිකා ගාස්තු නොමැතිව පැහැදිලි, අයිතම-වශයෙන් වෙන් කළ උපුටා දැක්වීම් පාරිභෝගිකයින්ට සංසන්දනය කළ හැක."
+        },
+        "coverage": {
+          "title": "දිවයින පුරා ආවරණය",
+          "description": "නගර ගමනාගමනයෙන් දුර ගමන් සංචාර දක්වා, TravelNest ශ්‍රී ලංකාව පුරා ගමන් සඳහා සහය දක්වයි."
+        }
       }
     },
     "team": {
@@ -669,7 +1574,93 @@
         "value": "සඳුදා - සිකුරාදා: පෙ.ව. 9:00 - ප.ව. 6:00"
       }
     },
+    "social": {
+      "title": "TravelNest අනුගමනය කරන්න"
+    },
+    "map": {
+      "title": "සිතියමෙන් අපව සොයාගන්න"
+    },
+    "faq": {
+      "title": "නිතර අසන ප්‍රශ්න",
+      "subtitle": "වෙන්කිරීම්, ගෙවීම් සහ සහාය පිළිබඳ පොදු ප්‍රශ්න සඳහා ඉක්මන් පිළිතුරු.",
+      "empty": "මේ මොහොතේ FAQ නොමැත."
+    },
     "mapPlaceholder": "සිතියම් ඒකාබද්ධතාවය ඉක්මනින් එයි"
+  },
+  "howItWorks": {
+    "hero": {
+      "title": "TravelNest ක්‍රියා කරන ආකාරය",
+      "subtitle": "ඔබට ගැලපෙන බස් රථයක් වෙන්කරවා ගැනීමට හෝ ඔබේ ප්‍රවාහන ව්‍යාපාරය වර්ධනය කිරීමට සරල පියවර"
+    },
+    "customer": {
+      "title": "පාරිභෝගිකයින් සඳහා",
+      "description": "සරල පියවර 6කින් බස් රථයක් වෙන්කරගන්න",
+      "steps": {
+        "search": {
+          "title": "සොයන්න සහ ගවේෂණය කරන්න",
+          "description": "ආරම්භක ස්ථානය, ගමනාන්තය, දිනය සහ මගී සංඛ්‍යාව ඇතුළත් කර ඔබට ගැලපෙන බස් රථ සොයන්න."
+        },
+        "request": {
+          "title": "උපුටා දැක්වීම් ඉල්ලන්න",
+          "description": "ඔබේ ගමන් අවශ්‍යතා සදහන් කර බස් හිමිකරුවන් කිහිප දෙනෙකුගෙන් එකවර මිල ගණන් ඉල්ලන්න."
+        },
+        "compare": {
+          "title": "සසඳා තෝරන්න",
+          "description": "සත්‍යාපිත හිමිකරුවන්ගේ මිල, පහසුකම් සහ ශ්‍රේණිගත කිරීම් සසඳා හොඳම විකල්පය තෝරන්න."
+        },
+        "book": {
+          "title": "වෙන්කරවා ගමන් කරන්න",
+          "description": "ආරක්ෂිත ගෙවීමක් සමඟ වෙන්කිරීම තහවුරු කර සුවපහසු ගමනක් ආරම්භ කරන්න."
+        },
+        "pay": {
+          "title": "ආරක්ෂිතව ගෙවන්න",
+          "description": "ආරක්ෂිත ගෙවීම් පද්ධතියක් හරහා ගෙවීම් සම්පූර්ණ කර තහවුරු කිරීම ලබා ගන්න."
+        },
+        "travel": {
+          "title": "සැනසීමෙන් ගමන් කරන්න",
+          "description": "ඔබේ වෙන්කිරීම ලුහුබඳිමින් සත්‍යාපිත සේවා සපයන්නන් සමඟ විශ්වාසයෙන් ගමන් කරන්න."
+        }
+      }
+    },
+    "owner": {
+      "title": "බස් හිමිකරුවන් සඳහා",
+      "description": "සරල පියවර 6කින් ඔබේ ව්‍යාපාරය වර්ධනය කරන්න",
+      "steps": {
+        "register": {
+          "title": "ගිණුම ලියාපදිංචි කරන්න",
+          "description": "හිමිකරු ගිණුමක් සාදා ඔබේ ව්‍යාපාරික විස්තර ඇතුළත් කරන්න."
+        },
+        "verify": {
+          "title": "සත්‍යාපනය සම්පූර්ණ කරන්න",
+          "description": "පාරිභෝගික විශ්වාසය සඳහා අවශ්‍ය ලේඛන උඩුගත කර සත්‍යාපනය සම්පූර්ණ කරන්න."
+        },
+        "list": {
+          "title": "ඔබේ බලඇණිය ලැයිස්තුගත කරන්න",
+          "description": "බස් රථ, පහසුකම්, මිල ගණන් සහ ලබාගත හැකි කාලයන් ඇතුළත් කරන්න."
+        },
+        "receiveRequests": {
+          "title": "ඉල්ලීම් ලබා ගන්න",
+          "description": "ඔබේ බලඇණියට සහ මාර්ගවලට ගැලපෙන උපුටා දැක්වීම් ඉල්ලීම් ලබා ගන්න."
+        },
+        "sendQuotes": {
+          "title": "තරඟකාරී මිල ගණන් යවන්න",
+          "description": "විස්තරාත්මක උපුටා දැක්වීම් වේගයෙන් යවා වැඩි වෙන්කිරීම් ලබා ගන්න."
+        },
+        "manage": {
+          "title": "කළමනාකරණය හා වර්ධනය",
+          "description": "වෙන්කිරීම් නිරීක්ෂණය කර සේවා ගුණාත්මකභාවය වැඩිදියුණු කර නැවත පාරිභෝගිකයන් ලබා ගන්න."
+        },
+        "respond": {
+          "title": "ඉල්ලීම්වලට ප්‍රතිචාර දක්වන්න",
+          "description": "ගමන් විස්තර සමාලෝචනය කර වඩාත් ගැලපෙන උපුටා දැක්වීම් යවන්න."
+        },
+        "earn": {
+          "title": "ආදායම් වැඩි කර වර්ධනය වන්න",
+          "description": "වෙන්කිරීම් ලබා ගෙන විශිෂ්ට සේවාවෙන් ඔබේ ව්‍යාපාර කීර්තිය ගොඩනගන්න."
+        }
+      }
+    },
+    "ownerCta": "හිමිකරු ලෙස ලියාපදිංචි වන්න"
   },
   "dashboard": {
     "pageTitle": "උපකරණ පුවරුව - TravelNest",
@@ -842,5 +1833,649 @@
     "deleteAccount": "ගිණුම මකන්න",
     "deleteAccountDescription": "ඔබේ ගිණුම සහ සියලුම දත්ත ස්ථිරවම මකන්න",
     "delete": "මකන්න"
+  },
+  "fileUpload": {
+    "uploaded": "උඩුගත කරන ලදී",
+    "prompt": "උඩුගත කිරීමට ක්ලික් කරන්න හෝ මෙතැනට ඇද දමන්න",
+    "helpText": "පිළිගන්නා ආකෘති: PDF, JPG, PNG (උපරිම 5MB)",
+    "replace": "ප්‍රතිස්ථාපනය කිරීමට නව ගොනුවක් උඩුගත කරන්න",
+    "verified": "සත්‍යාපිතයි",
+    "pending": "සමාලෝචනය බලාපොරොත්තු වේ",
+    "rejected": "ප්‍රතික්ෂේප කරන ලදී",
+    "errors": {
+      "maxSize": "ගොනු ප්‍රමාණය {maxSize}MB ට අඩු විය යුතුය",
+      "invalidType": "වලංගු නොවන ගොනු වර්ගයකි. අවසර ලැබෙන්නේ: {types}"
+    }
+  },
+  "faq": {
+    "title": "නිතර අසන ප්‍රශ්න",
+    "subtitle": "TravelNest පිළිබඳ පොදු ප්‍රශ්නවලට පිළිතුරු සොයාගන්න",
+    "categories": {
+      "general": "සාමාන්‍ය",
+      "booking": "වෙන්කිරීම",
+      "payment": "ගෙවීම්",
+      "owners": "බස් හිමිකරුන් සඳහා"
+    },
+    "questions": {
+      "whatIs": {
+        "question": "TravelNest කියන්නේ මොකක්ද?",
+        "answer": "TravelNest යනු ශ්‍රී ලංකාවේ ප්‍රමුඛතම ඔන්ලයින් වෙළඳපොළක් වන අතර එය සංචාරකයන් සත්‍යාපිත බස් හිමිකරුන් සමඟ සම්බන්ධ කරයි. අපගේ වේදිකාවෙන් කණ්ඩායම් සංචාර, විවාහ උත්සව, ආයතනික වැඩසටහන්, වන්දනා ගමන් සහ තවත් ගමන් සඳහා බස් සොයාගැනීම, සංසන්දනය කිරීම සහ වෙන්කරගැනීම පහසු වේ."
+      },
+      "howToBook": {
+        "question": "මම බස් එකක් වෙන්කරගන්නේ කොහොමද?",
+        "answer": "ඔබේ ගමන් දිනයන් සහ අවශ්‍යතා අනුව බස් සොයන්න, හිමිකරුන් කිහිප දෙනෙකුගෙන් උපුටා දැක්වීම් ඉල්ලන්න, මිල සහ සේවාවන් සංසන්දනය කරන්න, පසුව ආරක්ෂිත ඔන්ලයින් ගෙවීමක් සමඟ ඔබට ගැළපෙන විකල්පය වෙන්කරගන්න."
+      },
+      "payment": {
+        "question": "පිළිගන්නා ගෙවීම් ක්‍රම මොනවාද?",
+        "answer": "අපි ක්‍රෙඩිට්/ඩෙබිට් කාඩ්පත්, බැංකු මාරු සහ ජනප්‍රිය ජංගම ගෙවීම් ක්‍රම පිළිගනිමු. සියලු ගනුදෙනු කර්මාන්ත මට්ටමේ සංකේතනයකින් ආරක්ෂා කර ඇත."
+      },
+      "cancellation": {
+        "question": "අවලංගු කිරීමේ ප්‍රතිපත්තිය කුමක්ද?",
+        "answer": "අවලංගු කිරීමේ ප්‍රතිපත්ති බස් හිමිකරු අනුව වෙනස් වේ. සාමාන්‍යයෙන් ගමනට දින 7කට පෙර හෝ වැඩි කාලයකට පෙර අවලංගු කළහොත් සම්පූර්ණ මුදල් ආපසු ලැබේ. දින 3-7 අතර අවලංගු කළහොත් 50% ක් ලැබේ. දින 3කට අඩු කාලයකදී අවලංගු කිරීම සාමාන්‍යයෙන් ආපසු ගෙවීමකට සුදුසු නොවේ."
+      },
+      "verification": {
+        "question": "බස් හිමිකරුන් සත්‍යාපනය කරන්නේ කෙසේද?",
+        "answer": "සියලු බස් හිමිකරුන් ලේඛන සත්‍යාපනය, වාහන පරීක්ෂාව, බලපත්‍ර සත්‍යාපනය සහ පසුබිම් පරීක්ෂණ ඇතුළත් දැඩි සත්‍යාපන ක්‍රියාවලියකට යටත් වේ. මෙය ආරක්ෂාව සහ විශ්වාසනීයත්වය තහවුරු කරයි."
+      },
+      "becomeOwner": {
+        "question": "මම මගේ බස් TravelNest වෙත ලැයිස්තුගත කරන්නේ කොහොමද?",
+        "answer": "බස් හිමිකරුවෙකු ලෙස ලියාපදිංචි වන්න, අවශ්‍ය ලේඛන ඉදිරිපත් කර සත්‍යාපන ක්‍රියාවලිය සම්පූර්ණ කරන්න, ඔබේ වාහන ඡායාරූප සහ විස්තර සමඟ එක් කරන්න, පසුව පාරිභෝගිකයන්ගෙන් උපුටා දැක්වීම් ඉල්ලීම් ලැබීම ආරම්භ කරන්න."
+      }
+    },
+    "stillHaveQuestions": "තව ප්‍රශ්න තිබේද?",
+    "contactUs": "අපගේ සහාය කණ්ඩායම අමතන්න"
+  },
+  "legal": {
+    "privacy": {
+      "title": "රහස්‍යතා ප්‍රතිපත්තිය",
+      "lastUpdated": "අවසන් යාවත්කාලීනය",
+      "sections": {
+        "intro": {
+          "title": "හැඳින්වීම",
+          "content": "TravelNest ('අපි', 'අපගේ' හෝ 'අපට') ඔබගේ පෞද්ගලිකත්වය ආරක්ෂා කිරීමට කැපවී සිටී. මෙම රහස්‍යතා ප්‍රතිපත්තිය ඔබ අපගේ වේදිකාව භාවිතා කරන විට අපි තොරතුරු එකතු කරන, භාවිතා කරන, හෙළි කරන සහ ආරක්ෂා කරන ආකාරය පැහැදිලි කරයි."
+        },
+        "collection": {
+          "title": "අපි එකතු කරන තොරතුරු",
+          "content": "නම, ඊමේල්, දුරකථන අංකය, ගෙවීම් තොරතුරු සහ ගමන් කැමැත්ත ඇතුළු ඔබ සෘජුව ලබාදෙන තොරතුරු අපි එකතු කරමු. එසේම ඔබ සේවාවන් භාවිතා කරන විට භාවිතා දත්ත, උපාංග තොරතුරු සහ ස්ථාන දත්ත ස්වයංක්‍රීයව එකතු කරනු ලැබේ."
+        },
+        "use": {
+          "title": "අපි ඔබගේ තොරතුරු භාවිතා කරන ආකාරය",
+          "content": "අපගේ සේවාවන් සැපයීමට සහ වැඩිදියුණු කිරීමට, වෙන්කිරීම් සහ ගෙවීම් සැකසීමට, ඔබ සමඟ සන්නිවේදනය කිරීමට, ආරක්ෂාව තහවුරු කිරීමට සහ නීතිමය වගකීම් පිළිපැදීමට ඔබගේ තොරතුරු භාවිතා කරමු."
+        },
+        "sharing": {
+          "title": "තොරතුරු බෙදාගැනීම",
+          "content": "වෙන්කිරීම් පහසු කිරීම සඳහා බස් හිමිකරුන් සමඟ, ගනුදෙනු සඳහා ගෙවීම් සැකසුම් සපයන්නන් සමඟ සහ අපගේ ක්‍රියාකාරකම් සඳහා සහාය දෙන සේවා සපයන්නන් සමඟ ඔබගේ තොරතුරු බෙදාගන්නෙමු. අපි ඔබගේ පුද්ගලික තොරතුරු විකිණීමට නැත."
+        },
+        "security": {
+          "title": "දත්ත ආරක්ෂාව",
+          "content": "අනුමත නොකළ ප්‍රවේශය, වෙනස් කිරීම, හෙළිදරව් කිරීම හෝ විනාශ කිරීම වලක්වා ගැනීමට සුදුසු තාක්ෂණික සහ සංවිධානමය ආරක්ෂණ ක්‍රියාමාර්ග අපි ක්‍රියාත්මක කරමු."
+        },
+        "rights": {
+          "title": "ඔබගේ අයිතිවාසිකම්",
+          "content": "ඔබට ඔබගේ පුද්ගලික තොරතුරු ප්‍රවේශ වීමට, නිවැරදි කිරීමට හෝ මකා දැමීමට අයිතිය ඇත. එසේම දත්ත සැකසීමට විරුද්ධ වීමට හෝ දත්ත අතුරුමාරුකරණය ඉල්ලීමටද හැක. මෙම අයිතිවාසිකම් භාවිතා කිරීමට අප අමතන්න."
+        },
+        "contact": {
+          "title": "අප අමතන්න",
+          "content": "රහස්‍යතා සම්බන්ධ විමසීම් සඳහා privacy@travelnest.lk වෙත සම්බන්ධ වන්න"
+        }
+      }
+    },
+    "terms": {
+      "title": "සේවා කොන්දේසි",
+      "lastUpdated": "අවසන් යාවත්කාලීනය",
+      "sections": {
+        "acceptance": {
+          "title": "කොන්දේසි පිළිගැනීම",
+          "content": "TravelNest වෙත ප්‍රවේශ වීමෙන් හෝ භාවිතා කිරීමෙන් ඔබ මෙම සේවා කොන්දේසි වලට අනුබද්ධ වීමට එකඟ වේ. ඔබ යම් කොටසකට එකඟ නොවන්නේ නම් සේවාවට ප්‍රවේශ විය නොහැක."
+        },
+        "services": {
+          "title": "අපගේ සේවාවන්",
+          "content": "TravelNest සංචාරකයන් සහ බස් හිමිකරුන් සම්බන්ධ කරන ඔන්ලයින් වෙළඳපොළක් සපයයි. අපි වෙන්කිරීම් ක්‍රියාවලිය පහසු කරමු, නමුත් බස් හිමිකරුන් සපයන සැබෑ ප්‍රවාහන සේවාවන් සඳහා වගකිව යුතු නොවේ."
+        },
+        "accounts": {
+          "title": "පරිශීලක ගිණුම්",
+          "content": "ඔබගේ ගිණුම් අක්තපත්‍ර රහස්‍යතාවය රැකීම සහ ඔබගේ ගිණුම යටතේ සිදුවන සියලු ක්‍රියාකාරකම් සඳහා ඔබ වගකියුතුය. ඔබ නිවැරදි තොරතුරු සැපයිය යුතු අතර ඒවා කාලෝචිතව යාවත්කාලීන කළ යුතුය."
+        },
+        "booking": {
+          "title": "වෙන්කිරීම් සහ ගෙවීම්",
+          "content": "වෙන්කිරීම් බස් හිමිකරුන්ගේ ලබාගත හැකියාව සහ පිළිගැනීම මත රඳා පවතී. ගෙවීම් අපගේ වේදිකාව හරහා ආරක්ෂිතව සැකසෙයි. ආපසු ගෙවීම් සෑම වෙන්කිරීමකම අවලංගු කිරීමේ ප්‍රතිපත්තියට යටත් වේ."
+        },
+        "conduct": {
+          "title": "පරිශීලක හැසිරීම",
+          "content": "පරිශීලකයන් නීතිවිරෝධී අරමුණු සඳහා වේදිකාව භාවිතා කිරීම, අන් අයට හිරිහැර කිරීම, වැරදි තොරතුරු ප්‍රකාශ කිරීම හෝ වේදිකා ක්‍රියාකාරකම්ට බාධා කිරීම නොකළ යුතුය. උල්ලංඝන කිරීම් නිසා ගිණුම අවසන් කළ හැක."
+        },
+        "liability": {
+          "title": "වගකීමේ සීමා",
+          "content": "අපගේ වේදිකාව භාවිතා කිරීමෙන් හෝ බස් හිමිකරුන් සපයන ප්‍රවාහන සේවාවන්ගෙන් ඇතිවන හානි සඳහා TravelNest වගකිව යුතු නොවේ. අපගේ සමස්ත වගකීම අප වෙත ගෙවූ ගාස්තු පමණින් සීමා වේ."
+        },
+        "changes": {
+          "title": "කොන්දේසි වෙනස්කම්",
+          "content": "අපට ඕනෑම වේලාවක මෙම කොන්දේසි සංශෝධනය කළ හැක. වෙනස්කම් පසු අඛණ්ඩ භාවිතය ඒවා පිළිගැනීමක් ලෙස සැලකේ. වැදගත් වෙනස්කම් පිළිබඳව ඊමේල් හෝ වේදිකා දැන්වීම් මඟින් දැනුම් දේ."
+        }
+      }
+    },
+    "refund": {
+      "title": "ආපසු ගෙවීමේ ප්‍රතිපත්තිය",
+      "lastUpdated": "අවසන් යාවත්කාලීනය",
+      "sections": {
+        "overview": {
+          "title": "සාරාංශය",
+          "content": "TravelNest හරහා කරන වෙන්කිරීම් සඳහා ආපසු ගෙවීම් සපයන තත්වයන් මෙම ප්‍රතිපත්තියෙන් පැහැදිලි කරයි. ආපසු ගෙවීමට සුදුසුකම අවලංගු කරන වේලාව සහ අදාළ බස් හිමිකරුගේ ප්‍රතිපත්තිය මත රඳා පවතී."
+        },
+        "eligibility": {
+          "title": "ආපසු ගෙවීම් සුදුසුකම",
+          "content": "ගමනට දින 7කට පෙර හෝ වැඩි කාලයකට පෙර අවලංගු කිරීම: සැකසුම් ගාස්තු අඩු කර සම්පූර්ණ ආපසු ගෙවීම. දින 3-7 අතර: 50% ආපසු ගෙවීම. දින 3කට අඩු: වෙනත් සඳහන් නොවේ නම් සාමාන්‍යයෙන් ආපසු ගෙවීමක් නොමැත."
+        },
+        "process": {
+          "title": "ආපසු ගෙවීමේ ක්‍රියාවලිය",
+          "content": "ආපසු ගෙවීමක් ඉල්ලීමට ඔබගේ ගිණුම් උපකරණ පුවරුව හරහා වෙන්කිරීම අවලංගු කරන්න. අනුමත කළ ආපසු ගෙවීම් මුල් ගෙවීම් ක්‍රමයට ව්‍යාපාරික දින 7-10 ඇතුළත සැකසෙයි."
+        },
+        "exceptions": {
+          "title": "විශේෂ අවස්ථා",
+          "content": "පහත අවස්ථාවල සම්පූර්ණ ආපසු ගෙවීම් ලබාදේ: බස් හිමිකරු වෙන්කිරීම අවලංගු කිරීම, සපයන ලද වාහනය විස්තරයෙන් සැලකිය යුතු ලෙස වෙනස් වීම, හෝ අපගේ කණ්ඩායම සනාථ කළ ආරක්ෂක ගැටලු."
+        },
+        "disputes": {
+          "title": "විවාද",
+          "content": "ආපසු ගෙවීමේ තීරණයකට ඔබ එකඟ නොවන්නේ නම්, දින 14ක් ඇතුළත අපගේ සහාය කණ්ඩායම අමතන්න. පවතින සාධක මත ඔබගේ අවස්ථාව යළි සමාලෝචනය කර සාධාරණ තීරණයක් ගන්නෙමු."
+        },
+        "contact": {
+          "title": "සම්බන්ධ වීම",
+          "content": "ආපසු ගෙවීම් විමසීම් සඳහා support@travelnest.lk වෙත ඊමේල් කරන්න හෝ +94 11 234 5678 අමතන්න"
+        }
+      }
+    }
+  },
+  "packages": {
+    "title": "සංචාර පැකේජ",
+    "subtitle": "සත්‍යාපිත හිමිකරුන්ගේ ස්ථාවර සංචාර පැකේජ සංසන්දනය කරන්න.",
+    "searchPlaceholder": "මාර්ග හෝ පැකේජ නම සොයන්න",
+    "loading": "පැකේජ පූරණය වෙමින්...",
+    "empty": "ඔබේ පෙරහන් වලට ගැළපෙන පැකේජ නොමැත.",
+    "emptyHint": "තවත් විකල්ප සොයා ගැනීමට ඔබේ සෙවුම හෝ පෙරහන් සංස්කරණය කරන්න.",
+    "vehicleFallback": "වාහනය",
+    "bookPackage": "පැකේජය වෙන්කරන්න",
+    "viewDetails": "විස්තර බලන්න",
+    "priceLabel": "පැකේජ මිල",
+    "passengers": "මගීන්",
+    "maxSeats": "උපරිම {count}",
+    "ownerLabel": "හිමිකරු: {name}",
+    "durationDays": "දින {count}",
+    "status": {
+      "active": "සක්‍රිය",
+      "inactive": "අක්‍රිය"
+    },
+    "compare": {
+      "label": "සංසන්දනය",
+      "selected": "තෝරාගත්",
+      "title": "පැකේජ සංසන්දනය",
+      "clear": "ඉවත් කරන්න",
+      "feature": "විශේෂාංගය",
+      "route": "මාර්ගය",
+      "duration": "කාලසීමාව",
+      "passengers": "මගීන්",
+      "vehicle": "වාහනය",
+      "price": "මිල"
+    },
+    "filters": {
+      "title": "පෙරහන්",
+      "clear": "ඉවත් කරන්න",
+      "startLocation": "ආරම්භක ස්ථානය",
+      "endLocation": "අවසන් ස්ථානය",
+      "durationDays": "කාලසීමාව (දින)",
+      "vehicleType": "වාහන වර්ගය",
+      "allVehicleTypes": "සියලු වාහන වර්ග",
+      "minPassengers": "අවම මගීන්",
+      "maxPassengers": "උපරිම මගීන්",
+      "minPrice": "අවම මිල (LKR)",
+      "maxPrice": "උපරිම මිල (LKR)"
+    },
+    "detail": {
+      "notFoundTitle": "පැකේජය හමු නොවීය",
+      "notFoundMessage": "ඔබ සොයන සංචාර පැකේජය ඉවත් කර තිබිය හැකිය හෝ දැනට ලබාගත නොහැක.",
+      "exploreOtherPackages": "වෙනත් පැකේජ සොයන්න",
+      "featuredBadge": "විශේෂ පැකේජය",
+      "overview": "සාරාංශය",
+      "overviewFallback": "අමතර පැකේජ විස්තර ලබා දී නොමැත.",
+      "route": "මාර්ගය",
+      "passengerRange": "මගී පරාසය",
+      "operatedBy": "මෙහෙයවන්නේ",
+      "verifiedOwner": "සත්‍යාපිත හිමිකරු",
+      "owner": "හිමිකරු",
+      "startingFrom": "ආරම්භ වන්නේ",
+      "priceNote": "තෝරාගත් වාහනය සහ දිනයන් අනුව මිල වෙනස් විය හැක",
+      "duration": "කාලසීමාව",
+      "groupSize": "කණ්ඩායම් ප්‍රමාණය",
+      "bookThisPackage": "මෙම පැකේජය වෙන්කරන්න",
+      "freeCancellation": "නොමිලේ අවලංගු කිරීම ලබාගත හැක"
+    },
+    "modal": {
+      "title": "පැකේජය වෙන්කරන්න",
+      "titleWithName": "{name} වෙන්කරන්න",
+      "startDate": "ආරම්භක දිනය",
+      "passengerCount": "මගී ගණන (අවම {min})",
+      "notes": "සටහන් (විකල්ප)",
+      "cancel": "අවලංගු කරන්න",
+      "confirm": "වෙන්කිරීම තහවුරු කරන්න"
+    },
+    "errors": {
+      "fetchPackages": "සංචාර පැකේජ පූරණය කිරීමට අසමත් විය",
+      "compareLimit": "වරකට පැකේජ 3ක් දක්වා පමණක් සංසන්දනය කළ හැක.",
+      "missingStartDate": "කරුණාකර ආරම්භක දිනයක් තෝරන්න.",
+      "passengerLimit": "මගී ගණන පැකේජ සීමාවෙන් පිටතයි.",
+      "bookingFailed": "පැකේජ වෙන්කර ගැනීමට අසමත් විය"
+    }
+  },
+  "payment": {
+    "return": {
+      "success": {
+        "title": "ගෙවීම සාර්ථකයි",
+        "message": "ඔබගේ ගෙවීම තහවුරු කර ඇත."
+      },
+      "pending": {
+        "title": "ගෙවීම පොරොත්තු වේ",
+        "message": "ඔබගේ ගෙවීමේ තත්ත්වය තවමත් තහවුරු කරමින් පවතී."
+      },
+      "errors": {
+        "missingReference": "ගෙවීම් යොමුව සොයාගත නොහැකි විය",
+        "verifyFailed": "ගෙවීම සත්‍යාපනය කිරීමට අසමත් විය"
+      },
+      "actions": {
+        "viewBooking": "වෙන්කිරීම බලන්න",
+        "paymentDetails": "ගෙවීම් විස්තර"
+      }
+    },
+    "cancel": {
+      "title": "ගෙවීම අවලංගු කරන ලදී",
+      "message": "ඔබගේ ගෙවීම අවලංගු කරන ලදී. ඔබට ගෙවීම් පිටුවෙන් නැවත උත්සාහ කළ හැක.",
+      "actions": {
+        "returnToPayment": "ගෙවීමට ආපසු යන්න"
+      }
+    }
+  },
+  "vehicle": {
+    "errors": {
+      "invalidVehicleData": "ලැබුණු වාහන දත්ත වලංගු නොවේ",
+      "fetchVehicle": "වාහන විස්තර ලබා ගැනීමට අසමත් විය",
+      "notFound": "වාහනය හමු නොවීය"
+    },
+    "actions": {
+      "goBack": "ආපසු යන්න",
+      "backToSearch": "සෙවුමට ආපසු",
+      "requestQuotation": "උපුටා දැක්වීම ඉල්ලන්න",
+      "viewAllReviews": "සියලු සමාලෝචන බලන්න",
+      "contactOwner": "හිමිකරු අමතන්න"
+    },
+    "status": {
+      "available": "ලබාගත හැක",
+      "unavailable": "මෙම වාහනය දැන් ලබාගත නොහැක",
+      "verified": "සත්‍යාපිත"
+    },
+    "sections": {
+      "description": "විස්තරය",
+      "specifications": "පිරිවිතර",
+      "amenities": "පහසුකම්",
+      "pricing": "මිලකරණය",
+      "ownerInfo": "හිමිකරු තොරතුරු",
+      "availability": "ලබාගත හැකි බව",
+      "similarVehicles": "සමාන වාහන"
+    },
+    "specs": {
+      "capacity": "ධාරිතාව",
+      "seatsCount": "ආසන {count}",
+      "notAvailable": "N/A",
+      "type": "වර්ගය",
+      "condition": "තත්ත්වය",
+      "good": "හොඳ",
+      "brand": "වෙළඳ නාමය",
+      "model": "මාදිලිය",
+      "year": "වසර",
+      "color": "වර්ණය",
+      "fuelType": "ඉන්ධන වර්ගය",
+      "transmission": "ගියර් පද්ධතිය",
+      "seatingCapacity": "ආසන ධාරිතාව",
+      "passengersCount": "මගීන් {count}",
+      "acType": "AC වර්ගය"
+    },
+    "valueLabels": {
+      "vehicleType": {
+        "ordinary": "සාමාන්‍ය",
+        "semiLuxury": "අර්ධ සුඛෝපභෝගී",
+        "luxuryAc": "සුඛෝපභෝගී AC"
+      },
+      "acType": {
+        "fullAc": "සම්පූර්ණ AC",
+        "ac": "AC",
+        "nonAc": "AC නොමැති"
+      },
+      "condition": {
+        "excellent": "ඉතා හොඳ",
+        "good": "හොඳ",
+        "fair": "සාමාන්‍ය"
+      }
+    },
+    "amenityLabels": {
+      "wifi": "වයි-ෆයි",
+      "usbCharging": "USB ආරෝපණය",
+      "ac": "වායු සමීකරණය",
+      "recliningSeats": "පසුපසට වැටෙන ආසන",
+      "entertainment": "විනෝදාස්වාද පද්ධතිය",
+      "gps": "GPS ලුහුබැඳීම",
+      "firstAid": "ප්‍රථමාධාර කට්ටලය",
+      "readingLights": "කියවීමේ ආලෝක",
+      "luggageSpace": "ගමන් මලු සඳහා ඉඩ",
+      "water": "පානීය ජලය"
+    },
+    "reviewsTitle": "සමාලෝචන ({count})",
+    "reviewsCount": "සමාලෝචන {count}",
+    "reviews": {
+      "anonymous": "නිර්නාමික"
+    },
+    "empty": {
+      "noImages": "ඡායාරූප නොමැත",
+      "noReviews": "තවම සමාලෝචන නොමැත. මෙම වාහනය සමාලෝචනය කරන පළමුවැන්නා ඔබ වන්න!"
+    },
+    "pricing": {
+      "basePrice": "මූලික මිල",
+      "pricePerKm": "කි.මී.කට මිල",
+      "pricePerHour": "පැයකට මිල",
+      "driverAllowance": "රියදුරු දීමනාව",
+      "noteTitle": "* අවසාන මිල ගණනය කරන්නේ පහත මතයි:",
+      "notes": {
+        "tripDuration": "ගමනේ කාලසීමාව",
+        "distanceTraveled": "ගමන් කළ දුර",
+        "fuelCosts": "ඉන්ධන වියදම්",
+        "tollCharges": "ටෝල් ගාස්තු (අදාළ නම්)",
+        "permitFees": "අවසර ගාස්තු (අදාළ නම්)"
+      },
+      "startingFrom": "ආරම්භ වන්නේ"
+    },
+    "owner": {
+      "businessName": "ව්‍යාපාර නාමය",
+      "label": "හිමිකරු නාමය",
+      "baseLocation": "මූලික ස්ථානය",
+      "rating": "ශ්‍රේණිගත කිරීම"
+    },
+    "availability": {
+      "note": "උපුටා දැක්වීමක් ඉල්ලා ලබාගත හැකි බව පරීක්ෂා කරන්න",
+      "currentMonth": "වත්මන් මාසය",
+      "bookedBlocked": "වෙන්කළ {booked}, අවහිර කළ {blocked}",
+      "noBlockedDates": "මෙම මාසය සඳහා අවහිර කළ දිනයන් හමු නොවීය.",
+      "status": {
+        "booked": "වෙන්කළ",
+        "blocked": "අවහිර කළ",
+        "blockedWithReason": "අවහිර කළේ: {reason}"
+      }
+    }
+  },
+  "ownerProfile": {
+    "title": "මගේ පැතිකඩ",
+    "backToDashboard": "උපකරණ පුවරුවට ආපසු",
+    "tabPersonal": "පෞද්ගලික තොරතුරු",
+    "tabAddress": "ලිපිනය",
+    "tabVehicles": "වාහන",
+    "tabSecurity": "ආරක්ෂාව",
+    "tabDocuments": "ලේඛන",
+    "personalInfo": "පෞද්ගලික තොරතුරු",
+    "personalInfoDesc": "ඔබගේ පෞද්ගලික විස්තර යාවත්කාලීන කරන්න",
+    "profilePhoto": "පැතිකඩ ඡායාරූපය",
+    "profilePhotoHint": "JPG, PNG හෝ GIF. උපරිම ප්‍රමාණය 2MB",
+    "addressInfo": "ලිපින තොරතුරු",
+    "addressInfoDesc": "ඔබගේ ව්‍යාපාරික හෝ නිවාස ලිපිනය යාවත්කාලීන කරන්න",
+    "addressField": "ලිපිනය",
+    "addressPlaceholder": "ඔබගේ සම්පූර්ණ ලිපිනය ඇතුළු කරන්න",
+    "baseLocationHint": "ඔබගේ වාහන ප්‍රාථමිකව පිහිටා ඇති ස්ථානය",
+    "securitySettings": "ආරක්ෂා සැකසීම්",
+    "securitySettingsDesc": "ඔබගේ මුරපදය සහ ගිණුම් ආරක්ෂාව කළමනාකරණය කරන්න",
+    "currentPassword": "වත්මන් මුරපදය",
+    "newPassword": "නව මුරපදය",
+    "confirmPassword": "නව මුරපදය තහවුරු කරන්න",
+    "passwordMinLength": "අඩු තරමෙන් අක්ෂර 8ක් සහ සංඛ්‍යා හා විශේෂ අක්ෂර",
+    "updatePassword": "මුරපදය යාවත්කාලීන කරන්න",
+    "updating": "යාවත්කාලීන වෙමින්...",
+    "saveChanges": "වෙනස්කම් සුරකින්න",
+    "saving": "සුරකිමින්...",
+    "successPersonal": "පෞද්ගලික තොරතුරු සාර්ථකව යාවත්කාලීන කරන ලදි!",
+    "successAddress": "ලිපිනය සාර්ථකව යාවත්කාලීන කරන ලදි!",
+    "successPassword": "මුරපදය සාර්ථකව යාවත්කාලීන කරන ලදි!",
+    "myVehicles": "මගේ වාහන",
+    "myVehiclesCount": "ඔබගේ fleet කළමනාකරණය කරන්න ({count} සම්පූර්ණ)",
+    "addVehicle": "+ වාහනයක් එකතු කරන්න",
+    "noVehicles": "තවම වාහන නැත",
+    "noVehiclesDesc": "වෙන්කිරීම් ලබා ගැනීම ආරම්භ කිරීමට ඔබගේ පළමු වාහනය එකතු කරන්න",
+    "addFirstVehicle": "ඔබගේ පළමු වාහනය එකතු කරන්න",
+    "documentsTitle": "සත්‍යාපන ලේඛන",
+    "documentsDesc": "ගිණුම් සත්‍යාපනය සඳහා අවශ්‍ය ලේඛන උඩුගත කර කළමනාකරණය කරන්න.",
+    "verificationStatus": "සත්‍යාපන තත්ත්වය",
+    "statusPending": "සමාලෝචනය බලාපොරොත්තුවෙන්",
+    "statusPendingDesc": "ඔබගේ ලේඛන සමාලෝචනය යටතේ ඇත. අනුමත වූ විට ඔබට දැනුම් දෙනු ඇත — මෙය සාමාන්‍යයෙන් ව්‍යාපාරික දින 1–2 ක් ගනු ලැබේ.",
+    "statusVerified": "ගිණුම සත්‍යාපනය කෙරිණි",
+    "statusVerifiedDesc": "ඔබගේ ගිණුම සහ සියලු ලේඛන සාර්ථකව සත්‍යාපනය කරන ලදි.",
+    "statusRejected": "සත්‍යාපනය අනුමත නොකෙරිණි",
+    "statusRejectedDesc": "ඔබගේ ලේඛන අනුමත නොකෙරිණි. කරුණාකර පහත සටහන් සමාලෝචනය කර නැවත ඉදිරිපත් කරන්න.",
+    "adminNotes": "පරිපාලක සටහන්",
+    "docTypeNIC": "ජාතික හැඳුනුම්පත (NIC)",
+    "docTypeProfilePhoto": "පැතිකඩ ඡායාරූපය",
+    "docStatusPending": "සමාලෝචනය බලාපොරොත්තුවෙන්",
+    "docStatusVerified": "සත්‍යාපිත",
+    "docStatusRejected": "ප්‍රතික්ෂේප කෙරිණි",
+    "uploadDocument": "උඩුගත කරන්න",
+    "replaceDocument": "ප්‍රතිස්ථාපනය කරන්න",
+    "viewDocument": "බලන්න",
+    "deleteDocument": "මකන්න",
+    "noDocument": "උඩුගත නොකෙරිණි",
+    "docUploaded": "ලේඛනය සාර්ථකව උඩුගත කරන ලදි",
+    "docDeleted": "ලේඛනය සාර්ථකව මකන ලදි",
+    "uploadError": "උඩුගත කිරීම අසාර්ථකයි. කරුණාකර නැවත උත්සාහ කරන්න.",
+    "deleteError": "මකීම අසාර්ථකයි. කරුණාකර නැවත උත්සාහ කරන්න."
+  },
+  "fleetManagement": {
+    "title": "මගේ රථ ගාලුව",
+    "backToDashboard": "ඩෑෂ්බෝඩ් වෙත ආපසු",
+    "vehicle": "රථය",
+    "vehicles": "රථ",
+    "addVehicle": "රථයක් එක් කරන්න",
+    "tabAll": "සියල්ල",
+    "tabActive": "ක්‍රියාකාරී",
+    "tabInactive": "අක්‍රිය",
+    "tabPending": "නිරීක්ෂාව",
+    "viewGrid": "ගාලු දසුන",
+    "viewTable": "වගු දසුන",
+    "searchPlaceholder": "ලියාපදිංචි අංකයෙන් හෝ වර්ගයෙන් සොයන්න...",
+    "filters": "පෙරහන",
+    "filterVehicleType": "රථ වර්ගය",
+    "filterCapacity": "ආසන ප්‍රමාණය",
+    "filterAcType": "AC වර්ගය",
+    "filterSortBy": "අනුපිළිවෙල",
+    "allTypes": "සියලු වර්ග",
+    "allCapacities": "සියලු ධාරිතා",
+    "allAcTypes": "සියලු AC",
+    "capacity0to20": "ආසන 0–20",
+    "capacity21to30": "ආසන 21–30",
+    "capacity31to45": "ආසන 31–45",
+    "capacity45plus": "ආසන 45+",
+    "acTypeFull": "සම්පූර්ණ AC",
+    "acTypeAc": "AC",
+    "acTypeNonAc": "AC රහිත",
+    "sortRecent": "නවතම",
+    "sortRating": "ශ්‍රේෂ්ඨ ශ්‍රේණිය",
+    "sortBookings": "වැඩිම වෙන්කිරීම්",
+    "sortCapacity": "ධාරිතාව",
+    "statCapacity": "ධාරිතාව",
+    "statBookings": "වෙන්කිරීම්",
+    "statRating": "ශ්‍රේණිය",
+    "na": "N/A",
+    "seats": "ආසන",
+    "pendingApproval": "සත්‍යාපනය බලාපොරොත්තුවෙන් ඇත",
+    "actionEdit": "සංස්කරණය",
+    "actionView": "විස්තර බලන්න",
+    "actionAvailability": "ලබාගත හැකි දින",
+    "actionActivate": "සක්‍රිය කරන්න",
+    "actionDeactivate": "අක්‍රිය කරන්න",
+    "actionDelete": "රථය මකන්න",
+    "colVehicle": "රථය",
+    "colType": "වර්ගය",
+    "colCapacity": "ධාරිතාව",
+    "colStatus": "තත්ත්වය",
+    "colRating": "ශ්‍රේණිය",
+    "colActions": "ක්‍රියා",
+    "statusActive": "ක්‍රියාකාරී",
+    "statusInactive": "අක්‍රිය",
+    "statusPending": "නිරීක්ෂාව",
+    "emptyTitle": "රථ නොමැත",
+    "emptyDescAll": "ඔබ තවම රථ එක් කර නොමැත. ඔබේ පළමු රථය එකතු කරන්න.",
+    "emptyDescFiltered": "{status} රථ නොමැත.",
+    "addFirstVehicle": "ඔබේ රථය එක් කරන්න",
+    "resetFilters": "පෙරහන් යළි සකසන්න",
+    "errorLoad": "රථ පූරණය කිරීමට අසමත් විය. නැවත උත්සාහ කරන්න.",
+    "errorRetry": "නැවත උත්සාහ කරන්න",
+    "confirmDelete": "ඔබට මෙම රථය මැකීමට අවශ්‍ය ද? මෙය ආපසු හැරවිය නොහැක.",
+    "deleteSuccess": "රථය සාර්ථකව මකා දමන ලදී.",
+    "deleteError": "රථය මැකීමට අසමත් විය. නැවත උත්සාහ කරන්න.",
+    "toggleSuccess": "රථ තත්ත්වය යාවත්කාලීන කරන ලදී.",
+    "toggleError": "රථ තත්ත්වය යාවත්කාලීන කිරීමට අසමත් විය. නැවත උත්සාහ කරන්න.",
+    "currency": "LKR",
+    "detailsTitle": "රථ විස්තර",
+    "detailsSubtitle": "ඔබගේ ලැයිස්තු තොරතුරු සහ මිල ගණන් සමාලෝචනය කරන්න.",
+    "detailsAvailability": "ලබාගත හැකියාව",
+    "detailsAvailable": "ලබාගත හැකිය",
+    "detailsUnavailable": "ලබාගත නොහැක",
+    "detailsNotProvided": "සපයා නැත",
+    "detailsNoAmenities": "පහසුකම් තවම ලැයිස්තුගත කර නැත.",
+    "detailsErrorLoad": "ඔහ්, මෙම රථ විස්තර ලෝඩ් කළ නොහැකි විය. ඔබගේ සම්බන්ධතාව පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
+    "detailsNotFound": "මෙම රථය සොයාගත නොහැක. එය ඉවත් කර තිබිය හැක. ඔබගේ රථ ගාලුවට ආපසු ගොස් වෙනත් රථයක් තෝරන්න.",
+    "close": "වසන්න"
+  },
+  "vehicleForm": {
+    "backToFleet": "රථ ගාලුවට ආපසු",
+    "addTitle": "නව රථය එකතු කරන්න",
+    "addSubtitle": "ඔබේ බස් රථය ලැයිස්තු ගත කිරීමට විස්තර පුරවන්න",
+    "editTitle": "රථය සංස්කරණය කරන්න",
+    "editSubtitle": "රථ තොරතුරු යාවත්කාලීන කරන්න",
+    "sectionBasic": "මූලික තොරතුරු",
+    "sectionPricing": "මිල ගණන්",
+    "sectionPhotos": "ඡායාරූප",
+    "sectionDocuments": "ලේඛන",
+    "sectionAmenities": "පහසුකම් සහ විශේෂාංග",
+    "busDetailsTitle": "බස් රථ විස්තර",
+    "busDetailsSubtitle": "ඔබේ බස් රථය ගැන මූලික තොරතුරු ඇතුළු කරන්න",
+    "vehicleDetailsSubtitle": "ඔබේ රථය ගැන මූලික තොරතුරු යාවත්කාලීන කරන්න",
+    "fieldBusName": "බස් රථ නම",
+    "fieldBusNamePlaceholder": "උදා: Luxury Coach 54-ආසන",
+    "fieldRegistration": "ලියාපදිංචි අංකය",
+    "fieldRegistrationPlaceholder": "WP-1234",
+    "fieldBusType": "බස් රථ වර්ගය",
+    "fieldBusTypePlaceholder": "බස් රථ වර්ගය තෝරන්න",
+    "fieldMake": "නිෂ්පාදකයා",
+    "fieldMakePlaceholder": "උදා: Ashok Leyland",
+    "fieldModel": "ආකෘතිය",
+    "fieldModelPlaceholder": "උදා: 2820",
+    "fieldYear": "වර්ෂය",
+    "fieldCapacity": "ආසන ධාරිතාව",
+    "fieldColor": "වර්ණය",
+    "fieldColorPlaceholder": "සුදු",
+    "fieldAcType": "AC වර්ගය",
+    "fieldAcTypePlaceholder": "AC වර්ගය තෝරන්න",
+    "fieldCondition": "තත්ත්වය",
+    "fieldConditionPlaceholder": "තත්ත්වය තෝරන්න",
+    "fieldLocation": "පිහිටීම",
+    "fieldLocationPlaceholder": "උදා: කොළඹ, ශ්‍රී ලංකාව",
+    "fieldDescription": "විස්තරය",
+    "fieldDescriptionPlaceholder": "ඔබේ බස් රථය, ආසන සැලැස්ම සහ විශේෂ ලක්ෂණ විස්තර කරන්න...",
+    "pricingTitle": "මිල නිශ්චිත කිරීමේ තොරතුරු",
+    "pricingSubtitle": "ඔබේ කුලී ගාස්තු සකසන්න",
+    "pricingSubtitleEdit": "ඔබේ කුලී ගාස්තු යාවත්කාලීන කරන්න",
+    "fieldPricePerKm": "කිලෝමීටරයකට මිල",
+    "fieldPricePerKmHelp": "රු. කිලෝමීටරයකට",
+    "fieldPricePerDay": "දිනකට මිල",
+    "fieldPricePerDayHelp": "රු. දිනකට",
+    "fieldDriverAllowance": "දිනකට රියදුරු දීමනාව",
+    "fieldDriverAllowanceHelp": "විකල්ප: රියදුරුට දිනකට රු. දීමනාව",
+    "sampleCalcTitle": "නියැදි ගණනය",
+    "sampleCalcDistance": "දුර: කි.මී. 150",
+    "sampleCalcRental": "1 දින කුලිය",
+    "sampleCalcTotal": "ඇස්තමේන්තුගත මුළු",
+    "photosTitle": "රථ ඡායාරූප",
+    "photosSubtitle": "ඔබේ රථයේ පැහැදිලි ඡායාරූප උඩුගත කරන්න (පළමු ඡායාරූපය ප්‍රාථමික වේ)",
+    "photosSubtitleEdit": "මෙම රථයට නව ඡායාරූප එකතු කිරීමට උඩුගත කරන්න",
+    "uploadZoneTitle": "රථ ඡායාරූප උඩුගත කරන්න",
+    "uploadZoneSubtitle": "තේරීමට ක්ලික් කරන්න හෝ ඇදගෙන අඳින්න",
+    "uploadZoneFormats": "JPG, PNG 5MB දක්වා",
+    "photoPrimary": "ප්‍රාථමික",
+    "photoTagExterior": "බාහිරය",
+    "photoTagInterior": "අභ්‍යන්තරය",
+    "photoTagFront": "ඉදිරිපස",
+    "photoTagRear": "පසුපස",
+    "photoTagSeats": "ආසන",
+    "photoTagOther": "වෙනත්",
+    "documentsTitle": "රථ ලේඛන",
+    "documentsSubtitle": "සත්‍යාපනය සඳහා අවශ්‍ය ලේඛන උඩුගත කරන්න",
+    "documentsSubtitleEdit": "නව ලේඛන උඩුගත කරන්න (වත්මන් ලේඛන රඳවා ගැනීමට හිස් ඉතිරිව ඇති)",
+    "docLicense": "රිය පැදවීමේ බලපත්‍රය",
+    "docLicenseHelp": "වලංගු බරවාහන රිය රියදුරු බලපත්‍රය",
+    "docInsurance": "රක්ෂණ සහතිකය",
+    "docInsuranceHelp": "වත්මන් රථ රක්ෂණ ලේඛනය",
+    "docRegistration": "ලියාපදිංචි සහතිකය (CR)",
+    "docRegistrationHelp": "රථ ලියාපදිංචි සහතිකය",
+    "docReqTitle": "ලේඛන අවශ්‍යතා",
+    "docReqClear": "සියලු ලේඛන පැහැදිලිව කියවිය හැකි විය යුතුය",
+    "docReqFormats": "පිළිගත් ආකෘති: PDF, JPG, PNG (උපරිම 5MB)",
+    "docReqValid": "ලේඛන වත්මන් සහ වලංගු විය යුතුය",
+    "docReqReview": "ලේඛන පැය 24-48 ඇතුළත සමාලෝචනය කෙරේ",
+    "amenitiesTitle": "පහසුකම් සහ විශේෂාංග",
+    "amenitiesSubtitle": "තිබෙන පහසුකම් තෝරන්න",
+    "amenitiesSubtitleEdit": "තිබෙන පහසුකම් යාවත්කාලීන කරන්න",
+    "gpsTitle": "GPS ලුහුබැඳීම",
+    "gpsSubtitle": "ආරක්ෂාව සඳහා තාත්කාලික ලුහුබැඳීම",
+    "customAmenityPlaceholder": "අභිරුචි පහසුකමක් එකතු කරන්න...",
+    "addCustomAmenity": "එකතු කරන්න",
+    "saveDraft": "කෙටුම්පතක් ලෙස සුරකින්න",
+    "publishVehicle": "රථය ප්‍රකාශ කරන්න",
+    "publishing": "ප්‍රකාශ කරමින්...",
+    "saveChanges": "වෙනස්කම් සුරකින්න",
+    "saving": "සුරකිමින්...",
+    "cancel": "අවලංගු කරන්න",
+    "errorDocRequired": "ප්‍රකාශ කිරීමට සියලු රථ ලේඛන අවශ්‍යයි",
+    "errorCreate": "රථය නිර්මාණය කිරීමට අසාර්ථක විය",
+    "errorUpdate": "රථය යාවත්කාලීන කිරීමට අසාර්ථක විය",
+    "errorLabel": "දෝෂය",
+    "errorRequired": "මෙම ක්ෂේත්‍රය අවශ්‍යයි",
+    "back": "ආපසු",
+    "next": "ඉදිරියට"
+  },
+  "vehicleAvailability": {
+    "backToFleet": "රථ ගාලුවට ආපසු",
+    "pageTitle": "ලබා ගත හැකි දිනදර්ශනය",
+    "blockDates": "දිනයන් අවහිර කරන්න",
+    "weekSun": "ඉරි",
+    "weekMon": "සඳු",
+    "weekTue": "අඟ",
+    "weekWed": "බදා",
+    "weekThu": "බ්‍රහ",
+    "weekFri": "සිකු",
+    "weekSat": "සෙන",
+    "legendSelected": "තෝරාගත්",
+    "legendBooked": "වෙන් කළ",
+    "legendBlocked": "අවහිර",
+    "legendAvailable": "ලබා ගත හැකි",
+    "howToUseTitle": "භාවිතා කරන ආකාරය",
+    "howToUseSelect": "දිනයන් කිහිපයක් තේරීමට ක්ලික් කරන්න",
+    "howToUseBlock": "\"දිනයන් අවහිර කරන්න\" ක්ලික් කර ඒවා නොලැබෙන ලෙස කරන්න",
+    "howToUseBooked": "වෙන් කළ දිනයන් වෙනස් කළ නොහැක",
+    "howToUsePast": "ගිය දිනයන් ස්වයංක්‍රීයව අක්‍රිය කෙරේ",
+    "blockedPeriodsTitle": "අවහිර කාල සීමා",
+    "upcomingBookingsTitle": "ඉදිරි වෙන් කිරීම්",
+    "modalTitle": "තෝරාගත් දිනයන් අවහිර කරන්න",
+    "modalReasonLabel": "හේතුව",
+    "modalReasonPlaceholder": "හේතුව තෝරන්න",
+    "modalReasonMaintenance": "නඩත්තු",
+    "modalReasonPersonal": "පෞද්ගලික භාවිතය",
+    "modalReasonRepairs": "අළුත්වැඩියා",
+    "modalReasonOther": "වෙනත්",
+    "modalNotesLabel": "සටහන් (විකල්ප)",
+    "modalNotesPlaceholder": "අමතර සටහන් එකතු කරන්න...",
+    "modalCancel": "අවලංගු කරන්න",
+    "modalConfirm": "අවහිර කිරීම තහවුරු කරන්න",
+    "errorNotFound": "රථය හමු නොවීය",
+    "errorLoad": "ලබා ගැනීමේ දත්ත පූරණය කිරීමට අසාර්ථක විය"
   }
 }

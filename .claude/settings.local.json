@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"d:\\\\University Academic Materials\\\\3rd Year Individual Project\\\\TraveNest\\\\apps\\\\api\\\\src\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(Get-ChildItem -Recurse -Directory)",
+      "Bash(Get-ChildItem -Path \"d:\\\\University Academic Materials\\\\3rd Year Individual Project\\\\TraveNest\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

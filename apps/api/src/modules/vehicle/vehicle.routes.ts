@@ -14,6 +14,10 @@ import {
   updateVehicleSchema,
   getVehicleByIdSchema,
   deleteVehicleSchema,
+  getVehicleAvailabilitySchema,
+  getSimilarVehiclesSchema,
+  uploadPhotosSchema,
+  uploadDocumentsSchema,
 } from "./vehicle.schemas.js";
 import { config } from "../../config/index.js";
 
@@ -60,6 +64,20 @@ router.get(
   authenticate,
   authorize("owner"),
   asyncHandler(vehicleController.getMyVehicles),
+);
+
+router.get(
+  "/:id/availability",
+  optionalAuth,
+  validate(getVehicleAvailabilitySchema),
+  asyncHandler(vehicleController.getVehicleAvailability),
+);
+
+router.get(
+  "/:id/similar",
+  optionalAuth,
+  validate(getSimilarVehiclesSchema),
+  asyncHandler(vehicleController.getSimilarVehicles),
 );
 
 // Get vehicle by ID - parameterized routes come after specific routes
@@ -110,6 +128,15 @@ router.post(
   asyncHandler(vehicleController.uploadPhotos),
 );
 
+router.post(
+  "/:id/photos/metadata",
+  authenticate,
+  csrfProtection,
+  authorize("owner", "admin"),
+  validate(uploadPhotosSchema),
+  asyncHandler(vehicleController.uploadPhotosMetadata),
+);
+
 // Upload vehicle documents
 router.post(
   "/:id/documents",
@@ -122,6 +149,15 @@ router.post(
     { name: "registrationCertificate", maxCount: 1 },
   ]),
   asyncHandler(vehicleController.uploadDocuments),
+);
+
+router.post(
+  "/:id/documents/metadata",
+  authenticate,
+  csrfProtection,
+  authorize("owner", "admin"),
+  validate(uploadDocumentsSchema),
+  asyncHandler(vehicleController.uploadDocumentsMetadata),
 );
 
 // Toggle vehicle availability

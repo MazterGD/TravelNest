@@ -11,7 +11,7 @@ import {
   Button,
 } from "@/components/ui";
 import type { TripPackage } from "@/types";
-import { FaMapMarkerAlt, FaUsers, FaClock, FaBus } from "react-icons/fa";
+import { MapPin, Users, Clock, Bus } from 'lucide-react';
 import { useTranslations } from "next-intl";
 
 interface TripPackageCardProps {
@@ -59,25 +59,25 @@ export function TripPackageCard({
           </div>
         ) : (
           <div className="flex h-36 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-            <FaBus className="h-8 w-8" />
+            <Bus className="h-8 w-8" />
           </div>
         )}
 
         <div className="space-y-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <FaMapMarkerAlt className="h-4 w-4" />
+            <MapPin className="h-4 w-4" />
             <span>
               {tripPackage.startLocation} → {tripPackage.endLocation}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <FaClock className="h-4 w-4" />
+            <Clock className="h-4 w-4" />
             <span>
               {t("durationDays", { count: tripPackage.durationDays })}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <FaUsers className="h-4 w-4" />
+            <Users className="h-4 w-4" />
             <span>
               {tripPackage.minPassengers} - {tripPackage.maxPassengers}{" "}
               {t("passengers")}

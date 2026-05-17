@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { encryptSettlementBankValue } from "./settlementBankEncryption.js";
 
 const prisma = new PrismaClient();
+const prismaAny = prisma as any;
 
 // Sri Lankan Districts for realistic data
 const SRI_LANKAN_DISTRICTS = [
@@ -79,7 +81,16 @@ async function main() {
 
   // Clean up existing data
   console.log("Cleaning up existing data...");
+  await prismaAny.platformConfig.deleteMany({});
+  await prisma.trustedPartner.deleteMany({});
+  await prisma.testimonial.deleteMany({});
+  await prisma.popularRoute.deleteMany({});
+  await prisma.platformStat.deleteMany({});
+  await prismaAny.contactMessage.deleteMany({});
   await prisma.notification.deleteMany({});
+  await prismaAny.otpToken.deleteMany({});
+  await prismaAny.scheduledReportRun.deleteMany({});
+  await prismaAny.scheduledReport.deleteMany({});
   await prisma.payment.deleteMany({});
   await prisma.review.deleteMany({});
   await prisma.booking.deleteMany({});
@@ -89,6 +100,7 @@ async function main() {
   await prisma.vehicleDocument.deleteMany({});
   await prisma.vehicle.deleteMany({});
   await prisma.ownerDocument.deleteMany({});
+  await prisma.ownerBankAccount.deleteMany({});
   await prisma.passwordResetToken.deleteMany({});
   await prisma.user.deleteMany({});
   console.log("Cleanup complete\n");
@@ -102,8 +114,8 @@ async function main() {
     data: {
       email: "admin@travenest.lk",
       password: adminPassword,
-      firstName: "Rajitha",
-      lastName: "Wickramasinghe",
+      firstName: "Geeneth",
+      lastName: "Punchihewa",
       phone: "+94112345678",
       role: "ADMIN",
       status: "ACTIVE",
@@ -328,6 +340,308 @@ async function main() {
   console.log(`Customer 5: ${customer5.firstName} ${customer5.lastName}\n`);
 
   // ===========================================
+  // Seed Landing Page & Public Configuration Data
+  // ===========================================
+  console.log("Seeding landing page and public configuration data...\n");
+
+  await prisma.platformStat.createMany({
+    data: [
+      {
+        key: "verified_buses",
+        value: "500+",
+        label: "Verified Buses",
+        sublabel: "Across Sri Lanka",
+        sortOrder: 1,
+      },
+      {
+        key: "active_routes",
+        value: "120+",
+        label: "Active Routes",
+        sublabel: "Island-wide Coverage",
+        sortOrder: 2,
+      },
+      {
+        key: "happy_customers",
+        value: "10K+",
+        label: "Happy Travelers",
+        sublabel: "Trusted by Families & Companies",
+        sortOrder: 3,
+      },
+      {
+        key: "trips_completed",
+        value: "25K+",
+        label: "Trips Completed",
+        sublabel: "Safe & Reliable Journeys",
+        sortOrder: 4,
+      },
+    ],
+  });
+
+  await prisma.popularRoute.createMany({
+    data: [
+      {
+        fromCity: "Colombo",
+        toCity: "Kandy",
+        durationHours: 3,
+        avgPrice: 18000,
+        bookingsCount: 1200,
+        imageUrl:
+          "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?q=80&w=2070",
+        isPopular: true,
+        sortOrder: 1,
+      },
+      {
+        fromCity: "Colombo",
+        toCity: "Galle",
+        durationHours: 2.5,
+        avgPrice: 15000,
+        bookingsCount: 980,
+        imageUrl:
+          "https://images.unsplash.com/photo-1588417495960-eb4c560c4a7a?q=80&w=2070",
+        sortOrder: 2,
+      },
+      {
+        fromCity: "Kandy",
+        toCity: "Ella",
+        durationHours: 4,
+        avgPrice: 22000,
+        bookingsCount: 850,
+        imageUrl:
+          "https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=2071",
+        sortOrder: 3,
+      },
+      {
+        fromCity: "Colombo",
+        toCity: "Anuradhapura",
+        durationHours: 4.5,
+        avgPrice: 25000,
+        bookingsCount: 720,
+        imageUrl:
+          "https://images.unsplash.com/photo-1588402237163-0a6d2f6a5ef7?q=80&w=2073",
+        sortOrder: 4,
+      },
+      {
+        fromCity: "Negombo",
+        toCity: "Sigiriya",
+        durationHours: 3.5,
+        avgPrice: 20000,
+        bookingsCount: 650,
+        imageUrl:
+          "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070",
+        sortOrder: 5,
+      },
+    ],
+  });
+
+  await prisma.testimonial.createMany({
+    data: [
+      {
+        name: "Rajesh Perera",
+        role: "Operations Manager",
+        organization: "Ceylon Academy",
+        imageUrl:
+          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400",
+        rating: 5,
+        quote:
+          "TravelNest made organizing our annual school trip incredibly easy. The transparent pricing and verified owners gave us complete peace of mind.",
+        tripDetails: "Colombo to Kandy - 3 day educational tour",
+        sortOrder: 1,
+      },
+      {
+        name: "Shenali Fernando",
+        role: "HR Executive",
+        organization: "Lanka Tech Solutions",
+        imageUrl:
+          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400",
+        rating: 5,
+        quote:
+          "Excellent service and professional drivers. We now use TravelNest for all our corporate transport requirements.",
+        tripDetails: "Corporate transfer - Colombo to Galle",
+        sortOrder: 2,
+      },
+      {
+        name: "Mohamed Irfan",
+        role: "Travel Coordinator",
+        organization: "Pearl Tours",
+        imageUrl:
+          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400",
+        rating: 5,
+        quote:
+          "Reliable fleet, clear communication, and competitive pricing. Our clients consistently appreciate the service quality.",
+        tripDetails: "Multi-city leisure tour",
+        sortOrder: 3,
+      },
+    ],
+  });
+
+  await prisma.trustedPartner.createMany({
+    data: [
+      { name: "Ceylon Academy", sortOrder: 1 },
+      { name: "Lanka Tech Solutions", sortOrder: 2 },
+      { name: "Pearl Tours", sortOrder: 3 },
+      { name: "Island Adventures", sortOrder: 4 },
+      { name: "University Travel Club", sortOrder: 5 },
+      { name: "Sri Lanka Events", sortOrder: 6 },
+    ],
+  });
+
+  await prismaAny.platformConfig.createMany({
+    data: [
+      {
+        key: "contact_info",
+        description: "Public contact information for frontend contact page",
+        value: {
+          address: "No. 45, Galle Road, Colombo 03",
+          email: "support@travelnest.lk",
+          phone: "+94112345678",
+          hours: "Mon - Fri, 8:30 AM - 6:00 PM",
+        },
+      },
+      {
+        key: "vehicle_types",
+        description: "Vehicle types shown in search and registration forms",
+        value: [
+          { value: "ORDINARY", label: "Ordinary Bus" },
+          { value: "SEMI_LUXURY", label: "Semi-Luxury" },
+          { value: "LUXURY_AC", label: "Luxury AC" },
+        ],
+      },
+      {
+        key: "ac_types",
+        description: "AC type options shown across forms",
+        value: [
+          { value: "FULL_AC", label: "Full AC" },
+          { value: "AC", label: "AC" },
+          { value: "NON_AC", label: "Non-AC" },
+        ],
+      },
+      {
+        key: "vehicle_conditions",
+        description: "Vehicle condition options for owner registration",
+        value: [
+          { value: "excellent", label: "Excellent" },
+          { value: "good", label: "Good" },
+          { value: "fair", label: "Fair" },
+        ],
+      },
+      {
+        key: "vehicle_amenities",
+        description:
+          "Configurable amenity options for filters and registration",
+        value: [
+          { id: "wifi", label: "WiFi" },
+          { id: "ac", label: "Air Conditioning" },
+          { id: "music", label: "Music System" },
+          { id: "usb", label: "USB Charging" },
+          { id: "tv", label: "TV/Entertainment" },
+          { id: "reclining", label: "Reclining Seats" },
+          { id: "reading", label: "Reading Lights" },
+          { id: "gps", label: "GPS Tracking" },
+        ],
+      },
+      {
+        key: "districts",
+        description: "Supported Sri Lankan districts for location selectors",
+        value: SRI_LANKAN_DISTRICTS,
+      },
+      {
+        key: "quotation_vehicle_types",
+        description: "Vehicle type options for quotation requests",
+        value: [
+          { value: "ORDINARY", label: "Ordinary Bus" },
+          { value: "SEMI_LUXURY", label: "Semi-Luxury" },
+          { value: "LUXURY_AC", label: "Luxury AC" },
+        ],
+      },
+      {
+        key: "quotation_pricing",
+        description:
+          "Configurable quotation pricing parameters used by owner quotation builder",
+        value: {
+          driverCostPercentage: 0.2,
+          fuelCostPerKm: 50,
+          tollChargesBase: 2000,
+          permitFeesBase: 1500,
+          taxRate: 0.1,
+          defaultValidityDays: 7,
+          validityOptionsDays: [3, 5, 7, 14, 30],
+        },
+      },
+      {
+        key: "recent_searches",
+        description: "Seeded recent searches shown in quotation creation page",
+        value: [
+          {
+            id: "1",
+            from: "Colombo",
+            to: "Kandy",
+            date: "2026-02-15",
+            passengers: 4,
+          },
+          {
+            id: "2",
+            from: "Galle",
+            to: "Colombo Airport",
+            date: "2026-02-20",
+            passengers: 2,
+          },
+          {
+            id: "3",
+            from: "Kandy",
+            to: "Nuwara Eliya",
+            date: "2026-03-01",
+            passengers: 6,
+          },
+        ],
+      },
+      {
+        key: "social_media_links",
+        description:
+          "Public social media links used by footer and contact page",
+        value: {
+          facebook: "https://facebook.com/travelnest",
+          instagram: "https://instagram.com/travelnest",
+          twitter: "https://x.com/travelnest",
+          linkedin: "https://linkedin.com/company/travelnest",
+        },
+      },
+      {
+        key: "google_maps_embed",
+        description: "Public map configuration for contact page embed",
+        value: {
+          embedUrl:
+            "https://www.google.com/maps?q=No.+45,+Galle+Road,+Colombo+03&output=embed",
+          lat: 6.9271,
+          lng: 79.8612,
+          zoom: 15,
+          address: "No. 45, Galle Road, Colombo 03, Sri Lanka",
+        },
+      },
+      {
+        key: "about_page_stats",
+        description: "About page impact and achievement counters",
+        value: [
+          { label: "Verified Buses", value: "500+", icon: "bus" },
+          { label: "Happy Customers", value: "10K+", icon: "users" },
+          { label: "Districts Covered", value: "25", icon: "map" },
+          { label: "Average Rating", value: "4.8★", icon: "star" },
+        ],
+      },
+      {
+        key: "login_marketing_stats",
+        description: "Configurable marketing counters shown on login page",
+        value: {
+          verifiedBuses: "500+",
+          happyCustomers: "5000+",
+          averageRating: "4.8★",
+        },
+      },
+    ],
+  });
+
+  console.log("Landing and public config seed data created\n");
+
+  // ===========================================
   // Create Owner Documents (Different Statuses)
   // ===========================================
   console.log("Creating owner documents...\n");
@@ -338,7 +652,7 @@ async function main() {
       {
         ownerId: owner1.id,
         type: "NIC",
-        url: "https://storage.example.com/docs/owner1-nic.pdf",
+        url: "https://zjypaacrpocxqhdywuhz.supabase.co/storage/v1/object/public/travelnest/registration/owner-documents/1771230832143_5d13l5n2_Container__5_.png",
         fileName: "nic-front.pdf",
         fileSize: 524288,
         mimeType: "application/pdf",
@@ -1117,6 +1431,229 @@ async function main() {
     where: { ownerId: owner4.id },
   });
 
+  // ===========================================
+  // Vehicle Photos (P1 — edit vehicle photo tab)
+  // ===========================================
+  console.log("Creating vehicle photos and documents...\n");
+
+  // Photo URLs rotated across vehicles so each one looks distinct in the fleet view.
+  const vehiclePhotoSets = [
+    {
+      primary: "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800",
+      secondary: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800",
+      tertiary: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+    },
+    {
+      primary: "https://images.unsplash.com/photo-1570125872073-0a9a1d8f9d79?w=800",
+      secondary: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800",
+      tertiary: "https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800",
+    },
+    {
+      primary: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+      secondary: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800",
+      tertiary: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+    },
+    {
+      primary: "https://images.unsplash.com/photo-1586016413664-864c0dd76f53?w=800",
+      secondary: "https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800",
+      tertiary: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800",
+    },
+  ];
+
+  for (let i = 0; i < owner1Vehicles.length; i++) {
+    const vehicle = owner1Vehicles[i]!;
+    const set = vehiclePhotoSets[i % vehiclePhotoSets.length]!;
+    await prisma.vehiclePhoto.createMany({
+      data: [
+        {
+          vehicleId: vehicle.id,
+          url: set.primary,
+          fileName: "exterior-front.jpg",
+          fileSize: 524288,
+          mimeType: "image/jpeg",
+          isPrimary: true,
+          sortOrder: 0,
+        },
+        {
+          vehicleId: vehicle.id,
+          url: set.secondary,
+          fileName: "interior-seats.jpg",
+          fileSize: 487424,
+          mimeType: "image/jpeg",
+          isPrimary: false,
+          sortOrder: 1,
+        },
+        {
+          vehicleId: vehicle.id,
+          url: set.tertiary,
+          fileName: "exterior-side.jpg",
+          fileSize: 512000,
+          mimeType: "image/jpeg",
+          isPrimary: false,
+          sortOrder: 2,
+        },
+      ],
+    });
+  }
+
+  // Vehicle photos for owner3's first vehicle
+  if (owner3Vehicles[0]) {
+    await prisma.vehiclePhoto.createMany({
+      data: [
+        {
+          vehicleId: owner3Vehicles[0].id,
+          url: "https://images.unsplash.com/photo-1588417495960-eb4c560c4a7a?w=800",
+          fileName: "exterior.jpg",
+          fileSize: 512000,
+          mimeType: "image/jpeg",
+          isPrimary: true,
+          sortOrder: 0,
+        },
+        {
+          vehicleId: owner3Vehicles[0].id,
+          url: "https://images.unsplash.com/photo-1588402237163-0a6d2f6a5ef7?w=800",
+          fileName: "panoramic-windows.jpg",
+          fileSize: 498432,
+          mimeType: "image/jpeg",
+          isPrimary: false,
+          sortOrder: 1,
+        },
+      ],
+    });
+  }
+
+  // ===========================================
+  // Vehicle Documents (P1 — edit vehicle docs)
+  // ===========================================
+  for (const vehicle of owner1Vehicles.slice(0, 2)) {
+    await prisma.vehicleDocument.createMany({
+      data: [
+        {
+          vehicleId: vehicle.id,
+          type: "DRIVING_LICENSE",
+          url: "https://storage.example.com/docs/vehicle-license.pdf",
+          fileName: "driving-license.pdf",
+          fileSize: 425984,
+          mimeType: "application/pdf",
+          status: "VERIFIED",
+          verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
+          verifiedBy: admin.id,
+          expiryDate: new Date("2028-06-30T00:00:00.000Z"),
+        },
+        {
+          vehicleId: vehicle.id,
+          type: "INSURANCE",
+          url: "https://storage.example.com/docs/vehicle-insurance.pdf",
+          fileName: "insurance-certificate.pdf",
+          fileSize: 687104,
+          mimeType: "application/pdf",
+          status: "VERIFIED",
+          verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
+          verifiedBy: admin.id,
+          expiryDate: new Date("2027-01-31T00:00:00.000Z"),
+        },
+        {
+          vehicleId: vehicle.id,
+          type: "REGISTRATION_CERTIFICATE",
+          url: "https://storage.example.com/docs/vehicle-registration.pdf",
+          fileName: "registration-certificate.pdf",
+          fileSize: 368640,
+          mimeType: "application/pdf",
+          status: "VERIFIED",
+          verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
+          verifiedBy: admin.id,
+        },
+      ],
+    });
+  }
+
+  // Owner 2: one vehicle with mixed document statuses (shows rejected state)
+  if (owner2Vehicles[0]) {
+    await prisma.vehicleDocument.createMany({
+      data: [
+        {
+          vehicleId: owner2Vehicles[0].id,
+          type: "DRIVING_LICENSE",
+          url: "https://storage.example.com/docs/owner2-vehicle-license.pdf",
+          fileName: "driving-license.pdf",
+          fileSize: 425984,
+          mimeType: "application/pdf",
+          status: "VERIFIED",
+          verifiedAt: new Date("2026-02-05T14:00:00.000Z"),
+          verifiedBy: admin.id,
+          expiryDate: new Date("2027-12-31T00:00:00.000Z"),
+        },
+        {
+          vehicleId: owner2Vehicles[0].id,
+          type: "INSURANCE",
+          url: "https://storage.example.com/docs/owner2-vehicle-insurance-expired.pdf",
+          fileName: "insurance-expired.pdf",
+          fileSize: 512000,
+          mimeType: "application/pdf",
+          status: "REJECTED",
+          rejectionReason:
+            "Insurance certificate is expired. Please upload a current valid certificate.",
+          expiryDate: new Date("2025-12-31T00:00:00.000Z"),
+        },
+        {
+          vehicleId: owner2Vehicles[0].id,
+          type: "REGISTRATION_CERTIFICATE",
+          url: "https://storage.example.com/docs/owner2-vehicle-registration.pdf",
+          fileName: "registration.pdf",
+          fileSize: 368640,
+          mimeType: "application/pdf",
+          status: "PENDING",
+        },
+      ],
+    });
+  }
+
+  console.log(
+    `Created vehicle photos and documents for owners 1–2 and owner 3 first vehicle\n`,
+  );
+
+  // ===========================================
+  // Vehicle Availability Blocked Periods (P3 — calendar page)
+  // ===========================================
+  console.log("Creating vehicle availability blocked periods...\n");
+
+  if (owner1Vehicles[0]) {
+    await prisma.vehicleAvailability.createMany({
+      data: [
+        {
+          vehicleId: owner1Vehicles[0].id,
+          startDate: new Date("2026-05-01T00:00:00.000Z"),
+          endDate: new Date("2026-05-05T23:59:59.000Z"),
+          isBlocked: true,
+          reason: "Scheduled maintenance — annual service",
+        },
+        {
+          vehicleId: owner1Vehicles[0].id,
+          startDate: new Date("2026-05-20T00:00:00.000Z"),
+          endDate: new Date("2026-05-22T23:59:59.000Z"),
+          isBlocked: true,
+          reason: "Owner personal reservation",
+        },
+      ],
+    });
+  }
+
+  if (owner3Vehicles[0]) {
+    await prisma.vehicleAvailability.createMany({
+      data: [
+        {
+          vehicleId: owner3Vehicles[0].id,
+          startDate: new Date("2026-05-10T00:00:00.000Z"),
+          endDate: new Date("2026-05-12T23:59:59.000Z"),
+          isBlocked: true,
+          reason: "Driver annual leave",
+        },
+      ],
+    });
+  }
+
+  console.log("Created vehicle availability blocked periods\n");
+
   let quotationCounter = 1;
   const generateQuotationId = () => {
     const id = `QUO-2026-${String(quotationCounter).padStart(3, "0")}`;
@@ -1743,6 +2280,69 @@ async function main() {
       validityDays: 10,
       validUntil: new Date("2026-03-01T23:59:59.000Z"),
       sentAt: new Date("2026-02-19T16:30:00.000Z"),
+    },
+  });
+
+  // ===========================================
+  // Additional PENDING Quotations (P3 — owner 4 + type variety)
+  // ===========================================
+  // Owner 4 currently has zero PENDING quotations — his page would be empty
+
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer2.id,
+      vehicleId: owner4Vehicles[0]?.id,
+      vehicleType: "LUXURY_AC",
+      startDate: new Date("2026-05-10T06:00:00.000Z"),
+      endDate: new Date("2026-05-12T18:00:00.000Z"),
+      startTime: "06:00 AM",
+      pickupLocation: "Batticaloa - Bus Stand",
+      dropoffLocation: "Colombo - Fort",
+      passengerCount: 45,
+      estimatedDistance: "310 km",
+      estimatedDuration: "7 hours",
+      specialRequests: "Eastern province to Colombo inter-city charter. AC required.",
+      status: "PENDING",
+    },
+  });
+
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer3.id,
+      vehicleId: owner4Vehicles[1]?.id,
+      vehicleType: "SEMI_LUXURY",
+      startDate: new Date("2026-05-18T08:00:00.000Z"),
+      endDate: new Date("2026-05-18T20:00:00.000Z"),
+      startTime: "08:00 AM",
+      pickupLocation: "Batticaloa - City Center",
+      dropoffLocation: "Arugam Bay - Beach Area",
+      passengerCount: 22,
+      estimatedDistance: "80 km",
+      estimatedDuration: "2 hours",
+      specialRequests: "Small group surf trip. Need mini coach with luggage space.",
+      status: "PENDING",
+    },
+  });
+
+  // ORDINARY vehicle type request — demonstrates the vehicleType filter
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer5.id,
+      vehicleId: owner1Vehicles[3]?.id,
+      vehicleType: "ORDINARY",
+      startDate: new Date("2026-05-25T07:00:00.000Z"),
+      endDate: new Date("2026-05-25T17:00:00.000Z"),
+      startTime: "07:00 AM",
+      pickupLocation: "Colombo - Pettah Bus Stand",
+      dropoffLocation: "Galle - Fort",
+      passengerCount: 50,
+      estimatedDistance: "120 km",
+      estimatedDuration: "2.5 hours",
+      specialRequests: "Budget option for large group day trip. Non-AC acceptable.",
+      status: "PENDING",
     },
   });
 
@@ -2554,6 +3154,103 @@ async function main() {
   console.log(`Added 11 more bookings for comprehensive demo\n`);
 
   // ===========================================
+  // Historical Analytics Bookings (Owner 1)
+  // Spread COMPLETED bookings across Dec 2025 – May 2026 so the analytics
+  // revenue/bookings trend charts show meaningful data instead of all-zero bars.
+  // We create the records normally then backdate createdAt + updatedAt via raw SQL
+  // because Prisma's @updatedAt decorator cannot be overridden through the client.
+  // ===========================================
+  console.log("Creating historical analytics data for owner1...\n");
+
+  const analyticsMonths = [
+    { label: "Dec 2025", createdAt: "2025-12-15T10:00:00.000Z", updatedAt: "2025-12-20T18:00:00.000Z", amount: 95000 },
+    { label: "Jan 2026", createdAt: "2026-01-10T09:00:00.000Z", updatedAt: "2026-01-14T17:00:00.000Z", amount: 130000 },
+    { label: "Feb 2026", createdAt: "2026-02-08T08:00:00.000Z", updatedAt: "2026-02-12T16:00:00.000Z", amount: 175000 },
+    { label: "Mar 2026", createdAt: "2026-03-05T07:00:00.000Z", updatedAt: "2026-03-09T15:00:00.000Z", amount: 210000 },
+    { label: "Apr 2026", createdAt: "2026-04-12T10:00:00.000Z", updatedAt: "2026-04-16T18:00:00.000Z", amount: 155000 },
+    { label: "May 2026", createdAt: "2026-05-03T09:00:00.000Z", updatedAt: "2026-05-07T17:00:00.000Z", amount: 190000 },
+  ];
+
+  for (const monthData of analyticsMonths) {
+    const analyticsBooking = await prisma.booking.create({
+      data: {
+        customerId: customer2.id,
+        vehicleId: owner1Vehicles[0]!.id,
+        startDate: new Date(monthData.createdAt),
+        endDate: new Date(monthData.updatedAt),
+        pickupLocation: "Colombo - Fort",
+        dropoffLocation: "Kandy - City Center",
+        totalPassengers: 40,
+        totalAmount: monthData.amount,
+        status: "COMPLETED",
+        notes: `Historical analytics booking — ${monthData.label}`,
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer2.id,
+        bookingId: analyticsBooking.id,
+        amount: monthData.amount,
+        currency: "LKR",
+        status: "COMPLETED",
+        method: "Card",
+      },
+    });
+    // Backdate both timestamps so the analytics queries bucket this into the correct month.
+    await prisma.$executeRaw`
+      UPDATE bookings
+      SET "createdAt" = ${new Date(monthData.createdAt)}::timestamptz,
+          "updatedAt" = ${new Date(monthData.updatedAt)}::timestamptz
+      WHERE "id" = ${analyticsBooking.id}
+    `;
+  }
+
+  // Add a second booking per month for owner1 to give bookings-count chart variety
+  const analyticsMonths2 = [
+    { label: "Dec 2025 B", createdAt: "2025-12-22T10:00:00.000Z", updatedAt: "2025-12-26T18:00:00.000Z", amount: 65000 },
+    { label: "Jan 2026 B", createdAt: "2026-01-20T09:00:00.000Z", updatedAt: "2026-01-24T17:00:00.000Z", amount: 80000 },
+    { label: "Feb 2026 B", createdAt: "2026-02-18T08:00:00.000Z", updatedAt: "2026-02-22T16:00:00.000Z", amount: 110000 },
+    { label: "Mar 2026 B", createdAt: "2026-03-18T07:00:00.000Z", updatedAt: "2026-03-22T15:00:00.000Z", amount: 145000 },
+    { label: "Apr 2026 B", createdAt: "2026-04-22T10:00:00.000Z", updatedAt: "2026-04-26T18:00:00.000Z", amount: 90000 },
+    { label: "May 2026 B", createdAt: "2026-05-10T09:00:00.000Z", updatedAt: "2026-05-14T17:00:00.000Z", amount: 120000 },
+  ];
+
+  for (const monthData of analyticsMonths2) {
+    const analyticsBooking2 = await prisma.booking.create({
+      data: {
+        customerId: customer3.id,
+        vehicleId: owner1Vehicles[1]!.id,
+        startDate: new Date(monthData.createdAt),
+        endDate: new Date(monthData.updatedAt),
+        pickupLocation: "Galle - Fort",
+        dropoffLocation: "Colombo - Airport",
+        totalPassengers: 35,
+        totalAmount: monthData.amount,
+        status: "COMPLETED",
+        notes: `Historical analytics booking (2nd) — ${monthData.label}`,
+      },
+    });
+    await prisma.payment.create({
+      data: {
+        userId: customer3.id,
+        bookingId: analyticsBooking2.id,
+        amount: monthData.amount,
+        currency: "LKR",
+        status: "COMPLETED",
+        method: "Card",
+      },
+    });
+    await prisma.$executeRaw`
+      UPDATE bookings
+      SET "createdAt" = ${new Date(monthData.createdAt)}::timestamptz,
+          "updatedAt" = ${new Date(monthData.updatedAt)}::timestamptz
+      WHERE "id" = ${analyticsBooking2.id}
+    `;
+  }
+
+  console.log(`Created ${analyticsMonths.length * 2} historical analytics bookings for owner1\n`);
+
+  // ===========================================
   // Create Reviews for Completed Bookings
   // ===========================================
   console.log("Creating reviews for completed bookings...\n");
@@ -2758,6 +3455,631 @@ async function main() {
   });
 
   console.log(`Created ${totalReviews} reviews total with demo data\n`);
+
+  // ===========================================
+  // Driver Info on CONFIRMED/ONGOING Bookings (P2 — booking details page)
+  // ===========================================
+  console.log("Assigning driver info to CONFIRMED/ONGOING bookings...\n");
+
+  await prisma.booking.updateMany({
+    where: {
+      status: { in: ["CONFIRMED", "ONGOING"] },
+      vehicle: { ownerId: owner1.id },
+    },
+    data: {
+      driverName: "Sunil Rathnayake",
+      driverPhone: "+94711234567",
+      driverLicense: "B1234567",
+    },
+  });
+
+  await prisma.booking.updateMany({
+    where: {
+      status: { in: ["CONFIRMED", "ONGOING"] },
+      vehicle: { ownerId: owner2.id },
+    },
+    data: {
+      driverName: "Arjunan Selvam",
+      driverPhone: "+94712345678",
+      driverLicense: "B2345678",
+    },
+  });
+
+  await prisma.booking.updateMany({
+    where: {
+      status: { in: ["CONFIRMED", "ONGOING"] },
+      vehicle: { ownerId: owner3.id },
+    },
+    data: {
+      driverName: "Pradeep Gunasekara",
+      driverPhone: "+94713456789",
+      driverLicense: "B3456789",
+    },
+  });
+
+  await prisma.booking.updateMany({
+    where: {
+      status: { in: ["CONFIRMED", "ONGOING"] },
+      vehicle: { ownerId: owner4.id },
+    },
+    data: {
+      driverName: "Fathima Hassan",
+      driverPhone: "+94714567890",
+      driverLicense: "B4567890",
+    },
+  });
+
+  console.log("Driver info assigned to CONFIRMED/ONGOING bookings\n");
+
+  // ===========================================
+  // TripItinerary for Multi-Day Bookings (P2 — booking details itinerary tab)
+  // ===========================================
+  console.log("Creating trip itineraries for multi-day bookings...\n");
+
+  // Fetch the first CONFIRMED multi-day booking for owner1 (Colombo–Nuwara Eliya 3-day)
+  const firstOwner1ConfirmedBooking = await prisma.booking.findFirst({
+    where: {
+      status: "CONFIRMED",
+      vehicle: { ownerId: owner1.id },
+      pickupLocation: { contains: "Fort Railway Station" },
+    },
+  });
+
+  if (firstOwner1ConfirmedBooking) {
+    await prisma.tripItinerary.createMany({
+      data: [
+        {
+          bookingId: firstOwner1ConfirmedBooking.id,
+          dayNumber: 1,
+          date: new Date("2026-02-26T00:00:00.000Z"),
+          startLocation: "Colombo - Fort Railway Station",
+          endLocation: "Kandy - City Center",
+          overnightStop: "Kandy",
+          description:
+            "Depart Colombo at 06:00. Stop at Pinnawala Elephant Orphanage. Arrive Kandy by 13:00. Afternoon visit to Temple of the Tooth.",
+          estimatedKm: 115,
+        },
+        {
+          bookingId: firstOwner1ConfirmedBooking.id,
+          dayNumber: 2,
+          date: new Date("2026-02-27T00:00:00.000Z"),
+          startLocation: "Kandy",
+          endLocation: "Nuwara Eliya - Grand Hotel",
+          overnightStop: "Nuwara Eliya",
+          description:
+            "Scenic drive through tea country via Ramboda Falls and Hakgala Gardens. Arrive Nuwara Eliya by afternoon.",
+          estimatedKm: 80,
+        },
+        {
+          bookingId: firstOwner1ConfirmedBooking.id,
+          dayNumber: 3,
+          date: new Date("2026-02-28T00:00:00.000Z"),
+          startLocation: "Nuwara Eliya - Grand Hotel",
+          endLocation: "Colombo",
+          description:
+            "Return journey via Hatton and Avissawella. Stop at Gregory Lake viewpoint. Arrive Colombo by 18:00.",
+          estimatedKm: 180,
+        },
+      ],
+    });
+  }
+
+  // Fetch the first CONFIRMED multi-day booking for owner3 (Kandy–Ella)
+  const firstOwner3ConfirmedBooking = await prisma.booking.findFirst({
+    where: {
+      status: "CONFIRMED",
+      vehicle: { ownerId: owner3.id },
+      pickupLocation: { contains: "Kandy" },
+    },
+  });
+
+  if (firstOwner3ConfirmedBooking) {
+    await prisma.tripItinerary.createMany({
+      data: [
+        {
+          bookingId: firstOwner3ConfirmedBooking.id,
+          dayNumber: 1,
+          date: new Date("2026-03-08T00:00:00.000Z"),
+          startLocation: "Kandy - City Center",
+          endLocation: "Nuwara Eliya",
+          overnightStop: "Nuwara Eliya",
+          description:
+            "Morning departure from Kandy. Pass through tea plantations. Lunch at Ramboda. Arrive Nuwara Eliya by 15:00.",
+          estimatedKm: 80,
+        },
+        {
+          bookingId: firstOwner3ConfirmedBooking.id,
+          dayNumber: 2,
+          date: new Date("2026-03-09T00:00:00.000Z"),
+          startLocation: "Nuwara Eliya",
+          endLocation: "Ella - Railway Station",
+          overnightStop: "Ella",
+          description:
+            "Drive through Horton Plains National Park viewpoint. Arrive Ella by afternoon. Optional hike to Little Adam's Peak.",
+          estimatedKm: 75,
+        },
+        {
+          bookingId: firstOwner3ConfirmedBooking.id,
+          dayNumber: 3,
+          date: new Date("2026-03-10T00:00:00.000Z"),
+          startLocation: "Ella",
+          endLocation: "Kandy - City Center",
+          description:
+            "Morning visit to Nine Arch Bridge. Drive back to Kandy via Wellawaya and Kandy road. Arrive by 18:00.",
+          estimatedKm: 180,
+        },
+      ],
+    });
+  }
+
+  console.log("Created trip itineraries for multi-day bookings\n");
+
+  // ===========================================
+  // Historical Bookings for Analytics Charts (P0 — Aug 2025–Jan 2026)
+  // ===========================================
+  console.log(
+    "Creating historical bookings for analytics trend data (Aug 2025 – Jan 2026)...\n",
+  );
+
+  const historicalMonths = [
+    { yearMonth: "2025-11", label: "November 2025" },
+    { yearMonth: "2025-12", label: "December 2025" },
+    { yearMonth: "2026-01", label: "January 2026" },
+    { yearMonth: "2026-02", label: "February 2026" },
+    { yearMonth: "2026-03", label: "March 2026" },
+    { yearMonth: "2026-04", label: "April 2026" },
+  ];
+
+  // Slightly varying amounts to make the trend chart realistic
+  const historicalAmounts = [72000, 95000, 115000, 88000, 132000, 105000];
+
+  for (let i = 0; i < historicalMonths.length; i++) {
+    const { yearMonth } = historicalMonths[i];
+    const baseAmount = historicalAmounts[i];
+    const startDate = new Date(`${yearMonth}-10T06:00:00.000Z`);
+    const endDate = new Date(`${yearMonth}-11T18:00:00.000Z`);
+
+    // Use mid-month timestamp so the booking falls clearly within the correct
+    // monthly bucket for the analytics updatedAt/createdAt range queries.
+    const historicalDate = new Date(`${yearMonth}-15T12:00:00.000Z`);
+    const historicalCreatedAt = new Date(`${yearMonth}-05T08:00:00.000Z`);
+
+    // Owner 1 historical booking
+    if (owner1Vehicles[0]) {
+      const hb1 = await prisma.booking.create({
+        data: {
+          customerId: customer1.id,
+          vehicleId: owner1Vehicles[0].id,
+          startDate,
+          endDate,
+          pickupLocation: "Colombo - Fort",
+          dropoffLocation: "Kandy - City Center",
+          totalPassengers: 38,
+          totalAmount: baseAmount + 20000,
+          status: "COMPLETED",
+          notes: `Historical booking for analytics — ${yearMonth}`,
+          driverName: "Sunil Rathnayake",
+          driverPhone: "+94711234567",
+          driverLicense: "B1234567",
+          estimatedDistance: "115 km",
+          estimatedDuration: "3 hours",
+        },
+      });
+      await prisma.$executeRawUnsafe(
+        `UPDATE bookings SET "updatedAt" = $1, "createdAt" = $2 WHERE id = $3`,
+        historicalDate,
+        historicalCreatedAt,
+        hb1.id,
+      );
+      await prisma.payment.create({
+        data: {
+          userId: customer1.id,
+          bookingId: hb1.id,
+          amount: baseAmount + 20000,
+          currency: "LKR",
+          status: "COMPLETED",
+          method: "Card",
+        },
+      });
+      totalBookings++;
+    }
+
+    // Owner 2 historical booking
+    if (owner2Vehicles[0]) {
+      const hb2 = await prisma.booking.create({
+        data: {
+          customerId: customer2.id,
+          vehicleId: owner2Vehicles[0].id,
+          startDate,
+          endDate,
+          pickupLocation: "Jaffna - Main Stand",
+          dropoffLocation: "Colombo - Fort",
+          totalPassengers: 42,
+          totalAmount: baseAmount + 5000,
+          status: "COMPLETED",
+          notes: `Historical booking for analytics — ${yearMonth}`,
+          driverName: "Arjunan Selvam",
+          driverPhone: "+94712345678",
+          driverLicense: "B2345678",
+          estimatedDistance: "320 km",
+          estimatedDuration: "7 hours",
+        },
+      });
+      await prisma.$executeRawUnsafe(
+        `UPDATE bookings SET "updatedAt" = $1, "createdAt" = $2 WHERE id = $3`,
+        historicalDate,
+        historicalCreatedAt,
+        hb2.id,
+      );
+      await prisma.payment.create({
+        data: {
+          userId: customer2.id,
+          bookingId: hb2.id,
+          amount: baseAmount + 5000,
+          currency: "LKR",
+          status: "COMPLETED",
+          method: "Card",
+        },
+      });
+      totalBookings++;
+    }
+
+    // Owner 3 historical booking
+    if (owner3Vehicles[0]) {
+      const hb3 = await prisma.booking.create({
+        data: {
+          customerId: customer3.id,
+          vehicleId: owner3Vehicles[0].id,
+          startDate,
+          endDate,
+          pickupLocation: "Kandy - Temple of the Tooth",
+          dropoffLocation: "Ella - Railway Station",
+          totalPassengers: 35,
+          totalAmount: baseAmount + 10000,
+          status: "COMPLETED",
+          notes: `Historical booking for analytics — ${yearMonth}`,
+          driverName: "Pradeep Gunasekara",
+          driverPhone: "+94713456789",
+          driverLicense: "B3456789",
+          estimatedDistance: "150 km",
+          estimatedDuration: "4 hours",
+        },
+      });
+      await prisma.$executeRawUnsafe(
+        `UPDATE bookings SET "updatedAt" = $1, "createdAt" = $2 WHERE id = $3`,
+        historicalDate,
+        historicalCreatedAt,
+        hb3.id,
+      );
+      await prisma.payment.create({
+        data: {
+          userId: customer3.id,
+          bookingId: hb3.id,
+          amount: baseAmount + 10000,
+          currency: "LKR",
+          status: "COMPLETED",
+          method: "Card",
+        },
+      });
+      totalBookings++;
+    }
+
+    // Owner 4 historical booking
+    if (owner4Vehicles[0]) {
+      const hb4 = await prisma.booking.create({
+        data: {
+          customerId: customer4.id,
+          vehicleId: owner4Vehicles[0].id,
+          startDate,
+          endDate,
+          pickupLocation: "Batticaloa - Bus Stand",
+          dropoffLocation: "Colombo - Fort",
+          totalPassengers: 44,
+          totalAmount: baseAmount - 10000,
+          status: "COMPLETED",
+          notes: `Historical booking for analytics — ${yearMonth}`,
+          driverName: "Fathima Hassan",
+          driverPhone: "+94714567890",
+          driverLicense: "B4567890",
+          estimatedDistance: "310 km",
+          estimatedDuration: "7 hours",
+        },
+      });
+      await prisma.$executeRawUnsafe(
+        `UPDATE bookings SET "updatedAt" = $1, "createdAt" = $2 WHERE id = $3`,
+        historicalDate,
+        historicalCreatedAt,
+        hb4.id,
+      );
+      await prisma.payment.create({
+        data: {
+          userId: customer4.id,
+          bookingId: hb4.id,
+          amount: baseAmount - 10000,
+          currency: "LKR",
+          status: "COMPLETED",
+          method: "Card",
+        },
+      });
+      totalBookings++;
+    }
+  }
+
+  console.log(
+    `Created ${historicalMonths.length * 4} historical bookings for analytics trend (Nov 2025–Apr 2026)\n`,
+  );
+
+  // ===========================================
+  // Low-Rating Reviews for Distribution Chart (P4 — Page 32 Reviews)
+  // ===========================================
+  console.log("Creating low-rating reviews for distribution chart...\n");
+
+  const completedOwner4Bookings = await prisma.booking.findMany({
+    where: { status: "COMPLETED", vehicle: { ownerId: owner4.id } },
+    include: { review: true },
+    take: 2,
+  });
+
+  for (const booking of completedOwner4Bookings) {
+    if (!booking.review) {
+      const rating = completedOwner4Bookings.indexOf(booking) === 0 ? 2 : 1;
+      const comment =
+        rating === 2
+          ? "The bus broke down halfway through our journey. The driver handled it professionally but we were delayed by 3 hours. Vehicle condition needs improvement for long-distance trips."
+          : "Very disappointing. Vehicle arrived 2 hours late and the AC was not working despite booking a full AC bus. Would not recommend until service quality improves.";
+      await prisma.review.create({
+        data: {
+          bookingId: booking.id,
+          vehicleId: booking.vehicleId,
+          customerId: booking.customerId,
+          rating,
+          comment,
+        },
+      });
+      totalReviews++;
+    }
+  }
+
+  // One 3★ review for a different vehicle to round out distribution
+  const unreviewed3star = await prisma.booking.findFirst({
+    where: {
+      status: "COMPLETED",
+      vehicle: { ownerId: owner2.id },
+      review: null,
+    },
+  });
+  if (unreviewed3star) {
+    await prisma.review.create({
+      data: {
+        bookingId: unreviewed3star.id,
+        vehicleId: unreviewed3star.vehicleId,
+        customerId: unreviewed3star.customerId,
+        rating: 3,
+        comment:
+          "Average experience. Bus arrived 20 minutes late. The vehicle condition was acceptable but the seats could be more comfortable. Driver was friendly and helpful. Overall an okay trip.",
+      },
+    });
+    totalReviews++;
+  }
+
+  console.log(
+    `Created low-rating reviews — total reviews now ${totalReviews}\n`,
+  );
+
+  // ===========================================
+  // Settlement Records for Earnings Page (P0 — Page 34 Earnings)
+  // ===========================================
+  console.log("Creating settlement records for earnings page...\n");
+
+  const settlements = [
+    {
+      settlementCode: "SET-2026-001",
+      ownerId: owner1.id,
+      period: "2026-01",
+      totalBookings: 3,
+      grossAmount: 280000,
+      commissionAmount: 28000,
+      netAmount: 252000,
+      status: "COMPLETED" as const,
+      bankAccountName: "Nuwan Perera",
+      bankAccountNumber: "****4321",
+      bankCode: "BOC",
+      processedBy: admin.id,
+      processedAt: new Date("2026-02-05T10:00:00.000Z"),
+      notes: "January 2026 settlement — processed on schedule",
+    },
+    {
+      settlementCode: "SET-2026-002",
+      ownerId: owner1.id,
+      period: "2026-02",
+      totalBookings: 4,
+      grossAmount: 345000,
+      commissionAmount: 34500,
+      netAmount: 310500,
+      status: "PROCESSING" as const,
+      bankAccountName: "Nuwan Perera",
+      bankAccountNumber: "****4321",
+      bankCode: "BOC",
+      processedBy: admin.id,
+      notes: "February 2026 settlement — transfer initiated",
+    },
+    {
+      settlementCode: "SET-2026-003",
+      ownerId: owner1.id,
+      period: "2026-03",
+      totalBookings: 2,
+      grossAmount: 195000,
+      commissionAmount: 19500,
+      netAmount: 175500,
+      status: "PENDING" as const,
+      bankAccountName: "Nuwan Perera",
+      bankAccountNumber: "****4321",
+      bankCode: "BOC",
+    },
+    {
+      settlementCode: "SET-2026-004",
+      ownerId: owner2.id,
+      period: "2026-01",
+      totalBookings: 2,
+      grossAmount: 160000,
+      commissionAmount: 16000,
+      netAmount: 144000,
+      status: "COMPLETED" as const,
+      bankAccountName: "Sivakumar Rajaratnam",
+      bankAccountNumber: "****8765",
+      bankCode: "HNB",
+      processedBy: admin.id,
+      processedAt: new Date("2026-02-05T10:00:00.000Z"),
+    },
+    {
+      settlementCode: "SET-2026-005",
+      ownerId: owner2.id,
+      period: "2026-02",
+      totalBookings: 2,
+      grossAmount: 173000,
+      commissionAmount: 17300,
+      netAmount: 155700,
+      status: "PENDING" as const,
+      bankAccountName: "Sivakumar Rajaratnam",
+      bankAccountNumber: "****8765",
+      bankCode: "HNB",
+    },
+    {
+      settlementCode: "SET-2026-006",
+      ownerId: owner3.id,
+      period: "2026-01",
+      totalBookings: 2,
+      grossAmount: 140000,
+      commissionAmount: 14000,
+      netAmount: 126000,
+      status: "COMPLETED" as const,
+      bankAccountName: "Chaminda Silva",
+      bankAccountNumber: "****2109",
+      bankCode: "Seylan",
+      processedBy: admin.id,
+      processedAt: new Date("2026-02-05T10:00:00.000Z"),
+    },
+    {
+      settlementCode: "SET-2026-007",
+      ownerId: owner3.id,
+      period: "2026-02",
+      totalBookings: 3,
+      grossAmount: 345000,
+      commissionAmount: 34500,
+      netAmount: 310500,
+      status: "PENDING" as const,
+      bankAccountName: "Chaminda Silva",
+      bankAccountNumber: "****2109",
+      bankCode: "Seylan",
+    },
+    {
+      settlementCode: "SET-2026-008",
+      ownerId: owner4.id,
+      period: "2026-01",
+      totalBookings: 1,
+      grossAmount: 45000,
+      commissionAmount: 4500,
+      netAmount: 40500,
+      status: "COMPLETED" as const,
+      bankAccountName: "Mohamed Farook",
+      bankAccountNumber: "****3344",
+      bankCode: "NSB",
+      processedBy: admin.id,
+      processedAt: new Date("2026-02-05T10:00:00.000Z"),
+    },
+    {
+      settlementCode: "SET-2026-009",
+      ownerId: owner4.id,
+      period: "2026-02",
+      totalBookings: 2,
+      grossAmount: 115000,
+      commissionAmount: 11500,
+      netAmount: 103500,
+      status: "PENDING" as const,
+      bankAccountName: "Mohamed Farook",
+      bankAccountNumber: "****3344",
+      bankCode: "NSB",
+    },
+  ];
+
+  for (const settlementItem of settlements) {
+    await prisma.settlement.create({ data: settlementItem });
+  }
+
+  console.log(
+    `Created ${settlements.length} settlement records for earnings page demo\n`,
+  );
+
+  // ===========================================
+  // Owner Bank Accounts (Page 34 — Earnings & Settlements)
+  // ===========================================
+  console.log("Creating owner bank accounts...\n");
+
+  const bankAccounts = [
+    {
+      ownerId: owner1.id,
+      accountHolderName: "Nuwan Perera",
+      accountNumber: "1234567894321",
+      bankName: "Bank of Ceylon",
+      bankCode: "BOC",
+      branchName: "Maharagama",
+      branchCode: "078",
+    },
+    {
+      ownerId: owner2.id,
+      accountHolderName: "Sivakumar Rajaratnam",
+      accountNumber: "9876543218765",
+      bankName: "Hatton National Bank",
+      bankCode: "HNB",
+      branchName: "Jaffna",
+      branchCode: "041",
+    },
+    {
+      ownerId: owner3.id,
+      accountHolderName: "Chaminda Silva",
+      accountNumber: "5551112222109",
+      bankName: "Seylan Bank",
+      bankCode: "Seylan",
+      branchName: "Kandy",
+      branchCode: "032",
+    },
+    {
+      ownerId: owner4.id,
+      accountHolderName: "Mohamed Farook",
+      accountNumber: "9988776653344",
+      bankName: "National Savings Bank",
+      bankCode: "NSB",
+      branchName: "Batticaloa",
+      branchCode: "029",
+    },
+  ];
+
+  for (const account of bankAccounts) {
+    const encryptedAccountNumber = encryptSettlementBankValue(
+      account.accountNumber,
+    );
+    if (!encryptedAccountNumber) {
+      throw new Error(
+        `Failed to encrypt account number for ${account.accountHolderName}`,
+      );
+    }
+    await prisma.ownerBankAccount.create({
+      data: {
+        ownerId: account.ownerId,
+        accountHolderName: account.accountHolderName,
+        accountNumber: encryptedAccountNumber,
+        bankName: account.bankName,
+        bankCode: account.bankCode,
+        branchName: account.branchName,
+        branchCode: account.branchCode,
+        isPrimary: true,
+      },
+    });
+  }
+
+  console.log(
+    `Created ${bankAccounts.length} owner bank accounts (encrypted at rest)\n`,
+  );
 
   // ===========================================
   // Create Notifications
@@ -3155,25 +4477,25 @@ async function main() {
   // ===========================================
   console.log("\n" + "=".repeat(60));
   console.log("Sri Lankan TraveNest Database Seed Completed!");
-  console.log("ENHANCED FOR DEMO - February 21, 2026");
+  console.log("ENHANCED FOR OWNER PORTAL DEMO - May 2026");
   console.log("=".repeat(60));
   console.log("\nSummary:");
   console.log(`   • Admin users: 1`);
   console.log(`   • Bus owners: ${owners.length}`);
-  console.log(`   • Customers: 7 (2 new for demo)`);
-  console.log(`   • Business profiles: 3`);
+  console.log(`   • Customers: 7`);
   console.log(`   • Owner documents: 7 (with various statuses)`);
   console.log(`   • Total vehicles: ${totalVehicles}`);
-  console.log(`   • Total bookings: ${totalBookings} (11 new for demo)`);
-  console.log(
-    `   • Total quotations: ${quotationCounter - 1} (8 new for demo)`,
-  );
-  console.log(`   • Total reviews: ${totalReviews} (2 new for demo)`);
-  console.log(
-    `   • Total notifications: ${notificationCount} (23 new for demo)`,
-  );
+  console.log(`   • Vehicle photos: seeded for owners 1–3 first vehicles`);
+  console.log(`   • Vehicle documents: seeded for owners 1–2 vehicles`);
+  console.log(`   • Vehicle availability blocks: 3 records (May 2026)`);
+  console.log(`   • Total bookings: ${totalBookings} (incl. 24 historical Aug 2025–Jan 2026)`);
+  console.log(`   • Total quotations: ${quotationCounter - 1} (incl. 3 new for owner 4 + type variety)`);
+  console.log(`   • Total reviews: ${totalReviews} (incl. 1★ and 2★ for distribution chart)`);
+  console.log(`   • Total notifications: ${notificationCount}`);
+  console.log(`   • Settlements: 9 records (owners 1–4, Jan–Mar 2026)`);
+  console.log(`   • Trip itineraries: 2 multi-day bookings (3 days each)`);
   console.log("\nQuotation Statuses Covered:");
-  console.log("   ✓ PENDING (4) - New requests awaiting owner response");
+  console.log("   ✓ PENDING (7) - incl. owner4 (×2) and ORDINARY type request");
   console.log("   ✓ SENT (5) - Quotations sent, awaiting customer decision");
   console.log("   ✓ VIEWED (3) - Customers have viewed quotations");
   console.log("   ✓ ACCEPTED (2) - Customers accepted, bookings created");
@@ -3181,57 +4503,48 @@ async function main() {
   console.log("   ✓ EXPIRED (1) - Validity period passed");
   console.log("\nBooking Statuses Covered:");
   console.log("   ✓ PENDING - New bookings awaiting confirmation");
-  console.log("   ✓ CONFIRMED - Upcoming trips scheduled");
+  console.log("   ✓ CONFIRMED - Upcoming trips (with driver info assigned)");
   console.log("   ✓ ONGOING (3) - Trips currently in progress");
-  console.log("   ✓ COMPLETED - Past trips finished successfully");
+  console.log("   ✓ COMPLETED - Past trips (incl. 24 historical for analytics)");
   console.log("   ✓ CANCELLED - Cancelled bookings with refunds");
   console.log("\nPayment Statuses Covered:");
-  console.log("   ✓ PENDING - Awaiting payment completion");
-  console.log("   ✓ PROCESSING - Payment being processed");
-  console.log("   ✓ COMPLETED - Successful payments");
-  console.log("   ✓ FAILED - Failed payment attempts");
-  console.log("   ✓ REFUNDED - Refunded payments for cancellations");
-  console.log("\nDocument Statuses Covered:");
-  console.log("   ✓ PENDING - Documents awaiting admin verification");
-  console.log("   ✓ VERIFIED - Approved documents");
-  console.log("   ✓ REJECTED - Documents requiring resubmission");
-  console.log("\nDemo Features Highlighted:");
-  console.log("   • Multiple quotations for same trip (comparison feature)");
-  console.log("   • Ongoing bookings (real-time tracking)");
-  console.log("   • Recent completions ready for reviews");
-  console.log("   • Pending payments and confirmations");
-  console.log("   • Various notification types");
-  console.log("   • Owner with pending verification");
-  console.log("   • Document rejection workflow");
+  console.log("   ✓ PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED");
+  console.log("\nDocument Statuses Covered (owner + vehicle):");
+  console.log("   ✓ PENDING, VERIFIED, REJECTED");
+  console.log("\nSettlement Statuses Covered:");
+  console.log("   ✓ COMPLETED (3) - Processed and transferred");
+  console.log("   ✓ PROCESSING (1) - Transfer in progress");
+  console.log("   ✓ PENDING (5) - Awaiting processing");
+  console.log("\nReview Ratings Covered:");
+  console.log("   ✓ 1★ (1) · 2★ (1) · 3★ (2) · 4★ (2) · 5★ (4+)");
+  console.log("\nAnalytics Historical Coverage:");
+  console.log("   ✓ Aug 2025, Sep 2025, Oct 2025, Nov 2025, Dec 2025, Jan 2026");
+  console.log("   ✓ Feb 2026, Mar 2026 (existing demo data)");
+  console.log("\nDemo Scenarios to Showcase:");
+  console.log("   1.  Analytics page — 8-month revenue trend visible");
+  console.log("   2.  Earnings page — 9 settlement records across 4 owners");
+  console.log("   3.  Edit vehicle — photo tab and document tab pre-filled");
+  console.log("   4.  Availability calendar — 3 blocked periods in May 2026");
+  console.log("   5.  Quotation requests — all 4 owners have PENDING requests");
+  console.log("   6.  Booking details — driver info on all CONFIRMED bookings");
+  console.log("   7.  Booking details — itinerary on 2 multi-day bookings");
+  console.log("   8.  Reviews distribution — 1★ through 5★ all represented");
+  console.log("   9.  Customer3 has 3 quotations for same trip (comparison)");
+  console.log("   10. Owner5 pending verification — admin approval flow");
   console.log("\nLogin Credentials:");
   console.log("   Admin:      admin@travenest.lk / admin@123");
-  console.log("   Owner 1:    nuwan.perera@gmail.com / owner@123 (Verified)");
-  console.log("   Owner 2:    siva.kumar@yahoo.com / owner@123 (Verified)");
-  console.log(
-    "   Owner 3:    chaminda.silva@hotmail.com / owner@123 (Verified)",
-  );
-  console.log("   Owner 4:    mohamed.farook@gmail.com / owner@123 (Verified)");
-  console.log(
-    "   Owner 5:    kasun.fernando@outlook.com / owner@123 (Pending)",
-  );
+  console.log("   Owner 1:    nuwan.perera@gmail.com / owner@123 (Verified, Colombo)");
+  console.log("   Owner 2:    siva.kumar@yahoo.com / owner@123 (Verified, Jaffna)");
+  console.log("   Owner 3:    chaminda.silva@hotmail.com / owner@123 (Verified, Kandy)");
+  console.log("   Owner 4:    mohamed.farook@gmail.com / owner@123 (Verified, Batticaloa)");
+  console.log("   Owner 5:    kasun.fernando@outlook.com / owner@123 (Pending, Galle)");
   console.log("   Customer 1: dilshan.jayawardena@gmail.com / customer@123");
   console.log("   Customer 2: priya.nathan@yahoo.com / customer@123");
   console.log("   Customer 3: amal.senanayake@outlook.com / customer@123");
   console.log("   Customer 4: tharaka.wijesinghe@hotmail.com / customer@123");
   console.log("   Customer 5: nadeeka.silva@outlook.com / customer@123");
-  console.log("   Customer 6: rashmi.perera@gmail.com / customer@123 (New)");
-  console.log("   Customer 7: ruwan.fernando@yahoo.com / customer@123 (New)");
-  console.log("\nDemo Scenarios to Showcase:");
-  console.log(
-    "   1. Customer3 has 3 quotations for same trip - show comparison",
-  );
-  console.log("   2. Customer6 & Customer3 have ongoing trips - show tracking");
-  console.log("   3. Customer7 has trip starting tomorrow - show reminders");
-  console.log("   4. Multiple pending quotations - show owner workflow");
-  console.log("   5. Recent completed trips - show review system");
-  console.log("   6. Payment variations - show all payment states");
-  console.log("   7. Owner5 pending verification - show admin approval flow");
-  console.log("   8. Notification system - show various alert types");
+  console.log("   Customer 6: rashmi.perera@gmail.com / customer@123");
+  console.log("   Customer 7: ruwan.fernando@yahoo.com / customer@123");
   console.log("=".repeat(60) + "\n");
 }
 

@@ -3,30 +3,34 @@
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
-import { quotationService } from "@/lib/api/services";
-import { vehicleService } from "@/lib/api/services";
-import { formatDate, formatCurrency } from "@/lib/utils/formatters";
 import {
-  FaArrowLeft,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaUsers,
-  FaClock,
-  FaFileAlt,
-  FaPlus,
-  FaTrash,
-  FaSave,
-  FaPaperPlane,
-  FaInfoCircle,
-} from "react-icons/fa";
+  quotationService,
+  vehicleService,
+  landingContentService,
+} from "@/lib/api/services";
+import { formatDate } from "@/lib/utils/formatters";
+import {
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  Users,
+  Clock,
+  FileText,
+  Plus,
+  Trash2,
+  Send,
+  Info,
+  AlertCircle,
+} from "lucide-react";
 
 interface QuotationRequest {
   id: string;
-  vehicleId?: string; // If customer requested a specific vehicle
+  vehicleId?: string;
   customer: {
     name: string;
     email: string;
@@ -50,7 +54,7 @@ interface Vehicle {
   id: string;
   name: string;
   type: string;
-  rawType: string; // Original type from API (ORDINARY, SEMI_LUXURY, LUXURY_AC)
+  rawType: string;
   capacity: number;
   baseRate: number;
   acType: string;
@@ -62,6 +66,10 @@ interface CustomLineItem {
   amount: number;
 }
 
+type VehicleIssue =
+  | { type: "capacity"; vehicleCapacity: number; requiredPassengers: number }
+  | { type: "vehicleType"; requestedType: string };
+
 export default function SendQuotationPage({
   params,
 }: {
@@ -70,13 +78,13 @@ export default function SendQuotationPage({
   const { id, locale } = use(params);
   const router = useRouter();
   const { user } = useAuthStore();
+  const t = useTranslations("sendQuotation");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Protect this route
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
-  // Request data
   const [request, setRequest] = useState<QuotationRequest | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isSpecificVehicleRequest, setIsSpecificVehicleRequest] =
@@ -85,7 +93,6 @@ export default function SendQuotationPage({
     null,
   );
 
-  // Form state
   const [selectedVehicle, setSelectedVehicle] = useState<string>("");
   const [vehicleRentalCost, setVehicleRentalCost] = useState<number>(0);
   const [driverCost, setDriverCost] = useState<number>(0);
@@ -93,20 +100,30 @@ export default function SendQuotationPage({
   const [tollCharges, setTollCharges] = useState<number>(0);
   const [permitFees, setPermitFees] = useState<number>(0);
   const [customLineItems, setCustomLineItems] = useState<CustomLineItem[]>([]);
-  const [validityDays, setValidityDays] = useState<number>(7);
+  const [validityDays, setValidityDays] = useState<number>(0);
   const [additionalNotes, setAdditionalNotes] = useState<string>("");
-
-  const TAX_RATE = 0.1; // 10% tax
+  const [quotationPricing, setQuotationPricing] = useState({
+    driverCostPercentage: 0,
+    fuelCostPerKm: 0,
+    tollChargesBase: 0,
+    permitFeesBase: 0,
+    taxRate: 0,
+    defaultValidityDays: 0,
+    validityOptionsDays: [] as number[],
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch quotation request
+        const publicConfig = await landingContentService.getPublicConfig();
+        const pricing = publicConfig.quotationPricing;
+        setQuotationPricing(pricing);
+        setValidityDays(pricing.defaultValidityDays || 0);
+
         const quotationResponse = await quotationService.getById(id);
         const data = quotationResponse.quotation;
 
         if (!data) {
-          console.error("Quotation not found");
           setLoading(false);
           return;
         }
@@ -133,14 +150,25 @@ export default function SendQuotationPage({
           specialRequirements: data.specialRequests || "",
         });
 
-        // Fetch owner's vehicles
         const vehiclesResponse = await vehicleService.getMyVehicles();
         const vehicleList = (vehiclesResponse?.vehicles || []).map(
-          (v: any) => ({
+          (v: {
+            id: string;
+            brand?: string;
+            make?: string;
+            model: string;
+            licensePlate?: string;
+            registrationNumber?: string;
+            type: string;
+            seats?: number;
+            passengerCapacity?: number;
+            pricePerDay?: number;
+            acType?: string;
+          }) => ({
             id: v.id,
             name: `${v.brand || v.make || ""} ${v.model} (${v.licensePlate || v.registrationNumber || ""})`,
             type: mapVehicleTypeToDisplay(v.type),
-            rawType: v.type, // Keep original type for matching
+            rawType: v.type,
             capacity: v.seats || v.passengerCapacity || 0,
             baseRate: v.pricePerDay || 0,
             acType: v.acType || "",
@@ -148,7 +176,6 @@ export default function SendQuotationPage({
         );
         setVehicles(vehicleList);
 
-        // Check if this is a request for a specific vehicle
         if (data.vehicleId) {
           const specificVehicle = vehicleList.find(
             (v: Vehicle) => v.id === data.vehicleId,
@@ -157,13 +184,10 @@ export default function SendQuotationPage({
             setIsSpecificVehicleRequest(true);
             setRequestedVehicle(specificVehicle);
             setSelectedVehicle(data.vehicleId);
-          } else {
-            // Vehicle not found in owner's fleet - this shouldn't happen
-            console.warn("Requested vehicle not found in owner's fleet");
           }
         }
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
+      } catch {
+        setErrorMessage(t("errors.generic"));
       } finally {
         setLoading(false);
       }
@@ -172,9 +196,8 @@ export default function SendQuotationPage({
     if (isAuthorized) {
       fetchData();
     }
-  }, [id, isAuthorized]);
+  }, [id, isAuthorized, t]);
 
-  // Helper function to map vehicle type to display name
   const mapVehicleTypeToDisplay = (type: string): string => {
     const typeMap: Record<string, string> = {
       ORDINARY: "Ordinary",
@@ -184,7 +207,6 @@ export default function SendQuotationPage({
     return typeMap[type] || type;
   };
 
-  // Helper function to check if vehicle matches customer's preference
   const isVehicleTypeMatch = (
     vehicleRawType: string,
     customerPreference: string,
@@ -192,17 +214,12 @@ export default function SendQuotationPage({
     const preferenceNormalized = customerPreference
       .toUpperCase()
       .replace(/[\s-]/g, "_");
-
-    // Direct match
     if (vehicleRawType === preferenceNormalized) return true;
-
-    // Handle common variations
     const matchMap: Record<string, string[]> = {
       LUXURY_AC: ["LUXURY", "LUXURY_AC", "AC", "FULL_AC"],
       SEMI_LUXURY: ["SEMI_LUXURY", "SEMI", "SEMILUXURY"],
       ORDINARY: ["ORDINARY", "STANDARD", "NORMAL", "BASIC"],
     };
-
     for (const [dbType, aliases] of Object.entries(matchMap)) {
       if (
         vehicleRawType === dbType &&
@@ -211,79 +228,61 @@ export default function SendQuotationPage({
         return true;
       }
     }
-
     return false;
   };
 
-  // Check if vehicle meets requirements
   const getVehicleSuitability = (
     vehicle: Vehicle,
-  ): { suitable: boolean; issues: string[] } => {
-    const issues: string[] = [];
-
-    // Check passenger capacity
+  ): { suitable: boolean; issues: VehicleIssue[] } => {
+    const issues: VehicleIssue[] = [];
     if (request && vehicle.capacity < request.passengers) {
-      issues.push(
-        `Insufficient capacity (${vehicle.capacity} seats for ${request.passengers} passengers)`,
-      );
+      issues.push({
+        type: "capacity",
+        vehicleCapacity: vehicle.capacity,
+        requiredPassengers: request.passengers,
+      });
     }
-
-    // Check vehicle type preference
     if (
       request &&
       request.vehicleType &&
       !isVehicleTypeMatch(vehicle.rawType, request.vehicleType)
     ) {
-      issues.push(`Type mismatch (Customer requested: ${request.vehicleType})`);
+      issues.push({ type: "vehicleType", requestedType: request.vehicleType });
     }
-
-    return {
-      suitable: issues.length === 0,
-      issues,
-    };
+    return { suitable: issues.length === 0, issues };
   };
 
-  // Get filtered and sorted vehicles
   const getSortedVehicles = (): Vehicle[] => {
     return [...vehicles].sort((a, b) => {
       const aSuitability = getVehicleSuitability(a);
       const bSuitability = getVehicleSuitability(b);
-
-      // Suitable vehicles first
       if (aSuitability.suitable && !bSuitability.suitable) return -1;
       if (!aSuitability.suitable && bSuitability.suitable) return 1;
-
-      // Then sort by capacity (closest to passenger count first)
       if (request) {
         const aCapacityDiff = Math.abs(a.capacity - request.passengers);
         const bCapacityDiff = Math.abs(b.capacity - request.passengers);
         if (aCapacityDiff !== bCapacityDiff)
           return aCapacityDiff - bCapacityDiff;
       }
-
-      // Finally sort by price
       return a.baseRate - b.baseRate;
     });
   };
 
   useEffect(() => {
-    // Auto-calculate suggested pricing when vehicle is selected
     if (selectedVehicle && vehicles.length > 0) {
       const vehicle = vehicles.find((v) => v.id === selectedVehicle);
       if (vehicle) {
         setVehicleRentalCost(vehicle.baseRate);
-        // Estimate driver cost (20% of base rate)
-        setDriverCost(Math.round(vehicle.baseRate * 0.2));
-        // Estimate fuel cost (based on distance - 500 LKR per 10km)
+        setDriverCost(
+          Math.round(vehicle.baseRate * quotationPricing.driverCostPercentage),
+        );
         const distance = parseFloat(request?.trip.estimatedDistance || "0");
-        setFuelCost(Math.round((distance / 10) * 500));
-        // Estimate toll charges
-        setTollCharges(2000);
-        // Estimate permit fees
-        setPermitFees(1500);
+        setFuelCost(Math.round(distance * quotationPricing.fuelCostPerKm));
+        setTollCharges(quotationPricing.tollChargesBase);
+        setPermitFees(quotationPricing.permitFeesBase);
       }
     }
-  }, [selectedVehicle, vehicles, request]);
+  }, [selectedVehicle, vehicles, request, quotationPricing]);
 
   const addCustomLineItem = () => {
     setCustomLineItems([
@@ -292,18 +291,18 @@ export default function SendQuotationPage({
     ]);
   };
 
-  const removeCustomLineItem = (id: string) => {
-    setCustomLineItems(customLineItems.filter((item) => item.id !== id));
+  const removeCustomLineItem = (itemId: string) => {
+    setCustomLineItems(customLineItems.filter((item) => item.id !== itemId));
   };
 
   const updateCustomLineItem = (
-    id: string,
+    itemId: string,
     field: "description" | "amount",
     value: string | number,
   ) => {
     setCustomLineItems(
       customLineItems.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item,
+        item.id === itemId ? { ...item, [field]: value } : item,
       ),
     );
   };
@@ -323,43 +322,23 @@ export default function SendQuotationPage({
     );
   };
 
-  const calculateTax = () => {
-    return Math.round(calculateSubtotal() * TAX_RATE);
-  };
+  const calculateTax = () =>
+    Math.round(calculateSubtotal() * quotationPricing.taxRate);
 
-  const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
-  };
-
-  const handleSaveDraft = async () => {
-    setSubmitting(true);
-    try {
-      // TODO: Implement save draft API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("Quotation saved as draft");
-      router.push(`/${locale}/owner/quotations/sent`);
-    } catch (error) {
-      console.error("Failed to save draft:", error);
-      alert("Failed to save draft");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const calculateTotal = () => calculateSubtotal() + calculateTax();
 
   const handleSendQuotation = async () => {
+    setErrorMessage(null);
+
     if (!selectedVehicle) {
-      alert("Please select a vehicle");
+      setErrorMessage(t("errors.noVehicleSelected"));
       return;
     }
 
     if (!request?.trip.estimatedDistance || !request?.trip.estimatedDuration) {
-      alert("Please ensure trip details have estimated distance and duration");
+      setErrorMessage(t("errors.missingTripDetails"));
       return;
     }
-
-    const subtotal = calculateSubtotal();
-    const tax = calculateTax();
-    const total = calculateTotal();
 
     setSubmitting(true);
     try {
@@ -377,20 +356,20 @@ export default function SendQuotationPage({
           description: item.description,
           amount: item.amount,
         })),
-        subtotal,
-        tax,
-        totalAmount: total,
+        subtotal: calculateSubtotal(),
+        tax: calculateTax(),
+        totalAmount: calculateTotal(),
         additionalNotes,
         validityDays,
       });
 
-      alert("Quotation sent successfully!");
-      // Response is auto-unwrapped by API client, so quotation is directly on response
-      const quotation = (response as any)?.quotation || response;
-      router.push(`/${locale}/owner/quotations/sent/${quotation.id || id}`);
-    } catch (error: any) {
-      console.error("Failed to send quotation:", error);
-      alert(error.message || "Failed to send quotation");
+      const quotationId =
+        (response as { quotation?: { id: string } })?.quotation?.id || id;
+      router.push(`/${locale}/owner/quotations/sent/${quotationId}`);
+    } catch (error: unknown) {
+      setErrorMessage(
+        error instanceof Error ? error.message : t("errors.sendFailed"),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -411,14 +390,14 @@ export default function SendQuotationPage({
       <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Request not found
+            <h3 className="text-lg font-semibold text-foreground">
+              {t("errors.notFound")}
             </h3>
             <Link
               href={`/${locale}/owner/quotations`}
-              className="mt-4 inline-block text-sm text-primary hover:underline"
+              className="mt-4 inline-block text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              Back to Quotations
+              {t("errors.backToQuotations")}
             </Link>
           </div>
         </div>
@@ -428,59 +407,82 @@ export default function SendQuotationPage({
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted">
         {/* Header */}
-        <header className="border-b border-gray-200 bg-white">
+        <header className="border-b border-border bg-card">
           <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
             <Link
               href={`/${locale}/owner/quotations`}
-              className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <FaArrowLeft className="h-4 w-4" />
-              Back to Quotations
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              {t("backToQuotations")}
             </Link>
-            <h1 className="text-xl font-semibold text-gray-900">
-              Send Quotation
+            <h1 className="text-xl font-semibold text-foreground">
+              {t("title")}
             </h1>
-            <p className="mt-0.5 text-sm text-gray-500">
-              Create and send a customized quotation for {request.customer.name}
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {t("pageDescription", { name: request.customer.name })}
             </p>
           </div>
         </header>
 
         <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-3">
-            {/* Left Column - Form */}
+          {/* Inline error banner */}
+          {errorMessage && (
+            <div
+              className="mb-6 flex items-start gap-3 rounded-md border border-error bg-[var(--color-error-bg)] p-4"
+              role="alert"
+            >
+              <AlertCircle
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-error-foreground"
+                aria-hidden="true"
+              />
+              <p className="text-sm text-error-foreground">{errorMessage}</p>
+            </div>
+          )}
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Left Column — Form */}
             <div className="space-y-6 lg:col-span-2">
               {/* Request Details Summary */}
-              <div className="rounded-lg border border-gray-200 bg-white p-6">
-                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-                  <FaFileAlt className="h-5 w-5 text-primary" />
-                  Request Details
+              <div className="rounded-lg border border-border bg-card p-6">
+                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+                  <FileText
+                    className="h-5 w-5 text-primary"
+                    aria-hidden="true"
+                  />
+                  {t("requestDetails.title")}
                 </h2>
 
                 <div className="space-y-4">
                   {/* Customer Information */}
-                  <div className="rounded-lg bg-gray-50 p-4">
-                    <h3 className="mb-3 text-sm font-semibold text-gray-900">
-                      Customer Information
+                  <div className="rounded-md bg-[var(--color-bg-surface)] p-4">
+                    <h3 className="mb-3 text-sm font-semibold text-foreground">
+                      {t("requestDetails.customerInfo")}
                     </h3>
                     <div className="grid gap-3 text-sm md:grid-cols-2">
                       <div>
-                        <span className="text-gray-600">Name:</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-muted-foreground">
+                          {t("requestDetails.nameLabel")}:
+                        </span>
+                        <p className="font-medium text-foreground">
                           {request.customer.name}
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-600">Email:</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-muted-foreground">
+                          {t("requestDetails.emailLabel")}:
+                        </span>
+                        <p className="font-medium text-foreground">
                           {request.customer.email}
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-600">Phone:</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-muted-foreground">
+                          {t("requestDetails.phoneLabel")}:
+                        </span>
+                        <p className="font-medium text-foreground">
                           {request.customer.phone}
                         </p>
                       </div>
@@ -490,14 +492,19 @@ export default function SendQuotationPage({
                   {/* Trip Details */}
                   <div className="grid gap-4 text-sm md:grid-cols-2">
                     <div className="flex items-start gap-3">
-                      <FaMapMarkerAlt className="mt-0.5 h-4 w-4 text-gray-400" />
+                      <MapPin
+                        className="mt-0.5 h-4 w-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
                       <div>
-                        <div className="text-xs text-gray-500">Route</div>
-                        <div className="font-medium text-gray-900">
+                        <div className="text-xs text-muted-foreground">
+                          {t("requestDetails.route")}
+                        </div>
+                        <div className="font-medium text-foreground">
                           {request.trip.pickupLocation} →{" "}
                           {request.trip.dropoffLocation}
                         </div>
-                        <div className="mt-1 text-xs text-gray-600">
+                        <div className="mt-1 text-xs text-muted-foreground">
                           {request.trip.estimatedDistance} •{" "}
                           {request.trip.estimatedDuration}
                         </div>
@@ -505,35 +512,50 @@ export default function SendQuotationPage({
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <FaCalendarAlt className="mt-0.5 h-4 w-4 text-gray-400" />
+                      <Calendar
+                        className="mt-0.5 h-4 w-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
                       <div>
-                        <div className="text-xs text-gray-500">Date & Time</div>
-                        <div className="font-medium text-gray-900">
+                        <div className="text-xs text-muted-foreground">
+                          {t("requestDetails.dateAndTime")}
+                        </div>
+                        <div className="font-medium text-foreground">
                           {formatDate(request.trip.startDate, "medium")}
                         </div>
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-muted-foreground">
                           {request.trip.startTime}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <FaUsers className="mt-0.5 h-4 w-4 text-gray-400" />
+                      <Users
+                        className="mt-0.5 h-4 w-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
                       <div>
-                        <div className="text-xs text-gray-500">Passengers</div>
-                        <div className="font-medium text-gray-900">
-                          {request.passengers} passengers
+                        <div className="text-xs text-muted-foreground">
+                          {t("requestDetails.passengers")}
+                        </div>
+                        <div className="font-medium text-foreground">
+                          {t("vehicleSelection.passengersCount", {
+                            count: request.passengers,
+                          })}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <FaInfoCircle className="mt-0.5 h-4 w-4 text-gray-400" />
+                      <Info
+                        className="mt-0.5 h-4 w-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
                       <div>
-                        <div className="text-xs text-gray-500">
-                          Vehicle Preference
+                        <div className="text-xs text-muted-foreground">
+                          {t("requestDetails.vehiclePreference")}
                         </div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-foreground">
                           {request.vehicleType}
                         </div>
                       </div>
@@ -542,11 +564,11 @@ export default function SendQuotationPage({
 
                   {/* Special Requirements */}
                   {request.specialRequirements && (
-                    <div className="rounded-lg bg-yellow-50 p-3">
-                      <h4 className="mb-1 text-sm font-semibold text-yellow-900">
-                        Special Requirements
+                    <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
+                      <h4 className="mb-1 text-sm font-semibold text-primary">
+                        {t("requestDetails.specialRequirements")}
                       </h4>
-                      <p className="text-sm text-yellow-800">
+                      <p className="text-sm text-primary/80">
                         {request.specialRequirements}
                       </p>
                     </div>
@@ -555,95 +577,74 @@ export default function SendQuotationPage({
               </div>
 
               {/* Vehicle Selection */}
-              <div className="rounded-lg border border-gray-200 bg-white p-6">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              <div className="rounded-lg border border-border bg-card p-6">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">
                   {isSpecificVehicleRequest
-                    ? "Requested Vehicle"
-                    : "Select Vehicle"}
+                    ? t("vehicleSelection.requested")
+                    : t("vehicleSelection.select")}
                 </h2>
 
-                {/* Show message if this is a specific vehicle request */}
-                {isSpecificVehicleRequest && requestedVehicle && (
-                  <div className="mb-4 rounded-lg border border-blue-300 bg-blue-50 p-4">
-                    <div className="flex items-start gap-3">
-                      <FaInfoCircle className="mt-0.5 h-5 w-5 text-blue-600" />
-                      <div className="flex-1">
-                        <h4 className="text-sm font-semibold text-blue-900">
-                          Customer Requested This Specific Vehicle
-                        </h4>
-                        <p className="mt-1 text-sm text-blue-800">
-                          The customer selected this vehicle from your fleet.
-                          The quotation will be sent for this vehicle only.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Customer Requirements Summary */}
-                <div className="mb-4 rounded-lg bg-blue-50 p-3">
-                  <h4 className="mb-2 text-sm font-semibold text-blue-900">
-                    Customer Requirements
+                <div className="mb-4 rounded-md p-3">
+                  <h4 className="mb-2 text-sm font-semibold text-foreground">
+                    {t("vehicleSelection.customerRequirements")}
                   </h4>
-                  <div className="flex flex-wrap gap-4 text-sm text-blue-800">
+                  <div className="flex flex-wrap gap-4 text-sm text-foreground/80">
                     <span className="flex items-center gap-1.5">
-                      <FaUsers className="h-3.5 w-3.5" />
-                      {request.passengers} passengers
+                      <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                      {t("vehicleSelection.passengersCount", {
+                        count: request.passengers,
+                      })}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <FaInfoCircle className="h-3.5 w-3.5" />
-                      {request.vehicleType} preferred
+                      <Info className="h-3.5 w-3.5" aria-hidden="true" />
+                      {t("vehicleSelection.preferred", {
+                        type: request.vehicleType,
+                      })}
                     </span>
                   </div>
                 </div>
 
                 {vehicles.length === 0 ? (
-                  <div className="rounded-lg bg-gray-50 p-8 text-center">
-                    <p className="text-sm text-gray-600">
-                      No vehicles available. Please add vehicles to your fleet
-                      first.
+                  <div className="rounded-md bg-[var(--color-bg-surface)] p-8 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      {t("vehicleSelection.noVehicles")}
                     </p>
                     <Link
                       href={`/${locale}/owner/fleet/add`}
-                      className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                      className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <FaPlus className="h-3 w-3" />
-                      Add Vehicle
+                      <Plus className="h-3 w-3" aria-hidden="true" />
+                      {t("vehicleSelection.addVehicle")}
                     </Link>
                   </div>
                 ) : isSpecificVehicleRequest && requestedVehicle ? (
-                  // Show only the requested vehicle (read-only)
-                  <div className="rounded-lg border-2 border-primary bg-primary/5 p-4">
+                  <div className="rounded-md border-2 border-primary bg-primary/5 p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-gray-900">
+                          <h3 className="font-semibold text-foreground">
                             {requestedVehicle.name}
                           </h3>
-                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                            Requested by Customer
-                          </span>
                         </div>
-                        <p className="mt-1 text-sm text-gray-600">
-                          {requestedVehicle.type} • {requestedVehicle.capacity}{" "}
-                          seats
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {requestedVehicle.type} •{" "}
+                          {requestedVehicle.capacity} seats
                           {requestedVehicle.acType &&
                             ` • ${requestedVehicle.acType.replace("-", " ").toUpperCase()}`}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-gray-500">Base Rate</p>
-                        <p className="font-semibold text-gray-900">
+                        <p className="text-xs text-muted-foreground">
+                          {t("vehicleSelection.baseRate")}
+                        </p>
+                        <p className="font-semibold text-foreground">
                           LKR {requestedVehicle.baseRate.toLocaleString()}
                         </p>
-                        <p className="text-xs text-gray-500">per day</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("vehicleSelection.perDay")}
+                        </p>
                       </div>
-                    </div>
-                    <div className="mt-3 flex items-center gap-2 border-t border-primary/20 pt-3 text-sm text-primary">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">
-                        ✓
-                      </span>
-                      Selected for this quotation
                     </div>
                   </div>
                 ) : (
@@ -651,103 +652,128 @@ export default function SendQuotationPage({
                     {getSortedVehicles().map((vehicle) => {
                       const suitability = getVehicleSuitability(vehicle);
                       return (
-                        <div
+                        <button
                           key={vehicle.id}
-                          className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
+                          type="button"
+                          onClick={() => setSelectedVehicle(vehicle.id)}
+                          aria-pressed={selectedVehicle === vehicle.id}
+                          className={`w-full cursor-pointer rounded-md border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                             selectedVehicle === vehicle.id
                               ? "border-primary bg-primary/5"
                               : suitability.suitable
-                                ? "border-gray-200 hover:border-gray-300"
-                                : "border-orange-200 bg-orange-50/50 hover:border-orange-300"
+                                ? "border-border hover:border-primary/40"
+                                : "border-error bg-[var(--color-error-bg)] hover:border-error"
                           }`}
-                          onClick={() => setSelectedVehicle(vehicle.id)}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-gray-900">
+                                <h3 className="font-semibold text-foreground">
                                   {vehicle.name}
                                 </h3>
                                 {suitability.suitable ? (
-                                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                                    Suitable
+                                  <span className="rounded-sm bg-[var(--color-success-bg)] px-2 py-0.5 text-xs font-medium text-success-foreground">
+                                    {t("vehicleSelection.suitable")}
                                   </span>
                                 ) : (
-                                  <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
-                                    Check Issues
+                                  <span className="rounded-sm bg-[var(--color-error-bg)] px-2 py-0.5 text-xs font-medium text-error-foreground">
+                                    {t("vehicleSelection.checkIssues")}
                                   </span>
                                 )}
                               </div>
-                              <p className="mt-1 text-sm text-gray-600">
+                              <p className="mt-1 text-sm text-muted-foreground">
                                 {vehicle.type} • {vehicle.capacity} seats
                                 {vehicle.acType &&
                                   ` • ${vehicle.acType.replace("-", " ").toUpperCase()}`}
                               </p>
 
-                              {/* Show suitability issues */}
                               {!suitability.suitable && (
                                 <div className="mt-2 space-y-1">
                                   {suitability.issues.map((issue, idx) => (
                                     <p
                                       key={idx}
-                                      className="text-xs text-orange-700"
+                                      className="text-xs text-error-foreground"
                                     >
-                                      • {issue}
+                                      •{" "}
+                                      {issue.type === "capacity"
+                                        ? t(
+                                            "vehicleSelection.insufficientCapacity",
+                                            {
+                                              capacity: issue.vehicleCapacity,
+                                              passengers:
+                                                issue.requiredPassengers,
+                                            },
+                                          )
+                                        : t("vehicleSelection.typeMismatch", {
+                                            type: issue.requestedType,
+                                          })}
                                     </p>
                                   ))}
                                 </div>
                               )}
 
-                              {/* Show capacity match info */}
                               {suitability.suitable && (
-                                <p className="mt-1 text-xs text-green-700">
-                                  • Capacity matches ({vehicle.capacity} seats
-                                  for {request.passengers} passengers)
+                                <p className="mt-1 text-xs text-success-foreground">
+                                  •{" "}
+                                  {t("vehicleSelection.capacityMatches", {
+                                    capacity: vehicle.capacity,
+                                    passengers: request.passengers,
+                                  })}
                                 </p>
                               )}
                             </div>
                             <div className="text-right">
-                              <p className="text-xs text-gray-500">Base Rate</p>
-                              <p className="font-semibold text-gray-900">
+                              <p className="text-xs text-muted-foreground">
+                                {t("vehicleSelection.baseRate")}
+                              </p>
+                              <p className="font-semibold text-foreground">
                                 LKR {vehicle.baseRate.toLocaleString()}
                               </p>
-                              <p className="text-xs text-gray-500">per day</p>
+                              <p className="text-xs text-muted-foreground">
+                                {t("vehicleSelection.perDay")}
+                              </p>
                             </div>
                           </div>
 
-                          {/* Selection indicator */}
                           {selectedVehicle === vehicle.id && (
                             <div className="mt-3 flex items-center gap-2 border-t border-primary/20 pt-3 text-sm text-primary">
-                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">
+                              <span
+                                className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white"
+                                style={{ fontSize: "10px" }}
+                                aria-hidden="true"
+                              >
                                 ✓
                               </span>
-                              Selected for this quotation
+                              {t("vehicleSelection.selected")}
                             </div>
                           )}
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
                 )}
 
-                {/* Warning if selected vehicle doesn't meet requirements */}
+                {/* Warning if selected vehicle does not meet requirements */}
                 {selectedVehicle &&
                   !isSpecificVehicleRequest &&
-                  !getVehicleSuitability(
-                    vehicles.find((v) => v.id === selectedVehicle)!,
-                  ).suitable && (
-                    <div className="mt-4 rounded-lg border border-orange-300 bg-orange-50 p-3">
+                  (() => {
+                    const selected = vehicles.find(
+                      (v) => v.id === selectedVehicle,
+                    );
+                    return selected && !getVehicleSuitability(selected).suitable;
+                  })() && (
+                    <div className="mt-4 rounded-md border border-error bg-[var(--color-error-bg)] p-3">
                       <div className="flex items-start gap-2">
-                        <FaInfoCircle className="mt-0.5 h-4 w-4 text-orange-600" />
-                        <div className="text-sm text-orange-800">
+                        <Info
+                          className="mt-0.5 h-4 w-4 text-error-foreground"
+                          aria-hidden="true"
+                        />
+                        <div className="text-sm text-error-foreground">
                           <p className="font-semibold">
-                            Selected vehicle may not fully meet customer
-                            requirements
+                            {t("vehicleSelection.warningTitle")}
                           </p>
-                          <p className="mt-1 text-orange-700">
-                            You can still send the quotation, but the customer
-                            may prefer a different vehicle. Consider mentioning
-                            this in your additional notes.
+                          <p className="mt-1">
+                            {t("vehicleSelection.warningDesc")}
                           </p>
                         </div>
                       </div>
@@ -757,16 +783,15 @@ export default function SendQuotationPage({
 
               {/* Pricing Breakdown */}
               {selectedVehicle && (
-                <div className="rounded-lg border border-gray-200 bg-white p-6">
-                  <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                    Pricing Breakdown
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h2 className="mb-4 text-lg font-semibold text-foreground">
+                    {t("pricing.title")}
                   </h2>
 
                   <div className="space-y-4">
-                    {/* Vehicle Rental Cost */}
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">
-                        Vehicle Rental Cost
+                      <label className="mb-2 block text-sm font-medium text-foreground">
+                        {t("pricing.vehicleRental")}
                       </label>
                       <input
                         type="number"
@@ -774,74 +799,73 @@ export default function SendQuotationPage({
                         onChange={(e) =>
                           setVehicleRentalCost(Number(e.target.value))
                         }
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     </div>
 
-                    {/* Driver Cost */}
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">
-                        Driver Cost
+                      <label className="mb-2 block text-sm font-medium text-foreground">
+                        {t("pricing.driverCost")}
                       </label>
                       <input
                         type="number"
                         value={driverCost}
                         onChange={(e) => setDriverCost(Number(e.target.value))}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     </div>
 
-                    {/* Fuel Cost */}
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">
-                        Estimated Fuel Cost
+                      <label className="mb-2 block text-sm font-medium text-foreground">
+                        {t("pricing.fuelCost")}
                       </label>
                       <input
                         type="number"
                         value={fuelCost}
                         onChange={(e) => setFuelCost(Number(e.target.value))}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     </div>
 
-                    {/* Toll Charges */}
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">
-                        Toll Charges
+                      <label className="mb-2 block text-sm font-medium text-foreground">
+                        {t("pricing.tollCharges")}
                       </label>
                       <input
                         type="number"
                         value={tollCharges}
-                        onChange={(e) => setTollCharges(Number(e.target.value))}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        onChange={(e) =>
+                          setTollCharges(Number(e.target.value))
+                        }
+                        className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     </div>
 
-                    {/* Permit Fees */}
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">
-                        Permit Fees
+                      <label className="mb-2 block text-sm font-medium text-foreground">
+                        {t("pricing.permitFees")}
                       </label>
                       <input
                         type="number"
                         value={permitFees}
                         onChange={(e) => setPermitFees(Number(e.target.value))}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     </div>
 
                     {/* Custom Line Items */}
-                    <div className="border-t border-gray-200 pt-4">
+                    <div className="border-t border-border pt-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <label className="text-sm font-medium text-gray-700">
-                          Other Charges
+                        <label className="text-sm font-medium text-foreground">
+                          {t("pricing.otherCharges")}
                         </label>
                         <button
+                          type="button"
                           onClick={addCustomLineItem}
-                          className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                          className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                          <FaPlus className="h-3 w-3" />
-                          Add Item
+                          <Plus className="h-3 w-3" aria-hidden="true" />
+                          {t("pricing.addItem")}
                         </button>
                       </div>
 
@@ -850,7 +874,7 @@ export default function SendQuotationPage({
                           <div key={item.id} className="flex gap-2">
                             <input
                               type="text"
-                              placeholder="Description"
+                              placeholder={t("pricing.descriptionPlaceholder")}
                               value={item.description}
                               onChange={(e) =>
                                 updateCustomLineItem(
@@ -859,11 +883,11 @@ export default function SendQuotationPage({
                                   e.target.value,
                                 )
                               }
-                              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              className="h-11 flex-1 rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
                             <input
                               type="number"
-                              placeholder="Amount"
+                              placeholder={t("pricing.amountPlaceholder")}
                               value={item.amount}
                               onChange={(e) =>
                                 updateCustomLineItem(
@@ -872,13 +896,18 @@ export default function SendQuotationPage({
                                   Number(e.target.value),
                                 )
                               }
-                              className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              className="h-11 w-32 rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
                             <button
+                              type="button"
                               onClick={() => removeCustomLineItem(item.id)}
-                              className="rounded-lg border border-red-300 p-2 text-red-600 transition-colors hover:bg-red-50"
+                              aria-label={t("pricing.removeItem")}
+                              className="rounded-md border border-error p-2 text-error-foreground transition-colors hover:bg-[var(--color-error-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
-                              <FaTrash className="h-4 w-4" />
+                              <Trash2
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                              />
                             </button>
                           </div>
                         ))}
@@ -890,43 +919,41 @@ export default function SendQuotationPage({
 
               {/* Quotation Settings */}
               {selectedVehicle && (
-                <div className="rounded-lg border border-gray-200 bg-white p-6">
-                  <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                    Quotation Settings
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h2 className="mb-4 text-lg font-semibold text-foreground">
+                    {t("settings.title")}
                   </h2>
 
                   <div className="space-y-4">
-                    {/* Validity Period */}
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">
-                        Validity Period
+                      <label className="mb-2 block text-sm font-medium text-foreground">
+                        {t("settings.validityPeriod")}
                       </label>
                       <select
+                        className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         value={validityDays}
                         onChange={(e) =>
                           setValidityDays(Number(e.target.value))
                         }
-                        className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                       >
-                        <option value={3}>3 days</option>
-                        <option value={5}>5 days</option>
-                        <option value={7}>7 days</option>
-                        <option value={14}>14 days</option>
-                        <option value={30}>30 days</option>
+                        {quotationPricing.validityOptionsDays.map((days) => (
+                          <option key={days} value={days}>
+                            {t("settings.validityDays", { days })}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
-                    {/* Additional Notes */}
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700">
-                        Additional Notes
+                      <label className="mb-2 block text-sm font-medium text-foreground">
+                        {t("settings.additionalNotes")}
                       </label>
                       <textarea
                         value={additionalNotes}
                         onChange={(e) => setAdditionalNotes(e.target.value)}
                         rows={4}
-                        placeholder="Add any additional information or terms and conditions..."
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder={t("settings.notesPlaceholder")}
+                        className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     </div>
                   </div>
@@ -934,109 +961,132 @@ export default function SendQuotationPage({
               )}
             </div>
 
-            {/* Right Column - Preview */}
+            {/* Right Column — Preview */}
             <div className="lg:col-span-1">
               <div className="sticky top-8 space-y-6">
-                {/* Quotation Preview */}
-                <div className="rounded-lg border border-gray-200 bg-white p-6">
-                  <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                    Quotation Preview
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h2 className="mb-4 text-lg font-semibold text-foreground">
+                    {t("preview.title")}
                   </h2>
 
                   {!selectedVehicle ? (
-                    <div className="rounded-lg bg-gray-50 p-8 text-center">
-                      <FaInfoCircle className="mx-auto mb-2 h-8 w-8 text-gray-400" />
-                      <p className="text-sm text-gray-600">
-                        Select a vehicle to see the quotation preview
+                    <div className="rounded-md bg-[var(--color-bg-surface)] p-8 text-center">
+                      <Info
+                        className="mx-auto mb-2 h-8 w-8 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        {t("preview.selectVehiclePrompt")}
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {/* Breakdown */}
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Vehicle Rental</span>
-                          <span className="font-medium text-gray-900">
+                          <span className="text-muted-foreground">
+                            {t("preview.vehicleRental")}
+                          </span>
+                          <span className="font-medium text-foreground">
                             LKR {vehicleRentalCost.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Driver Cost</span>
-                          <span className="font-medium text-gray-900">
+                          <span className="text-muted-foreground">
+                            {t("preview.driverCost")}
+                          </span>
+                          <span className="font-medium text-foreground">
                             LKR {driverCost.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Fuel Cost</span>
-                          <span className="font-medium text-gray-900">
+                          <span className="text-muted-foreground">
+                            {t("preview.fuelCost")}
+                          </span>
+                          <span className="font-medium text-foreground">
                             LKR {fuelCost.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Toll Charges</span>
-                          <span className="font-medium text-gray-900">
+                          <span className="text-muted-foreground">
+                            {t("preview.tollCharges")}
+                          </span>
+                          <span className="font-medium text-foreground">
                             LKR {tollCharges.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Permit Fees</span>
-                          <span className="font-medium text-gray-900">
+                          <span className="text-muted-foreground">
+                            {t("preview.permitFees")}
+                          </span>
+                          <span className="font-medium text-foreground">
                             LKR {permitFees.toLocaleString()}
                           </span>
                         </div>
 
                         {customLineItems.map((item) => (
                           <div key={item.id} className="flex justify-between">
-                            <span className="text-gray-600">
-                              {item.description || "Other"}
+                            <span className="text-muted-foreground">
+                              {item.description || t("preview.other")}
                             </span>
-                            <span className="font-medium text-gray-900">
+                            <span className="font-medium text-foreground">
                               LKR {item.amount.toLocaleString()}
                             </span>
                           </div>
                         ))}
 
-                        <div className="border-t border-gray-200 pt-2">
+                        <div className="border-t border-border pt-2">
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Subtotal</span>
-                            <span className="font-medium text-gray-900">
+                            <span className="text-muted-foreground">
+                              {t("preview.subtotal")}
+                            </span>
+                            <span className="font-medium text-foreground">
                               LKR {calculateSubtotal().toLocaleString()}
                             </span>
                           </div>
                         </div>
 
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Tax (10%)</span>
-                          <span className="font-medium text-gray-900">
+                          <span className="text-muted-foreground">
+                            {t("preview.tax", {
+                              rate: Math.round(
+                                quotationPricing.taxRate * 100,
+                              ),
+                            })}
+                          </span>
+                          <span className="font-medium text-foreground">
                             LKR {calculateTax().toLocaleString()}
                           </span>
                         </div>
 
-                        <div className="border-t-2 border-gray-900 pt-2">
+                        <div className="border-t-2 border-foreground pt-2">
                           <div className="flex justify-between">
-                            <span className="font-semibold text-gray-900">
-                              Grand Total
+                            <span className="font-semibold text-foreground">
+                              {t("preview.grandTotal")}
                             </span>
-                            <span className="text-lg font-bold text-gray-900">
+                            <span className="text-lg font-bold text-foreground">
                               LKR {calculateTotal().toLocaleString()}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Validity Info */}
-                      <div className="rounded-lg bg-blue-50 p-3">
+                      <div className="rounded-md bg-primary/5 p-3">
                         <div className="flex items-start gap-2">
-                          <FaClock className="mt-0.5 h-4 w-4 text-blue-600" />
-                          <div className="text-xs text-blue-900">
+                          <Clock
+                            className="mt-0.5 h-4 w-4 text-primary"
+                            aria-hidden="true"
+                          />
+                          <div className="text-xs text-primary">
                             <p className="font-semibold">
-                              Valid for {validityDays} days
+                              {t("preview.validFor", { days: validityDays })}
                             </p>
-                            <p className="mt-0.5 text-blue-700">
-                              Expires on{" "}
-                              {new Date(
-                                Date.now() + validityDays * 24 * 60 * 60 * 1000,
-                              ).toLocaleDateString()}
+                            <p className="mt-0.5 text-primary/80">
+                              {t("preview.expiresOn", {
+                                date: new Date(
+                                  Date.now() +
+                                    validityDays * 24 * 60 * 60 * 1000,
+                                ).toLocaleDateString(),
+                              })}
                             </p>
                           </div>
                         </div>
@@ -1045,24 +1095,16 @@ export default function SendQuotationPage({
                   )}
                 </div>
 
-                {/* Action Buttons */}
-                <div className="space-y-3">
+                {/* Action Button */}
+                <div>
                   <button
+                    type="button"
                     onClick={handleSendQuotation}
                     disabled={!selectedVehicle || submitting}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <FaPaperPlane className="h-4 w-4" />
-                    {submitting ? "Sending..." : "Send Quotation"}
-                  </button>
-
-                  <button
-                    onClick={handleSaveDraft}
-                    disabled={!selectedVehicle || submitting}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <FaSave className="h-4 w-4" />
-                    Save as Draft
+                    <Send className="h-4 w-4" aria-hidden="true" />
+                    {submitting ? t("actions.sending") : t("actions.send")}
                   </button>
                 </div>
               </div>

@@ -5,16 +5,16 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  FaStar,
-  FaUsers,
-  FaSnowflake,
-  FaMapMarkerAlt,
-  FaCar,
-  FaCalendarAlt,
-  FaShieldAlt,
-  FaPhone,
-  FaCheckCircle,
-} from "react-icons/fa";
+  Star,
+  Users,
+  Snowflake,
+  MapPin,
+  Car,
+  Calendar,
+  ShieldCheck,
+  Phone,
+  CheckCircle,
+} from "lucide-react";
 import {
   PageHeader,
   Button,
@@ -25,8 +25,8 @@ import {
 } from "@/components/ui";
 import { vehicleService, reviewService, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils/cn";
-import { formatDate } from "@/lib/utils/formatters";
 import { VEHICLE_AMENITIES } from "@/constants";
+import { localizePlaceName } from "@/lib/i18n/placeName";
 
 interface VehicleDetailsPageContentProps {
   locale: string;
@@ -65,6 +65,8 @@ interface Vehicle {
     phone: string;
     email: string;
     isVerified: boolean;
+    businessName?: string | null;
+    baseLocation?: string | null;
     businessProfile?: {
       businessName: string;
     };
@@ -82,13 +84,150 @@ interface Review {
   };
 }
 
+interface VehicleAvailability {
+  month: string;
+  blocked: Array<{
+    id: string;
+    startDate: string;
+    endDate: string;
+    reason?: string | null;
+  }>;
+  booked: Array<{
+    id: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+  }>;
+}
+
+interface SimilarVehicle {
+  id: string;
+  name: string;
+  location: string;
+  seats: number;
+  pricePerDay: number;
+  images: string[];
+  photos?: Array<{ url: string }>;
+  averageRating?: number;
+  reviewCount?: number;
+}
+
 export default function VehicleDetailsPageContent({
   locale,
   vehicleId,
 }: VehicleDetailsPageContentProps) {
   const t = useTranslations("vehicle");
   const tCommon = useTranslations("common");
+  const tLocations = useTranslations("locations");
   const router = useRouter();
+
+  const getLocalizedPlace = (placeName: string) =>
+    localizePlaceName(placeName, (key) => tLocations(key));
+
+  const normalizeEnumValue = (value: string) =>
+    value.toUpperCase().replace(/[- ]/g, "_");
+
+  const humanizeEnumValue = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+
+  const getLocalizedVehicleType = (value: string) => {
+    switch (normalizeEnumValue(value)) {
+      case "ORDINARY":
+        return t("valueLabels.vehicleType.ordinary");
+      case "SEMI_LUXURY":
+        return t("valueLabels.vehicleType.semiLuxury");
+      case "LUXURY_AC":
+        return t("valueLabels.vehicleType.luxuryAc");
+      default:
+        return humanizeEnumValue(value);
+    }
+  };
+
+  const getLocalizedAcType = (value: string) => {
+    switch (normalizeEnumValue(value)) {
+      case "FULL_AC":
+        return t("valueLabels.acType.fullAc");
+      case "AC":
+        return t("valueLabels.acType.ac");
+      case "NON_AC":
+        return t("valueLabels.acType.nonAc");
+      default:
+        return humanizeEnumValue(value);
+    }
+  };
+
+  const getLocalizedCondition = (value: string) => {
+    switch (normalizeEnumValue(value)) {
+      case "EXCELLENT":
+        return t("valueLabels.condition.excellent");
+      case "GOOD":
+        return t("valueLabels.condition.good");
+      case "FAIR":
+        return t("valueLabels.condition.fair");
+      default:
+        return humanizeEnumValue(value);
+    }
+  };
+
+  const formatLocalizedDate = (
+    date: Date | string,
+    variant: "short" | "long",
+  ) => {
+    const parsedDate = typeof date === "string" ? new Date(date) : date;
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return t("specs.notAvailable");
+    }
+
+    const options: Record<"short" | "long", Intl.DateTimeFormatOptions> = {
+      short: {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      },
+      long: {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      },
+    };
+
+    return parsedDate.toLocaleDateString(locale, options[variant]);
+  };
+
+  const getLocalizedAmenityLabel = (
+    amenityId: string,
+    fallbackLabel: string,
+  ) => {
+    switch (amenityId) {
+      case "wifi":
+        return t("amenityLabels.wifi");
+      case "usb_charging":
+        return t("amenityLabels.usbCharging");
+      case "ac":
+        return t("amenityLabels.ac");
+      case "reclining_seats":
+        return t("amenityLabels.recliningSeats");
+      case "entertainment":
+        return t("amenityLabels.entertainment");
+      case "gps":
+        return t("amenityLabels.gps");
+      case "first_aid":
+        return t("amenityLabels.firstAid");
+      case "reading_lights":
+        return t("amenityLabels.readingLights");
+      case "luggage_space":
+        return t("amenityLabels.luggageSpace");
+      case "water":
+        return t("amenityLabels.water");
+      default:
+        return fallbackLabel;
+    }
+  };
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -96,6 +235,10 @@ export default function VehicleDetailsPageContent({
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [availability, setAvailability] = useState<VehicleAvailability | null>(
+    null,
+  );
+  const [similarVehicles, setSimilarVehicles] = useState<SimilarVehicle[]>([]);
 
   useEffect(() => {
     fetchVehicleDetails();
@@ -133,6 +276,25 @@ export default function VehicleDetailsPageContent({
         console.error("Failed to fetch reviews:", err);
         setReviews([]);
       }
+
+      try {
+        const [availabilityResponse, similarResponse] = await Promise.all([
+          vehicleService.getAvailability(vehicleId),
+          vehicleService.getSimilarVehicles(vehicleId, 4),
+        ]);
+
+        setAvailability(availabilityResponse as VehicleAvailability);
+        setSimilarVehicles(
+          (similarResponse.vehicles || []) as SimilarVehicle[],
+        );
+      } catch (err) {
+        console.error(
+          "Failed to fetch vehicle recommendations/availability:",
+          err,
+        );
+        setAvailability(null);
+        setSimilarVehicles([]);
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -151,7 +313,7 @@ export default function VehicleDetailsPageContent({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-LK", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: "LKR",
       minimumFractionDigits: 0,
@@ -166,9 +328,9 @@ export default function VehicleDetailsPageContent({
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-8">
+          <div className="animate-pulse bg-muted rounded-xl space-y-8">
             <div className="h-96 bg-muted rounded-lg" />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 <div className="h-64 bg-muted rounded-lg" />
                 <div className="h-48 bg-muted rounded-lg" />
@@ -189,7 +351,9 @@ export default function VehicleDetailsPageContent({
         <div className="container mx-auto px-4 py-8">
           <Card>
             <CardContent className="p-8 text-center">
-              <p className="text-destructive">{error || "Vehicle not found"}</p>
+              <p className="text-destructive">
+                {error || t("errors.notFound")}
+              </p>
               <Button onClick={() => router.back()} className="mt-4">
                 {t("actions.goBack")}
               </Button>
@@ -201,6 +365,50 @@ export default function VehicleDetailsPageContent({
   }
 
   const avgRating = calculateAverageRating();
+  const availabilityMonthLabel = availability
+    ? new Date(`${availability.month}-01T00:00:00`).toLocaleString(locale, {
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
+  const availabilityPeriods = availability
+    ? [
+        ...availability.booked.map((item) => ({
+          id: item.id,
+          startDate: item.startDate,
+          endDate: item.endDate,
+          type: "booked" as const,
+          label: t("availability.status.booked"),
+        })),
+        ...availability.blocked.map((item) => ({
+          id: item.id,
+          startDate: item.startDate,
+          endDate: item.endDate,
+          type: "blocked" as const,
+          label: item.reason
+            ? t("availability.status.blockedWithReason", {
+                reason: item.reason,
+              })
+            : t("availability.status.blocked"),
+        })),
+      ].sort(
+        (a, b) =>
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+      )
+    : [];
+
+  const getSimilarVehicleImage = (similarVehicle: SimilarVehicle) => {
+    if (similarVehicle.images?.length) {
+      return similarVehicle.images[0];
+    }
+
+    if (similarVehicle.photos?.length) {
+      return similarVehicle.photos[0].url;
+    }
+
+    return null;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -238,7 +446,7 @@ export default function VehicleDetailsPageContent({
               />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                <FaCar className="h-32 w-32 text-gray-600 mb-4" />
+                <Car className="h-32 w-32 text-gray-600 mb-4" />
                 <p className="text-gray-400 text-sm">{t("empty.noImages")}</p>
               </div>
             )}
@@ -273,7 +481,7 @@ export default function VehicleDetailsPageContent({
       {/* Main Content */}
       <section className="py-8">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Details */}
             <div className="lg:col-span-2 space-y-6">
               {/* Vehicle Overview Card */}
@@ -288,8 +496,8 @@ export default function VehicleDetailsPageContent({
                         {vehicle.brand} {vehicle.model} • {vehicle.year}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        <FaMapMarkerAlt className="inline mr-1" />
-                        {vehicle.location}
+                        <MapPin className="inline mr-1" />
+                        {getLocalizedPlace(vehicle.location)}
                       </p>
                     </div>
                     {vehicle.isAvailable && vehicle.isActive && (
@@ -302,7 +510,7 @@ export default function VehicleDetailsPageContent({
                   {/* Rating */}
                   <div className="flex items-center gap-4 py-4 border-y border-border">
                     <div className="flex items-center">
-                      <FaStar className="h-5 w-5 text-accent mr-2" />
+                      <Star className="h-5 w-5 text-accent mr-2" />
                       <span className="text-lg font-semibold">{avgRating}</span>
                     </div>
                     <span className="text-muted-foreground">
@@ -317,7 +525,7 @@ export default function VehicleDetailsPageContent({
                   {/* Key Features */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
                     <div className="flex items-center gap-2">
-                      <FaUsers className="h-5 w-5 text-muted-foreground" />
+                      <Users className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">
                           {t("specs.capacity")}
@@ -328,35 +536,39 @@ export default function VehicleDetailsPageContent({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <FaSnowflake className="h-5 w-5 text-muted-foreground" />
+                      <Snowflake className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">
                           {t("specs.acType")}
                         </p>
                         <p className="font-semibold">
-                          {vehicle.acType || t("specs.notAvailable")}
+                          {vehicle.acType
+                            ? getLocalizedAcType(vehicle.acType)
+                            : t("specs.notAvailable")}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <FaCar className="h-5 w-5 text-muted-foreground" />
+                      <Car className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">
                           {t("specs.type")}
                         </p>
                         <p className="font-semibold capitalize">
-                          {vehicle.type.replace(/_/g, " ")}
+                          {getLocalizedVehicleType(vehicle.type)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <FaShieldAlt className="h-5 w-5 text-muted-foreground" />
+                      <ShieldCheck className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">
                           {t("specs.condition")}
                         </p>
                         <p className="font-semibold capitalize">
-                          {vehicle.condition || t("specs.good")}
+                          {vehicle.condition
+                            ? getLocalizedCondition(vehicle.condition)
+                            : t("valueLabels.condition.good")}
                         </p>
                       </div>
                     </div>
@@ -439,7 +651,11 @@ export default function VehicleDetailsPageContent({
                       <p className="text-sm text-muted-foreground">
                         {t("specs.acType")}
                       </p>
-                      <p className="font-semibold">{vehicle.acType}</p>
+                      <p className="font-semibold">
+                        {vehicle.acType
+                          ? getLocalizedAcType(vehicle.acType)
+                          : t("specs.notAvailable")}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -462,8 +678,13 @@ export default function VehicleDetailsPageContent({
                             key={amenityId}
                             className="flex items-center gap-2"
                           >
-                            <FaCheckCircle className="h-4 w-4 text-green-500" />
-                            <span className="text-sm">{amenity.label}</span>
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span className="text-sm">
+                              {getLocalizedAmenityLabel(
+                                amenityId,
+                                amenity.label,
+                              )}
+                            </span>
                           </div>
                         ) : null;
                       })}
@@ -512,7 +733,7 @@ export default function VehicleDetailsPageContent({
                                 {review.customer?.lastName || ""}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {formatDate(review.createdAt, "long")}
+                                {formatLocalizedDate(review.createdAt, "long")}
                               </p>
                             </div>
                             <StarRating rating={review.rating} size="sm" />
@@ -532,12 +753,69 @@ export default function VehicleDetailsPageContent({
                   )}
                 </CardContent>
               </Card>
+
+              {/* Similar Vehicles */}
+              {similarVehicles.length > 0 && (
+                <Card>
+                  <CardContent className="p-6">
+                    <h2 className="text-xl font-bold mb-4">
+                      {t("sections.similarVehicles")}
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {similarVehicles.map((similarVehicle) => {
+                        const imageUrl = getSimilarVehicleImage(similarVehicle);
+
+                        return (
+                          <Link
+                            key={similarVehicle.id}
+                            href={`/${locale}/vehicles/${similarVehicle.id}`}
+                            className="border border-border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                          >
+                            <div className="h-36 bg-muted">
+                              {imageUrl ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={similarVehicle.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                  <Car className="h-8 w-8" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-4 space-y-2">
+                              <p className="font-semibold line-clamp-1">
+                                {similarVehicle.name}
+                              </p>
+                              <p className="text-sm text-muted-foreground line-clamp-1">
+                                <MapPin className="inline h-4 w-4 mr-1" />
+                                {getLocalizedPlace(similarVehicle.location)}
+                              </p>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                  {t("specs.seatsCount", {
+                                    count: similarVehicle.seats,
+                                  })}
+                                </span>
+                                <span className="font-semibold text-primary">
+                                  {formatCurrency(similarVehicle.pricePerDay)}
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Right Column - Pricing & Owner Info */}
             <div className="space-y-6">
               {/* Pricing Card */}
-              <Card className="sticky top-4">
+              <Card className="top-4">
                 <CardContent className="p-6">
                   <h2 className="text-xl font-bold mb-4">
                     {t("sections.pricing")}
@@ -584,7 +862,8 @@ export default function VehicleDetailsPageContent({
                           {t("pricing.driverAllowance")}
                         </span>
                         <span className="font-semibold">
-                          {formatCurrency(vehicle.driverAllowance)}/day
+                          {formatCurrency(vehicle.driverAllowance)}{" "}
+                          {tCommon("perDay")}
                         </span>
                       </div>
                     )}
@@ -606,7 +885,7 @@ export default function VehicleDetailsPageContent({
                       className="w-full"
                       disabled={!vehicle.isAvailable || !vehicle.isActive}
                     >
-                      <FaCalendarAlt className="mr-2" />
+                      <Calendar className="mr-2" />
                       {t("actions.requestQuotation")}
                     </Button>
 
@@ -628,20 +907,22 @@ export default function VehicleDetailsPageContent({
                     </h2>
                     {vehicle.owner.isVerified && (
                       <Badge variant="success" className="text-xs">
-                        <FaCheckCircle className="mr-1" />
+                        <CheckCircle className="mr-1" />
                         {t("status.verified")}
                       </Badge>
                     )}
                   </div>
 
                   <div className="space-y-4">
-                    {vehicle.owner.businessProfile?.businessName ? (
+                    {vehicle.owner.businessName ||
+                    vehicle.owner.businessProfile?.businessName ? (
                       <div>
                         <p className="text-sm text-muted-foreground">
                           {t("owner.businessName")}
                         </p>
                         <p className="font-semibold">
-                          {vehicle.owner.businessProfile.businessName}
+                          {vehicle.owner.businessName ||
+                            vehicle.owner.businessProfile?.businessName}
                         </p>
                       </div>
                     ) : (
@@ -660,8 +941,10 @@ export default function VehicleDetailsPageContent({
                         {t("owner.baseLocation")}
                       </p>
                       <p className="font-semibold">
-                        <FaMapMarkerAlt className="inline mr-1" />
-                        {vehicle.location}
+                        <MapPin className="inline mr-1" />
+                        {getLocalizedPlace(
+                          vehicle.owner.baseLocation || vehicle.location,
+                        )}
                       </p>
                     </div>
 
@@ -682,7 +965,7 @@ export default function VehicleDetailsPageContent({
                       className="w-full"
                       onClick={() => window.open(`tel:${vehicle.owner.phone}`)}
                     >
-                      <FaPhone className="mr-2" />
+                      <Phone className="mr-2" />
                       {t("actions.contactOwner")}
                     </Button>
                   </div>
@@ -695,12 +978,69 @@ export default function VehicleDetailsPageContent({
                   <h2 className="text-xl font-bold mb-4">
                     {t("sections.availability")}
                   </h2>
-                  <div className="bg-muted p-4 rounded-lg text-center">
-                    <FaCalendarAlt className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      {t("availability.note")}
-                    </p>
-                  </div>
+
+                  {availability ? (
+                    <div className="space-y-3">
+                      <div className="bg-muted p-3 rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          {availabilityMonthLabel ||
+                            t("availability.currentMonth")}
+                        </p>
+                        <p className="text-sm">
+                          {t("availability.bookedBlocked", {
+                            booked: availability.booked.length,
+                            blocked: availability.blocked.length,
+                          })}
+                        </p>
+                      </div>
+
+                      {availabilityPeriods.length > 0 ? (
+                        <div className="space-y-2 max-h-56 overflow-auto pr-1">
+                          {availabilityPeriods.slice(0, 6).map((period) => (
+                            <div
+                              key={period.id}
+                              className="border border-border rounded-lg p-3"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <p
+                                  className={cn(
+                                    "text-xs font-semibold uppercase tracking-wide",
+                                    period.type === "booked"
+                                      ? "text-amber-600"
+                                      : "text-rose-600",
+                                  )}
+                                >
+                                  {period.label}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatLocalizedDate(
+                                    period.startDate,
+                                    "short",
+                                  )}{" "}
+                                  -{" "}
+                                  {formatLocalizedDate(period.endDate, "short")}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-muted p-4 rounded-lg text-center">
+                          <Calendar className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            {t("availability.noBlockedDates")}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-muted p-4 rounded-lg text-center">
+                      <Calendar className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        {t("availability.note")}
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

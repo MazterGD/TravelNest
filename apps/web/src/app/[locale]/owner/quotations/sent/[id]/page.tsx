@@ -2,27 +2,24 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { quotationService } from "@/lib/api/services";
-import { formatDate, formatCurrency } from "@/lib/utils/formatters";
+import { formatDate } from "@/lib/utils/formatters";
 import {
-  FaArrowLeft,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaUsers,
-  FaClock,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaEye,
-  FaFileAlt,
-  FaRedo,
-  FaDownload,
-  FaEnvelope,
-  FaPhone,
-} from "react-icons/fa";
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  Users,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Eye,
+  FileText,
+} from "lucide-react";
 
 interface QuotationDetail {
   id: string;
@@ -75,10 +72,10 @@ export default function QuotationDetailPage({
 }) {
   const { id, locale } = use(params);
   const { user } = useAuthStore();
+  const t = useTranslations("sentQuotations");
   const [loading, setLoading] = useState(true);
   const [quotation, setQuotation] = useState<QuotationDetail | null>(null);
 
-  // Protect this route
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
   useEffect(() => {
@@ -87,7 +84,6 @@ export default function QuotationDetailPage({
         const response = await quotationService.getById(id);
         const data = response.quotation;
 
-        // Calculate days remaining
         const validUntil = data.validUntil ? new Date(data.validUntil) : null;
         const today = new Date();
         const daysRemaining = validUntil
@@ -150,8 +146,8 @@ export default function QuotationDetailPage({
           additionalNotes: data.additionalNotes,
           rejectionReason: data.rejectionReason,
         });
-      } catch (error) {
-        console.error("Failed to fetch quotation:", error);
+      } catch {
+        setQuotation(null);
       } finally {
         setLoading(false);
       }
@@ -163,48 +159,38 @@ export default function QuotationDetailPage({
   }, [id, isAuthorized]);
 
   const getStatusBadge = (status: string) => {
-    const styles = {
-      sent: "bg-blue-100 text-blue-800",
-      viewed: "bg-purple-100 text-purple-800",
-      accepted: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
-      expired: "bg-gray-100 text-gray-800",
+    const styles: Record<string, string> = {
+      sent: "bg-primary/10 text-primary",
+      viewed: "bg-primary/15 text-primary",
+      accepted: "bg-[var(--color-success-bg)] text-success-foreground",
+      rejected: "bg-[var(--color-error-bg)] text-error-foreground",
+      expired: "bg-muted text-muted-foreground",
     };
 
-    const icons = {
-      sent: <FaFileAlt className="h-4 w-4" />,
-      viewed: <FaEye className="h-4 w-4" />,
-      accepted: <FaCheckCircle className="h-4 w-4" />,
-      rejected: <FaTimesCircle className="h-4 w-4" />,
-      expired: <FaClock className="h-4 w-4" />,
+    const icons: Record<string, React.JSX.Element> = {
+      sent: <FileText className="h-4 w-4" />,
+      viewed: <Eye className="h-4 w-4" />,
+      accepted: <CheckCircle className="h-4 w-4" />,
+      rejected: <XCircle className="h-4 w-4" />,
+      expired: <Clock className="h-4 w-4" />,
     };
 
-    const labels = {
-      sent: "Sent",
-      viewed: "Viewed by Customer",
-      accepted: "Accepted",
-      rejected: "Rejected",
-      expired: "Expired",
+    const labelKeys: Record<string, string> = {
+      sent: "status.SENT",
+      viewed: "status.VIEWED",
+      accepted: "status.ACCEPTED",
+      rejected: "status.REJECTED",
+      expired: "status.EXPIRED",
     };
 
     return (
       <span
-        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ${styles[status as keyof typeof styles]}`}
+        className={`inline-flex items-center gap-2 rounded-sm px-3 py-1 text-sm font-medium ${styles[status] ?? styles.sent}`}
       >
-        {icons[status as keyof typeof icons]}
-        {labels[status as keyof typeof labels]}
+        {icons[status] ?? icons.sent}
+        {t(labelKeys[status] ?? labelKeys.sent)}
       </span>
     );
-  };
-
-  const handleDownloadPDF = () => {
-    // TODO: Implement PDF download
-    alert("PDF download will be implemented");
-  };
-
-  const handleResend = () => {
-    // TODO: Implement resend functionality
-    alert("Resend functionality will be implemented");
   };
 
   if (guardLoading || !isAuthorized || !user || loading) {
@@ -222,14 +208,14 @@ export default function QuotationDetailPage({
       <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Quotation not found
+            <h3 className="text-lg font-semibold text-foreground">
+              {t("detail.notFound.title")}
             </h3>
             <Link
               href={`/${locale}/owner/quotations/sent`}
-              className="mt-4 inline-block text-sm text-primary hover:underline"
+              className="mt-4 inline-block text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              Back to Sent Quotations
+              {t("detail.notFound.back")}
             </Link>
           </div>
         </div>
@@ -237,73 +223,59 @@ export default function QuotationDetailPage({
     );
   }
 
+  const isExpiredOrUrgent = quotation.daysRemaining <= 2;
+
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted">
         {/* Header */}
-        <header className="border-b border-gray-200 bg-white">
-          <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+        <header className="border-b border-border bg-card">
+          <div className="mx-auto max-w-[1280px] px-6 py-4 lg:px-8">
             <Link
               href={`/${locale}/owner/quotations/sent`}
-              className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <FaArrowLeft className="h-4 w-4" />
-              Back to Sent Quotations
+              <ArrowLeft className="h-4 w-4" />
+              {t("detail.backToSent")}
             </Link>
             <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">
+                <h1 className="text-xl font-semibold text-foreground">
                   {quotation.quotationId}
                 </h1>
-                <p className="mt-0.5 text-sm text-gray-500">
-                  Quotation for {quotation.customer.name}
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {t("detail.quotationFor", { name: quotation.customer.name })}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {getStatusBadge(quotation.status)}
-                <button
-                  onClick={handleDownloadPDF}
-                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                  <FaDownload className="h-4 w-4" />
-                  Download PDF
-                </button>
-                {quotation.status === "expired" && (
-                  <button
-                    onClick={handleResend}
-                    className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-                  >
-                    <FaRedo className="h-4 w-4" />
-                    Resend
-                  </button>
-                )}
               </div>
             </div>
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-3">
+        <div className="mx-auto max-w-[1280px] px-6 py-8 lg:px-8">
+          <div className="grid gap-6 lg:grid-cols-3">
             {/* Left Column */}
             <div className="space-y-6 lg:col-span-2">
               {/* Status Timeline */}
-              <div className="rounded-lg border border-gray-200 bg-white p-6">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                  Timeline
+              <div className="rounded-lg border border-border bg-card p-6">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">
+                  {t("detail.timeline.title")}
                 </h2>
                 <div className="space-y-4">
                   <div className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                        <FaFileAlt className="h-4 w-4 text-blue-600" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <FileText className="h-4 w-4 text-primary" />
                       </div>
-                      <div className="h-full w-0.5 bg-gray-200" />
+                      <div className="h-full w-0.5 bg-border" />
                     </div>
                     <div className="flex-1 pb-4">
-                      <div className="mb-1 font-medium text-gray-900">
-                        Quotation Sent
+                      <div className="mb-1 font-medium text-foreground">
+                        {t("detail.timeline.sent")}
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         {new Date(quotation.sentDate).toLocaleString()}
                       </div>
                     </div>
@@ -312,18 +284,18 @@ export default function QuotationDetailPage({
                   {quotation.viewedDate && (
                     <div className="flex gap-3">
                       <div className="flex flex-col items-center">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                          <FaEye className="h-4 w-4 text-purple-600" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15">
+                          <Eye className="h-4 w-4 text-primary" />
                         </div>
                         {quotation.respondedDate && (
-                          <div className="h-full w-0.5 bg-gray-200" />
+                          <div className="h-full w-0.5 bg-border" />
                         )}
                       </div>
                       <div className="flex-1 pb-4">
-                        <div className="mb-1 font-medium text-gray-900">
-                          Viewed by Customer
+                        <div className="mb-1 font-medium text-foreground">
+                          {t("detail.timeline.viewedByCustomer")}
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted-foreground">
                           {new Date(quotation.viewedDate).toLocaleString()}
                         </div>
                       </div>
@@ -336,29 +308,29 @@ export default function QuotationDetailPage({
                         <div
                           className={`flex h-8 w-8 items-center justify-center rounded-full ${
                             quotation.status === "accepted"
-                              ? "bg-green-100"
-                              : "bg-red-100"
+                              ? "bg-[var(--color-success-bg)]"
+                              : "bg-[var(--color-error-bg)]"
                           }`}
                         >
                           {quotation.status === "accepted" ? (
-                            <FaCheckCircle className="h-4 w-4 text-green-600" />
+                            <CheckCircle className="h-4 w-4 text-success-foreground" />
                           ) : (
-                            <FaTimesCircle className="h-4 w-4 text-red-600" />
+                            <XCircle className="h-4 w-4 text-error-foreground" />
                           )}
                         </div>
                       </div>
                       <div className="flex-1 pb-4">
-                        <div className="mb-1 font-medium text-gray-900">
+                        <div className="mb-1 font-medium text-foreground">
                           {quotation.status === "accepted"
-                            ? "Accepted by Customer"
-                            : "Rejected by Customer"}
+                            ? t("detail.timeline.acceptedByCustomer")
+                            : t("detail.timeline.rejectedByCustomer")}
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted-foreground">
                           {new Date(quotation.respondedDate).toLocaleString()}
                         </div>
                         {quotation.rejectionReason && (
-                          <div className="mt-2 rounded-lg bg-red-50 p-3 text-sm text-red-900">
-                            <span className="font-medium">Reason:</span>{" "}
+                          <div className="mt-2 rounded-md border border-error bg-[var(--color-error-bg)] p-3 text-sm text-error-foreground">
+                            <span className="font-medium">{t("detail.timeline.reason")}:</span>{" "}
                             {quotation.rejectionReason}
                           </div>
                         )}
@@ -369,104 +341,115 @@ export default function QuotationDetailPage({
               </div>
 
               {/* Customer Information */}
-              <div className="rounded-lg border border-gray-200 bg-white p-6">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                  Customer Information
+              <div className="rounded-lg border border-border bg-card p-6">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">
+                  {t("detail.customer.title")}
                 </h2>
                 <div className="space-y-3">
                   <div>
-                    <div className="text-sm text-gray-600">Name</div>
-                    <div className="font-medium text-gray-900">
+                    <div className="text-sm text-muted-foreground">{t("detail.customer.name")}</div>
+                    <div className="font-medium text-foreground">
                       {quotation.customer.name}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <FaEnvelope className="h-4 w-4 text-gray-400" />
-                    <a
-                      href={`mailto:${quotation.customer.email}`}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      {quotation.customer.email}
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FaPhone className="h-4 w-4 text-gray-400" />
-                    <a
-                      href={`tel:${quotation.customer.phone}`}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      {quotation.customer.phone}
-                    </a>
-                  </div>
+                  {quotation.customer.email && (
+                    <div>
+                      <div className="text-sm text-muted-foreground">{t("detail.customer.email")}</div>
+                      <a
+                        href={`mailto:${quotation.customer.email}`}
+                        className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {quotation.customer.email}
+                      </a>
+                    </div>
+                  )}
+                  {quotation.customer.phone && (
+                    <div>
+                      <div className="text-sm text-muted-foreground">{t("detail.customer.phone")}</div>
+                      <a
+                        href={`tel:${quotation.customer.phone}`}
+                        className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {quotation.customer.phone}
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Trip Details */}
-              <div className="rounded-lg border border-gray-200 bg-white p-6">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                  Trip Details
+              <div className="rounded-lg border border-border bg-card p-6">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">
+                  {t("detail.trip.title")}
                 </h2>
                 <div className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="flex items-start gap-3">
-                      <FaMapMarkerAlt className="mt-0.5 h-5 w-5 text-gray-400" />
+                      <MapPin className="mt-0.5 h-5 w-5 text-[var(--color-text-tertiary)]" />
                       <div>
-                        <div className="text-sm text-gray-600">Route</div>
-                        <div className="font-medium text-gray-900">
+                        <div className="text-sm text-muted-foreground">{t("detail.trip.route")}</div>
+                        <div className="font-medium text-foreground">
                           {quotation.trip.pickupLocation}
                         </div>
-                        <div className="text-sm text-gray-500">→</div>
-                        <div className="font-medium text-gray-900">
+                        <div className="text-sm text-muted-foreground">→</div>
+                        <div className="font-medium text-foreground">
                           {quotation.trip.dropoffLocation}
                         </div>
-                        <div className="mt-1 text-sm text-gray-600">
-                          {quotation.trip.estimatedDistance} •{" "}
-                          {quotation.trip.estimatedDuration}
-                        </div>
+                        {(quotation.trip.estimatedDistance || quotation.trip.estimatedDuration) && (
+                          <div className="mt-1 text-sm text-muted-foreground">
+                            {quotation.trip.estimatedDistance}
+                            {quotation.trip.estimatedDistance && quotation.trip.estimatedDuration ? " • " : ""}
+                            {quotation.trip.estimatedDuration}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <FaCalendarAlt className="mt-0.5 h-5 w-5 text-gray-400" />
+                      <Calendar className="mt-0.5 h-5 w-5 text-[var(--color-text-tertiary)]" />
                       <div>
-                        <div className="text-sm text-gray-600">Date & Time</div>
-                        <div className="font-medium text-gray-900">
+                        <div className="text-sm text-muted-foreground">{t("detail.trip.dateTime")}</div>
+                        <div className="font-medium text-foreground">
                           {formatDate(quotation.trip.startDate, "medium")}
                         </div>
-                        <div className="text-sm text-gray-600">
-                          {quotation.trip.startTime}
-                        </div>
+                        {quotation.trip.startTime && (
+                          <div className="text-sm text-muted-foreground">
+                            {quotation.trip.startTime}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <FaUsers className="mt-0.5 h-5 w-5 text-gray-400" />
+                      <Users className="mt-0.5 h-5 w-5 text-[var(--color-text-tertiary)]" />
                       <div>
-                        <div className="text-sm text-gray-600">Passengers</div>
-                        <div className="font-medium text-gray-900">
-                          {quotation.passengers} passengers
+                        <div className="text-sm text-muted-foreground">{t("detail.trip.passengersLabel")}</div>
+                        <div className="font-medium text-foreground">
+                          {t("detail.trip.passengers", { count: quotation.passengers })}
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-sm text-gray-600">Vehicle</div>
-                      <div className="font-medium text-gray-900">
+                      <div className="text-sm text-muted-foreground">{t("detail.trip.vehicle")}</div>
+                      <div className="font-medium text-foreground">
                         {quotation.vehicle.name}
                       </div>
-                      <div className="text-sm text-gray-600">
-                        {quotation.vehicle.type} • {quotation.vehicle.capacity}{" "}
-                        seats
+                      <div className="text-sm text-muted-foreground">
+                        {t("detail.trip.vehicleSeats", {
+                          type: quotation.vehicle.type,
+                          capacity: quotation.vehicle.capacity,
+                        })}
                       </div>
                     </div>
                   </div>
 
                   {quotation.additionalNotes && (
-                    <div className="rounded-lg bg-blue-50 p-4">
-                      <h3 className="mb-2 text-sm font-semibold text-blue-900">
-                        Additional Notes
+                    <div className="rounded-md border border-border bg-muted p-4">
+                      <h3 className="mb-2 text-sm font-semibold text-foreground">
+                        {t("detail.trip.additionalNotes")}
                       </h3>
-                      <p className="text-sm text-blue-800">
+                      <p className="text-sm text-muted-foreground">
                         {quotation.additionalNotes}
                       </p>
                     </div>
@@ -475,73 +458,73 @@ export default function QuotationDetailPage({
               </div>
 
               {/* Pricing Breakdown */}
-              <div className="rounded-lg border border-gray-200 bg-white p-6">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                  Pricing Breakdown
+              <div className="rounded-lg border border-border bg-card p-6">
+                <h2 className="mb-4 text-lg font-semibold text-foreground">
+                  {t("detail.pricing.title")}
                 </h2>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Vehicle Rental Cost</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-muted-foreground">{t("detail.pricing.vehicleRental")}</span>
+                    <span className="font-medium text-foreground">
                       LKR {quotation.pricing.vehicleRentalCost.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Driver Cost</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-muted-foreground">{t("detail.pricing.driverCost")}</span>
+                    <span className="font-medium text-foreground">
                       LKR {quotation.pricing.driverCost.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Estimated Fuel Cost</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-muted-foreground">{t("detail.pricing.fuelCost")}</span>
+                    <span className="font-medium text-foreground">
                       LKR {quotation.pricing.fuelCost.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Toll Charges</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-muted-foreground">{t("detail.pricing.tollCharges")}</span>
+                    <span className="font-medium text-foreground">
                       LKR {quotation.pricing.tollCharges.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Permit Fees</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-muted-foreground">{t("detail.pricing.permitFees")}</span>
+                    <span className="font-medium text-foreground">
                       LKR {quotation.pricing.permitFees.toLocaleString()}
                     </span>
                   </div>
 
                   {quotation.pricing.customItems.map((item, index) => (
                     <div key={index} className="flex justify-between">
-                      <span className="text-gray-600">{item.description}</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="text-muted-foreground">{item.description}</span>
+                      <span className="font-medium text-foreground">
                         LKR {item.amount.toLocaleString()}
                       </span>
                     </div>
                   ))}
 
-                  <div className="border-t border-gray-200 pt-3">
+                  <div className="border-t border-border pt-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="text-muted-foreground">{t("detail.pricing.subtotal")}</span>
+                      <span className="font-medium text-foreground">
                         LKR {quotation.pricing.subtotal.toLocaleString()}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tax (10%)</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-muted-foreground">{t("detail.pricing.tax")}</span>
+                    <span className="font-medium text-foreground">
                       LKR {quotation.pricing.tax.toLocaleString()}
                     </span>
                   </div>
 
-                  <div className="border-t-2 border-gray-900 pt-3">
+                  <div className="border-t-2 border-foreground pt-3">
                     <div className="flex justify-between">
-                      <span className="text-lg font-semibold text-gray-900">
-                        Grand Total
+                      <span className="text-lg font-semibold text-foreground">
+                        {t("detail.pricing.grandTotal")}
                       </span>
-                      <span className="text-xl font-bold text-gray-900">
+                      <span className="text-xl font-bold text-foreground">
                         LKR {quotation.pricing.total.toLocaleString()}
                       </span>
                     </div>
@@ -554,75 +537,67 @@ export default function QuotationDetailPage({
             <div className="lg:col-span-1">
               <div className="sticky top-8 space-y-6">
                 {/* Validity Card */}
-                <div className="rounded-lg border border-gray-200 bg-white p-6">
-                  <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                    Validity
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h2 className="mb-4 text-lg font-semibold text-foreground">
+                    {t("detail.validity.title")}
                   </h2>
                   <div
-                    className={`rounded-lg p-4 ${
-                      quotation.daysRemaining < 0
-                        ? "bg-red-50"
-                        : quotation.daysRemaining <= 2
-                          ? "bg-yellow-50"
-                          : "bg-blue-50"
+                    className={`rounded-md p-4 ${
+                      isExpiredOrUrgent
+                        ? "border border-error bg-[var(--color-error-bg)]"
+                        : "border border-border bg-muted"
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <FaClock
+                      <Clock
                         className={`mt-0.5 h-5 w-5 ${
-                          quotation.daysRemaining < 0
-                            ? "text-red-600"
-                            : quotation.daysRemaining <= 2
-                              ? "text-yellow-600"
-                              : "text-blue-600"
+                          isExpiredOrUrgent ? "text-error-foreground" : "text-[var(--color-text-tertiary)]"
                         }`}
                       />
                       <div>
                         <div
                           className={`mb-1 font-semibold ${
-                            quotation.daysRemaining < 0
-                              ? "text-red-900"
-                              : quotation.daysRemaining <= 2
-                                ? "text-yellow-900"
-                                : "text-blue-900"
+                            isExpiredOrUrgent ? "text-error-foreground" : "text-foreground"
                           }`}
                         >
-                          {quotation.daysRemaining < 0
-                            ? "Expired"
-                            : `${quotation.daysRemaining} days remaining`}
+                          {quotation.daysRemaining <= 0
+                            ? t("detail.validity.expired")
+                            : t("detail.validity.daysRemaining", {
+                                days: quotation.daysRemaining,
+                              })}
                         </div>
-                        <div
-                          className={`text-sm ${
-                            quotation.daysRemaining < 0
-                              ? "text-red-700"
-                              : quotation.daysRemaining <= 2
-                                ? "text-yellow-700"
-                                : "text-blue-700"
-                          }`}
-                        >
-                          Valid until{" "}
-                          {formatDate(quotation.validUntil, "short")}
-                        </div>
+                        {quotation.validUntil && (
+                          <div
+                            className={`text-sm ${
+                              isExpiredOrUrgent
+                                ? "text-error-foreground"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {t("detail.validity.validUntil", {
+                              date: formatDate(quotation.validUntil, "short"),
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Quick Actions */}
+                {/* Accepted state */}
                 {quotation.status === "accepted" && (
-                  <div className="rounded-lg border border-green-200 bg-green-50 p-6">
-                    <h3 className="mb-3 font-semibold text-green-900">
-                      Quotation Accepted!
+                  <div className="rounded-lg border border-success bg-[var(--color-success-bg)] p-6">
+                    <h3 className="mb-3 font-semibold text-success-foreground">
+                      {t("detail.accepted.title")}
                     </h3>
-                    <p className="mb-4 text-sm text-green-700">
-                      Customer has accepted this quotation. Create a booking to
-                      proceed.
+                    <p className="mb-4 text-sm text-success-foreground">
+                      {t("detail.accepted.description")}
                     </p>
                     <Link
                       href={`/${locale}/owner/bookings/create?quotation=${quotation.id}`}
-                      className="block w-full rounded-lg bg-green-600 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-green-700"
+                      className="block w-full rounded-md bg-primary px-4 py-2 text-center text-sm font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      Create Booking
+                      {t("detail.accepted.createBooking")}
                     </Link>
                   </div>
                 )}

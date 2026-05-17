@@ -6,22 +6,22 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingSpinner, Input, Select, TextArea } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useProtectedRoute } from "@/hooks";
-import { quotationService, ApiError } from "@/lib/api";
+import { quotationService, landingContentService, ApiError } from "@/lib/api";
 import {
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaClock,
-  FaUsers,
-  FaBus,
-  FaSnowflake,
-  FaPlus,
-  FaTimes,
-  FaSave,
-  FaPaperPlane,
-  FaArrowLeft,
-  FaRoute,
-  FaHistory,
-} from "react-icons/fa";
+  MapPin,
+  Calendar,
+  Clock,
+  Users,
+  Bus,
+  Snowflake,
+  Plus,
+  X,
+  Save,
+  Send,
+  ArrowLeft,
+  Route,
+  History,
+} from "lucide-react";
 
 interface Location {
   address: string;
@@ -34,59 +34,13 @@ interface IntermediateStop {
   location: Location;
 }
 
-const DISTRICTS = [
-  "Colombo",
-  "Gampaha",
-  "Kalutara",
-  "Kandy",
-  "Matale",
-  "Nuwara Eliya",
-  "Galle",
-  "Matara",
-  "Hambantota",
-  "Jaffna",
-  "Kilinochchi",
-  "Mannar",
-  "Mullaitivu",
-  "Vavuniya",
-  "Trincomalee",
-  "Batticaloa",
-  "Ampara",
-  "Kurunegala",
-  "Puttalam",
-  "Anuradhapura",
-  "Polonnaruwa",
-  "Badulla",
-  "Monaragala",
-  "Ratnapura",
-  "Kegalle",
-];
-
-const VEHICLE_TYPES = [
-  { value: "car", label: "Car (4 seats)" },
-  { value: "van", label: "Van (8-14 seats)" },
-  { value: "minibus", label: "Mini Bus (15-25 seats)" },
-  { value: "bus", label: "Bus (25+ seats)" },
-  { value: "luxury", label: "Luxury Vehicle" },
-];
-
-const RECENT_SEARCHES = [
-  { id: "1", from: "Colombo", to: "Kandy", date: "2026-02-15", passengers: 4 },
-  {
-    id: "2",
-    from: "Galle",
-    to: "Colombo Airport",
-    date: "2026-02-20",
-    passengers: 2,
-  },
-  {
-    id: "3",
-    from: "Kandy",
-    to: "Nuwara Eliya",
-    date: "2026-03-01",
-    passengers: 6,
-  },
-];
+interface RecentSearch {
+  id: string;
+  from: string;
+  to: string;
+  date: string;
+  passengers: number;
+}
 
 interface NewQuotationPageContentProps {
   locale: string;
@@ -134,6 +88,67 @@ export function NewQuotationPageContent({
   const [isRoundTrip, setIsRoundTrip] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRecentSearches, setShowRecentSearches] = useState(false);
+  const [districts, setDistricts] = useState<string[]>([]);
+  const [vehicleTypeOptions, setVehicleTypeOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+  const [estimatedDistance, setEstimatedDistance] = useState("—");
+  const [estimatedDuration, setEstimatedDuration] = useState("—");
+
+  useEffect(() => {
+    const fetchPublicConfig = async () => {
+      try {
+        const response = await landingContentService.getPublicConfig();
+        setDistricts(response.options.districts || []);
+        setVehicleTypeOptions(response.options.quotationVehicleTypes || []);
+        setRecentSearches(response.recentSearches || []);
+      } catch (error) {
+        console.error("Failed to fetch quotation config:", error);
+      }
+    };
+
+    fetchPublicConfig();
+  }, []);
+
+  useEffect(() => {
+    const canEstimate =
+      pickupLocation.city &&
+      pickupLocation.district &&
+      dropoffLocation.city &&
+      dropoffLocation.district;
+
+    if (!canEstimate) {
+      setEstimatedDistance("—");
+      setEstimatedDuration("—");
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await landingContentService.getRouteEstimate({
+          pickupLocation,
+          dropoffLocation,
+          intermediateStops: intermediateStops
+            .map((stop) => stop.location)
+            .filter(
+              (stop) =>
+                Boolean(stop.city?.trim()) && Boolean(stop.district?.trim()),
+            ),
+          isRoundTrip,
+        });
+
+        setEstimatedDistance(response.displayDistance);
+        setEstimatedDuration(response.displayDuration);
+      } catch (error) {
+        console.error("Failed to fetch route estimate:", error);
+        setEstimatedDistance("—");
+        setEstimatedDuration("—");
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [pickupLocation, dropoffLocation, intermediateStops, isRoundTrip]);
 
   const handleAddStop = () => {
     setIntermediateStops([
@@ -255,7 +270,7 @@ export function NewQuotationPageContent({
         returnTime: undefined,
         isRoundTrip,
         passengerCount,
-        vehicleType: (vehicleType || "standard_bus") as any,
+        vehicleType: (vehicleType || "ORDINARY") as any,
         specialRequests: specialRequirements || undefined,
         luggageCount: 0,
         needsAC,
@@ -276,7 +291,7 @@ export function NewQuotationPageContent({
     }
   };
 
-  const loadRecentSearch = (search: (typeof RECENT_SEARCHES)[0]) => {
+  const loadRecentSearch = (search: RecentSearch) => {
     setPickupLocation({ address: "", city: search.from, district: "" });
     setDropoffLocation({ address: "", city: search.to, district: "" });
     setPickupDate(search.date);
@@ -292,11 +307,6 @@ export function NewQuotationPageContent({
     );
   }
 
-  const estimatedDistance =
-    pickupLocation.city && dropoffLocation.city ? "125 km" : "—";
-  const estimatedDuration =
-    pickupLocation.city && dropoffLocation.city ? "2h 30min" : "—";
-
   return (
     <>
       {/* Header */}
@@ -306,7 +316,7 @@ export function NewQuotationPageContent({
             href={`/${locale}/dashboard`}
             className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
           >
-            <FaArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
           </Link>
           <div className="flex items-center justify-between">
@@ -322,7 +332,7 @@ export function NewQuotationPageContent({
               onClick={() => setShowRecentSearches(!showRecentSearches)}
               className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
             >
-              <FaHistory className="h-4 w-4" />
+              <History className="h-4 w-4" />
               Recent Searches
             </button>
           </div>
@@ -336,14 +346,14 @@ export function NewQuotationPageContent({
                 Recent Searches
               </h3>
               <div className="space-y-2">
-                {RECENT_SEARCHES.map((search) => (
+                {recentSearches.map((search) => (
                   <button
                     key={search.id}
                     onClick={() => loadRecentSearch(search)}
                     className="flex w-full items-center justify-between rounded-lg border border-gray-200 p-3 text-left transition-colors hover:bg-gray-50"
                   >
                     <div className="flex items-center gap-3">
-                      <FaRoute className="h-4 w-4 text-gray-400" />
+                      <Route className="h-4 w-4 text-gray-400" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">
                           {search.from} → {search.to}
@@ -364,7 +374,7 @@ export function NewQuotationPageContent({
 
       <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-8 lg:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Form - Left Side */}
             <div className="lg:col-span-2 space-y-6">
               {/* Trip Type Toggle */}
@@ -400,7 +410,7 @@ export function NewQuotationPageContent({
               {/* Locations */}
               <div className="rounded-lg border border-gray-200 bg-white p-6">
                 <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-                  <FaMapMarkerAlt className="h-5 w-5 text-gray-600" />
+                  <MapPin className="h-5 w-5 text-gray-600" />
                   Trip Locations
                 </h2>
 
@@ -440,7 +450,7 @@ export function NewQuotationPageContent({
                       }
                       options={[
                         { value: "", label: "Select District" },
-                        ...DISTRICTS.map((d) => ({ value: d, label: d })),
+                        ...districts.map((d) => ({ value: d, label: d })),
                       ]}
                       placeholder="Select District"
                     />
@@ -459,7 +469,7 @@ export function NewQuotationPageContent({
                         onClick={() => handleRemoveStop(stop.id)}
                         className="text-red-600 hover:text-red-700"
                       >
-                        <FaTimes className="h-4 w-4" />
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
                     <div className="grid gap-4 md:grid-cols-3">
@@ -484,7 +494,7 @@ export function NewQuotationPageContent({
                         }
                         options={[
                           { value: "", label: "Select District" },
-                          ...DISTRICTS.map((d) => ({ value: d, label: d })),
+                          ...districts.map((d) => ({ value: d, label: d })),
                         ]}
                         placeholder="Select District"
                       />
@@ -498,7 +508,7 @@ export function NewQuotationPageContent({
                   onClick={handleAddStop}
                   className="mb-6 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-600 transition-colors hover:border-gray-400 hover:bg-gray-100"
                 >
-                  <FaPlus className="h-4 w-4" />
+                  <Plus className="h-4 w-4" />
                   Add Intermediate Stop
                 </button>
 
@@ -538,7 +548,7 @@ export function NewQuotationPageContent({
                       }
                       options={[
                         { value: "", label: "Select District" },
-                        ...DISTRICTS.map((d) => ({ value: d, label: d })),
+                        ...districts.map((d) => ({ value: d, label: d })),
                       ]}
                       placeholder="Select District"
                     />
@@ -549,7 +559,7 @@ export function NewQuotationPageContent({
               {/* Date & Time */}
               <div className="rounded-lg border border-gray-200 bg-white p-6">
                 <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-                  <FaCalendarAlt className="h-5 w-5 text-gray-600" />
+                  <Calendar className="h-5 w-5 text-gray-600" />
                   Date & Time
                 </h2>
                 <div className="grid gap-4 md:grid-cols-3">
@@ -595,7 +605,7 @@ export function NewQuotationPageContent({
               {/* Vehicle & Passengers */}
               <div className="rounded-lg border border-gray-200 bg-white p-6">
                 <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
-                  <FaBus className="h-5 w-5 text-gray-600" />
+                  <Bus className="h-5 w-5 text-gray-600" />
                   Vehicle Preferences
                 </h2>
                 <div className="grid gap-6 md:grid-cols-2">
@@ -614,7 +624,7 @@ export function NewQuotationPageContent({
                         -
                       </button>
                       <div className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2">
-                        <FaUsers className="h-4 w-4 text-gray-600" />
+                        <Users className="h-4 w-4 text-gray-600" />
                         <span className="font-medium text-gray-900">
                           {passengerCount}
                         </span>
@@ -637,7 +647,7 @@ export function NewQuotationPageContent({
                       onChange={(value) => setVehicleType(value)}
                       options={[
                         { value: "", label: "Select Vehicle Type" },
-                        ...VEHICLE_TYPES,
+                        ...vehicleTypeOptions,
                       ]}
                       placeholder="Select Vehicle Type"
                     />
@@ -652,7 +662,7 @@ export function NewQuotationPageContent({
                       className="h-5 w-5 rounded border-gray-300 text-[#20B0E9] focus:ring-[#20B0E9]"
                     />
                     <div className="flex items-center gap-2">
-                      <FaSnowflake className="h-4 w-4 text-blue-500" />
+                      <Snowflake className="h-4 w-4 text-blue-500" />
                       <span className="text-sm font-medium text-gray-700">
                         Air Conditioning Required
                       </span>
@@ -685,7 +695,7 @@ export function NewQuotationPageContent({
                   onClick={handleSaveDraft}
                   className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  <FaSave className="h-5 w-5" />
+                  <Save className="h-5 w-5" />
                   Save as Draft
                 </button>
                 <button
@@ -697,7 +707,7 @@ export function NewQuotationPageContent({
                     <LoadingSpinner size="sm" />
                   ) : (
                     <>
-                      <FaPaperPlane className="h-5 w-5" />
+                      <Send className="h-5 w-5" />
                       Request Quotations
                     </>
                   )}
@@ -713,7 +723,7 @@ export function NewQuotationPageContent({
                 </h3>
                 <div className="mb-6 aspect-square rounded-lg bg-gray-100 flex items-center justify-center">
                   <div className="text-center">
-                    <FaRoute className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+                    <Route className="mx-auto h-12 w-12 text-gray-300 mb-2" />
                     <p className="text-sm text-gray-500">
                       Route map will appear here
                     </p>
@@ -785,7 +795,7 @@ export function NewQuotationPageContent({
                         {estimatedDistance}
                       </p>
                     </div>
-                    <FaRoute className="h-8 w-8 text-gray-400" />
+                    <Route className="h-8 w-8 text-gray-400" />
                   </div>
                   <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4">
                     <div>
@@ -794,7 +804,7 @@ export function NewQuotationPageContent({
                         {estimatedDuration}
                       </p>
                     </div>
-                    <FaClock className="h-8 w-8 text-gray-400" />
+                    <Clock className="h-8 w-8 text-gray-400" />
                   </div>
                 </div>
                 <p className="mt-4 text-xs text-gray-500">

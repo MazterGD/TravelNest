@@ -7,22 +7,27 @@ import { useTranslations } from "next-intl";
 import { LoadingSpinner, Badge } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useProtectedRoute } from "@/hooks";
-import { bookingService, quotationService, ApiError } from "@/lib/api";
 import {
-  FaBus,
-  FaClipboardList,
-  FaCheckCircle,
-  FaDollarSign,
-  FaSearch,
-  FaEye,
-  FaBell,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaUsers,
-  FaPhone,
-  FaArrowRight,
-  FaClock,
-} from "react-icons/fa";
+  bookingService,
+  quotationService,
+  notificationService,
+  ApiError,
+} from "@/lib/api";
+import {
+  Bus,
+  ClipboardList,
+  CheckCircle,
+  DollarSign,
+  Search,
+  Eye,
+  Bell,
+  MapPin,
+  Calendar,
+  Users,
+  Phone,
+  ArrowRight,
+  Clock,
+} from "lucide-react";
 
 interface DashboardMetrics {
   totalBookings: number;
@@ -85,6 +90,23 @@ export function DashboardContent({ locale }: DashboardPageProps) {
     [],
   );
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+    if (diffMinutes < 1) return "Just now";
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return date.toLocaleDateString();
+  };
 
   // Protect this route
   const { isLoading: guardLoading, isAuthorized } = useProtectedRoute();
@@ -163,49 +185,37 @@ export function DashboardContent({ locale }: DashboardPageProps) {
           console.error("Failed to fetch quotations:", err);
         }
 
-        // Mock notifications (would come from API in production)
-        setNotifications([
-          {
-            id: "1",
-            type: "quotation",
-            title: t("notifications.items.0.title"),
-            message: t("notifications.items.0.message"),
-            time: t("notifications.items.0.time"),
-            isRead: false,
-          },
-          {
-            id: "2",
-            type: "booking",
-            title: t("notifications.items.1.title"),
-            message: t("notifications.items.1.message"),
-            time: t("notifications.items.1.time"),
-            isRead: false,
-          },
-          {
-            id: "3",
-            type: "payment",
-            title: t("notifications.items.2.title"),
-            message: t("notifications.items.2.message"),
-            time: t("notifications.items.2.time"),
-            isRead: true,
-          },
-          {
-            id: "4",
-            type: "general",
-            title: t("notifications.items.3.title"),
-            message: t("notifications.items.3.message"),
-            time: t("notifications.items.3.time"),
-            isRead: true,
-          },
-          {
-            id: "5",
-            type: "general",
-            title: t("notifications.items.4.title"),
-            message: t("notifications.items.4.message"),
-            time: t("notifications.items.4.time"),
-            isRead: true,
-          },
-        ]);
+        // Fetch notifications
+        try {
+          const notificationList = await notificationService.getAll({
+            limit: 5,
+          });
+          const normalizedNotifications = (notificationList || []).map(
+            (notification) => {
+              const normalizedType = notification.type.includes("quotation")
+                ? "quotation"
+                : notification.type.includes("booking")
+                  ? "booking"
+                  : notification.type.includes("payment")
+                    ? "payment"
+                    : "general";
+
+              return {
+                id: notification.id,
+                type: normalizedType as Notification["type"],
+                title: notification.title,
+                message: notification.message,
+                time: formatRelativeTime(notification.createdAt),
+                isRead: notification.isRead,
+              };
+            },
+          );
+
+          setNotifications(normalizedNotifications);
+        } catch (notificationError) {
+          console.error("Failed to fetch notifications:", notificationError);
+          setNotifications([]);
+        }
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
       } finally {
@@ -245,13 +255,13 @@ export function DashboardContent({ locale }: DashboardPageProps) {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "booking":
-        return <FaCalendarAlt className="h-4 w-4" />;
+        return <Calendar className="h-4 w-4" />;
       case "quotation":
-        return <FaClipboardList className="h-4 w-4" />;
+        return <ClipboardList className="h-4 w-4" />;
       case "payment":
-        return <FaDollarSign className="h-4 w-4" />;
+        return <DollarSign className="h-4 w-4" />;
       default:
-        return <FaBell className="h-4 w-4" />;
+        return <Bell className="h-4 w-4" />;
     }
   };
 
@@ -288,7 +298,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
               className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-[#20B0E9] hover:bg-gray-50"
             >
               <div className="rounded-full bg-blue-100 p-3">
-                <FaSearch className="h-6 w-6 text-blue-600" />
+                <Search className="h-6 w-6 text-blue-600" />
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">
@@ -305,7 +315,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
               className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-[#20B0E9] hover:bg-gray-50"
             >
               <div className="rounded-full bg-yellow-100 p-3">
-                <FaClipboardList className="h-6 w-6 text-yellow-600" />
+                <ClipboardList className="h-6 w-6 text-yellow-600" />
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">
@@ -324,7 +334,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
               className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-6 transition-colors hover:border-[#20B0E9] hover:bg-gray-50"
             >
               <div className="rounded-full bg-green-100 p-3">
-                <FaEye className="h-6 w-6 text-green-600" />
+                <Eye className="h-6 w-6 text-green-600" />
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">
@@ -352,7 +362,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                 </p>
               </div>
               <div className="rounded-full bg-blue-100 p-3">
-                <FaBus className="h-6 w-6 text-blue-600" />
+                <Bus className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </div>
@@ -369,7 +379,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                 </p>
               </div>
               <div className="rounded-full bg-green-100 p-3">
-                <FaCheckCircle className="h-6 w-6 text-green-600" />
+                <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
@@ -386,7 +396,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                 </p>
               </div>
               <div className="rounded-full bg-yellow-100 p-3">
-                <FaClipboardList className="h-6 w-6 text-yellow-600" />
+                <ClipboardList className="h-6 w-6 text-yellow-600" />
               </div>
             </div>
           </div>
@@ -403,14 +413,14 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                 </p>
               </div>
               <div className="rounded-full bg-purple-100 p-3">
-                <FaDollarSign className="h-6 w-6 text-purple-600" />
+                <DollarSign className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           {/* Upcoming Bookings - Takes 2 columns */}
           <div className="lg:col-span-2">
             <div className="rounded-lg border border-gray-200 bg-white">
@@ -430,7 +440,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                   className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
                   {t("actions.viewAll")}
-                  <FaArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
 
@@ -460,13 +470,13 @@ export function DashboardContent({ locale }: DashboardPageProps) {
 
                         <div className="mb-4 grid grid-cols-2 gap-3 text-sm">
                           <div className="flex items-center gap-1.5">
-                            <FaCalendarAlt className="h-4 w-4 text-gray-400" />
+                            <Calendar className="h-4 w-4 text-gray-400" />
                             <span className="text-gray-600">
                               {new Date(booking.date).toLocaleDateString()}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <FaMapMarkerAlt className="h-4 w-4 text-gray-400" />
+                            <MapPin className="h-4 w-4 text-gray-400" />
                             <span className="text-gray-600">
                               {booking.route}
                             </span>
@@ -481,7 +491,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                             {t("actions.viewDetails")}
                           </Link>
                           <button className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
-                            <FaPhone className="mx-auto h-4 w-4" />
+                            <Phone className="mx-auto h-4 w-4" />
                           </button>
                         </div>
                       </div>
@@ -490,7 +500,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                 ) : (
                   <div className="py-12 text-center">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-                      <FaBus className="h-8 w-8 text-gray-400" />
+                      <Bus className="h-8 w-8 text-gray-400" />
                     </div>
                     <h3 className="mb-2 font-semibold text-gray-900">
                       {t("upcomingBookings.emptyTitle")}
@@ -502,7 +512,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                       href={`/${currentLocale}/search`}
                       className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
                     >
-                      <FaSearch className="h-4 w-4" />
+                      <Search className="h-4 w-4" />
                       {t("actions.searchBuses")}
                     </Link>
                   </div>
@@ -526,7 +536,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                   className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
                   {t("actions.viewAll")}
-                  <FaArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
 
@@ -556,13 +566,13 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                             {new Date(quotation.date).toLocaleDateString()}
                           </p>
                         </div>
-                        <FaArrowRight className="h-4 w-4 text-gray-400" />
+                        <ArrowRight className="h-4 w-4 text-gray-400" />
                       </Link>
                     ))}
                   </div>
                 ) : (
                   <div className="py-8 text-center">
-                    <FaClipboardList className="mx-auto mb-3 h-8 w-8 text-gray-300" />
+                    <ClipboardList className="mx-auto mb-3 h-8 w-8 text-gray-300" />
                     <p className="text-sm text-gray-500">
                       {t("recentQuotations.empty")}
                     </p>
@@ -631,7 +641,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                           {notification.message}
                         </p>
                         <p className="flex items-center gap-1 text-xs text-gray-400">
-                          <FaClock className="h-3 w-3" />
+                          <Clock className="h-3 w-3" />
                           {notification.time}
                         </p>
                       </div>
@@ -646,7 +656,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                   className="flex items-center justify-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900"
                 >
                   {t("notifications.viewAll")}
-                  <FaArrowRight className="h-3 w-3" />
+                  <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </div>

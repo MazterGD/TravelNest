@@ -3,7 +3,576 @@
     "name": "TravelNest",
     "tagline": "Your Journey, Our Commitment"
   },
-  "ownerDashboard": "Owner Dashboard",
+  "ownerDashboard": {
+    "title": "Owner Dashboard",
+    "welcome": "Welcome back",
+    "addVehicle": "Add Vehicle",
+    "addVehicleDesc": "List a new vehicle",
+    "totalRevenue": "Total Revenue",
+    "activeBookings": "Active Bookings",
+    "pendingQuotes": "Pending Quotes",
+    "averageRating": "Average Rating",
+    "quickActions": "Quick Actions",
+    "manageFleet": "Manage Fleet",
+    "manageFleetDesc": "View all vehicles",
+    "viewAllQuotes": "View All Quotes",
+    "viewAllQuotesDesc": "Manage quotations",
+    "tripPackages": "Trip Packages",
+    "tripPackagesDesc": "Create fixed routes",
+    "reviews": "Reviews",
+    "reviewsDesc": "Read & respond",
+    "analytics": "Analytics",
+    "analyticsDesc": "Reports & Insights",
+    "earnings": "Earnings & Payments",
+    "earningsDesc": "Settlements & payouts",
+    "revenueChart": "Revenue (Last 6 Months)",
+    "noRevenueData": "Revenue data will appear here once you have completed bookings.",
+    "recentReviews": "Recent Reviews",
+    "viewAll": "View All",
+    "noReviews": "No reviews yet",
+    "quotationRequests": "Quotation Requests",
+    "quotationRequestsDesc": "Respond to customer inquiries",
+    "filterAll": "All",
+    "filterNew": "New",
+    "filterPending": "Pending Response",
+    "statusNew": "New",
+    "passengers": "passengers",
+    "noQuotationRequests": "No Quotation Requests",
+    "noQuotationRequestsDesc": "New quotation requests from customers will appear here.",
+    "upcomingBookings": "Upcoming Bookings",
+    "noUpcomingBookings": "No upcoming bookings",
+    "fleetOverview": "Fleet Overview",
+    "manage": "Manage",
+    "fleetActive": "Active",
+    "fleetInactive": "Inactive",
+    "fleetPendingReview": "Pending Review",
+    "vehicles": "vehicles",
+    "fleetUtilization": "Fleet Utilization",
+    "verificationRejected": "Verification Not Approved",
+    "verificationRejectedDesc": "Your documents were not approved. Please resubmit from your Profile page.",
+    "resubmit": "Resubmit",
+    "pendingVerification": "Account Pending Verification",
+    "pendingVerificationDesc": "Our team is reviewing your documents. You will be notified once approved — this usually takes 1–2 business days."
+  },
+  "ownerQuotations": {
+    "title": "Quotation Requests",
+    "backToDashboard": "Back to Dashboard",
+    "requestCount": "{count, plural, one {# request} other {# requests}}",
+    "newBadge": "{count} new",
+    "tabs": {
+      "pending": "Pending",
+      "all": "All"
+    },
+    "filters": {
+      "toggle": "Filters",
+      "searchPlaceholder": "Search by customer name, route, or ID...",
+      "vehicleType": "Vehicle Type",
+      "allTypes": "All Types",
+      "passengerCount": "Passenger Count",
+      "dateFrom": "Start Date",
+      "dateTo": "End Date",
+      "sortBy": "Sort By",
+      "clearFilters": "Clear Filters",
+      "passengerRanges": {
+        "all": "All Capacities",
+        "range16_20": "16-20",
+        "range21_30": "21-30",
+        "range31_40": "31-40",
+        "range41_50": "41-50",
+        "range50_plus": "50+"
+      },
+      "sortOptions": {
+        "newest": "Newest First",
+        "oldest": "Oldest First",
+        "tripDate": "Trip Date",
+        "passengersHigh": "Passengers: High to Low",
+        "passengersLow": "Passengers: Low to High"
+      }
+    },
+    "labels": {
+      "route": "Route",
+      "date": "Trip Date",
+      "passengers": "Passengers",
+      "vehicleType": "Vehicle Type",
+      "requestedOn": "Requested {date}",
+      "dropoffPending": "To be confirmed"
+    },
+    "actions": {
+      "sendQuotation": "Send Quotation",
+      "sentQuotations": "Sent Quotations"
+    },
+    "badges": {
+      "expiresIn": "Expires in {days}d",
+      "expiresToday": "Expires today",
+      "expired": "Expired"
+    },
+    "status": {
+      "PENDING": "Pending",
+      "SENT": "Sent",
+      "VIEWED": "Viewed",
+      "ACCEPTED": "Accepted",
+      "REJECTED": "Rejected",
+      "EXPIRED": "Expired"
+    },
+    "empty": {
+      "pendingTitle": "No pending requests",
+      "pendingDescription": "You're all caught up! New quotation requests will appear here.",
+      "allTitle": "No quotation requests",
+      "allDescription": "No quotation requests at the moment."
+    },
+    "unknownCustomer": "Unknown"
+  },
+  "sendQuotation": {
+    "title": "Send Quotation",
+    "backToQuotations": "Back to Quotations",
+    "pageDescription": "Create and send a customised quotation for {name}",
+    "requestDetails": {
+      "title": "Request Details",
+      "customerInfo": "Customer Information",
+      "nameLabel": "Name",
+      "emailLabel": "Email",
+      "phoneLabel": "Phone",
+      "route": "Route",
+      "dateAndTime": "Date & Time",
+      "passengers": "Passengers",
+      "vehiclePreference": "Vehicle Preference",
+      "specialRequirements": "Special Requirements"
+    },
+    "vehicleSelection": {
+      "requested": "Requested Vehicle",
+      "select": "Select Vehicle",
+      "requestedBannerTitle": "Customer Requested This Specific Vehicle",
+      "requestedBannerDesc": "The customer selected this vehicle from your fleet. The quotation will be sent for this vehicle only.",
+      "customerRequirements": "Customer Requirements",
+      "passengersCount": "{count} passengers",
+      "preferred": "{type} preferred",
+      "noVehicles": "No vehicles available. Please add vehicles to your fleet first.",
+      "addVehicle": "Add Vehicle",
+      "suitable": "Suitable",
+      "checkIssues": "Check Issues",
+      "insufficientCapacity": "Insufficient capacity ({capacity} seats for {passengers} passengers)",
+      "typeMismatch": "Type mismatch (Customer requested: {type})",
+      "capacityMatches": "Capacity matches ({capacity} seats for {passengers} passengers)",
+      "baseRate": "Base Rate",
+      "perDay": "per day",
+      "requestedByCustomer": "Requested by Customer",
+      "selected": "Selected for this quotation",
+      "warningTitle": "Selected vehicle may not fully meet customer requirements",
+      "warningDesc": "You can still send the quotation, but the customer may prefer a different vehicle. Consider mentioning this in your additional notes."
+    },
+    "pricing": {
+      "title": "Pricing Breakdown",
+      "vehicleRental": "Vehicle Rental Cost",
+      "driverCost": "Driver Cost",
+      "fuelCost": "Estimated Fuel Cost",
+      "tollCharges": "Toll Charges",
+      "permitFees": "Permit Fees",
+      "otherCharges": "Other Charges",
+      "addItem": "Add Item",
+      "descriptionPlaceholder": "Description",
+      "amountPlaceholder": "Amount",
+      "removeItem": "Remove item"
+    },
+    "settings": {
+      "title": "Quotation Settings",
+      "validityPeriod": "Validity Period",
+      "validityDays": "{days} days",
+      "additionalNotes": "Additional Notes",
+      "notesPlaceholder": "Add any additional information or terms and conditions..."
+    },
+    "preview": {
+      "title": "Quotation Preview",
+      "selectVehiclePrompt": "Select a vehicle to see the quotation preview",
+      "vehicleRental": "Vehicle Rental",
+      "driverCost": "Driver Cost",
+      "fuelCost": "Fuel Cost",
+      "tollCharges": "Toll Charges",
+      "permitFees": "Permit Fees",
+      "other": "Other",
+      "subtotal": "Subtotal",
+      "tax": "Tax ({rate}%)",
+      "grandTotal": "Grand Total",
+      "validFor": "Valid for {days} days",
+      "expiresOn": "Expires on {date}"
+    },
+    "actions": {
+      "send": "Send Quotation",
+      "sending": "Sending..."
+    },
+    "errors": {
+      "notFound": "Request not found",
+      "backToQuotations": "Back to Quotations",
+      "noVehicleSelected": "Please select a vehicle before sending.",
+      "missingTripDetails": "Trip details are incomplete — ensure distance and duration are provided.",
+      "sendFailed": "Failed to send quotation. Please try again.",
+      "generic": "Something went wrong. Please try again."
+    }
+  },
+  "sentQuotations": {
+    "title": "Sent Quotations",
+    "backToDashboard": "Back to Dashboard",
+    "quotationCount": "{count} quotations",
+    "filters": "Filters",
+    "searchPlaceholder": "Search by customer name, quotation ID, or route...",
+    "filterPanel": {
+      "dateRange": "Date Range",
+      "allTime": "All Time",
+      "last7Days": "Last 7 days",
+      "last30Days": "Last 30 days",
+      "last3Months": "Last 3 months",
+      "vehicleType": "Vehicle Type",
+      "allTypes": "All Types",
+      "sortBy": "Sort By",
+      "newestFirst": "Newest First",
+      "oldestFirst": "Oldest First",
+      "amountHighLow": "Amount (High to Low)",
+      "amountLowHigh": "Amount (Low to High)",
+      "expiringSoon": "Expiring Soon"
+    },
+    "tabs": {
+      "all": "All",
+      "SENT": "Sent",
+      "VIEWED": "Viewed",
+      "ACCEPTED": "Accepted",
+      "REJECTED": "Rejected",
+      "EXPIRED": "Expired"
+    },
+    "status": {
+      "all": "All",
+      "SENT": "Sent",
+      "VIEWED": "Viewed",
+      "ACCEPTED": "Accepted",
+      "REJECTED": "Rejected",
+      "EXPIRED": "Expired"
+    },
+    "card": {
+      "unknownCustomer": "Unknown",
+      "notSent": "Not sent",
+      "route": "Route",
+      "tripDate": "Trip Date",
+      "validity": "Validity",
+      "expired": "Expired",
+      "expiresToday": "Expires today",
+      "daysLeft": "{days} days left",
+      "viewDetails": "View Details",
+      "resend": "Resend",
+      "bookingCreated": "Booking Created",
+      "timestamps": {
+        "sent": "Sent",
+        "viewed": "Viewed",
+        "responded": "Responded",
+        "expires": "Expires"
+      }
+    },
+    "empty": {
+      "allTitle": "No quotations sent yet",
+      "title": "No {status} quotations",
+      "description": "You haven't sent any quotations yet. Start by responding to quotation requests.",
+      "filteredDescription": "No {status} quotations at the moment.",
+      "viewRequests": "View Quotation Requests"
+    },
+    "detail": {
+      "backToSent": "Back to Sent Quotations",
+      "quotationFor": "Quotation for {name}",
+      "timeline": {
+        "title": "Timeline",
+        "sent": "Quotation Sent",
+        "viewedByCustomer": "Viewed by Customer",
+        "acceptedByCustomer": "Accepted by Customer",
+        "rejectedByCustomer": "Rejected by Customer",
+        "reason": "Reason"
+      },
+      "customer": {
+        "title": "Customer Information",
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone"
+      },
+      "trip": {
+        "title": "Trip Details",
+        "route": "Route",
+        "dateTime": "Date & Time",
+        "passengersLabel": "Passengers",
+        "passengers": "{count} passengers",
+        "vehicle": "Vehicle",
+        "vehicleSeats": "{type} • {capacity} seats",
+        "additionalNotes": "Additional Notes"
+      },
+      "pricing": {
+        "title": "Pricing Breakdown",
+        "vehicleRental": "Vehicle Rental Cost",
+        "driverCost": "Driver Cost",
+        "fuelCost": "Estimated Fuel Cost",
+        "tollCharges": "Toll Charges",
+        "permitFees": "Permit Fees",
+        "subtotal": "Subtotal",
+        "tax": "Tax",
+        "grandTotal": "Grand Total"
+      },
+      "validity": {
+        "title": "Validity",
+        "expired": "Expired",
+        "daysRemaining": "{days} days remaining",
+        "validUntil": "Valid until {date}"
+      },
+      "accepted": {
+        "title": "Quotation Accepted!",
+        "description": "Customer has accepted this quotation. Create a booking to proceed.",
+        "createBooking": "Create Booking"
+      },
+      "notFound": {
+        "title": "Quotation not found",
+        "back": "Back to Sent Quotations"
+      }
+    }
+  },
+  "ownerReviews": {
+    "title": "Reviews & Ratings",
+    "subtitle": "Manage feedback from customers and build your reputation.",
+    "backToDashboard": "Back to Dashboard",
+    "summary": {
+      "averageRating": "Average Rating",
+      "totalReviews": "Total Reviews",
+      "pendingResponses": "Needs Response",
+      "responseRate": "Response Rate",
+      "ratingDistribution": "Rating Distribution"
+    },
+    "tabs": {
+      "all": "All Reviews",
+      "pending": "Needs Response",
+      "responded": "Responded"
+    },
+    "noReviews": {
+      "allTitle": "No reviews yet",
+      "description": "Once customers complete trips with your vehicles, their reviews will appear here.",
+      "pendingTitle": "All caught up!",
+      "pendingDescription": "You have responded to all your reviews.",
+      "respondedTitle": "No responses yet",
+      "respondedDescription": "You haven't responded to any reviews yet."
+    },
+    "card": {
+      "responded": "Responded",
+      "yourResponse": "Your Response",
+      "responseLabel": "Your response",
+      "responsePlaceholder": "Thank the customer for their feedback and address their experience...",
+      "respond": "Respond",
+      "submit": "Publish Response",
+      "cancel": "Cancel"
+    },
+    "error": {
+      "loadFailed": "Could not load reviews. Please check your connection and try again.",
+      "loadFailedRateLimited": "Server is busy right now. Please wait a moment and refresh.",
+      "loadFailedUnauthorized": "Your session has expired. Please sign in again to view reviews.",
+      "loadFailedNetwork": "Network error. Check your connection and try again.",
+      "loadFailedServer": "Reviews are temporarily unavailable. Please try again shortly.",
+      "tryAgain": "Try again",
+      "respondFailed": "Could not submit your response. Please try again."
+    }
+  },
+  "ownerAnalytics": {
+    "title": "Performance & Analytics",
+    "subtitle": "Revenue trends, booking insights, and fleet performance for your business.",
+    "backToDashboard": "Back to Dashboard",
+    "overview": {
+      "totalRevenue": "Total Revenue",
+      "thisMonth": "This Month",
+      "growth": "vs last month",
+      "totalBookings": "Total Bookings",
+      "completionRate": "Completion Rate",
+      "fleetUtilization": "Fleet Active",
+      "averageRating": "Average Rating"
+    },
+    "revenueChart": {
+      "title": "Revenue Trend (Last 6 Months)",
+      "tooltip": "LKR",
+      "noData": "No revenue data yet",
+      "noDataDesc": "Revenue will appear here once you have completed bookings."
+    },
+    "bookingsChart": {
+      "title": "Bookings per Month",
+      "tooltipLabel": "bookings"
+    },
+    "vehicleTable": {
+      "title": "Vehicle Performance",
+      "vehicle": "Vehicle",
+      "status": "Status",
+      "bookings": "Bookings",
+      "completed": "Completed",
+      "revenue": "Revenue",
+      "rating": "Rating",
+      "active": "Active",
+      "inactive": "Inactive",
+      "noRating": "No ratings",
+      "noVehicles": "No vehicles in your fleet yet.",
+      "noVehiclesDesc": "Add your first vehicle to start tracking performance."
+    },
+    "error": {
+      "loadFailed": "Could not load analytics. Please check your connection and try again.",
+      "tryAgain": "Try again"
+    }
+  },
+  "ownerEarnings": {
+    "title": "Earnings & Payments",
+    "subtitle": "Track your earnings, payment history, and settlement payouts.",
+    "backToDashboard": "Back to Dashboard",
+    "currency": "LKR",
+    "summary": {
+      "pendingBalance": "Pending Balance",
+      "pendingBalanceDesc": "Awaiting settlement payout",
+      "thisMonth": "This Month",
+      "thisYear": "This Year",
+      "lifetime": "Lifetime Earnings"
+    },
+    "transactions": {
+      "title": "Transaction History",
+      "filterLabel": "Status",
+      "filterAll": "All statuses",
+      "date": "Date",
+      "bookingRef": "Booking",
+      "amount": "Amount",
+      "status": "Status",
+      "emptyTitle": "No transactions yet",
+      "emptyDesc": "Payments from your bookings will appear here once customers start paying.",
+      "pageOf": "Page {page} of {totalPages}",
+      "prev": "Previous page",
+      "next": "Next page"
+    },
+    "status": {
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "COMPLETED": "Completed",
+      "FAILED": "Failed",
+      "REFUNDED": "Refunded",
+      "CANCELLED": "Cancelled"
+    },
+    "settlements": {
+      "title": "Settlement History",
+      "period": "Period",
+      "bookings": "Bookings",
+      "gross": "Gross",
+      "commission": "Commission",
+      "net": "Net Payout",
+      "status": "Status",
+      "emptyTitle": "No settlements yet",
+      "emptyDesc": "Once your completed bookings are settled, your payout records will appear here."
+    },
+    "bank": {
+      "title": "Bank Account",
+      "accountHolder": "Account Holder Name",
+      "accountNumber": "Account Number",
+      "accountNumberHint": "For security, your full account number is never shown. Enter it again to update.",
+      "bankName": "Bank Name",
+      "bankCode": "Bank Code",
+      "branchName": "Branch Name",
+      "branchCode": "Branch Code",
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit Bank Account",
+      "addAccount": "Add Bank Account",
+      "emptyTitle": "No bank account on file",
+      "emptyDesc": "Add your bank details so we can transfer your settlement payouts.",
+      "errorRequired": "Account holder name, account number, and bank name are required. Please fill in all three to continue.",
+      "errorSave": "We couldn't save your bank account. Please check your details and try again."
+    },
+    "error": {
+      "loadFailed": "We couldn't load your earnings. Please check your connection and try again.",
+      "tryAgain": "Try again"
+    }
+  },
+  "bookingsManagement": {
+    "title": "Bookings Management",
+    "backToDashboard": "Back to Dashboard",
+    "exportBtn": "Export",
+    "bookingSingular": "booking",
+    "bookingPlural": "bookings",
+    "tabUpcoming": "Upcoming",
+    "tabInProgress": "In Progress",
+    "tabCompleted": "Completed",
+    "tabCancelled": "Cancelled",
+    "viewList": "List",
+    "viewCalendar": "Calendar",
+    "searchPlaceholder": "Search by booking ref, customer, or vehicle...",
+    "bookedOn": "Booked on",
+    "totalAmount": "Total Amount",
+    "currency": "LKR",
+    "vehicleLabel": "Vehicle",
+    "tripDatesLabel": "Trip Dates",
+    "to": "to",
+    "routeLabel": "Route",
+    "passengers": "passengers",
+    "paymentLabel": "Payment",
+    "viewDetails": "View Details",
+    "call": "Call",
+    "emailBtn": "Email",
+    "emptyUpcomingTitle": "No upcoming bookings",
+    "emptyUpcomingDesc": "You don't have any upcoming bookings yet.",
+    "emptyTitle": "No {status} bookings",
+    "emptyDesc": "No {status} bookings found.",
+    "calendarTitle": "Calendar View",
+    "calendarComingSoon": "Calendar view will be implemented soon.",
+    "errorLoad": "Failed to load bookings"
+  },
+  "bookingDetails": {
+    "backToBookings": "Back to Bookings",
+    "createdOn": "Created",
+    "startTrip": "Start Trip",
+    "cancelTrip": "Cancel",
+    "sectionCustomer": "Customer Information",
+    "message": "Message",
+    "nameLabel": "Name",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email",
+    "sectionTrip": "Trip Details",
+    "tripDatesLabel": "Trip Dates",
+    "to": "to",
+    "durationLabel": "Duration",
+    "passengersLabel": "Passengers",
+    "routeMapTitle": "Route Map",
+    "routeUnavailable": "Route information not available",
+    "itineraryTitle": "Itinerary",
+    "noItinerary": "No itinerary stops available",
+    "sectionVehicleDriver": "Vehicle & Driver",
+    "assignedVehicle": "Assigned Vehicle",
+    "driverAssignment": "Driver Assignment",
+    "capacityLabel": "Capacity",
+    "seats": "seats",
+    "noDriver": "No driver assigned yet",
+    "licenseLabel": "License",
+    "gpsEnabled": "GPS Tracking Enabled",
+    "gpsDesc": "Real-time location tracking is available for this trip",
+    "viewLocation": "View Live Location →",
+    "sectionMessages": "Messages",
+    "noMessages": "No messages yet",
+    "sectionPayment": "Payment Information",
+    "basePrice": "Base Price",
+    "driverAllowance": "Driver Allowance",
+    "additionalCharges": "Additional Charges",
+    "totalAmount": "Total Amount",
+    "platformCommission": "Platform Commission",
+    "yourNetAmount": "Your Net Amount",
+    "currency": "LKR",
+    "paymentLabel": "Payment",
+    "sectionTimeline": "Booking Timeline",
+    "bookingCreated": "Booking Created",
+    "bookingCreatedDesc": "Customer submitted booking request",
+    "paymentReceived": "Payment Received",
+    "paymentReceivedDesc": "Customer completed payment via",
+    "sectionActions": "Quick Actions",
+    "generateInvoice": "Generate Invoice",
+    "reportIssue": "Report Issue",
+    "cancelModal": {
+      "title": "Cancel Booking",
+      "desc": "Are you sure you want to cancel this booking? This action cannot be undone.",
+      "reasonLabel": "Cancellation Reason",
+      "reasonRequired": "Cancellation Reason *",
+      "reasonPlaceholder": "Please provide a reason for cancellation...",
+      "keepBooking": "Keep Booking",
+      "confirm": "Cancel Booking"
+    },
+    "errorLoad": "Failed to load booking",
+    "notFound": "Booking not found",
+    "na": "N/A"
+  },
   "welcomeBack": "Welcome back",
   "navigation": {
     "home": "Home",
@@ -18,6 +587,26 @@
     "logout": "Logout",
     "openMenu": "Open main menu",
     "dashboardFor": "{name}'s Dashboard"
+  },
+  "locations": {
+    "colombo": "Colombo",
+    "kandy": "Kandy",
+    "galle": "Galle",
+    "ella": "Ella",
+    "anuradhapura": "Anuradhapura",
+    "negombo": "Negombo",
+    "sigiriya": "Sigiriya",
+    "batticaloa": "Batticaloa",
+    "kurunegala": "Kurunegala",
+    "badulla": "Badulla",
+    "jaffna": "Jaffna",
+    "matara": "Matara",
+    "trincomalee": "Trincomalee",
+    "nuwaraEliya": "Nuwara Eliya",
+    "kalutara": "Kalutara",
+    "ratnapura": "Ratnapura",
+    "hambantota": "Hambantota",
+    "puttalam": "Puttalam"
   },
   "home": {
     "hero": {
@@ -114,6 +703,16 @@
         "fullAc": "Full AC",
         "ac": "AC",
         "nonAc": "Non-AC"
+      },
+      "amenityOptions": {
+        "wifi": "WiFi",
+        "ac": "Air Conditioning",
+        "music": "Music System",
+        "usb": "USB Charging",
+        "tv": "TV/Entertainment",
+        "reclining": "Reclining Seats",
+        "reading": "Reading Lights",
+        "gps": "GPS Tracking"
       }
     },
     "sort": {
@@ -136,6 +735,21 @@
     "hero": {
       "title": "About TravelNest",
       "subtitle": "Connecting travelers with trusted bus owners since 2024"
+    },
+    "story": {
+      "title": "Our Story",
+      "paragraph1": "TravelNest was founded to solve a common challenge in group travel: finding trustworthy buses with fair pricing and dependable service.",
+      "paragraph2": "What started as a small idea has grown into a platform that connects travelers and verified owners through transparent workflows, faster quotations, and safer journeys."
+    },
+    "statistics": {
+      "title": "Our Impact",
+      "empty": "Statistics will be available soon.",
+      "items": {
+        "verifiedBuses": "Verified Buses",
+        "happyCustomers": "Happy Customers",
+        "districtsCovered": "Districts Covered",
+        "averageRating": "Average Rating"
+      }
     },
     "mission": {
       "title": "Our Mission",
@@ -167,6 +781,23 @@
     "team": {
       "title": "Our Team",
       "description": "A passionate team dedicated to transforming the transportation industry"
+    },
+    "usp": {
+      "title": "Why Choose TravelNest",
+      "items": {
+        "verified": {
+          "title": "Verified Owners",
+          "description": "Every owner and fleet goes through documentation and safety checks before listing."
+        },
+        "pricing": {
+          "title": "Transparent Quotations",
+          "description": "Customers compare clear, itemized quotations with no hidden platform fees."
+        },
+        "coverage": {
+          "title": "Island-Wide Coverage",
+          "description": "From city commutes to long-distance tours, TravelNest supports journeys across Sri Lanka."
+        }
+      }
     }
   },
   "contact": {
@@ -203,6 +834,17 @@
         "value": "Mon - Fri: 9:00 AM - 6:00 PM"
       }
     },
+    "social": {
+      "title": "Follow TravelNest"
+    },
+    "map": {
+      "title": "Find Us on the Map"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Quick answers to common questions about bookings, payments, and support.",
+      "empty": "No FAQs are available right now."
+    },
     "mapPlaceholder": "Map integration coming soon"
   },
   "howItWorks": {
@@ -212,7 +854,7 @@
     },
     "customer": {
       "title": "For Customers",
-      "description": "Book a bus in 4 simple steps",
+      "description": "Book a bus in 6 simple steps",
       "steps": {
         "search": {
           "title": "Search & Browse",
@@ -229,20 +871,44 @@
         "book": {
           "title": "Book & Travel",
           "description": "Confirm your booking with secure online payment. Receive confirmation and enjoy your comfortable journey."
+        },
+        "pay": {
+          "title": "Pay Securely",
+          "description": "Complete payment through a secure checkout and receive confirmation."
+        },
+        "travel": {
+          "title": "Travel with Peace of Mind",
+          "description": "Track your booking and enjoy your journey with verified operators."
         }
       }
     },
     "owner": {
       "title": "For Bus Owners",
-      "description": "Grow your business in 4 simple steps",
+      "description": "Grow your business in 6 simple steps",
       "steps": {
         "register": {
           "title": "Register & Verify",
           "description": "Create your account and complete the verification process. Submit required documents for approval."
         },
+        "verify": {
+          "title": "Complete Verification",
+          "description": "Upload required documents to get verified for customer trust."
+        },
         "list": {
           "title": "List Your Fleet",
           "description": "Add your vehicles with detailed information, photos, and pricing. Showcase amenities and features."
+        },
+        "receiveRequests": {
+          "title": "Receive Requests",
+          "description": "Get incoming quotation requests that match your fleet and routes."
+        },
+        "sendQuotes": {
+          "title": "Send Competitive Quotes",
+          "description": "Respond quickly with detailed quotations to convert more bookings."
+        },
+        "manage": {
+          "title": "Manage & Grow",
+          "description": "Track bookings, improve service quality, and grow repeat business."
         },
         "respond": {
           "title": "Respond to Requests",
@@ -290,7 +956,9 @@
       "registerCustomer": "Register as Customer",
       "registerOwner": "Register as Bus Owner",
       "errors": {
-        "unexpected": "An unexpected error occurred. Please try again."
+        "unexpected": "An unexpected error occurred. Please try again.",
+        "rateLimited": "Too many attempts. Please wait a moment before trying again.",
+        "cooldown": "Try again in {seconds}s"
       }
     },
     "register": {
@@ -420,6 +1088,268 @@
         "passwordMismatch": "Passwords do not match",
         "acceptTerms": "Please accept the Terms and Conditions and Privacy Policy",
         "unexpected": "An unexpected error occurred. Please try again."
+      }
+    },
+    "ownerRegister": {
+      "title": "Bus Owner Registration",
+      "progress": {
+        "stepOf": "Step {current} of {total}",
+        "steps": {
+          "personal": "Personal",
+          "address": "Address",
+          "vehicle": "Vehicle",
+          "password": "Password",
+          "terms": "Terms"
+        }
+      },
+      "sidebar": {
+        "title": "Become a Partner",
+        "subtitle": "List your buses and reach thousands of customers across Sri Lanka",
+        "imageAlt": "Bus business",
+        "benefits": {
+          "noListingFees": {
+            "title": "No Listing Fees",
+            "description": "List unlimited vehicles for free"
+          },
+          "commission": {
+            "title": "10% Commission",
+            "description": "Pay only on confirmed bookings"
+          },
+          "dashboard": {
+            "title": "Business Dashboard",
+            "description": "Track bookings and earnings"
+          }
+        },
+        "alreadyRegistered": "Already registered?",
+        "signIn": "Sign In"
+      },
+      "sections": {
+        "personalInfo": "Personal Information",
+        "personalInfoDescription": "Tell us about yourself",
+        "identityVerification": "Identity Verification",
+        "addressInfo": "Address & Base Location",
+        "addressInfoDescription": "Where is your base location?",
+        "vehicleInfo": "Vehicle Information & Documents",
+        "vehicleInfoDescription": "Add at least one bus to complete registration",
+        "vehicleInfoNote": "Note: You must add at least one vehicle with all required documents",
+        "password": "Create Password",
+        "passwordDescription": "Secure your account with a strong password",
+        "terms": "Terms & Conditions",
+        "termsDescription": "Please review and accept our terms"
+      },
+      "badges": {
+        "required": "Required",
+        "optional": "Optional"
+      },
+      "fields": {
+        "firstName": {
+          "label": "First Name *",
+          "placeholder": "Enter first name"
+        },
+        "lastName": {
+          "label": "Last Name *",
+          "placeholder": "Enter last name"
+        },
+        "email": {
+          "label": "Email Address *",
+          "placeholder": "your@email.com"
+        },
+        "phone": {
+          "label": "Phone Number *",
+          "placeholder": "+94 XX XXX XXXX"
+        },
+        "nicNumber": {
+          "label": "NIC Number *",
+          "placeholder": "e.g., 199012345678 or 901234567V"
+        },
+        "ownerPhoto": {
+          "label": "Profile Photo *",
+          "alt": "Owner photo",
+          "uploaded": "Photo uploaded",
+          "uploadPrompt": "Click to upload your photo",
+          "uploadHelp": "JPG, PNG (Max 5MB)"
+        },
+        "nicDocument": {
+          "label": "NIC Document",
+          "helpText": "Upload a clear copy of your NIC (front & back)"
+        },
+        "address": {
+          "label": "Address *",
+          "placeholder": "Enter your full address"
+        },
+        "city": {
+          "label": "City *",
+          "placeholder": "Enter city"
+        },
+        "district": {
+          "label": "District *",
+          "select": "Select district"
+        },
+        "postalCode": {
+          "label": "Postal Code",
+          "placeholder": "Postal code"
+        },
+        "baseLocation": {
+          "label": "Base Location for Buses *",
+          "placeholder": "e.g., Colombo, Kandy",
+          "helpText": "This will be shown to customers as your primary service area"
+        },
+        "registrationNumber": {
+          "label": "Registration Number *",
+          "placeholder": "ABC-1234"
+        },
+        "vehicleType": {
+          "label": "Vehicle Type *",
+          "select": "Select type"
+        },
+        "make": {
+          "label": "Make *",
+          "placeholder": "e.g., Ashok Leyland"
+        },
+        "model": {
+          "label": "Model *",
+          "placeholder": "e.g., 2820"
+        },
+        "year": {
+          "label": "Year *",
+          "placeholder": "2022"
+        },
+        "seatingCapacity": {
+          "label": "Seating Capacity *",
+          "placeholder": "45"
+        },
+        "acType": {
+          "label": "AC Type *",
+          "select": "Select AC type"
+        },
+        "color": {
+          "label": "Color *",
+          "placeholder": "White"
+        },
+        "condition": {
+          "label": "Condition *",
+          "select": "Select condition",
+          "options": {
+            "excellent": "Excellent",
+            "good": "Good",
+            "fair": "Fair",
+            "needsRepair": "Needs Repair"
+          }
+        },
+        "pricePerKilometer": {
+          "label": "Price per Kilometer *",
+          "placeholder": "85",
+          "helpText": "LKR per kilometer"
+        },
+        "pricePerDay": {
+          "label": "Price per Day *",
+          "placeholder": "25000",
+          "helpText": "LKR per day"
+        },
+        "driverAllowance": {
+          "label": "Driver Allowance",
+          "placeholder": "5000",
+          "helpText": "Daily driver allowance (LKR)"
+        },
+        "description": {
+          "label": "Description",
+          "placeholder": "Describe your vehicle, seating layout, and any special features..."
+        },
+        "password": {
+          "label": "Password *",
+          "placeholder": "Create a strong password"
+        },
+        "confirmPassword": {
+          "label": "Confirm Password *",
+          "placeholder": "Re-enter your password"
+        },
+        "documents": {
+          "drivingLicense": {
+            "label": "Driving License",
+            "helpText": "Valid heavy vehicle driving license"
+          },
+          "insuranceCertificate": {
+            "label": "Insurance Certificate",
+            "helpText": "Current vehicle insurance document"
+          },
+          "registrationCertificate": {
+            "label": "Certificate of Registration",
+            "helpText": "Vehicle registration certificate (CR)"
+          }
+        }
+      },
+      "vehicle": {
+        "cardTitle": "Vehicle {index}",
+        "remove": "Remove",
+        "amenitiesTitle": "Amenities",
+        "photosTitle": "Vehicle Photos",
+        "photoAlt": "Vehicle {vehicleIndex} photo {photoIndex}",
+        "addPhoto": "Add Photo",
+        "photosHelpText": "Upload up to 8 photos of your vehicle (interior & exterior)",
+        "documentsTitle": "Vehicle Documents",
+        "addAnother": "Add Another Vehicle",
+        "descriptionCount": "{count}/500 characters",
+        "documentGuidelines": {
+          "title": "Document Guidelines",
+          "points": {
+            "clear": "All documents must be clear and readable",
+            "valid": "Documents should be current and valid",
+            "formats": "Accepted formats: PDF, JPG, PNG (Max 5MB)",
+            "verificationTime": "Verification typically takes 2-3 business days"
+          }
+        }
+      },
+      "passwordStrength": {
+        "label": "Password Strength:",
+        "weak": "Weak",
+        "medium": "Medium",
+        "strong": "Strong"
+      },
+      "passwordRequirements": {
+        "title": "Password Requirements:",
+        "minLength": "At least 8 characters long",
+        "upperLower": "Include uppercase and lowercase letters",
+        "number": "Include at least one number",
+        "special": "Include at least one special character"
+      },
+      "terms": {
+        "summaryTitle": "Partnership Agreement Summary",
+        "summaryIntro": "By registering as a bus owner on TraveNest, you agree to:",
+        "points": {
+          "accurateInfo": "Provide accurate and up-to-date information about your vehicles",
+          "licenses": "Maintain all necessary licenses, permits, and insurance",
+          "commission": "Pay a 10% commission on confirmed bookings",
+          "respond": "Respond to quotation requests within 24 hours",
+          "safety": "Maintain vehicle condition and safety standards",
+          "compliance": "Comply with all local transportation laws and regulations"
+        },
+        "acceptPrefix": "I accept the",
+        "termsLink": "Terms and Conditions",
+        "privacyPrefix": "I have read and agree to the",
+        "privacyLink": "Privacy Policy",
+        "dataProcessing": "I consent to data processing for business operations and marketing purposes"
+      },
+      "actions": {
+        "previous": "Previous",
+        "continue": "Continue",
+        "completeRegistration": "Complete Registration"
+      },
+      "errors": {
+        "requiredFields": "Please fill in all required fields",
+        "invalidEmail": "Please enter a valid email address",
+        "profilePhotoRequired": "Profile photo is required",
+        "nicDocumentRequired": "NIC document is required",
+        "identityDocsRequired": "Please upload the required identity documents",
+        "requiredAddressFields": "Please fill in all required address fields",
+        "requiredVehicleFields": "Please fill in all required fields for Vehicle {index}",
+        "requiredVehicleDocs": "Please upload all required documents for Vehicle {index}",
+        "passwordRequired": "Please enter and confirm your password",
+        "passwordMismatch": "Passwords do not match",
+        "weakPassword": "Please choose a stronger password",
+        "acceptTerms": "Please accept all terms and conditions",
+        "unexpected": "An unexpected error occurred. Please try again.",
+        "otpSendFailed": "Failed to send OTP. Please try again.",
+        "invalidOtp": "Invalid or expired OTP."
       }
     },
     "oauth": {
@@ -610,6 +1540,7 @@
   "footer": {
     "description": "Sri Lanka's premier bus rental marketplace",
     "quickLinks": "Quick Links",
+    "tripPackages": "Trip Packages",
     "support": "Support",
     "legal": "Legal",
     "followUs": "Follow Us",
@@ -904,6 +1835,18 @@
           "label": "Verified Buses",
           "sublabel": "From Galle to Jaffna"
         },
+        "activeRoutes": {
+          "label": "Active Routes",
+          "sublabel": "Island-wide Coverage"
+        },
+        "happyTravelers": {
+          "label": "Happy Travelers",
+          "sublabel": "Trusted by Families & Companies"
+        },
+        "tripsCompleted": {
+          "label": "Trips Completed",
+          "sublabel": "Safe & Reliable Journeys"
+        },
         "successfulTrips": {
           "label": "Successful Trips",
           "sublabel": "Happy memories made"
@@ -934,6 +1877,7 @@
       "capacityLabel": "Capacity",
       "priceLabel": "Price",
       "startingFrom": "Starting from",
+      "generatedTitle": "{from} to {to} {days}-Day Trip",
       "perPerson": "per person",
       "days": "days",
       "viewDetails": "View Details",
@@ -1113,8 +2057,10 @@
     "searchPlaceholder": "Search routes or package name",
     "loading": "Loading packages...",
     "empty": "No packages match your filters.",
+    "emptyHint": "Try adjusting your search or filters to find more options.",
     "vehicleFallback": "Vehicle",
     "bookPackage": "Book Package",
+    "viewDetails": "View Details",
     "priceLabel": "Package Price",
     "passengers": "passengers",
     "maxSeats": "max {count}",
@@ -1142,10 +2088,31 @@
       "startLocation": "Start Location",
       "endLocation": "End Location",
       "durationDays": "Duration (days)",
+      "vehicleType": "Vehicle Type",
+      "allVehicleTypes": "All Vehicle Types",
       "minPassengers": "Min Passengers",
       "maxPassengers": "Max Passengers",
       "minPrice": "Min Price (LKR)",
       "maxPrice": "Max Price (LKR)"
+    },
+    "detail": {
+      "notFoundTitle": "Package Not Found",
+      "notFoundMessage": "The trip package you are looking for might have been removed or is currently unavailable.",
+      "exploreOtherPackages": "Explore Other Packages",
+      "featuredBadge": "Featured Package",
+      "overview": "Overview",
+      "overviewFallback": "No additional package description provided.",
+      "route": "Route",
+      "passengerRange": "Passenger Range",
+      "operatedBy": "Operated by",
+      "verifiedOwner": "Verified Owner",
+      "owner": "Owner",
+      "startingFrom": "Starting from",
+      "priceNote": "Price varies based on selected vehicle and dates",
+      "duration": "Duration",
+      "groupSize": "Group Size",
+      "bookThisPackage": "Book This Package",
+      "freeCancellation": "Free cancellation available"
     },
     "modal": {
       "title": "Book Package",
@@ -1168,6 +2135,10 @@
     "uploaded": "Uploaded",
     "prompt": "Click to upload or drag and drop",
     "helpText": "Accepted formats: PDF, JPG, PNG (Max 5MB)",
+    "replace": "Upload a new file to replace",
+    "verified": "Verified",
+    "pending": "Pending Review",
+    "rejected": "Rejected",
     "errors": {
       "maxSize": "File size must be less than {maxSize}MB",
       "invalidType": "Invalid file type. Allowed: {types}"
@@ -1203,7 +2174,8 @@
   "vehicle": {
     "errors": {
       "invalidVehicleData": "Invalid vehicle data received",
-      "fetchVehicle": "Failed to fetch vehicle details"
+      "fetchVehicle": "Failed to fetch vehicle details",
+      "notFound": "Vehicle not found"
     },
     "actions": {
       "goBack": "Go Back",
@@ -1223,7 +2195,8 @@
       "amenities": "Amenities",
       "pricing": "Pricing",
       "ownerInfo": "Owner Information",
-      "availability": "Availability"
+      "availability": "Availability",
+      "similarVehicles": "Similar Vehicles"
     },
     "specs": {
       "capacity": "Capacity",
@@ -1241,6 +2214,35 @@
       "seatingCapacity": "Seating Capacity",
       "passengersCount": "{count} Passengers",
       "acType": "AC Type"
+    },
+    "valueLabels": {
+      "vehicleType": {
+        "ordinary": "Ordinary",
+        "semiLuxury": "Semi-Luxury",
+        "luxuryAc": "Luxury AC"
+      },
+      "acType": {
+        "fullAc": "Full AC",
+        "ac": "AC",
+        "nonAc": "Non-AC"
+      },
+      "condition": {
+        "excellent": "Excellent",
+        "good": "Good",
+        "fair": "Fair"
+      }
+    },
+    "amenityLabels": {
+      "wifi": "WiFi",
+      "usbCharging": "USB Charging",
+      "ac": "Air Conditioning",
+      "recliningSeats": "Reclining Seats",
+      "entertainment": "Entertainment System",
+      "gps": "GPS Tracking",
+      "firstAid": "First Aid Kit",
+      "readingLights": "Reading Lights",
+      "luggageSpace": "Luggage Space",
+      "water": "Drinking Water"
     },
     "reviewsTitle": "Reviews ({count})",
     "reviewsCount": "{count} reviews",
@@ -1273,7 +2275,286 @@
       "rating": "Rating"
     },
     "availability": {
-      "note": "Check availability by requesting a quotation"
+      "note": "Check availability by requesting a quotation",
+      "currentMonth": "Current month",
+      "bookedBlocked": "{booked} booked, {blocked} blocked",
+      "noBlockedDates": "No blocked dates found for this month.",
+      "status": {
+        "booked": "Booked",
+        "blocked": "Blocked",
+        "blockedWithReason": "Blocked: {reason}"
+      }
     }
+  },
+  "ownerProfile": {
+    "title": "My Profile",
+    "backToDashboard": "Back to Dashboard",
+    "tabPersonal": "Personal Information",
+    "tabAddress": "Address",
+    "tabVehicles": "Vehicles",
+    "tabSecurity": "Security",
+    "tabDocuments": "Documents",
+    "personalInfo": "Personal Information",
+    "personalInfoDesc": "Update your personal details",
+    "profilePhoto": "Profile Photo",
+    "profilePhotoHint": "JPG, PNG or GIF. Max size 2MB",
+    "addressInfo": "Address Information",
+    "addressInfoDesc": "Update your business or home address",
+    "addressField": "Address",
+    "addressPlaceholder": "Enter your complete address",
+    "baseLocationHint": "Where your vehicles are primarily based",
+    "securitySettings": "Security Settings",
+    "securitySettingsDesc": "Manage your password and account security",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "passwordMinLength": "At least 8 characters with numbers and special characters",
+    "updatePassword": "Update Password",
+    "updating": "Updating...",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "successPersonal": "Personal information updated successfully!",
+    "successAddress": "Address updated successfully!",
+    "successPassword": "Password updated successfully!",
+    "myVehicles": "My Vehicles",
+    "myVehiclesCount": "Manage your fleet of vehicles ({count} total)",
+    "addVehicle": "+ Add Vehicle",
+    "noVehicles": "No vehicles yet",
+    "noVehiclesDesc": "Add your first vehicle to start receiving bookings",
+    "addFirstVehicle": "Add Your First Vehicle",
+    "documentsTitle": "Verification Documents",
+    "documentsDesc": "Upload and manage documents required for account verification.",
+    "verificationStatus": "Verification Status",
+    "statusPending": "Pending Review",
+    "statusPendingDesc": "Your documents are under review. We will notify you once approved — this usually takes 1–2 business days.",
+    "statusVerified": "Account Verified",
+    "statusVerifiedDesc": "Your account and all documents have been successfully verified.",
+    "statusRejected": "Verification Not Approved",
+    "statusRejectedDesc": "Your documents were not approved. Please review the notes below and resubmit.",
+    "adminNotes": "Admin Notes",
+    "docTypeNIC": "National Identity Card (NIC)",
+    "docTypeProfilePhoto": "Profile Photo",
+    "docStatusPending": "Pending Review",
+    "docStatusVerified": "Verified",
+    "docStatusRejected": "Rejected",
+    "uploadDocument": "Upload",
+    "replaceDocument": "Replace",
+    "viewDocument": "View",
+    "deleteDocument": "Delete",
+    "noDocument": "Not uploaded",
+    "docUploaded": "Document uploaded successfully",
+    "docDeleted": "Document deleted successfully",
+    "uploadError": "Upload failed. Please try again.",
+    "deleteError": "Delete failed. Please try again."
+  },
+  "fleetManagement": {
+    "title": "Fleet Management",
+    "backToDashboard": "Back to Dashboard",
+    "vehicle": "vehicle",
+    "vehicles": "vehicles",
+    "addVehicle": "Add Vehicle",
+    "tabAll": "All",
+    "tabActive": "Active",
+    "tabInactive": "Inactive",
+    "tabPending": "Pending",
+    "viewGrid": "Grid view",
+    "viewTable": "Table view",
+    "searchPlaceholder": "Search by registration or type...",
+    "filters": "Filters",
+    "filterVehicleType": "Vehicle Type",
+    "filterCapacity": "Capacity Range",
+    "filterAcType": "AC Type",
+    "filterSortBy": "Sort By",
+    "allTypes": "All Types",
+    "allCapacities": "All Capacities",
+    "allAcTypes": "All AC Types",
+    "capacity0to20": "0–20 seats",
+    "capacity21to30": "21–30 seats",
+    "capacity31to45": "31–45 seats",
+    "capacity45plus": "45+ seats",
+    "acTypeFull": "Full AC",
+    "acTypeAc": "AC",
+    "acTypeNonAc": "Non-AC",
+    "sortRecent": "Most Recent",
+    "sortRating": "Highest Rating",
+    "sortBookings": "Most Bookings",
+    "sortCapacity": "Capacity",
+    "statCapacity": "Capacity",
+    "statBookings": "Bookings",
+    "statRating": "Rating",
+    "na": "N/A",
+    "seats": "seats",
+    "pendingApproval": "Awaiting verification approval",
+    "actionEdit": "Edit",
+    "actionView": "View Details",
+    "actionAvailability": "Set Availability",
+    "actionActivate": "Activate",
+    "actionDeactivate": "Deactivate",
+    "actionDelete": "Delete Vehicle",
+    "colVehicle": "Vehicle",
+    "colType": "Type",
+    "colCapacity": "Capacity",
+    "colStatus": "Status",
+    "colRating": "Rating",
+    "colActions": "Actions",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "statusPending": "Pending",
+    "emptyTitle": "No Vehicles Found",
+    "emptyDescAll": "You haven't added any vehicles yet. Start by adding your first vehicle.",
+    "emptyDescFiltered": "No {status} vehicles found.",
+    "addFirstVehicle": "Add Your Vehicle",
+    "resetFilters": "Reset Filters",
+    "errorLoad": "Failed to load vehicles. Please try again.",
+    "errorRetry": "Try again",
+    "confirmDelete": "Are you sure you want to delete this vehicle? This action cannot be undone.",
+    "deleteSuccess": "Vehicle deleted successfully.",
+    "deleteError": "Failed to delete vehicle. Please try again.",
+    "toggleSuccess": "Vehicle status updated.",
+    "toggleError": "Failed to update vehicle status. Please try again.",
+    "currency": "LKR",
+    "detailsTitle": "Vehicle Details",
+    "detailsSubtitle": "Review your listing information and pricing.",
+    "detailsAvailability": "Availability",
+    "detailsAvailable": "Available",
+    "detailsUnavailable": "Unavailable",
+    "detailsNotProvided": "Not provided",
+    "detailsNoAmenities": "No amenities listed yet.",
+    "detailsErrorLoad": "Oops, we couldn't load these vehicle details. Check your connection and try again.",
+    "detailsNotFound": "We can't find this vehicle. It may have been removed. Go back to your fleet and pick another one.",
+    "close": "Close"
+  },
+  "vehicleForm": {
+    "backToFleet": "Back to Fleet",
+    "addTitle": "Add New Vehicle",
+    "addSubtitle": "Fill in the details to list your bus",
+    "editTitle": "Edit Vehicle",
+    "editSubtitle": "Update vehicle information",
+    "sectionBasic": "Basic Information",
+    "sectionPricing": "Pricing",
+    "sectionPhotos": "Photos",
+    "sectionDocuments": "Documents",
+    "sectionAmenities": "Amenities & Features",
+    "busDetailsTitle": "Bus Details",
+    "busDetailsSubtitle": "Enter the basic information about your bus",
+    "vehicleDetailsSubtitle": "Update the basic information about your vehicle",
+    "fieldBusName": "Bus Name",
+    "fieldBusNamePlaceholder": "e.g., Luxury Coach 54-Seater",
+    "fieldRegistration": "Registration Number",
+    "fieldRegistrationPlaceholder": "WP-1234",
+    "fieldBusType": "Bus Type",
+    "fieldBusTypePlaceholder": "Select bus type",
+    "fieldMake": "Make",
+    "fieldMakePlaceholder": "e.g., Ashok Leyland",
+    "fieldModel": "Model",
+    "fieldModelPlaceholder": "e.g., 2820",
+    "fieldYear": "Year",
+    "fieldCapacity": "Seating Capacity",
+    "fieldColor": "Color",
+    "fieldColorPlaceholder": "White",
+    "fieldAcType": "AC Type",
+    "fieldAcTypePlaceholder": "Select AC type",
+    "fieldCondition": "Condition",
+    "fieldConditionPlaceholder": "Select condition",
+    "fieldLocation": "Location",
+    "fieldLocationPlaceholder": "e.g., Colombo, Sri Lanka",
+    "fieldDescription": "Description",
+    "fieldDescriptionPlaceholder": "Describe your bus, seating layout, and any special features...",
+    "pricingTitle": "Pricing Information",
+    "pricingSubtitle": "Set your rental rates",
+    "pricingSubtitleEdit": "Update your rental rates",
+    "fieldPricePerKm": "Price per Kilometer",
+    "fieldPricePerKmHelp": "LKR per kilometer",
+    "fieldPricePerDay": "Price per Day",
+    "fieldPricePerDayHelp": "LKR per day",
+    "fieldDriverAllowance": "Driver Allowance per Day",
+    "fieldDriverAllowanceHelp": "Optional: LKR daily allowance for the driver",
+    "sampleCalcTitle": "Sample Calculation",
+    "sampleCalcDistance": "Distance: 150 km",
+    "sampleCalcRental": "1 Day rental",
+    "sampleCalcTotal": "Estimated Total",
+    "photosTitle": "Vehicle Photos",
+    "photosSubtitle": "Upload clear photos of your vehicle (first photo will be primary)",
+    "photosSubtitleEdit": "Upload new photos to add to this vehicle",
+    "uploadZoneTitle": "Upload Vehicle Photos",
+    "uploadZoneSubtitle": "Click to select or drag and drop",
+    "uploadZoneFormats": "JPG, PNG up to 5MB each",
+    "photoPrimary": "Primary",
+    "photoTagExterior": "Exterior",
+    "photoTagInterior": "Interior",
+    "photoTagFront": "Front",
+    "photoTagRear": "Rear",
+    "photoTagSeats": "Seats",
+    "photoTagOther": "Other",
+    "documentsTitle": "Vehicle Documents",
+    "documentsSubtitle": "Upload required documents for verification",
+    "documentsSubtitleEdit": "Upload new documents (leave blank to keep current)",
+    "docLicense": "Driving License",
+    "docLicenseHelp": "Valid heavy vehicle driving license",
+    "docInsurance": "Insurance Certificate",
+    "docInsuranceHelp": "Current vehicle insurance document",
+    "docRegistration": "Certificate of Registration (CR)",
+    "docRegistrationHelp": "Vehicle registration certificate",
+    "docReqTitle": "Document Requirements",
+    "docReqClear": "All documents must be clear and readable",
+    "docReqFormats": "Accepted formats: PDF, JPG, PNG (Max 5MB)",
+    "docReqValid": "Documents must be current and valid",
+    "docReqReview": "Documents are reviewed within 24-48 hours",
+    "amenitiesTitle": "Amenities & Features",
+    "amenitiesSubtitle": "Select available amenities",
+    "amenitiesSubtitleEdit": "Update available amenities",
+    "gpsTitle": "GPS Tracking",
+    "gpsSubtitle": "Real-time tracking for safety",
+    "customAmenityPlaceholder": "Add custom amenity...",
+    "addCustomAmenity": "Add",
+    "saveDraft": "Save as Draft",
+    "publishVehicle": "Publish Vehicle",
+    "publishing": "Publishing...",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "errorDocRequired": "All vehicle documents are required to publish",
+    "errorCreate": "Failed to create vehicle",
+    "errorUpdate": "Failed to update vehicle",
+    "errorLabel": "Error",
+    "errorRequired": "This field is required",
+    "back": "Back",
+    "next": "Continue"
+  },
+  "vehicleAvailability": {
+    "backToFleet": "Back to Fleet",
+    "pageTitle": "Availability Calendar",
+    "blockDates": "Block Dates",
+    "weekSun": "Sun",
+    "weekMon": "Mon",
+    "weekTue": "Tue",
+    "weekWed": "Wed",
+    "weekThu": "Thu",
+    "weekFri": "Fri",
+    "weekSat": "Sat",
+    "legendSelected": "Selected",
+    "legendBooked": "Booked",
+    "legendBlocked": "Blocked",
+    "legendAvailable": "Available",
+    "howToUseTitle": "How to Use",
+    "howToUseSelect": "Click dates to select multiple days",
+    "howToUseBlock": "Click \"Block Dates\" to make them unavailable",
+    "howToUseBooked": "Booked dates cannot be modified",
+    "howToUsePast": "Past dates are automatically disabled",
+    "blockedPeriodsTitle": "Blocked Periods",
+    "upcomingBookingsTitle": "Upcoming Bookings",
+    "modalTitle": "Block Selected Dates",
+    "modalReasonLabel": "Reason",
+    "modalReasonPlaceholder": "Select reason",
+    "modalReasonMaintenance": "Maintenance",
+    "modalReasonPersonal": "Personal Use",
+    "modalReasonRepairs": "Repairs",
+    "modalReasonOther": "Other",
+    "modalNotesLabel": "Notes (Optional)",
+    "modalNotesPlaceholder": "Add any additional notes...",
+    "modalCancel": "Cancel",
+    "modalConfirm": "Confirm Block",
+    "errorNotFound": "Vehicle not found",
+    "errorLoad": "Failed to load availability data"
   }
 }

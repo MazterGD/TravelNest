@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
 import { Search, MapPin, Calendar, Users, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ImageWithFallback } from "@/components/landing/ImageWithFallback";
@@ -13,7 +17,54 @@ export function SearchSection({
   searchHref,
   howItWorksHref,
 }: SearchSectionProps) {
+  const router = useRouter();
   const t = useTranslations("landing.searchSection");
+  const tTrust = useTranslations("landing.trustIndicators.stats");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [travelDate, setTravelDate] = useState("");
+  const [passengers, setPassengers] = useState("");
+
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const params = new URLSearchParams();
+    const normalizedFrom = from.trim();
+    const normalizedTo = to.trim();
+    const normalizedDate = travelDate.trim();
+    const parsedPassengers = Number.parseInt(passengers, 10);
+
+    if (normalizedFrom) {
+      params.set("from", normalizedFrom);
+    }
+
+    if (normalizedTo) {
+      params.set("to", normalizedTo);
+    }
+
+    if (normalizedDate) {
+      params.set("date", normalizedDate);
+    }
+
+    if (!Number.isNaN(parsedPassengers) && parsedPassengers > 0) {
+      params.set("passengers", String(parsedPassengers));
+    }
+
+    const queryString = params.toString();
+    router.push(queryString ? `${searchHref}?${queryString}` : searchHref);
+  };
+
+  const valueProps = [
+    t("bullets.verifiedOwners"),
+    t("bullets.transparentPricing"),
+    t("bullets.instantQuotes"),
+  ];
+
+  const trustHighlights = [
+    `${tTrust("verifiedBuses.label")} · ${tTrust("verifiedBuses.sublabel")}`,
+    `${tTrust("successfulTrips.label")} · ${tTrust("successfulTrips.sublabel")}`,
+    `${tTrust("travelersTrustUs.label")} · ${tTrust("travelersTrustUs.sublabel")}`,
+  ];
 
   return (
     <section className="relative flex min-h-screen items-center overflow-hidden">
@@ -29,22 +80,24 @@ export function SearchSection({
       <div className="relative z-10 mx-auto w-full max-w-[1280px] px-4 py-32 sm:px-6 lg:px-8">
         <div className="max-w-[720px]">
           <p className="mb-4 text-[14px] font-medium uppercase tracking-wide text-white/70">
-            Ayubowan! Welcome to TravelNest
+            {valueProps.join(" · ")}
           </p>
 
           <h1 className="mb-6 text-[36px] font-bold leading-[44px] tracking-[-0.02em] text-white sm:text-[48px] sm:leading-[56px]">
-            Find the perfect bus
+            {t("titleLine1")}
             <br />
-            for your journey
+            {t("titleLine2")}
           </h1>
 
           <p className="mb-12 max-w-[540px] text-[16px] leading-[24px] text-white/80 sm:text-[18px] sm:leading-[28px]">
-            Compare verified buses, get transparent quotes, and book with
-            confidence. From school trips to destination weddings.
+            {t("subtitle")}
           </p>
         </div>
 
-        <div className="max-w-[960px] rounded-[20px] bg-white p-2 shadow-2xl">
+        <form
+          onSubmit={handleSearch}
+          className="max-w-[960px] rounded-[20px] bg-white p-2 shadow-2xl"
+        >
           <div className="grid grid-cols-1 gap-0 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]">
             <div className="border-b border-border px-4 py-3 transition-colors hover:bg-muted lg:border-b-0 lg:border-r">
               <label className="mb-1 block text-[12px] font-semibold text-muted-foreground">
@@ -54,6 +107,8 @@ export function SearchSection({
                 <MapPin className="h-[18px] w-[18px] flex-shrink-0 text-text-tertiary" />
                 <input
                   type="text"
+                  value={from}
+                  onChange={(event) => setFrom(event.target.value)}
                   placeholder={t("form.fromPlaceholder")}
                   className="w-full bg-transparent text-[16px] text-foreground placeholder:text-text-tertiary focus:outline-none"
                 />
@@ -68,6 +123,8 @@ export function SearchSection({
                 <MapPin className="h-[18px] w-[18px] flex-shrink-0 text-text-tertiary" />
                 <input
                   type="text"
+                  value={to}
+                  onChange={(event) => setTo(event.target.value)}
                   placeholder={t("form.toPlaceholder")}
                   className="w-full bg-transparent text-[16px] text-foreground placeholder:text-text-tertiary focus:outline-none"
                 />
@@ -82,6 +139,8 @@ export function SearchSection({
                 <Calendar className="h-[18px] w-[18px] flex-shrink-0 text-text-tertiary" />
                 <input
                   type="date"
+                  value={travelDate}
+                  onChange={(event) => setTravelDate(event.target.value)}
                   className="w-full bg-transparent text-[16px] text-foreground focus:outline-none"
                 />
               </div>
@@ -95,6 +154,8 @@ export function SearchSection({
                 <Users className="h-[18px] w-[18px] flex-shrink-0 text-text-tertiary" />
                 <input
                   type="number"
+                  value={passengers}
+                  onChange={(event) => setPassengers(event.target.value)}
                   placeholder={t("form.passengersPlaceholder")}
                   min="1"
                   className="w-full bg-transparent text-[16px] text-foreground placeholder:text-text-tertiary focus:outline-none"
@@ -104,7 +165,7 @@ export function SearchSection({
 
             <div className="p-4 sm:col-span-2 lg:col-span-1 flex items-center justify-center">
               <CTAButton
-                href={searchHref}
+                type="submit"
                 size="lg"
                 fullWidth
                 leftIcon={<Search className="h-5 w-5" />}
@@ -113,14 +174,10 @@ export function SearchSection({
               </CTAButton>
             </div>
           </div>
-        </div>
+        </form>
 
         <div className="mt-8 flex flex-wrap items-center gap-6">
-          {[
-            "500+ Verified Buses",
-            "10,000+ Trips Completed",
-            "4.9★ Average Rating",
-          ].map((stat) => (
+          {trustHighlights.map((stat) => (
             <span key={stat} className="text-[14px] font-medium text-white/60">
               {stat}
             </span>

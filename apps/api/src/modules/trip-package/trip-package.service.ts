@@ -15,6 +15,8 @@ export interface TripPackageFilters {
   isActive?: boolean;
   page?: number;
   limit?: number;
+  sortBy?: string;
+  sortOrder?: string;
 }
 
 interface TripPackageInput {
@@ -68,6 +70,8 @@ export const getAllTripPackages = async (filters: TripPackageFilters) => {
     isActive,
     page = 1,
     limit = 12,
+    sortBy,
+    sortOrder,
   } = filters;
 
   const skip = (page - 1) * limit;
@@ -119,6 +123,18 @@ export const getAllTripPackages = async (filters: TripPackageFilters) => {
     where.vehicle = { type: vehicleType };
   }
 
+  const normalizedSortOrder = sortOrder === "asc" ? "asc" : "desc";
+  let orderBy: any = { createdAt: "desc" };
+  if (sortBy === "price") {
+    orderBy = { price: normalizedSortOrder };
+  }
+  if (sortBy === "duration") {
+    orderBy = { durationDays: normalizedSortOrder };
+  }
+  if (sortBy === "newest") {
+    orderBy = { createdAt: normalizedSortOrder };
+  }
+
   const [packages, total] = await Promise.all([
     prismaClient.tripPackage.findMany({
       where,
@@ -146,7 +162,7 @@ export const getAllTripPackages = async (filters: TripPackageFilters) => {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy,
     }),
     prismaClient.tripPackage.count({ where }),
   ]);

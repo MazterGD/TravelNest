@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Button, Card, CardContent, LoadingSpinner } from "@/components/ui";
 import { paymentService, ApiError } from "@/lib/api";
-import { FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
+import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { useTranslations } from "next-intl";
 
 interface PaymentInfo {
@@ -64,9 +64,9 @@ export default function PaymentReturnPage() {
       <Card className="w-full">
         <CardContent className="space-y-4 p-8 text-center">
           {isSuccess ? (
-            <FaCheckCircle className="mx-auto h-12 w-12 text-green-500" />
+            <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
           ) : (
-            <FaExclamationTriangle className="mx-auto h-12 w-12 text-yellow-500" />
+            <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500" />
           )}
           <h1 className="text-2xl font-semibold text-gray-900">
             {isSuccess ? t("success.title") : t("pending.title")}

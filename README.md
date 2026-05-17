@@ -6,44 +6,148 @@ TraveNest is a web-based vehicle rental marketplace platform designed to connect
 
 ## Project Architecture
 
-This is a **monorepo** managed with npm workspaces:
+This is a **monorepo** managed with `pnpm` workspaces:
 
 ```
 travenest/
 ├── apps/
-│   ├── web/                 # Next.js 16 frontend
-│   └── api/                 # Express.js backend API
+│   ├── web/                 # Next.js 16 frontend (@travenest/web)
+│   └── api/                 # Express.js backend API (@travenest/api)
 ├── packages/
-│   ├── database/            # Prisma ORM & database schema
-│   └── shared-types/        # Shared TypeScript types
-└── package.json             # Root package.json with workspaces
+│   ├── database/            # Prisma ORM & database schema (@travenest/database)
+│   └── shared-types/        # Shared TypeScript types (@travenest/shared-types)
+└── package.json             # Root package.json with workspace commands
 ```
 
-## Quick Start
+## Quick Start for New Developers 🚀
+
+Welcome! If you're a new developer joining the project, follow these steps to get the environment running locally.
+
+### 1. Prerequisites
+
+- **Node.js**: v18.0.0 or higher
+- **Package Manager**: `pnpm` (Install via `npm install -g pnpm`)
+- **Database**: PostgreSQL (Ensure you have a local instance running or a cloud DB connection string)
+- **External Accounts**: Google Maps API Key, PayHere account, Twilio, AWS S3 (for full functionality)
+
+### 2. Installation & Setup
+
+Clone the repository and install all dependencies from the root directory:
 
 ```bash
-# Install all dependencies
-npm install
+git clone https://github.com/MazterGD/TraveNest.git
+cd TraveNest
 
-# Set up environment variables
-cp apps/api/.env.example apps/api/.env
-# Edit apps/api/.env with your database credentials
-
-# Set up the database
-npm run db:push      # Push schema to database
-npm run db:seed      # Seed demo data (optional)
-
-# Start development (frontend + backend)
-npm run dev
+# Install dependencies for all apps and packages
+pnpm install
 ```
 
-| Script              | Description                             |
-| ------------------- | --------------------------------------- |
-| `npm run dev`       | Start all services (web:3000, api:5000) |
-| `npm run dev:web`   | Start frontend only                     |
-| `npm run dev:api`   | Start backend only                      |
-| `npm run build`     | Build all workspaces                    |
-| `npm run db:studio` | Open Prisma Studio                      |
+### 3. Environment Variables
+
+Set up your local environment variables. From the root directory:
+```bash
+# For the Express API
+cp apps/api/.env.example apps/api/.env
+
+# For the Next.js Web App
+cp apps/web/.env.example apps/web/.env.local
+```
+_Make sure to open these files and update them with your actual local credentials, particularly `DATABASE_URL` for PostgreSQL._
+
+### 4. Database Initialization & Seeding
+
+We use **Prisma** as our ORM. All database commands should be executed from the **root** of the project:
+
+```bash
+# 1. Push the database schema to your local PostgreSQL instance to create the tables
+pnpm db:push
+
+# 2. Generate the Prisma Client (TypeScript types based on your schema)
+pnpm db:generate
+
+# 3. Seed the database with initial/dummy data to help you test
+pnpm db:seed
+```
+
+### 5. Starting the Development Servers
+
+You can start the frontend and backend simultaneously, or individually. Run these from the **root** directory:
+
+```bash
+# Start both the Web Frontend (Next.js) and the API Backend (Express)
+pnpm dev
+
+# Alternatively, start them individually:
+pnpm dev:web   # Starts only the Next.js frontend on port 3000
+pnpm dev:api   # Starts only the Express API on port 5000
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🛠 Database Management: How to Add or Update Tables
+
+If you are tasked with adding a new feature that requires database changes (e.g., adding a new table or modifying an existing one), here is the standard workflow:
+
+### Step 1: Modify the Prisma Schema
+Navigate to our central database package:
+```
+packages/database/prisma/schema.prisma
+```
+Open this file and define your new `model`, or add/remove columns from an existing model following Prisma syntax.
+
+### Step 2: Generate Updated Typings
+Once your schema is updated, you must rebuild the Prisma Client so your TypeScript code recognizes the changes. Run from the root:
+```bash
+pnpm db:generate
+```
+
+### Step 3: Apply Changes to the Database
+To apply your definitions to the actual PostgreSQL database:
+- **During Local Prototyping**: Run `pnpm db:push` from the root. This forces the local database schema to match your Prisma schema rapidly.
+- **For Production/Team Sharing**: Run `pnpm db:migrate` to create a formal SQL migration history file.
+
+### Step 4: Add Seed Data (Optional)
+If your new table needs initial test data, navigate to:
+```
+packages/database/src/seed.ts
+```
+Add records for your new model, then run `pnpm db:seed` from the root.
+
+### Step 5: View Your Data
+To visually inspect your database tables and records via GUI:
+```bash
+pnpm db:studio
+```
+This opens Prisma Studio.
+
+---
+
+## 💻 Workspace Command Reference
+
+Here is a cheat sheet for `pnpm` workspace commands run from the root:
+
+| Command | Description |
+|---|---|
+| `pnpm install` | Installs dependencies across all workspaces |
+| `pnpm dev` | Starts all development servers (web & api) |
+| `pnpm dev:web` | Starts only the Next.js frontend |
+| `pnpm dev:api` | Starts only the Express backend |
+| `pnpm build` | Builds all workspaces for production |
+| `pnpm typecheck` | Runs TypeScript typechecking without emitting files |
+| `pnpm lint` | Runs ESLint and style checks |
+| `pnpm clean` | Removes all `node_modules`, `.next`, and `dist` folders |
+
+**Database Shortcuts:**
+| Command | Description |
+|---|---|
+| `pnpm db:generate` | Generates Prisma Client (`prisma generate`) |
+| `pnpm db:push` | Pushes schema without migrations (`prisma db push`) |
+| `pnpm db:migrate` | Runs dev migrations (`prisma migrate dev`) |
+| `pnpm db:seed` | Seeds the database |
+| `pnpm db:studio` | Opens Prisma Studio |
+
+---
 
 ## Features
 
@@ -71,165 +175,7 @@ npm run dev
 - Platform analytics and reporting
 - System management
 
-## 🛠️ Tech Stack
-
-- **Frontend:** React/Next.js 15 with Tailwind CSS
-- **Backend:** Node.js/Express with PostgreSQL
-- **Authentication:** JWT
-- **Payments:** PayHere
-- **SMS/OTP:** Twilio
-- **Storage:** AWS S3
-- **Maps:** Google Maps API
-- **PWA:** Progressive Web App capabilities
-
-## Project Structure
-
-```
-src/
-├── app/                          # Next.js App Router pages
-│   ├── globals.css              # Global styles and Tailwind config
-│   ├── layout.tsx               # Root layout
-│   └── [locale]/                # Internationalized routes
-│       ├── layout.tsx           # Locale layout with i18n provider
-│       ├── page.tsx             # Home page
-│       ├── login/               # Login page
-│       ├── register/            # Registration page
-│       ├── search/              # Vehicle search page
-│       ├── about/               # About page
-│       ├── contact/             # Contact page
-│       ├── how-it-works/        # How it works page
-│       ├── faq/                 # FAQ page
-│       ├── privacy/             # Privacy policy
-│       ├── terms/               # Terms of service
-│       ├── refund-policy/       # Refund policy
-│       └── dashboard/           # Customer dashboard (protected)
-│           ├── layout.tsx       # Dashboard layout with sidebar
-│           ├── page.tsx         # Dashboard overview
-│           ├── quotations/      # Quotation management
-│           │   ├── page.tsx     # Quotation requests list
-│           │   └── new/         # New quotation request form
-│           ├── bookings/        # Booking management
-│           ├── reviews/         # Customer reviews
-│           └── profile/         # Profile settings
-├── components/                   # React components
-│   ├── layout/                  # Layout components
-│   │   ├── Header.tsx           # Navigation header
-│   │   ├── Footer.tsx           # Site footer
-│   │   ├── MainLayout.tsx       # Public pages layout
-│   │   └── LanguageSwitcher.tsx # i18n language selector
-│   ├── ui/                      # Reusable UI components
-│   │   ├── Button.tsx           # Button component
-│   │   ├── Input.tsx            # Text input component
-│   │   ├── TextArea.tsx         # Textarea component
-│   │   ├── Select.tsx           # Custom select dropdown
-│   │   ├── Card.tsx             # Card components
-│   │   ├── Modal.tsx            # Modal dialog
-│   │   ├── Tabs.tsx             # Tab navigation
-│   │   ├── Badge.tsx            # Status badges
-│   │   ├── Avatar.tsx           # User avatars
-│   │   ├── DatePicker.tsx       # Date/time pickers
-│   │   ├── Accordion.tsx        # Expandable accordion
-│   │   ├── PageHeader.tsx       # Page header component
-│   │   ├── EmptyState.tsx       # Empty state displays
-│   │   ├── Skeleton.tsx         # Loading skeletons
-│   │   └── index.ts             # Barrel exports
-│   └── features/                # Feature-specific components
-│       └── customer/            # Customer portal components
-│           ├── QuotationRequestForm.tsx  # Quotation request form
-│           ├── QuotationCard.tsx         # Quotation display card
-│           ├── QuotationRequestCard.tsx  # Request card component
-│           ├── BookingCard.tsx           # Booking display card
-│           ├── ReviewForm.tsx            # Review submission form
-│           └── index.ts                  # Barrel exports
-├── hooks/                       # Custom React hooks
-│   ├── useAuth.ts              # Authentication hook
-│   ├── useQuotations.ts        # Quotations management hook
-│   ├── useBookings.ts          # Bookings management hook
-│   ├── useUtils.ts             # Utility hooks (debounce, etc.)
-│   └── index.ts                # Barrel exports
-├── store/                       # Zustand state management
-│   ├── authStore.ts            # Authentication state
-│   ├── quotationStore.ts       # Quotation state
-│   ├── bookingStore.ts         # Booking state
-│   └── index.ts                # Barrel exports
-├── lib/                         # Utility libraries
-│   ├── utils/
-│   │   └── cn.ts               # Class name utility
-│   ├── api/
-│   │   ├── client.ts           # HTTP API client
-│   │   └── index.ts            # API exports
-│   └── validations/
-│       └── index.ts            # Zod validation schemas
-├── types/                       # TypeScript definitions
-│   └── index.ts                # Core type definitions
-├── constants/                   # Application constants
-│   └── index.ts                # App config, districts, etc.
-├── i18n/                        # Internationalization
-│   ├── request.ts              # next-intl config
-│   └── locales/                # Translation files
-│       ├── en/common.json      # English translations
-│       ├── si/common.json      # Sinhala translations
-│       └── ta/common.json      # Tamil translations
-└── middleware.ts               # Next.js middleware (i18n routing)
-```
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ and npm
-- PostgreSQL database
-- Google Maps API key
-- PayHere merchant account
-- Twilio account
-- AWS S3 bucket
-
-### Installation
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/MazterGD/TraveNest.git
-cd TraveNest
-```
-
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. Set up environment variables:
-
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` and add your configuration values.
-
-4. Run the development server:
-
-```bash
-npm run dev
-```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Available Languages
-
-The platform supports three languages:
-
-- English (EN)
-- Sinhala (SI)
-- Tamil (TA)
-
-Language can be switched from the navigation bar. URLs are automatically prefixed with the locale (e.g., `/en/`, `/si/`, `/ta/`).
-
-## PWA Support
-
-TravelNest is a Progressive Web App that can be installed on mobile devices and desktop computers for an app-like experience.
-
-## Styling
+## 🎨 Styling & Design
 
 The project uses:
 
@@ -246,17 +192,6 @@ The project uses:
 - **Muted:** Soft Cyan (#C9E9F8) - Backgrounds and subtle elements
 - **Card:** Very Light Blue (#DAF3FB) - Card backgrounds
 
-## Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
-
-## Environment Variables
-
-See `.env.example` for all required environment variables.
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -264,12 +199,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Next.js team for the amazing framework
-- Tailwind CSS for the utility-first CSS framework
-- All contributors and supporters of this project
 
 ## Contact
 

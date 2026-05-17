@@ -5,19 +5,9 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import {
-  FaUser,
-  FaEnvelope,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaLock,
-  FaEye,
-  FaEyeSlash,
-  FaBuilding,
-  FaCheckCircle,
-} from "react-icons/fa";
+import { User, Mail, Phone, MapPin, Lock, Eye, EyeOff, Building, CheckCircle } from 'lucide-react';
 import { MainLayout } from "@/components/layout/MainLayout";
-import { LoadingSpinner } from "@/components/ui";
+import { LoadingSpinner, OtpVerificationModal } from "@/components/ui";
 import { authService, ApiError } from "@/lib/api";
 import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 import { useAuthStore } from "@/store";
@@ -52,8 +42,26 @@ export default function CustomerRegistrationPage() {
     privacyAccepted: false,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const registerCustomerAccount = async () => {
+    const response = await authService.register({
+      email: formData.email,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      phone: formData.phone || undefined,
+      role: "customer",
+    });
+
+    login(response.user, response.accessToken);
+    router.push(getDashboardUrl(response.user, locale));
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -111,21 +119,12 @@ export default function CustomerRegistrationPage() {
     }
 
     try {
-      const response = await authService.register({
-        email: formData.email,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone || undefined,
-        role: "customer",
+      setIsSendingOtp(true);
+      await authService.sendOtp({
+        identifier: formData.email,
+        purpose: "REGISTRATION",
       });
-
-      // Store user and token in auth store
-      login(response.user, response.accessToken);
-
-      // Redirect to role-specific dashboard
-      router.push(getDashboardUrl(response.user, locale));
+      setOtpModalOpen(true);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.isValidationError()) {
@@ -137,8 +136,39 @@ export default function CustomerRegistrationPage() {
         setError(t("errors.unexpected"));
       }
     } finally {
+      setIsSendingOtp(false);
       setIsLoading(false);
     }
+  };
+
+  const handleVerifyOtp = async (code: string) => {
+    setIsVerifyingOtp(true);
+
+    try {
+      await authService.verifyOtp({
+        identifier: formData.email,
+        code,
+        purpose: "REGISTRATION",
+      });
+
+      await registerCustomerAccount();
+      setOtpModalOpen(false);
+    } catch (verifyError) {
+      if (verifyError instanceof ApiError) {
+        throw new Error(verifyError.message);
+      }
+
+      throw new Error(t("errors.unexpected"));
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    await authService.sendOtp({
+      identifier: formData.email,
+      purpose: "REGISTRATION",
+    });
   };
 
   // Show loading while checking auth state
@@ -156,7 +186,7 @@ export default function CustomerRegistrationPage() {
     <MainLayout>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6">
             {/* Left Sidebar - Information */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-gray-100 sticky top-8">
@@ -182,7 +212,7 @@ export default function CustomerRegistrationPage() {
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <FaCheckCircle className="w-4 h-4 text-white" />
+                      <CheckCircle className="w-4 h-4 text-white" />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 mb-1">
@@ -195,7 +225,7 @@ export default function CustomerRegistrationPage() {
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <FaCheckCircle className="w-4 h-4 text-white" />
+                      <CheckCircle className="w-4 h-4 text-white" />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 mb-1">
@@ -208,7 +238,7 @@ export default function CustomerRegistrationPage() {
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <FaCheckCircle className="w-4 h-4 text-white" />
+                      <CheckCircle className="w-4 h-4 text-white" />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 mb-1">
@@ -263,7 +293,7 @@ export default function CustomerRegistrationPage() {
                           {t("fields.firstName.label")}
                         </label>
                         <div className="relative group">
-                          <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type="text"
                             name="firstName"
@@ -286,7 +316,7 @@ export default function CustomerRegistrationPage() {
                           {t("fields.lastName.label")}
                         </label>
                         <div className="relative group">
-                          <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type="text"
                             name="lastName"
@@ -309,7 +339,7 @@ export default function CustomerRegistrationPage() {
                           {t("fields.email.label")}
                         </label>
                         <div className="relative group">
-                          <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type="email"
                             name="email"
@@ -332,7 +362,7 @@ export default function CustomerRegistrationPage() {
                           {t("fields.phone.label")}
                         </label>
                         <div className="relative group">
-                          <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type="tel"
                             name="phone"
@@ -363,7 +393,7 @@ export default function CustomerRegistrationPage() {
                           Organization Name
                         </label>
                         <div className="relative group">
-                          <FaBuilding className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type="text"
                             name="organizationName"
@@ -379,7 +409,7 @@ export default function CustomerRegistrationPage() {
                         <label className="block text-lg font-semibold text-gray-800 mb-2">
                           Organization Type
                         </label>
-                        <select
+                        <select className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
                           name="organizationType"
                           value={formData.organizationType}
                           onChange={handleChange}
@@ -409,7 +439,7 @@ export default function CustomerRegistrationPage() {
                           {t("fields.address.label")}
                         </label>
                         <div className="relative group">
-                          <FaMapMarkerAlt className="absolute left-4 top-4 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <MapPin className="absolute left-4 top-4 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <textarea
                             name="address"
                             required
@@ -466,7 +496,7 @@ export default function CustomerRegistrationPage() {
                           {t("fields.password.label")}
                         </label>
                         <div className="relative group">
-                          <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type={showPassword ? "text" : "password"}
                             name="password"
@@ -482,9 +512,9 @@ export default function CustomerRegistrationPage() {
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
                           >
                             {showPassword ? (
-                              <FaEyeSlash className="w-5 h-5" />
+                              <EyeOff className="w-5 h-5" />
                             ) : (
-                              <FaEye className="w-5 h-5" />
+                              <Eye className="w-5 h-5" />
                             )}
                           </button>
                         </div>
@@ -526,7 +556,7 @@ export default function CustomerRegistrationPage() {
                           {t("fields.confirmPassword.label")}
                         </label>
                         <div className="relative group">
-                          <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type={showConfirmPassword ? "text" : "password"}
                             name="confirmPassword"
@@ -546,9 +576,9 @@ export default function CustomerRegistrationPage() {
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
                           >
                             {showConfirmPassword ? (
-                              <FaEyeSlash className="w-5 h-5" />
+                              <EyeOff className="w-5 h-5" />
                             ) : (
-                              <FaEye className="w-5 h-5" />
+                              <Eye className="w-5 h-5" />
                             )}
                           </button>
                         </div>
@@ -609,10 +639,10 @@ export default function CustomerRegistrationPage() {
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || isSendingOtp}
                     className="w-full bg-gradient-to-r from-primary to-primary/90 text-white py-5 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {isLoading ? (
+                    {isLoading || isSendingOtp ? (
                       <LoadingSpinner size="sm" className="text-white" />
                     ) : (
                       t("submit")
@@ -624,6 +654,16 @@ export default function CustomerRegistrationPage() {
           </div>
         </div>
       </div>
+
+      <OtpVerificationModal
+        isOpen={otpModalOpen}
+        destination={formData.email}
+        isSending={isSendingOtp}
+        isVerifying={isVerifyingOtp}
+        onClose={() => setOtpModalOpen(false)}
+        onVerify={handleVerifyOtp}
+        onResend={handleResendOtp}
+      />
     </MainLayout>
   );
 }

@@ -118,12 +118,24 @@ const mapACType = (acType: string): string => {
 export const getAllVehicles = async (filters: {
   type?: string;
   location?: string;
+  district?: string;
+  acType?: string;
+  amenities?: string[];
   minSeats?: number;
   maxSeats?: number;
   available?: boolean;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: string;
 }) => {
+  const page = Math.max(1, filters.page || 1);
+  const limit = Math.min(48, Math.max(1, filters.limit || 12));
+  const skip = (page - 1) * limit;
+
   const where: any = {
     isActive: true,
+    isAvailable: true,
   };
 
   if (filters.type) {
@@ -137,6 +149,26 @@ export const getAllVehicles = async (filters: {
     };
   }
 
+  if (filters.district) {
+    where.location = {
+      contains: filters.district,
+      mode: "insensitive",
+    };
+  }
+
+  if (filters.acType) {
+    where.acType = {
+      equals: filters.acType.toLowerCase().replace(/_/g, "-"),
+      mode: "insensitive",
+    };
+  }
+
+  if (filters.amenities && filters.amenities.length > 0) {
+    where.amenities = {
+      hasEvery: filters.amenities,
+    };
+  }
+
   if (filters.minSeats || filters.maxSeats) {
     where.seats = {};
     if (filters.minSeats) where.seats.gte = filters.minSeats;
@@ -147,35 +179,56 @@ export const getAllVehicles = async (filters: {
     where.isAvailable = filters.available;
   }
 
-  const vehicles = await prisma.vehicle.findMany({
-    where,
-    include: {
-      owner: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          phone: true,
-          isVerified: true,
+  const sortOrder = filters.sortOrder === "asc" ? "asc" : "desc";
+  const sortBy = filters.sortBy || "newest";
+
+  let orderBy: any = { createdAt: "desc" };
+  if (sortBy === "price") {
+    orderBy = { pricePerDay: sortOrder };
+  }
+  if (sortBy === "capacity") {
+    orderBy = { seats: sortOrder };
+  }
+  if (sortBy === "rating") {
+    orderBy = { reviews: { _count: sortOrder } };
+  }
+  if (sortBy === "newest") {
+    orderBy = { createdAt: sortOrder };
+  }
+
+  const [vehicles, total] = await Promise.all([
+    prisma.vehicle.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        owner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            isVerified: true,
+            businessName: true,
+          },
+        },
+        photos: {
+          where: { isPrimary: true },
+          take: 1,
+        },
+        reviews: {
+          select: {
+            rating: true,
+          },
         },
       },
-      photos: {
-        where: { isPrimary: true },
-        take: 1,
-      },
-      reviews: {
-        select: {
-          rating: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+      orderBy,
+    }),
+    prisma.vehicle.count({ where }),
+  ]);
 
   // Calculate average ratings
-  return vehicles.map((vehicle) => ({
+  const normalizedVehicles = vehicles.map((vehicle) => ({
     ...vehicle,
     averageRating:
       vehicle.reviews.length > 0
@@ -184,6 +237,16 @@ export const getAllVehicles = async (filters: {
         : 0,
     reviewCount: vehicle.reviews.length,
   }));
+
+  return {
+    vehicles: normalizedVehicles,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    },
+  };
 };
 
 /**
@@ -201,6 +264,8 @@ export const getVehicleById = async (id: string) => {
           phone: true,
           email: true,
           isVerified: true,
+          businessName: true,
+          baseLocation: true,
         },
       },
       photos: {
@@ -514,25 +579,27 @@ export const uploadVehiclePhotos = async (
     });
   }
 
-  // Create photo records
-  const createdPhotos = await Promise.all(
-    photos.map((photo, index) =>
-      prisma.vehiclePhoto.create({
-        data: {
-          vehicleId,
-          url: photo.url,
-          fileName: photo.fileName,
-          fileSize: photo.fileSize,
-          mimeType: photo.mimeType,
-          isPrimary:
-            existingPhotos.length === 0 && index === 0
-              ? true
-              : photo.isPrimary || false,
-          sortOrder: nextSortOrder + index,
-        },
-      }),
-    ),
-  );
+  // Create photo records within a transaction
+  const createdPhotos = await prisma.$transaction(async (tx) => {
+    return Promise.all(
+      photos.map((photo, index) =>
+        tx.vehiclePhoto.create({
+          data: {
+            vehicleId,
+            url: photo.url,
+            fileName: photo.fileName,
+            fileSize: photo.fileSize,
+            mimeType: photo.mimeType,
+            isPrimary:
+              existingPhotos.length === 0 && index === 0
+                ? true
+                : photo.isPrimary || false,
+            sortOrder: nextSortOrder + index,
+          },
+        }),
+      ),
+    );
+  });
 
   // Update vehicle images array with primary photo URL
   const primaryPhoto = createdPhotos.find((p) => p.isPrimary);
@@ -599,22 +666,24 @@ export const uploadVehicleDocuments = async (
     },
   });
 
-  // Create document records
-  const createdDocs = await Promise.all(
-    documents.map((doc) =>
-      prisma.vehicleDocument.create({
-        data: {
-          vehicleId,
-          type: doc.type as any,
-          url: doc.url,
-          fileName: doc.fileName,
-          fileSize: doc.fileSize,
-          mimeType: doc.mimeType,
-          status: "PENDING",
-        },
-      }),
-    ),
-  );
+  // Create document records within a transaction
+  const createdDocs = await prisma.$transaction(async (tx) => {
+    return Promise.all(
+      documents.map((doc) =>
+        tx.vehicleDocument.create({
+          data: {
+            vehicleId,
+            type: doc.type as any,
+            url: doc.url,
+            fileName: doc.fileName,
+            fileSize: doc.fileSize,
+            mimeType: doc.mimeType,
+            status: "PENDING",
+          },
+        }),
+      ),
+    );
+  });
 
   return createdDocs;
 };
@@ -675,4 +744,125 @@ export const toggleVehicleStatus = async (
   });
 
   return updated;
+};
+
+export const getVehicleAvailability = async (
+  vehicleId: string,
+  month?: string,
+) => {
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    select: { id: true },
+  });
+
+  if (!vehicle) {
+    throw ApiError.notFound("Vehicle not found");
+  }
+
+  const monthValue = month && /^\d{4}-\d{2}$/.test(month)
+    ? month
+    : new Date().toISOString().slice(0, 7);
+
+  const [year, monthNumber] = monthValue.split("-").map(Number);
+  const startDate = new Date(year, monthNumber - 1, 1);
+  const endDate = new Date(year, monthNumber, 0, 23, 59, 59, 999);
+
+  const [blocked, booked] = await Promise.all([
+    prisma.vehicleAvailability.findMany({
+      where: {
+        vehicleId,
+        isBlocked: true,
+        startDate: { lte: endDate },
+        endDate: { gte: startDate },
+      },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        reason: true,
+      },
+      orderBy: { startDate: "asc" },
+    }),
+    prisma.booking.findMany({
+      where: {
+        vehicleId,
+        status: { in: ["PENDING", "CONFIRMED", "ONGOING"] },
+        startDate: { lte: endDate },
+        endDate: { gte: startDate },
+      },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        status: true,
+      },
+      orderBy: { startDate: "asc" },
+    }),
+  ]);
+
+  return {
+    month: monthValue,
+    blocked,
+    booked,
+  };
+};
+
+export const getSimilarVehicles = async (vehicleId: string, limit = 4) => {
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    select: {
+      id: true,
+      type: true,
+      location: true,
+      pricePerDay: true,
+    },
+  });
+
+  if (!vehicle) {
+    throw ApiError.notFound("Vehicle not found");
+  }
+
+  const candidates = await prisma.vehicle.findMany({
+    where: {
+      id: { not: vehicleId },
+      isActive: true,
+      isAvailable: true,
+      OR: [{ type: vehicle.type }, { location: vehicle.location }],
+    },
+    include: {
+      owner: {
+        select: {
+          firstName: true,
+          lastName: true,
+          isVerified: true,
+          businessName: true,
+        },
+      },
+      photos: {
+        where: { isPrimary: true },
+        take: 1,
+      },
+      reviews: {
+        select: {
+          rating: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+
+  return candidates.map((candidate) => {
+    const reviewCount = candidate.reviews.length;
+    const averageRating = reviewCount
+      ? candidate.reviews.reduce((sum, review) => sum + review.rating, 0) /
+        reviewCount
+      : 0;
+
+    return {
+      ...candidate,
+      averageRating: Number(averageRating.toFixed(1)),
+      reviewCount,
+    };
+  });
 };

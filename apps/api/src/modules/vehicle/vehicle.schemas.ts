@@ -174,3 +174,26 @@ export const deleteVehicleSchema = z.object({
     id: z.string().cuid("Invalid vehicle ID"),
   }),
 });
+
+export const getVehicleAvailabilitySchema = z.object({
+  params: z.object({
+    id: z.string().cuid("Invalid vehicle ID"),
+  }),
+  query: z.object({
+    month: z
+      .string()
+      .regex(/^\d{4}-\d{2}$/, "Month must be in YYYY-MM format")
+      .optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+  }),
+});
+
+export const getSimilarVehiclesSchema = z.object({
+  params: z.object({
+    id: z.string().cuid("Invalid vehicle ID"),
+  }),
+  query: z.object({
+    limit: z.coerce.number().int().min(1).max(12).optional(),
+  }),
+});

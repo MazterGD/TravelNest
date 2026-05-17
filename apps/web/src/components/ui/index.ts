@@ -18,6 +18,7 @@ export {
 } from "./Card";
 export { Accordion, AccordionItem } from "./Accordion";
 export { Modal } from "./Modal";
+export { OtpVerificationModal } from "./OtpVerificationModal";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { DatePicker, TimePicker, DateTimePicker } from "./DatePicker";
 export { Badge, StatusBadge } from "./Badge";

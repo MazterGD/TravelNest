@@ -2,28 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner, Badge, Button, Card } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
 import { bookingService } from "@/lib/api/services";
-import {
-  FaArrowLeft,
-  FaCalendarAlt,
-  FaMapMarkerAlt,
-  FaUsers,
-  FaClock,
-  FaPhone,
-  FaEnvelope,
-  FaBus,
-  FaSnowflake,
-  FaCheckCircle,
-  FaDownload,
-  FaPrint,
-  FaExclamationCircle,
-  FaTimesCircle,
-  FaHourglassHalf,
-} from "react-icons/fa";
+import { ArrowLeft, Calendar, MapPin, Users, Clock, Phone, Mail, Bus, Snowflake, CheckCircle, Download, Printer, AlertCircle, XCircle, Hourglass } from 'lucide-react';
 
 interface BookingDetailsPageContentProps {
   locale: string;
@@ -83,27 +66,27 @@ const STATUS_CONFIG = {
   PENDING: {
     label: "Pending Confirmation",
     color: "bg-yellow-100 text-yellow-800",
-    icon: FaHourglassHalf,
+    icon: Hourglass,
   },
   CONFIRMED: {
     label: "Confirmed",
     color: "bg-green-100 text-green-800",
-    icon: FaCheckCircle,
+    icon: CheckCircle,
   },
   IN_PROGRESS: {
     label: "In Progress",
     color: "bg-blue-100 text-blue-800",
-    icon: FaClock,
+    icon: Clock,
   },
   COMPLETED: {
     label: "Completed",
     color: "bg-gray-100 text-gray-800",
-    icon: FaCheckCircle,
+    icon: CheckCircle,
   },
   CANCELLED: {
     label: "Cancelled",
     color: "bg-red-100 text-red-800",
-    icon: FaTimesCircle,
+    icon: XCircle,
   },
 };
 
@@ -184,7 +167,7 @@ export default function BookingDetailsPageContent({
   const days = calculateDays();
   const statusConfig =
     STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG];
-  const StatusIcon = statusConfig?.icon || FaExclamationCircle;
+  const StatusIcon = statusConfig?.icon || AlertCircle;
 
   return (
     <MainLayout>
@@ -196,7 +179,7 @@ export default function BookingDetailsPageContent({
             variant="outline"
             className="mb-4"
           >
-            <FaArrowLeft className="mr-2" />
+            <ArrowLeft className="mr-2" />
             Back to Bookings
           </Button>
 
@@ -211,11 +194,11 @@ export default function BookingDetailsPageContent({
             </div>
             <div className="flex gap-3">
               <Button onClick={handlePrint} variant="outline" size="sm">
-                <FaPrint className="mr-2" />
+                <Printer className="mr-2" />
                 Print
               </Button>
               <Button onClick={handleDownload} variant="outline" size="sm">
-                <FaDownload className="mr-2" />
+                <Download className="mr-2" />
                 Download
               </Button>
             </div>
@@ -227,7 +210,7 @@ export default function BookingDetailsPageContent({
           <Card className="mb-6 p-6 bg-green-50 border-green-200">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
-                <FaCheckCircle className="h-8 w-8 text-green-600" />
+                <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-green-900 mb-1">
@@ -291,15 +274,15 @@ export default function BookingDetailsPageContent({
                   </p>
                   <div className="flex flex-wrap gap-3 mt-3">
                     <div className="flex items-center text-sm text-gray-600">
-                      <FaUsers className="mr-1.5" />
+                      <Users className="mr-1.5" />
                       {booking.vehicle.seats} Seats
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
-                      <FaSnowflake className="mr-1.5" />
+                      <Snowflake className="mr-1.5" />
                       {booking.vehicle.acType.replace(/_/g, " ")}
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
-                      <FaBus className="mr-1.5" />
+                      <Bus className="mr-1.5" />
                       {booking.vehicle.type.replace(/_/g, " ")}
                     </div>
                   </div>
@@ -314,7 +297,7 @@ export default function BookingDetailsPageContent({
               </h2>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <FaMapMarkerAlt className="text-[#20B0E9] mt-1" />
+                  <MapPin className="text-[#20B0E9] mt-1" />
                   <div>
                     <p className="text-sm text-gray-600">Pickup Location</p>
                     <p className="font-medium text-gray-900">
@@ -323,7 +306,7 @@ export default function BookingDetailsPageContent({
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <FaMapMarkerAlt className="text-[#20B0E9] mt-1" />
+                  <MapPin className="text-[#20B0E9] mt-1" />
                   <div>
                     <p className="text-sm text-gray-600">Dropoff Location</p>
                     <p className="font-medium text-gray-900">
@@ -332,7 +315,7 @@ export default function BookingDetailsPageContent({
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <FaCalendarAlt className="text-[#20B0E9] mt-1" />
+                  <Calendar className="text-[#20B0E9] mt-1" />
                   <div>
                     <p className="text-sm text-gray-600">Trip Duration</p>
                     <p className="font-medium text-gray-900">
@@ -345,7 +328,7 @@ export default function BookingDetailsPageContent({
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <FaUsers className="text-[#20B0E9] mt-1" />
+                  <Users className="text-[#20B0E9] mt-1" />
                   <div>
                     <p className="text-sm text-gray-600">
                       Number of Passengers
@@ -357,7 +340,7 @@ export default function BookingDetailsPageContent({
                 </div>
                 {booking.specialRequirements && (
                   <div className="flex items-start gap-3">
-                    <FaClock className="text-[#20B0E9] mt-1" />
+                    <Clock className="text-[#20B0E9] mt-1" />
                     <div>
                       <p className="text-sm text-gray-600">
                         Special Requirements
@@ -382,7 +365,7 @@ export default function BookingDetailsPageContent({
                     `${booking.owner.firstName} ${booking.owner.lastName}`}
                 </p>
                 <div className="flex items-center gap-2 text-gray-600">
-                  <FaEnvelope className="text-[#20B0E9]" />
+                  <Mail className="text-[#20B0E9]" />
                   <a
                     href={`mailto:${booking.owner.email}`}
                     className="text-sm hover:underline"
@@ -393,7 +376,7 @@ export default function BookingDetailsPageContent({
                 {(booking.owner.phone ||
                   booking.owner.businessProfile?.businessPhone) && (
                   <div className="flex items-center gap-2 text-gray-600">
-                    <FaPhone className="text-[#20B0E9]" />
+                    <Phone className="text-[#20B0E9]" />
                     <a
                       href={`tel:${booking.owner.businessProfile?.businessPhone || booking.owner.phone}`}
                       className="text-sm hover:underline"
@@ -410,7 +393,7 @@ export default function BookingDetailsPageContent({
                   variant="outline"
                   className="mt-3"
                 >
-                  <FaPhone className="mr-2" />
+                  <Phone className="mr-2" />
                   Call Owner
                 </Button>
               </div>

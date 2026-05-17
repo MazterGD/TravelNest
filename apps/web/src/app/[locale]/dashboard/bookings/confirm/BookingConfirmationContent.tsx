@@ -12,20 +12,21 @@ import {
 } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
 import { BookingStatus, PaymentStatus } from "@/types";
+import { quotationService, vehicleService } from "@/lib/api";
 import {
-  FaArrowLeft,
-  FaMapMarkerAlt,
-  FaCalendarAlt,
-  FaClock,
-  FaUsers,
-  FaBus,
-  FaStar,
-  FaPhoneAlt,
-  FaCheckCircle,
-  FaCreditCard,
-  FaFileInvoiceDollar,
-  FaInfoCircle,
-} from "react-icons/fa";
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  Clock,
+  Users,
+  Bus,
+  Star,
+  Phone,
+  CheckCircle,
+  CreditCard,
+  ReceiptText,
+  Info,
+} from "lucide-react";
 
 interface Location {
   address: string;
@@ -100,64 +101,77 @@ export default function BookingConfirmationContent({
     try {
       setLoading(true);
 
-      // HARDCODED DATA FOR TESTING
-      const mockBooking: BookingData = {
-        bookingId: "BK-2026-001",
-        bookingReference: "BK-2026-001",
-        quotationId: quotationId || "quo1",
-        vehicleId: "veh1",
-        vehicleName: "Toyota Hiace Super GL",
-        vehicleImage:
-          "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=500&q=80",
-        vehicleType: "Van",
-        vehicleCapacity: 14,
-        vehiclePlate: "CAA-1234",
-        ownerName: "Kamal Perera",
-        ownerPhone: "+94 77 123 4567",
-        ownerRating: 4.8,
-        ownerTrips: 156,
+      if (!quotationId) {
+        setBookingData(null);
+        return;
+      }
+
+      const quotationResponse = await quotationService.getById(quotationId);
+      const quotation = quotationResponse.quotation;
+
+      if (!quotation || !quotation.vehicleId) {
+        setBookingData(null);
+        return;
+      }
+
+      const vehicle = await vehicleService.getById(quotation.vehicleId);
+      const customItems = Array.isArray(quotation.customItems)
+        ? quotation.customItems
+        : [];
+      const otherCharges = customItems.reduce(
+        (sum, item) => sum + (item.amount || 0),
+        0,
+      );
+
+      const normalizedBooking: BookingData = {
+        bookingId: quotation.id,
+        bookingReference: quotation.quotationId,
+        quotationId: quotation.id,
+        vehicleId: vehicle.id,
+        vehicleName: vehicle.name,
+        vehicleImage: vehicle.images?.[0] || "",
+        vehicleType: String(vehicle.type),
+        vehicleCapacity: vehicle.seats,
+        vehiclePlate: vehicle.licensePlate,
+        ownerName: vehicle.owner
+          ? `${vehicle.owner.firstName} ${vehicle.owner.lastName}`
+          : "Vehicle Owner",
+        ownerPhone: vehicle.owner?.phone || "",
+        ownerRating: vehicle.averageRating || 0,
+        ownerTrips: vehicle.totalBookings || 0,
         pickupLocation: {
-          address: "Bandaranaike International Airport",
-          city: "Katunayake",
-          district: "Gampaha",
+          address: quotation.pickupLocation || "",
+          city: "",
+          district: "",
         },
         dropoffLocation: {
-          address: "Grand Hotel, Nuwara Eliya",
-          city: "Nuwara Eliya",
-          district: "Nuwara Eliya",
+          address: quotation.dropoffLocation || "",
+          city: "",
+          district: "",
         },
-        stops: [
-          {
-            address: "Pinnawala Elephant Orphanage",
-            city: "Pinnawala",
-            district: "Kegalle",
-          },
-        ],
-        startDate: new Date(Date.now() + 86400000 * 7)
-          .toISOString()
-          .split("T")[0],
-        endDate: new Date(Date.now() + 86400000 * 9)
-          .toISOString()
-          .split("T")[0],
-        startTime: "08:00",
-        passengerCount: 6,
-        specialRequirements: "Need 2 child seats",
+        stops: [],
+        startDate: new Date(quotation.startDate).toISOString().split("T")[0],
+        endDate: new Date(quotation.endDate).toISOString().split("T")[0],
+        startTime: quotation.startTime || "08:00",
+        passengerCount: quotation.passengerCount || 1,
+        specialRequirements: quotation.specialRequests || undefined,
         priceBreakdown: {
-          vehicleRental: 20000,
-          driverCost: 12000,
-          fuelCost: 8000,
-          tollCharges: 2500,
-          permitFees: 1000,
-          otherCharges: 500,
-          tax: 1000,
+          vehicleRental: quotation.vehicleRentalCost || 0,
+          driverCost: quotation.driverCost || 0,
+          fuelCost: quotation.fuelCost || 0,
+          tollCharges: quotation.tollCharges || 0,
+          permitFees: quotation.permitFees || 0,
+          otherCharges,
+          tax: quotation.tax || 0,
         },
-        totalAmount: 45000,
+        totalAmount: quotation.totalAmount || 0,
       };
 
-      setBookingData(mockBooking);
-      setPartialAmount(mockBooking.totalAmount * 0.3); // 30% as partial payment
+      setBookingData(normalizedBooking);
+      setPartialAmount(normalizedBooking.totalAmount * 0.3);
     } catch (error) {
       console.error("Error fetching booking data:", error);
+      setBookingData(null);
     } finally {
       setLoading(false);
     }
@@ -223,7 +237,7 @@ export default function BookingConfirmationContent({
               href={`/${locale}/dashboard/quotations`}
               className="text-gray-600 hover:text-[#20B0E9] transition-colors"
             >
-              <FaArrowLeft className="text-xl" />
+              <ArrowLeft className="text-xl" />
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
@@ -271,7 +285,7 @@ export default function BookingConfirmationContent({
                     Seats • {bookingData.vehiclePlate}
                   </p>
                   <div className="flex items-center gap-2 mt-2">
-                    <FaStar className="text-yellow-400" />
+                    <Star className="text-yellow-400" />
                     <span className="text-sm font-medium">
                       {bookingData.ownerRating}
                     </span>
@@ -289,7 +303,7 @@ export default function BookingConfirmationContent({
                 {/* Dates */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-start gap-3">
-                    <FaCalendarAlt className="text-[#20B0E9] mt-1" />
+                    <Calendar className="text-[#20B0E9] mt-1" />
                     <div>
                       <p className="text-sm text-gray-600">Start Date</p>
                       <p className="font-medium">
@@ -298,7 +312,7 @@ export default function BookingConfirmationContent({
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <FaCalendarAlt className="text-[#20B0E9] mt-1" />
+                    <Calendar className="text-[#20B0E9] mt-1" />
                     <div>
                       <p className="text-sm text-gray-600">End Date</p>
                       <p className="font-medium">
@@ -339,7 +353,7 @@ export default function BookingConfirmationContent({
                   {bookingData.stops.map((stop, index) => (
                     <div key={index} className="flex items-start gap-3 mb-3">
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <FaMapMarkerAlt className="text-blue-500 text-sm" />
+                        <MapPin className="text-blue-500 text-sm" />
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">
@@ -355,7 +369,7 @@ export default function BookingConfirmationContent({
 
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <FaMapMarkerAlt className="text-red-500" />
+                      <MapPin className="text-red-500" />
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Drop-off</p>
@@ -372,7 +386,7 @@ export default function BookingConfirmationContent({
 
                 {/* Passengers */}
                 <div className="flex items-center gap-3 pt-4 border-t">
-                  <FaUsers className="text-[#20B0E9]" />
+                  <Users className="text-[#20B0E9]" />
                   <span className="font-medium">
                     {bookingData.passengerCount} Passengers
                   </span>
@@ -408,7 +422,7 @@ export default function BookingConfirmationContent({
                       {bookingData.ownerName}
                     </p>
                     <div className="flex items-center gap-2">
-                      <FaStar className="text-yellow-400 text-sm" />
+                      <Star className="text-yellow-400 text-sm" />
                       <span className="text-sm text-gray-600">
                         {bookingData.ownerRating} ({bookingData.ownerTrips}{" "}
                         trips)
@@ -423,7 +437,7 @@ export default function BookingConfirmationContent({
                   variant="outline"
                   className="border-[#20B0E9] text-[#20B0E9] hover:bg-blue-50"
                 >
-                  <FaPhoneAlt className="mr-2" />
+                  <Phone className="mr-2" />
                   Contact
                 </Button>
               </div>
@@ -579,7 +593,7 @@ export default function BookingConfirmationContent({
               {/* Info Box */}
               <div className="p-3 bg-blue-50 rounded-lg mb-6">
                 <div className="flex gap-2">
-                  <FaInfoCircle className="text-[#20B0E9] mt-0.5 flex-shrink-0" />
+                  <Info className="text-[#20B0E9] mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-gray-700">
                     {paymentOption === "full"
                       ? "Full payment secures your booking immediately."
@@ -602,7 +616,7 @@ export default function BookingConfirmationContent({
                     </>
                   ) : (
                     <>
-                      <FaCreditCard className="mr-2" />
+                      <CreditCard className="mr-2" />
                       Proceed to Payment
                     </>
                   )}

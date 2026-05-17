@@ -2,19 +2,21 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import {
-  FaFilter,
-  FaStar,
-  FaUsers,
-  FaSnowflake,
-  FaMapMarkerAlt,
-} from "react-icons/fa";
+import { Filter, Star, Users, Snowflake, MapPin } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { PageHeader, Button, Card, Input } from "@/components/ui";
+import {
+  PageHeader,
+  Button,
+  Card,
+  Input,
+  Select,
+  Skeleton,
+} from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
-import { VEHICLE_AMENITIES, SRI_LANKAN_DISTRICTS } from "@/constants";
-import { vehicleService, ApiError } from "@/lib/api";
+import { vehicleService, landingContentService, ApiError } from "@/lib/api";
+import { localizePlaceName } from "@/lib/i18n/placeName";
 
 interface Vehicle {
   id: string;
@@ -35,41 +37,162 @@ interface Vehicle {
   };
 }
 
-const VEHICLE_TYPES = [
-  { value: "ORDINARY", labelKey: "filters.vehicleTypes.ordinary" },
-  { value: "SEMI_LUXURY", labelKey: "filters.vehicleTypes.semiLuxury" },
-  { value: "LUXURY_AC", labelKey: "filters.vehicleTypes.luxuryAc" },
-];
+interface SearchFilters {
+  vehicleType: string;
+  minCapacity: string;
+  maxCapacity: string;
+  acType: string;
+  district: string;
+  amenities: string[];
+  routeFrom: string;
+  routeTo: string;
+  travelDate: string;
+  tripPassengers: string;
+}
 
-const AC_TYPES = [
-  { value: "FULL_AC", labelKey: "filters.acTypes.fullAc" },
-  { value: "AC", labelKey: "filters.acTypes.ac" },
-  { value: "NON_AC", labelKey: "filters.acTypes.nonAc" },
-];
+const createDefaultFilters = (): SearchFilters => ({
+  vehicleType: "",
+  minCapacity: "",
+  maxCapacity: "",
+  acType: "",
+  district: "",
+  amenities: [],
+  routeFrom: "",
+  routeTo: "",
+  travelDate: "",
+  tripPassengers: "",
+});
 
 export default function SearchPage() {
   const t = useTranslations("search");
   const tCommon = useTranslations("common");
+  const tLocations = useTranslations("locations");
+  const tLandingSearch = useTranslations("landing.searchSection.form");
   const locale = useLocale();
+  const searchParams = useSearchParams();
+  const searchParamsKey = searchParams.toString();
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]); // Store unfiltered list
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    vehicleType: "",
-    minCapacity: "",
-    maxCapacity: "",
-    acType: "",
-    district: "",
-    amenities: [] as string[],
+  const [publicOptions, setPublicOptions] = useState<{
+    vehicleTypes: Array<{ value: string; label: string }>;
+    acTypes: Array<{ value: string; label: string }>;
+    amenities: Array<{ id: string; label: string }>;
+    districts: string[];
+  }>({
+    vehicleTypes: [],
+    acTypes: [],
+    amenities: [],
+    districts: [],
   });
+  const [filters, setFilters] = useState<SearchFilters>(createDefaultFilters);
+
+  const normalizeEnumValue = (value: string) =>
+    value.toUpperCase().replace(/[- ]/g, "_");
+
+  const localizeVehicleTypeLabel = (value: string, fallbackLabel: string) => {
+    switch (normalizeEnumValue(value)) {
+      case "ORDINARY":
+        return t("filters.vehicleTypes.ordinary");
+      case "SEMI_LUXURY":
+        return t("filters.vehicleTypes.semiLuxury");
+      case "LUXURY_AC":
+        return t("filters.vehicleTypes.luxuryAc");
+      default:
+        return fallbackLabel;
+    }
+  };
+
+  const localizeAcTypeLabel = (value: string, fallbackLabel: string) => {
+    switch (normalizeEnumValue(value)) {
+      case "FULL_AC":
+        return t("filters.acTypes.fullAc");
+      case "AC":
+        return t("filters.acTypes.ac");
+      case "NON_AC":
+        return t("filters.acTypes.nonAc");
+      default:
+        return fallbackLabel;
+    }
+  };
+
+  const localizeAmenityLabel = (id: string, fallbackLabel: string) => {
+    switch (id.toLowerCase()) {
+      case "wifi":
+        return t("filters.amenityOptions.wifi");
+      case "ac":
+        return t("filters.amenityOptions.ac");
+      case "music":
+        return t("filters.amenityOptions.music");
+      case "usb":
+        return t("filters.amenityOptions.usb");
+      case "tv":
+        return t("filters.amenityOptions.tv");
+      case "reclining":
+        return t("filters.amenityOptions.reclining");
+      case "reading":
+        return t("filters.amenityOptions.reading");
+      case "gps":
+        return t("filters.amenityOptions.gps");
+      default:
+        return fallbackLabel;
+    }
+  };
+
+  const localizePlace = (placeName: string) =>
+    localizePlaceName(placeName, (key) => tLocations(key));
 
   // Fetch vehicles on mount
   useEffect(() => {
     fetchVehicles();
+    fetchPublicOptions();
   }, []);
+
+  // Prefill filters from URL query params (landing search and popular routes)
+  useEffect(() => {
+    const params = new URLSearchParams(searchParamsKey);
+    const normalizeCount = (value: string | null) => {
+      if (!value) {
+        return "";
+      }
+
+      const parsed = Number.parseInt(value, 10);
+      return Number.isNaN(parsed) || parsed <= 0 ? "" : String(parsed);
+    };
+
+    const normalizeAmenities = (value: string | null) => {
+      if (!value) {
+        return [];
+      }
+
+      return value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    };
+
+    const routeFrom = params.get("from")?.trim() ?? "";
+    const routeTo = params.get("to")?.trim() ?? "";
+
+    const nextFilters: SearchFilters = {
+      ...createDefaultFilters(),
+      vehicleType: params.get("vehicleType")?.trim() ?? "",
+      minCapacity: normalizeCount(params.get("minCapacity")),
+      maxCapacity: normalizeCount(params.get("maxCapacity")),
+      acType: params.get("acType")?.trim() ?? "",
+      district: params.get("district")?.trim() ?? "",
+      amenities: normalizeAmenities(params.get("amenities")),
+      routeFrom,
+      routeTo,
+      travelDate: params.get("date")?.trim() ?? "",
+      tripPassengers: normalizeCount(params.get("passengers")),
+    };
+
+    setFilters(nextFilters);
+  }, [searchParamsKey]);
 
   // Apply filters whenever they change
   useEffect(() => {
@@ -94,6 +217,29 @@ export default function SearchPage() {
       console.error("Error fetching vehicles:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchPublicOptions = async () => {
+    try {
+      const response = await landingContentService.getPublicConfig();
+      setPublicOptions({
+        vehicleTypes: response.options.vehicleTypes.map((type) => ({
+          ...type,
+          label: localizeVehicleTypeLabel(type.value, type.label),
+        })),
+        acTypes: response.options.acTypes.map((type) => ({
+          ...type,
+          label: localizeAcTypeLabel(type.value, type.label),
+        })),
+        amenities: response.options.amenities.map((amenity) => ({
+          ...amenity,
+          label: localizeAmenityLabel(amenity.id, amenity.label),
+        })),
+        districts: response.options.districts,
+      });
+    } catch (error) {
+      console.error("Failed to fetch public filter options:", error);
     }
   };
 
@@ -125,11 +271,37 @@ export default function SearchPage() {
       });
     }
 
+    // Filter by route details from landing search/popular routes
+    if (filters.routeFrom || filters.routeTo) {
+      const routeFrom = filters.routeFrom.toLowerCase();
+      const routeTo = filters.routeTo.toLowerCase();
+
+      filtered = filtered.filter((v) => {
+        const location = v.location?.toLowerCase() || "";
+
+        if (routeFrom && routeTo) {
+          return location.includes(routeFrom) || location.includes(routeTo);
+        }
+
+        return routeFrom
+          ? location.includes(routeFrom)
+          : location.includes(routeTo);
+      });
+    }
+
     // Filter by district/location
     if (filters.district) {
       filtered = filtered.filter((v) =>
         v.location?.toLowerCase().includes(filters.district.toLowerCase()),
       );
+    }
+
+    // Filter by requested passenger count from landing search
+    if (filters.tripPassengers) {
+      const requestedPassengers = Number.parseInt(filters.tripPassengers, 10);
+      if (!Number.isNaN(requestedPassengers) && requestedPassengers > 0) {
+        filtered = filtered.filter((v) => v.seats >= requestedPassengers);
+      }
     }
 
     // Filter by amenities
@@ -152,14 +324,7 @@ export default function SearchPage() {
   };
 
   const clearFilters = () => {
-    setFilters({
-      vehicleType: "",
-      minCapacity: "",
-      maxCapacity: "",
-      acType: "",
-      district: "",
-      amenities: [],
-    });
+    setFilters(createDefaultFilters());
   };
 
   return (
@@ -168,7 +333,7 @@ export default function SearchPage() {
 
       <section className="py-8 sm:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="lg:grid lg:grid-cols-4 lg:gap-8">
+          <div className="lg:grid lg:grid-cols-4 lg:gap-6">
             {/* Mobile Filter Toggle */}
             <div className="mb-6 lg:hidden">
               <Button
@@ -176,7 +341,7 @@ export default function SearchPage() {
                 onClick={() => setShowFilters(!showFilters)}
                 className="w-full"
               >
-                <FaFilter className="mr-2 h-4 w-4" />
+                <Filter className="mr-2 h-4 w-4" />
                 {t("filters.title")}
               </Button>
             </div>
@@ -202,25 +367,78 @@ export default function SearchPage() {
                 </div>
 
                 <div className="space-y-6">
+                  {/* Route Details */}
+                  <div>
+                    <Input
+                      label={tLandingSearch("fromLabel")}
+                      value={filters.routeFrom}
+                      placeholder={tLandingSearch("fromPlaceholder")}
+                      onChange={(event) =>
+                        setFilters({
+                          ...filters,
+                          routeFrom: event.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Input
+                      label={tLandingSearch("toLabel")}
+                      value={filters.routeTo}
+                      placeholder={tLandingSearch("toPlaceholder")}
+                      onChange={(event) =>
+                        setFilters({ ...filters, routeTo: event.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Input
+                      label={tLandingSearch("dateLabel")}
+                      type="date"
+                      value={filters.travelDate}
+                      onChange={(event) =>
+                        setFilters({
+                          ...filters,
+                          travelDate: event.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Input
+                      label={tLandingSearch("passengersLabel")}
+                      type="number"
+                      min={1}
+                      placeholder={tLandingSearch("passengersPlaceholder")}
+                      value={filters.tripPassengers}
+                      onChange={(event) =>
+                        setFilters({
+                          ...filters,
+                          tripPassengers: event.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
                   {/* Vehicle Type */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      {t("filters.vehicleType")}
-                    </label>
-                    <select
+                    <Select
+                      label={t("filters.vehicleType")}
                       value={filters.vehicleType}
-                      onChange={(e) =>
-                        setFilters({ ...filters, vehicleType: e.target.value })
+                      onChange={(value) =>
+                        setFilters({ ...filters, vehicleType: value })
                       }
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">{t("filters.allTypes")}</option>
-                      {VEHICLE_TYPES.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {t(type.labelKey)}
-                        </option>
-                      ))}
-                    </select>
+                      options={[
+                        { value: "", label: t("filters.allTypes") },
+                        ...publicOptions.vehicleTypes.map((type) => ({
+                          value: type.value,
+                          label: type.label,
+                        })),
+                      ]}
+                    />
                   </div>
 
                   {/* Capacity */}
@@ -262,7 +480,7 @@ export default function SearchPage() {
                       {t("filters.acType")}
                     </label>
                     <div className="flex gap-2">
-                      {AC_TYPES.map((type) => (
+                      {publicOptions.acTypes.map((type) => (
                         <button
                           key={type.value}
                           onClick={() =>
@@ -273,13 +491,13 @@ export default function SearchPage() {
                             })
                           }
                           className={cn(
-                            "flex-1 px-3 py-2 text-sm rounded-md border transition-colors",
+                            "flex-1 px-3 py-2 text-sm rounded-xl border transition-colors",
                             filters.acType === type.value
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border hover:border-muted-foreground",
                           )}
                         >
-                          {t(type.labelKey)}
+                          {type.label}
                         </button>
                       ))}
                     </div>
@@ -287,23 +505,20 @@ export default function SearchPage() {
 
                   {/* District */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      {t("filters.district")}
-                    </label>
-                    <select
+                    <Select
+                      label={t("filters.district")}
                       value={filters.district}
-                      onChange={(e) =>
-                        setFilters({ ...filters, district: e.target.value })
+                      onChange={(value) =>
+                        setFilters({ ...filters, district: value })
                       }
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">{t("filters.allDistricts")}</option>
-                      {SRI_LANKAN_DISTRICTS.map((district) => (
-                        <option key={district} value={district}>
-                          {district}
-                        </option>
-                      ))}
-                    </select>
+                      options={[
+                        { value: "", label: t("filters.allDistricts") },
+                        ...publicOptions.districts.map((district) => ({
+                          value: district,
+                          label: localizePlace(district),
+                        })),
+                      ]}
+                    />
                   </div>
 
                   {/* Amenities */}
@@ -312,12 +527,12 @@ export default function SearchPage() {
                       {t("filters.amenities")}
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {VEHICLE_AMENITIES.slice(0, 6).map((amenity) => (
+                      {publicOptions.amenities.slice(0, 6).map((amenity) => (
                         <button
                           key={amenity.id}
                           onClick={() => toggleAmenity(amenity.id)}
                           className={cn(
-                            "px-3 py-1.5 text-xs rounded-full border transition-colors",
+                            "px-3 py-1.5 text-xs rounded-lg border transition-colors",
                             filters.amenities.includes(amenity.id)
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border hover:border-muted-foreground",
@@ -342,13 +557,17 @@ export default function SearchPage() {
                   </span>{" "}
                   {t("results")}
                 </p>
-                <select className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-                  <option value="">{t("sort.label")}</option>
-                  <option value="price_asc">{t("sort.priceAsc")}</option>
-                  <option value="price_desc">{t("sort.priceDesc")}</option>
-                  <option value="rating">{t("sort.rating")}</option>
-                  <option value="newest">{t("sort.newest")}</option>
-                </select>
+                <div className="w-48">
+                  <Select
+                    options={[
+                      { value: "", label: t("sort.label") },
+                      { value: "price_asc", label: t("sort.priceAsc") },
+                      { value: "price_desc", label: t("sort.priceDesc") },
+                      { value: "rating", label: t("sort.rating") },
+                      { value: "newest", label: t("sort.newest") },
+                    ]}
+                  />
+                </div>
               </div>
 
               {/* Loading State */}
@@ -357,11 +576,14 @@ export default function SearchPage() {
                   {[1, 2, 3].map((i) => (
                     <Card key={i} className="p-0 overflow-hidden">
                       <div className="flex flex-col sm:flex-row">
-                        <div className="sm:w-64 h-48 bg-muted animate-pulse" />
-                        <div className="flex-1 p-6 space-y-3">
-                          <div className="h-6 bg-muted animate-pulse rounded w-3/4" />
-                          <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
-                          <div className="h-4 bg-muted animate-pulse rounded w-2/3" />
+                        <Skeleton
+                          className="sm:w-64 h-48 rounded-none"
+                          variant="rectangular"
+                        />
+                        <div className="flex-1 p-6 space-y-4">
+                          <Skeleton className="h-6 w-3/4 rounded-lg" />
+                          <Skeleton className="h-4 w-1/2 rounded-lg" />
+                          <Skeleton className="h-4 w-2/3 rounded-lg" />
                         </div>
                       </div>
                     </Card>
@@ -392,7 +614,7 @@ export default function SearchPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <FaMapMarkerAlt className="h-12 w-12 text-muted-foreground/30" />
+                            <MapPin className="h-12 w-12 text-muted-foreground/30" />
                           )}
                         </div>
 
@@ -410,18 +632,21 @@ export default function SearchPage() {
                               {/* Features */}
                               <div className="flex flex-wrap gap-3 mt-3">
                                 <div className="flex items-center text-sm text-muted-foreground">
-                                  <FaUsers className="mr-1.5 h-4 w-4" />
+                                  <Users className="mr-1.5 h-4 w-4" />
                                   {t("seatsCount", { count: bus.seats })}
                                 </div>
                                 {bus.acType && (
                                   <div className="flex items-center text-sm text-muted-foreground">
-                                    <FaSnowflake className="mr-1.5 h-4 w-4" />
-                                    {bus.acType.replace(/_/g, " ")}
+                                    <Snowflake className="mr-1.5 h-4 w-4" />
+                                    {localizeAcTypeLabel(
+                                      bus.acType,
+                                      bus.acType.replace(/_/g, " "),
+                                    )}
                                   </div>
                                 )}
                                 <div className="flex items-center text-sm text-muted-foreground">
-                                  <FaMapMarkerAlt className="mr-1.5 h-4 w-4" />
-                                  {bus.location}
+                                  <MapPin className="mr-1.5 h-4 w-4" />
+                                  {localizePlace(bus.location)}
                                 </div>
                               </div>
 
@@ -429,13 +654,14 @@ export default function SearchPage() {
                               {bus.amenities && bus.amenities.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5 mt-3">
                                   {bus.amenities.slice(0, 4).map((amenity) => {
-                                    const amenityInfo = VEHICLE_AMENITIES.find(
-                                      (a) => a.id === amenity,
-                                    );
+                                    const amenityInfo =
+                                      publicOptions.amenities.find(
+                                        (a) => a.id === amenity,
+                                      );
                                     return amenityInfo ? (
                                       <span
                                         key={amenity}
-                                        className="px-2 py-1 text-xs rounded-full bg-muted text-muted-foreground"
+                                        className="px-2 py-1 text-xs rounded-lg bg-muted text-muted-foreground"
                                       >
                                         {amenityInfo.label}
                                       </span>
@@ -483,14 +709,19 @@ export default function SearchPage() {
 
               {/* Empty State */}
               {!isLoading && !error && vehicles.length === 0 && (
-                <Card className="text-center py-12">
-                  <FaMapMarkerAlt className="mx-auto h-12 w-12 text-muted-foreground/30" />
-                  <h3 className="mt-4 text-lg font-semibold text-foreground">
+                <Card className="text-center py-16 px-4 flex flex-col items-center justify-center">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-muted mb-6">
+                    <MapPin className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="mt-4 text-xl font-bold text-foreground mb-2">
                     {t("noResults")}
                   </h3>
-                  <p className="mt-2 text-muted-foreground">
+                  <p className="mt-2 text-muted-foreground mb-6 max-w-md">
                     {t("adjustFilters")}
                   </p>
+                  <Button onClick={clearFilters}>
+                    {t("filters.clearAll")}
+                  </Button>
                 </Card>
               )}
             </div>

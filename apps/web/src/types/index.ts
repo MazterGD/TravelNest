@@ -36,6 +36,8 @@ export interface User {
   // Business fields (for vehicle owners)
   businessName?: string | null;
   businessType?: string | null;
+  businessRegNumber?: string | null;
+  tinNumber?: string | null;
   registrationNumber?: string | null;
   taxId?: string | null;
   role: UserRole;
@@ -114,6 +116,7 @@ export interface Vehicle {
   createdAt: Date | string;
   updatedAt: Date | string;
   // Extended fields from joins
+  owner?: Partial<User>;
   photos?: any[];
   documents?: any[];
   reviews?: any[];
@@ -308,12 +311,12 @@ export interface OwnerRegistrationVehiclePhoto {
 
 export interface OwnerRegistrationVehicle {
   registrationNumber: string; // Maps to licensePlate in DB
-  vehicleType: "luxury" | "semi-luxury" | "standard" | "mini";
+  vehicleType: "ORDINARY" | "SEMI_LUXURY" | "LUXURY_AC";
   make: string; // Maps to brand in DB
   model: string;
   year: number;
   seatingCapacity: number; // Maps to seats in DB
-  acType: "full-ac" | "ac" | "non-ac";
+  acType: "FULL_AC" | "AC" | "NON_AC";
   photos?: OwnerRegistrationVehiclePhoto[];
   documents: OwnerRegistrationVehicleDocument[];
 }

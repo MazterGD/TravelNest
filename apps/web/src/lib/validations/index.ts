@@ -58,7 +58,7 @@ export const quotationRequestSchema = z
     returnTime: z.string().optional(),
     isRoundTrip: z.boolean().default(false),
     passengerCount: z.number().min(1, "At least 1 passenger required").max(100),
-    vehicleType: z.enum(["mini_bus", "standard_bus", "luxury_bus", "coach"]),
+    vehicleType: z.enum(["ORDINARY", "SEMI_LUXURY", "LUXURY_AC"]),
     specialRequests: z.string().max(500).optional(),
     luggageCount: z.number().min(0).default(0),
     needsAC: z.boolean().default(false),
@@ -78,22 +78,29 @@ export const quotationRequestSchema = z
 
 // Vehicle Schema
 export const vehicleSchema = z.object({
-  registrationNumber: z.string().min(5, "Invalid registration number"),
-  type: z.enum(["mini_bus", "standard_bus", "luxury_bus", "coach"]),
+  name: z.string().min(2, "Name is required"),
+  licensePlate: z
+    .string()
+    .min(3, "License plate is required")
+    .regex(/^[A-Z]{2,3}-\d{4}$/, "Invalid license plate format"),
+  type: z.enum(["ORDINARY", "SEMI_LUXURY", "LUXURY_AC"]),
   brand: z.string().min(2, "Brand is required"),
   model: z.string().min(2, "Model is required"),
   year: z
     .number()
     .min(1990)
     .max(new Date().getFullYear() + 1),
-  seatingCapacity: z.number().min(10).max(60),
-  hasAC: z.boolean().default(false),
-  hasWifi: z.boolean().default(false),
-  hasTV: z.boolean().default(false),
-  hasToilet: z.boolean().default(false),
-  pricePerKm: z.number().min(0),
+  seats: z.number().min(10).max(100),
+  acType: z.enum(["full-ac", "ac", "non-ac"]),
+  condition: z.enum(["excellent", "good", "fair"]).optional(),
+  fuelType: z.enum(["DIESEL"]).default("DIESEL"),
+  transmission: z.enum(["MANUAL"]).default("MANUAL"),
+  pricePerKm: z.number().min(0).optional(),
   pricePerDay: z.number().min(0),
-  images: z.array(z.string()).min(1, "At least one image required"),
+  driverAllowance: z.number().min(0).optional(),
+  location: z.string().min(2, "Location is required"),
+  amenities: z.array(z.string()).optional(),
+  color: z.string().optional(),
   description: z.string().max(1000).optional(),
 });
 

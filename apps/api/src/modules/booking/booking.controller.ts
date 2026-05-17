@@ -1,6 +1,17 @@
 import type { Request, Response } from "express";
+import xss from "xss";
 import * as bookingService from "./booking.service.js";
 import { ResponseHelper } from "../../utils/response.js";
+
+/**
+ * Sanitize an optional string query parameter
+ */
+const sanitizeQueryParam = (
+  value: string | undefined,
+): string | undefined => {
+  if (!value || typeof value !== "string") return undefined;
+  return xss(value.trim());
+};
 
 /**
  * Get customer's bookings
@@ -11,7 +22,7 @@ export const getMyBookings = async (req: Request, res: Response) => {
   const { status, page, limit } = req.query;
 
   const result = await bookingService.getCustomerBookings(customerId, {
-    status: status as string,
+    status: sanitizeQueryParam(status as string),
     page: page ? Number(page) : undefined,
     limit: limit ? Number(limit) : undefined,
   });

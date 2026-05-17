@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FaCamera, FaTimes } from "react-icons/fa";
+import { Camera, X } from 'lucide-react';
 
 interface ImageUploadProps {
   label: string;
@@ -121,7 +121,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               onClick={handleRemove}
               className="absolute right-2 top-2 rounded-full bg-error p-2 text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
             >
-              <FaTimes className="h-4 w-4" />
+              <X className="h-4 w-4" />
             </button>
           </>
         ) : (
@@ -132,7 +132,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               accept="image/*"
               className="hidden"
             />
-            <FaCamera className="mb-3 h-10 w-10 text-muted-foreground" />
+            <Camera className="mb-3 h-10 w-10 text-muted-foreground" />
             <div className="mb-1 font-medium text-foreground">
               Click to upload or drag and drop
             </div>
