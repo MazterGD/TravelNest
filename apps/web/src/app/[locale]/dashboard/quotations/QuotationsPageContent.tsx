@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import {
   PageHeader,
-  Button,
   Tabs,
   EmptyState,
   EmptyBoxIcon,
   SkeletonList,
+  CTAButton,
 } from "@/components/ui";
 import { QuotationRequestCard } from "@/components/features/customer";
 import { quotationService, ApiError } from "@/lib/api";
@@ -34,7 +34,10 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
       const data = response as any;
       const requestsList = data.data?.quotations || data.quotations || [];
 
-      // Group quotations by trip details and count responses
+      // Group quotations by trip details and count owner responses per trip.
+      // The single `quotations` table holds both customer requests (status=PENDING,
+      // no pricing columns) and owner responses (status=SENT/VIEWED/ACCEPTED,
+      // with vehicleId and pricing columns).
       const tripMap = new Map<string, any[]>();
 
       requestsList.forEach((req: any) => {
@@ -45,24 +48,40 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
         tripMap.get(tripKey)!.push(req);
       });
 
-      // Transform to QuotationRequest format
-      // For each trip, use the PENDING request as the main request
-      // and count SENT/VIEWED/ACCEPTED quotations with vehicles as responses
       const transformedRequests: QuotationRequest[] = [];
 
       tripMap.forEach((quotations) => {
-        // Find the base request (PENDING status, no vehicle assigned)
+        // Prefer a PENDING entry without a vehicleId as the base (customer request).
+        // Fall back to the first entry if no such entry exists.
         const baseRequest =
           quotations.find(
             (q: any) => q.status?.toUpperCase() === "PENDING" && !q.vehicleId,
-          ) || quotations[0]; // Fallback to first quotation if no PENDING found
+          ) || quotations[0];
 
-        // Count owner responses (quotations with vehicles assigned and sent status)
+        // Count owner responses: entries that have a vehicle assigned and have been sent.
         const responsesCount = quotations.filter(
           (q: any) =>
             q.vehicleId &&
             ["SENT", "VIEWED", "ACCEPTED"].includes(q.status?.toUpperCase()),
         ).length;
+
+        // Derive the canonical customer-facing status from the quotation_requests enum:
+        // pending | quoted | expired | cancelled
+        const baseStatusUpper = baseRequest.status?.toUpperCase();
+        let derivedStatus: QuotationRequest["status"];
+        if (baseStatusUpper === "EXPIRED") {
+          derivedStatus = "expired";
+        } else if (
+          baseStatusUpper === "CANCELLED" ||
+          baseStatusUpper === "REJECTED"
+        ) {
+          derivedStatus = "cancelled";
+        } else if (responsesCount > 0) {
+          // At least one owner has sent a price → request is now "quoted"
+          derivedStatus = "quoted";
+        } else {
+          derivedStatus = "pending";
+        }
 
         transformedRequests.push({
           id: baseRequest.id,
@@ -72,13 +91,16 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
               ? {
                   address: baseRequest.pickupLocation,
                   city: baseRequest.pickupLocation.split(",")[0]?.trim() || "",
+                  district: "",
                 }
               : baseRequest.pickupLocation,
           dropoffLocation:
             typeof baseRequest.dropoffLocation === "string"
               ? {
                   address: baseRequest.dropoffLocation,
-                  city: baseRequest.dropoffLocation.split(",")[0]?.trim() || "",
+                  city:
+                    baseRequest.dropoffLocation.split(",")[0]?.trim() || "",
+                  district: "",
                 }
               : baseRequest.dropoffLocation,
           pickupDate: baseRequest.pickupDate || baseRequest.startDate,
@@ -89,9 +111,9 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
           passengerCount: baseRequest.passengerCount,
           vehicleType:
             baseRequest.vehicleType || baseRequest.preferredVehicleType,
-          luggageCount: baseRequest.luggageCount,
+          luggageCount: baseRequest.luggageCount || 0,
           needsAC: baseRequest.needsAC ?? true,
-          status: baseRequest.status?.toLowerCase() || "pending",
+          status: derivedStatus,
           quotationsCount: responsesCount,
           createdAt: baseRequest.createdAt,
           updatedAt: baseRequest.updatedAt,
@@ -103,12 +125,12 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Failed to fetch quotation requests");
+        setError(t("fetchError"));
       }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchRequests();
@@ -127,14 +149,19 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
       badge: requests.filter((r) => r.status === "pending").length,
     },
     {
-      id: "active",
-      label: t("active"),
-      badge: requests.filter((r) => r.status === "active").length,
+      id: "quoted",
+      label: t("quoted"),
+      badge: requests.filter((r) => r.status === "quoted").length,
     },
     {
-      id: "completed",
-      label: t("completed"),
-      badge: requests.filter((r) => r.status === "completed").length,
+      id: "expired",
+      label: t("expired"),
+      badge: requests.filter((r) => r.status === "expired").length,
+    },
+    {
+      id: "cancelled",
+      label: t("cancelled"),
+      badge: requests.filter((r) => r.status === "cancelled").length,
     },
   ];
 
@@ -144,24 +171,12 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
         title={t("myQuotationRequests")}
         description={t("quotationRequestsDescription")}
         action={
-          <Link href={`/${locale}/dashboard/quotations/new`}>
-            <Button>
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              {t("newRequest")}
-            </Button>
-          </Link>
+          <CTAButton
+            href={`/${locale}/dashboard/quotations/new`}
+            leftIcon={<Plus size={16} />}
+          >
+            {t("newRequest")}
+          </CTAButton>
         }
       />
 
@@ -176,18 +191,24 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
       />
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-          {error}
-          <Button variant="link" onClick={fetchRequests} className="ml-2">
-            Retry
-          </Button>
+        <div
+          role="alert"
+          className="flex items-center justify-between p-4 bg-[var(--color-error-bg)] border border-[var(--color-error-border)] rounded-xl text-[var(--color-error-text)]"
+        >
+          <span className="text-sm">{error}</span>
+          <button
+            onClick={fetchRequests}
+            className="ml-4 text-sm font-medium underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2 rounded"
+          >
+            {t("retry")}
+          </button>
         </div>
       )}
 
       {isLoading ? (
         <SkeletonList count={3} />
       ) : filteredRequests.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
           {filteredRequests.map((request) => (
             <QuotationRequestCard
               key={request.id}
@@ -202,9 +223,9 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
           title={t("noRequests")}
           description={t("noRequestsDescription")}
           action={
-            <Link href={`/${locale}/dashboard/quotations/new`}>
-              <Button>{t("createFirstRequest")}</Button>
-            </Link>
+            <CTAButton href={`/${locale}/dashboard/quotations/new`}>
+              {t("createFirstRequest")}
+            </CTAButton>
           }
         />
       )}

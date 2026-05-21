@@ -3,15 +3,74 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useEffect, useSyncExternalStore } from "react";
-import { Menu, X, LogOut, User } from "lucide-react";
+import { useCallback, useState, useEffect, useSyncExternalStore } from "react";
+import { Bell, Menu, X, LogOut, User } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuthStore } from "@/store";
+import { useNotificationStream } from "@/hooks";
+import { notificationService } from "@/lib/api";
 import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 
 const emptySubscribe = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
+
+/**
+ * Notification bell for the owner chrome — the owner portal has no sidebar, so
+ * `MainLayout`'s `Header` is the only persistent surface for an unread
+ * indicator. Rendered only for authenticated owners, so the socket connection
+ * is never opened for guests or customers.
+ */
+function OwnerNotificationBell({ locale }: { locale: string }) {
+  const tNotif = useTranslations("dashboard.notifications");
+  const [unread, setUnread] = useState(0);
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await notificationService.getUnreadCount();
+      setUnread(data?.unreadCount ?? 0);
+    } catch {
+      // A failed poll just leaves the badge hidden.
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await notificationService.getUnreadCount();
+        if (!cancelled) setUnread(data?.unreadCount ?? 0);
+      } catch {
+        // A failed poll just leaves the badge hidden.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useNotificationStream(() => {
+    void refresh();
+  });
+
+  return (
+    <Link
+      href={`/${locale}/owner/notifications`}
+      className="relative p-2 text-muted-foreground transition-colors hover:text-foreground"
+      title={tNotif("title")}
+    >
+      <Bell className="h-5 w-5" aria-hidden="true" />
+      {unread > 0 && (
+        <span
+          className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-error-border)] px-1.5 text-xs font-semibold text-[var(--color-primary-foreground)]"
+          aria-label={tNotif("unreadBadge", { count: unread })}
+        >
+          {unread > 99 ? "99+" : unread}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export function Header() {
   const t = useTranslations("navigation");
@@ -94,6 +153,9 @@ export function Header() {
             <LanguageSwitcher />
             {showAuthenticatedUI ? (
               <>
+                {user.role === "VEHICLE_OWNER" && (
+                  <OwnerNotificationBell locale={locale} />
+                )}
                 <Link
                   href={
                     user.role === "VEHICLE_OWNER"
@@ -167,6 +229,16 @@ export function Header() {
             <div className="border-t border-border pb-1 pt-4">
               {showAuthenticatedUI ? (
                 <>
+                  {user.role === "VEHICLE_OWNER" && (
+                    <Link
+                      href={`/${locale}/owner/notifications`}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Bell className="h-4 w-4" />
+                      {t("notifications", { defaultValue: "Notifications" })}
+                    </Link>
+                  )}
                   <Link
                     href={
                       user.role === "VEHICLE_OWNER"

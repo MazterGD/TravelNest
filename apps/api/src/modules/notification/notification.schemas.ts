@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const NOTIFICATION_CATEGORIES = [
+  "Bookings",
+  "Payments",
+  "Quotations",
+  "Reviews",
+  "System",
+] as const;
+
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+
 export const getNotificationsSchema = z.object({
   query: z.object({
     page: z.coerce
@@ -16,6 +26,7 @@ export const getNotificationsSchema = z.object({
       .optional()
       .default(20),
     unreadOnly: z.coerce.boolean().optional().default(false),
+    category: z.enum(NOTIFICATION_CATEGORIES).optional(),
   }),
 });
 

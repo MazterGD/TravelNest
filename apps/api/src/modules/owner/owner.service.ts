@@ -756,14 +756,23 @@ export const getOwnerReviews = async (
     reviews: reviews.map((r) => ({
       id: r.id,
       rating: r.rating,
-      comment: r.comment,
+      dimensions: {
+        vehicleCondition: r.ratingVehicleCondition,
+        driverBehavior:   r.ratingDriverBehavior,
+        punctuality:      r.ratingPunctuality,
+        cleanliness:      r.ratingCleanliness,
+        valueForMoney:    r.ratingValueForMoney,
+      },
+      title:         r.title,
+      comment:       r.comment,
+      isRecommended: r.isRecommended,
       ownerResponse: r.ownerResponse,
-      createdAt: r.createdAt.toISOString(),
-      tripDate: r.booking.startDate.toISOString(),
-      customerName: `${r.customer.firstName} ${r.customer.lastName.charAt(0)}.`,
+      createdAt:     r.createdAt.toISOString(),
+      tripDate:      r.booking.startDate.toISOString(),
+      customerName:  `${r.customer.firstName} ${r.customer.lastName.charAt(0)}.`,
       customerAvatar: r.customer.avatar,
-      vehicleId: r.vehicle.id,
-      vehicleName: r.vehicle.name || r.vehicle.licensePlate,
+      vehicleId:     r.vehicle.id,
+      vehicleName:   r.vehicle.name || r.vehicle.licensePlate,
     })),
     pagination: {
       page,
@@ -775,11 +784,21 @@ export const getOwnerReviews = async (
 };
 
 export const getOwnerReviewSummary = async (ownerId: string) => {
-  const [aggregate, ratingGroups, pendingCount] = await Promise.all([
+  const [aggregate, dimAggregate, ratingGroups, pendingCount] = await Promise.all([
     prisma.review.aggregate({
       where: { vehicle: { ownerId } },
       _avg: { rating: true },
       _count: { id: true },
+    }),
+    prisma.review.aggregate({
+      where: { vehicle: { ownerId } },
+      _avg: {
+        ratingVehicleCondition: true,
+        ratingDriverBehavior:   true,
+        ratingPunctuality:      true,
+        ratingCleanliness:      true,
+        ratingValueForMoney:    true,
+      },
     }),
     prisma.review.groupBy({
       by: ["rating"],
@@ -799,6 +818,8 @@ export const getOwnerReviewSummary = async (ownerId: string) => {
   const totalReviews = aggregate._count.id;
   const responded = totalReviews - pendingCount;
 
+  const round1 = (v: number | null) => (v !== null ? parseFloat(v.toFixed(1)) : null);
+
   return {
     averageRating: parseFloat((aggregate._avg.rating ?? 0).toFixed(1)),
     totalReviews,
@@ -806,6 +827,13 @@ export const getOwnerReviewSummary = async (ownerId: string) => {
     responseRate:
       totalReviews > 0 ? Math.round((responded / totalReviews) * 100) : 0,
     ratingDistribution: distribution,
+    dimensionAverages: {
+      vehicleCondition: round1(dimAggregate._avg.ratingVehicleCondition),
+      driverBehavior:   round1(dimAggregate._avg.ratingDriverBehavior),
+      punctuality:      round1(dimAggregate._avg.ratingPunctuality),
+      cleanliness:      round1(dimAggregate._avg.ratingCleanliness),
+      valueForMoney:    round1(dimAggregate._avg.ratingValueForMoney),
+    },
   };
 };
 

@@ -3,6 +3,7 @@ import type {
   RouteEstimateInput,
   SubmitContactInput,
 } from "./landing.schemas.js";
+import { dispatchBulkNotifications } from "../notification/notification.service.js";
 
 export const landingService = {
   /**
@@ -364,10 +365,12 @@ export const landingService = {
     });
 
     if (admins.length > 0) {
-      await prisma.notification.createMany({
-        data: admins.map((admin) => ({
-          userId: admin.id,
+      // Admin-facing notification — kept in English (no en/si/ta key payload).
+      dispatchBulkNotifications(
+        admins.map((admin) => admin.id),
+        {
           type: "contact_message",
+          category: "System",
           title: `Contact: ${input.subject}`,
           message: `${input.name} (${input.email}) sent a contact request`,
           data: {
@@ -377,8 +380,8 @@ export const landingService = {
             subject: input.subject,
             message: input.message,
           },
-        })),
-      });
+        },
+      );
     }
 
     return {

@@ -1,12 +1,15 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Bell, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { APP_NAME } from "@/constants";
-import { useCustomerGuard } from "@/hooks";
+import { useCustomerGuard, useNotificationStream } from "@/hooks";
 import { useAuthStore } from "@/store";
+import { messageService, notificationService } from "@/lib/api";
 import { LoadingSpinner } from "@/components/ui";
 
 interface DashboardLayoutClientProps {
@@ -18,13 +21,55 @@ export function DashboardLayoutClient({
   children,
   locale,
 }: DashboardLayoutClientProps) {
-  const t = useTranslations("dashboard");
+  const t = useTranslations("navigation");
+  const tMsg = useTranslations("messages");
+  const tNotif = useTranslations("dashboard.notifications");
   const pathname = usePathname();
   const router = useRouter();
 
   // Protect this route - only customers can access
   const { isLoading: guardLoading, isAuthorized } = useCustomerGuard();
   const { user, logout } = useAuthStore();
+  const [messagesUnread, setMessagesUnread] = useState(0);
+  const [notificationsUnread, setNotificationsUnread] = useState(0);
+
+  // Surface unread notifications in the header bell. Re-polled on navigation
+  // and refreshed live whenever the API emits a `notification:new` event.
+  const refreshNotificationsUnread = useCallback(async () => {
+    try {
+      const data = await notificationService.getUnreadCount();
+      setNotificationsUnread(data?.unreadCount ?? 0);
+    } catch {
+      // A failed unread poll just leaves the badge hidden.
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await messageService.getUnreadCount();
+        if (!cancelled) setMessagesUnread(data?.unreadCount ?? 0);
+      } catch {
+        // A failed unread poll just leaves the badge hidden.
+      }
+    })();
+    void (async () => {
+      try {
+        const data = await notificationService.getUnreadCount();
+        if (!cancelled) setNotificationsUnread(data?.unreadCount ?? 0);
+      } catch {
+        // A failed unread poll just leaves the badge hidden.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
+  useNotificationStream(() => {
+    void refreshNotificationsUnread();
+  });
 
   const handleLogout = () => {
     logout();
@@ -34,7 +79,7 @@ export function DashboardLayoutClient({
   const navItems = [
     {
       href: `/${locale}/dashboard`,
-      label: t("overview"),
+      label: t("dashboard"),
       icon: (
         <svg
           className="w-5 h-5"
@@ -88,6 +133,11 @@ export function DashboardLayoutClient({
           />
         </svg>
       ),
+    },
+    {
+      href: `/${locale}/dashboard/messages`,
+      label: t("messages"),
+      icon: <MessageSquare className="w-5 h-5" />,
     },
     {
       href: `/${locale}/dashboard/reviews`,
@@ -208,26 +258,22 @@ export function DashboardLayoutClient({
             {/* User Menu */}
             <div className="flex items-center gap-4">
               {/* Notifications */}
-              <Link 
+              <Link
                 href={`/${locale}/dashboard/notifications`}
                 className="relative p-2 text-muted-foreground hover:text-foreground transition-colors"
                 title={t("notifications", { defaultValue: "Notifications" })}
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
-                {/* Could add a dynamic unread badge here later */}
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                <Bell className="w-5 h-5" aria-hidden="true" />
+                {notificationsUnread > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-error-border)] px-1.5 text-xs font-semibold text-[var(--color-primary-foreground)]"
+                    aria-label={tNotif("unreadBadge", {
+                      count: notificationsUnread,
+                    })}
+                  >
+                    {notificationsUnread > 99 ? "99+" : notificationsUnread}
+                  </span>
+                )}
               </Link>
 
               {/* Profile Dropdown */}
@@ -272,22 +318,37 @@ export function DashboardLayoutClient({
         <aside className="hidden md:flex flex-col w-64 min-h-[calc(100vh-4rem)] bg-background border-r border-border">
           <nav className="flex-1 p-4">
             <ul className="space-y-1">
-              {navItems.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                      isActive(item.href)
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    {item.icon}
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
-                </li>
-              ))}
+              {navItems.map((item) => {
+                const showMessagesBadge =
+                  item.href.endsWith("/dashboard/messages") &&
+                  messagesUnread > 0;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                        isActive(item.href)
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                    >
+                      {item.icon}
+                      <span className="font-medium">{item.label}</span>
+                      {showMessagesBadge && (
+                        <span
+                          className="ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-error-border)] px-1.5 text-xs font-semibold text-[var(--color-primary-foreground)]"
+                          aria-label={tMsg("unreadBadge", {
+                            count: messagesUnread,
+                          })}
+                        >
+                          {messagesUnread > 99 ? "99+" : messagesUnread}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
 
@@ -318,21 +379,34 @@ export function DashboardLayoutClient({
         {/* Mobile Bottom Nav */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border">
           <div className="flex items-center justify-around py-2">
-            {navItems.slice(0, 5).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors",
-                  isActive(item.href)
-                    ? "text-primary"
-                    : "text-muted-foreground",
-                )}
-              >
-                {item.icon}
-                <span className="text-xs font-medium">{item.label}</span>
-              </Link>
-            ))}
+            {navItems.slice(0, 5).map((item) => {
+              const showMessagesBadge =
+                item.href.endsWith("/dashboard/messages") &&
+                messagesUnread > 0;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors",
+                    isActive(item.href)
+                      ? "text-primary"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  <span className="relative">
+                    {item.icon}
+                    {showMessagesBadge && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[var(--color-error-border)]"
+                      />
+                    )}
+                  </span>
+                  <span className="text-xs font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
           </div>
         </nav>
 

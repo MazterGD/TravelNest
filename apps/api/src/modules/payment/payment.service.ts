@@ -3,6 +3,11 @@ import prisma from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { deleteByUrl } from "../../utils/storage.js";
 import { config } from "../../config/index.js";
+import { dispatchNotification } from "../notification/notification.service.js";
+import {
+  paymentFailedToCustomer,
+  paymentReceivedToCustomer,
+} from "../notification/notification.events.js";
 
 export type PaymentMethod = "CARD" | "BANK_TRANSFER" | "CASH";
 
@@ -434,27 +439,21 @@ export const handlePayHereWebhook = async (payload: PayHereWebhookPayload) => {
   });
 
   if (nextStatus === "COMPLETED") {
-    await prisma.notification.create({
-      data: {
-        userId: payment.userId,
-        type: "payment_received",
-        title: "Payment received",
-        message: `Payment for booking ${payment.bookingId} is completed`,
-        data: { bookingId: payment.bookingId, paymentId: payment.id },
-      },
-    });
+    dispatchNotification(
+      paymentReceivedToCustomer(payment.userId, {
+        bookingId: payment.bookingId,
+        paymentId: payment.id,
+      }),
+    );
   }
 
   if (nextStatus === "FAILED") {
-    await prisma.notification.create({
-      data: {
-        userId: payment.userId,
-        type: "payment_failed",
-        title: "Payment failed",
-        message: `Payment for booking ${payment.bookingId} failed`,
-        data: { bookingId: payment.bookingId, paymentId: payment.id },
-      },
-    });
+    dispatchNotification(
+      paymentFailedToCustomer(payment.userId, {
+        bookingId: payment.bookingId,
+        paymentId: payment.id,
+      }),
+    );
   }
 
   return toPaymentResponse(updated);

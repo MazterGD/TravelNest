@@ -19,12 +19,17 @@ const sanitizeQueryParam = (
  */
 export const getMyBookings = async (req: Request, res: Response) => {
   const customerId = req.user!.id;
-  const { status, page, limit } = req.query;
+  const { status, page, limit, startDate, endDate, vehicleType, sort } =
+    req.query;
 
   const result = await bookingService.getCustomerBookings(customerId, {
     status: sanitizeQueryParam(status as string),
     page: page ? Number(page) : undefined,
     limit: limit ? Number(limit) : undefined,
+    startDate: sanitizeQueryParam(startDate as string),
+    endDate: sanitizeQueryParam(endDate as string),
+    vehicleType: sanitizeQueryParam(vehicleType as string),
+    sort: sanitizeQueryParam(sort as string),
   });
 
   return ResponseHelper.success(res, result);

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   LoadingSpinner,
   Button,
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
 import { bookingService } from "@/lib/api/services";
-import { ArrowLeft, MapPin, Calendar, Users, Star, Phone, XCircle, Download, ReceiptText, Map, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Users, Star, Phone, XCircle, Download, ReceiptText, Map, AlertTriangle, MessageSquare } from 'lucide-react';
 
 export interface Message {
   id: string;
@@ -92,6 +93,7 @@ export default function BookingDetailsContent({
 }: BookingDetailsContentProps) {
   const router = useRouter();
   const { isLoading: guardLoading } = useProtectedRoute();
+  const tMsg = useTranslations("messages");
 
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<BookingDetails | null>(null);
@@ -538,15 +540,29 @@ export default function BookingDetailsContent({
                     </p>
                   </div>
                 </div>
-                <Button
-                  onClick={() =>
-                    (window.location.href = `tel:${booking.owner.phone}`)
-                  }
-                  className="bg-[#20B0E9] hover:bg-[#0B5F7F] text-white"
-                >
-                  <Phone className="mr-2" />
-                  Contact Owner
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      router.push(
+                        `/${locale}/dashboard/messages?booking=${bookingId}`,
+                      )
+                    }
+                    className="border-[var(--color-action-primary)] text-[var(--color-action-primary)] hover:bg-[var(--color-bg-surface)] focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
+                  >
+                    <MessageSquare className="mr-2" />
+                    {tMsg("messageOwner")}
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      (window.location.href = `tel:${booking.owner.phone}`)
+                    }
+                    className="bg-[#20B0E9] hover:bg-[#0B5F7F] text-white"
+                  >
+                    <Phone className="mr-2" />
+                    Contact Owner
+                  </Button>
+                </div>
               </div>
             </div>
 

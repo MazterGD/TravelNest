@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { DashboardLayoutClient } from "../DashboardLayoutClient";
 import { NotificationList } from "@/components/dashboard/NotificationList";
+import type { Notification } from "@/lib/api";
 
 interface CustomerNotificationsPageProps {
   params: {
@@ -10,21 +11,50 @@ interface CustomerNotificationsPageProps {
   };
 }
 
-export default function CustomerNotificationsPage({ params: { locale } }: CustomerNotificationsPageProps) {
-  const t = useTranslations("dashboard");
+export default function CustomerNotificationsPage({
+  params: { locale },
+}: CustomerNotificationsPageProps) {
+  const t = useTranslations("dashboard.notifications");
+
+  // Deep-link a notification to its related record. Honours explicit ids in
+  // the `data` payload, otherwise falls back to the relevant list page.
+  const resolveHref = (notification: Notification): string | null => {
+    const data = (notification.data ?? {}) as Record<string, unknown>;
+    const bookingId =
+      typeof data.bookingId === "string" ? data.bookingId : null;
+    const quotationId =
+      typeof data.quotationId === "string" ? data.quotationId : null;
+    const base = `/${locale}/dashboard`;
+
+    if (bookingId) return `${base}/bookings/${bookingId}`;
+    if (quotationId) return `${base}/quotations`;
+
+    switch (notification.category) {
+      case "Bookings":
+      case "Payments":
+        return `${base}/bookings`;
+      case "Quotations":
+        return `${base}/quotations`;
+      case "Reviews":
+        return `${base}/reviews`;
+      default:
+        return null;
+    }
+  };
 
   return (
     <DashboardLayoutClient locale={locale}>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {t("notifications.title", { defaultValue: "My Notifications" })}
+        <h1 className="text-3xl font-bold text-[var(--color-text-primary)] mb-2">
+          {t("title")}
         </h1>
-        <p className="text-gray-600">
-          {t("notifications.subtitle", { defaultValue: "Stay updated on your bookings and account activity." })}
-        </p>
+        <p className="text-[var(--color-text-secondary)]">{t("subtitle")}</p>
       </div>
-      
-      <NotificationList />
+
+      <NotificationList
+        settingsHref={`/${locale}/dashboard/settings`}
+        resolveHref={resolveHref}
+      />
     </DashboardLayoutClient>
   );
 }

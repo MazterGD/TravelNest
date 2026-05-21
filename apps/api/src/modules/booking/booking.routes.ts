@@ -5,6 +5,12 @@ import { csrfProtection } from "../../middleware/csrf.js";
 import * as bookingController from "./booking.controller.js";
 import type { Request, Response } from "express";
 import prisma from "@travenest/database";
+import { dispatchNotification } from "../notification/notification.service.js";
+import {
+  bookingCompletedToCustomer,
+  bookingConfirmedToCustomer,
+  bookingRejectedToCustomer,
+} from "../notification/notification.events.js";
 
 const router = Router();
 
@@ -231,6 +237,10 @@ router.patch(
       data: { status: "CONFIRMED" },
     });
 
+    dispatchNotification(
+      bookingConfirmedToCustomer(booking.customerId, { bookingId: id }),
+    );
+
     res.json({
       success: true,
       message: "Booking confirmed successfully",
@@ -284,6 +294,10 @@ router.patch(
         cancelReason: reason || "Rejected by owner",
       },
     });
+
+    dispatchNotification(
+      bookingRejectedToCustomer(booking.customerId, { bookingId: id }),
+    );
 
     res.json({
       success: true,
@@ -344,6 +358,10 @@ router.patch(
       where: { id },
       data: { status: "COMPLETED" },
     });
+
+    dispatchNotification(
+      bookingCompletedToCustomer(booking.customerId, { bookingId: id }),
+    );
 
     res.json({
       success: true,

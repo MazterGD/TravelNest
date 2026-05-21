@@ -2,6 +2,13 @@ import { prisma } from "@travenest/database";
 import type { QuotationStatus, VehicleType } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { config } from "../../config/index.js";
+import { dispatchNotification } from "../notification/notification.service.js";
+import {
+  quotationAcceptedToOwner,
+  quotationReceivedToCustomer,
+  quotationRejectedToOwner,
+  quotationRequestedToOwner,
+} from "../notification/notification.events.js";
 
 // Pricing validation types
 interface PricingValidationResult {
@@ -710,6 +717,10 @@ export const createQuotationRequest = async (
 
   // If vehicleId is provided, verify it exists and get vehicle type
   let vehicleType = data.vehicleType || null;
+  // Owner to notify when the request targets one specific vehicle. Open
+  // requests (no vehicleId) surface in every matching owner's request feed —
+  // broadcasting to all owners is intentionally out of scope here.
+  let targetOwnerId: string | null = null;
   if (data.vehicleId) {
     const vehicle = await prisma.vehicle.findUnique({
       where: { id: data.vehicleId },
@@ -726,6 +737,7 @@ export const createQuotationRequest = async (
 
     // Use the vehicle's type if not explicitly provided
     vehicleType = vehicleType || vehicle.type;
+    targetOwnerId = vehicle.ownerId;
   }
 
   // Generate quotation ID
@@ -768,6 +780,16 @@ export const createQuotationRequest = async (
       },
     },
   });
+
+  if (targetOwnerId) {
+    const route = `${pickupLocation} → ${dropoffLocation || pickupLocation}`;
+    dispatchNotification(
+      quotationRequestedToOwner(targetOwnerId, {
+        quotationId: quotation.id,
+        route,
+      }),
+    );
+  }
 
   return quotation;
 };
@@ -879,6 +901,16 @@ export const sendQuotation = async (
       },
     },
   });
+
+  const route = `${quotation.pickupLocation} → ${
+    quotation.dropoffLocation || quotation.pickupLocation
+  }`;
+  dispatchNotification(
+    quotationReceivedToCustomer(updated.customer.id, {
+      quotationId: updated.id,
+      route,
+    }),
+  );
 
   // Return quotation with pricing warnings and suggestions
   return {
@@ -1022,6 +1054,20 @@ export const respondToQuotation = async (
       };
     });
 
+    const acceptedOwnerId = result.vehicle?.owner?.id;
+    if (acceptedOwnerId) {
+      const route = `${quotation.pickupLocation} → ${
+        quotation.dropoffLocation || quotation.pickupLocation
+      }`;
+      dispatchNotification(
+        quotationAcceptedToOwner(acceptedOwnerId, {
+          quotationId: result.id,
+          bookingId: result.booking.id,
+          route,
+        }),
+      );
+    }
+
     return result;
   }
 
@@ -1059,6 +1105,19 @@ export const respondToQuotation = async (
       },
     },
   });
+
+  const rejectedOwnerId = updated.vehicle?.owner?.id;
+  if (rejectedOwnerId) {
+    const route = `${quotation.pickupLocation} → ${
+      quotation.dropoffLocation || quotation.pickupLocation
+    }`;
+    dispatchNotification(
+      quotationRejectedToOwner(rejectedOwnerId, {
+        quotationId: updated.id,
+        route,
+      }),
+    );
+  }
 
   return updated;
 };

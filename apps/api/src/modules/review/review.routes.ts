@@ -12,7 +12,7 @@ const router = Router();
 
 /**
  * @route   GET /api/v1/reviews/vehicle/:vehicleId
- * @desc    Get reviews for a vehicle
+ * @desc    Get reviews for a vehicle (includes 6-dimension stats)
  * @access  Public
  */
 router.get(
@@ -26,8 +26,8 @@ router.get(
 
 /**
  * @route   GET /api/v1/reviews/my-reviews
- * @desc    Get customer's reviews
- * @access  Private
+ * @desc    Get customer's own reviews
+ * @access  Private (Customer)
  */
 router.get(
   "/my-reviews",
@@ -37,8 +37,8 @@ router.get(
 
 /**
  * @route   GET /api/v1/reviews/pending
- * @desc    Get bookings pending review
- * @access  Private
+ * @desc    Get bookings awaiting a review
+ * @access  Private (Customer)
  */
 router.get(
   "/pending",
@@ -48,8 +48,8 @@ router.get(
 
 /**
  * @route   POST /api/v1/reviews
- * @desc    Create a review
- * @access  Private
+ * @desc    Create a review (with optional 6-dimension sub-ratings)
+ * @access  Private (Customer)
  */
 router.post(
   "/",
@@ -61,7 +61,7 @@ router.post(
 /**
  * @route   PUT /api/v1/reviews/:id
  * @desc    Update a review
- * @access  Private
+ * @access  Private (Customer)
  */
 router.put(
   "/:id",
@@ -73,7 +73,7 @@ router.put(
 /**
  * @route   DELETE /api/v1/reviews/:id
  * @desc    Delete a review
- * @access  Private
+ * @access  Private (Customer)
  */
 router.delete(
   "/:id",
@@ -86,6 +86,30 @@ router.delete(
 // ==========================================
 
 /**
+ * @route   GET /api/v1/reviews/owner/summary
+ * @desc    Aggregate review stats for the owner (with dimension averages)
+ * @access  Private (Owner)
+ */
+router.get(
+  "/owner/summary",
+  authenticate,
+  authorize("owner", "admin"),
+  asyncHandler(reviewController.getOwnerReviewSummary),
+);
+
+/**
+ * @route   GET /api/v1/reviews/owner/list
+ * @desc    Paginated reviews received by the owner (filter: hasResponse)
+ * @access  Private (Owner)
+ */
+router.get(
+  "/owner/list",
+  authenticate,
+  authorize("owner", "admin"),
+  asyncHandler(reviewController.getOwnerReviews),
+);
+
+/**
  * @route   POST /api/v1/reviews/:id/response
  * @desc    Owner responds to a review
  * @access  Private (Owner)
@@ -94,6 +118,7 @@ router.post(
   "/:id/response",
   authenticate,
   authorize("owner", "admin"),
+  csrfProtection,
   asyncHandler(reviewController.respondToReview),
 );
 

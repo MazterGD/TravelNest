@@ -29,6 +29,7 @@ export default function BookingDetailsPage({
   params: Promise<{ id: string; locale: string }>;
 }) {
   const t = useTranslations("bookingDetails");
+  const tMsg = useTranslations("messages");
   const { user } = useAuthStore();
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
   const [selectedDriver, setSelectedDriver] = useState("");
@@ -157,13 +158,14 @@ export default function BookingDetailsPage({
               <div className="rounded-lg border border-border bg-card p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-foreground">{t("sectionCustomer")}</h2>
-                  <button
-                    aria-label={t("message")}
-                    className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  <Link
+                    href={`/${locale}/owner/messages?booking=${id}`}
+                    aria-label={tMsg("messageCustomer")}
+                    className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <MessageSquare className="h-4 w-4" />
-                    {t("message")}
-                  </button>
+                    {tMsg("messageCustomer")}
+                  </Link>
                 </div>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>

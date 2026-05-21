@@ -39,6 +39,17 @@ export {
   // Notification
   notificationService,
   type Notification,
+  type NotificationCategory,
+  type NotificationListResponse,
+  type NotificationQueryParams,
+
+  // Messages / Chat
+  messageService,
+  type ChatMessage,
+  type ConversationSummary,
+  type ConversationListResponse,
+  type ConversationCounterpartRole,
+  type MessagesListResponse,
 
   // Search
   searchService,

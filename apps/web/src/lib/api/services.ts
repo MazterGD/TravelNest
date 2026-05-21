@@ -20,8 +20,6 @@ import type {
   QuotationRequestInput,
   VehicleInput,
   QuotationResponseInput,
-  ReviewInput,
-  ProfileUpdateInput,
 } from "@/lib/validations";
 
 // ============================================
@@ -780,6 +778,8 @@ export interface BookingSearchParams extends PaginationParams {
   startDate?: string;
   endDate?: string;
   vehicleId?: string;
+  vehicleType?: string;
+  sort?: string;
 }
 
 export const bookingService = {
@@ -846,46 +846,64 @@ export const bookingService = {
   endTrip: (id: string) => api.post<Booking>(`/bookings/${id}/end`),
 };
 
+// ── Shared review dimension shape ─────────────────────────────────────────────
+export interface ReviewDimensions {
+  vehicleCondition?: number | null;
+  driverBehavior?: number | null;
+  punctuality?: number | null;
+  cleanliness?: number | null;
+  valueForMoney?: number | null;
+}
+
+export interface ReviewCreateInput {
+  bookingId: string;
+  vehicleId: string;
+  rating: number;
+  title?: string;
+  comment?: string;
+  isRecommended?: boolean;
+  dimensions?: ReviewDimensions;
+}
+
 // ============================================
 // Review Services
 // ============================================
 export const reviewService = {
   /**
-   * Create a review for a completed booking
+   * Create a review for a completed booking (supports 6-dimension sub-ratings)
    */
-  create: (data: ReviewInput) => api.post<Review>("/reviews", data),
+  create: (data: ReviewCreateInput) => api.post<Review>("/reviews", data),
 
   /**
-   * Get reviews for a vehicle
+   * Get reviews for a vehicle (includes per-dimension averages)
    */
   getByVehicle: (vehicleId: string, params?: PaginationParams) => {
     const query = params ? `?${buildQueryString(params)}` : "";
     return api.get<{
-      reviews: Review[];
+      reviews: Array<{
+        id: string;
+        rating: number;
+        dimensions: ReviewDimensions | null;
+        title: string | null;
+        comment: string | null;
+        isRecommended: boolean | null;
+        customerName: string;
+        customerAvatar: string | null;
+        ownerResponse: string | null;
+        createdAt: string;
+      }>;
       stats: {
         averageRating: number;
         totalReviews: number;
         ratingDistribution: Record<number, number>;
+        dimensionAverages: ReviewDimensions;
       };
-      pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-      };
+      pagination: { page: number; limit: number; total: number; totalPages: number };
     }>(`/reviews/vehicle/${vehicleId}${query}`);
   },
 
   /**
-   * Get reviews for an owner
-   */
-  getByOwner: (ownerId: string, params?: PaginationParams) => {
-    const query = params ? `?${buildQueryString(params)}` : "";
-    return api.get<Review[]>(`/reviews/owner/${ownerId}${query}`);
-  },
-
-  /**
-   * Get reviews by current user
+   * Get reviews by current customer (includes 6-dimension fields)
    */
   getMyReviews: (params?: PaginationParams) => {
     const query = params ? `?${buildQueryString(params)}` : "";
@@ -893,7 +911,10 @@ export const reviewService = {
       reviews: Array<{
         id: string;
         rating: number;
+        dimensions: ReviewDimensions | null;
+        title: string | null;
         comment: string | null;
+        isRecommended: boolean | null;
         createdAt: string;
         vehicleName: string;
         ownerName: string;
@@ -901,12 +922,7 @@ export const reviewService = {
         ownerResponseDate: string | null;
         tripDate: string;
       }>;
-      pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-      };
+      pagination: { page: number; limit: number; total: number; totalPages: number };
     }>(`/reviews/my-reviews${query}`);
   },
 
@@ -923,19 +939,14 @@ export const reviewService = {
         ownerName: string;
         tripDate: string;
       }>;
-      pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-      };
+      pagination: { page: number; limit: number; total: number; totalPages: number };
     }>(`/reviews/pending${query}`);
   },
 
   /**
-   * Update a review
+   * Update a review (supports 6-dimension sub-ratings)
    */
-  update: (id: string, data: Partial<ReviewInput>) =>
+  update: (id: string, data: Partial<ReviewCreateInput>) =>
     api.put<Review>(`/reviews/${id}`, data),
 
   /**
@@ -1082,9 +1093,17 @@ export const paymentService = {
 // ============================================
 // Notification Services
 // ============================================
+export type NotificationCategory =
+  | "Bookings"
+  | "Payments"
+  | "Quotations"
+  | "Reviews"
+  | "System";
+
 export interface Notification {
   id: string;
   type: string;
+  category: NotificationCategory;
   title: string;
   message: string;
   isRead: boolean;
@@ -1092,13 +1111,28 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface NotificationListResponse {
+  notifications: Notification[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface NotificationQueryParams extends PaginationParams {
+  unreadOnly?: boolean;
+  category?: NotificationCategory;
+}
+
 export const notificationService = {
   /**
    * Get notifications for current user
    */
-  getAll: (params?: PaginationParams & { unreadOnly?: boolean }) => {
+  getAll: (params?: NotificationQueryParams) => {
     const query = params ? `?${buildQueryString(params)}` : "";
-    return api.get<Notification[]>(`/notifications${query}`);
+    return api.get<NotificationListResponse>(`/notifications${query}`);
   },
 
   /**
@@ -1111,18 +1145,127 @@ export const notificationService = {
    * Mark all notifications as read
    */
   markAllAsRead: () =>
-    api.post<MessageResponse>("/notifications/mark-all-read"),
+    api.patch<{ count: number }>("/notifications/read-all"),
 
   /**
    * Get unread count
    */
   getUnreadCount: () =>
-    api.get<{ count: number }>("/notifications/unread-count"),
+    api.get<{ unreadCount: number }>("/notifications/unread-count"),
 
   /**
    * Delete a notification
    */
   delete: (id: string) => api.delete<MessageResponse>(`/notifications/${id}`),
+
+  /**
+   * Delete all notifications (bulk clear)
+   */
+  deleteAll: () => api.delete<{ count: number }>("/notifications"),
+};
+
+// ============================================
+// Message / Chat Services
+// ============================================
+export type ConversationCounterpartRole = "CUSTOMER" | "VEHICLE_OWNER";
+
+export interface ConversationSummary {
+  id: string;
+  bookingId: string;
+  unreadCount: number;
+  lastMessageAt: string | null;
+  lastMessage: {
+    id: string;
+    content: string;
+    senderId: string;
+    createdAt: string;
+  } | null;
+  counterpart: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar: string | null;
+    role: ConversationCounterpartRole;
+  };
+  booking: {
+    id: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    pickupLocation: string;
+    dropoffLocation: string | null;
+    vehicle: {
+      id: string;
+      name: string;
+      type: string;
+    };
+  };
+}
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  readAt: string | null;
+  createdAt: string;
+  // Client-only: set on optimistic messages awaiting server confirmation.
+  // The API never returns this field.
+  pending?: boolean;
+}
+
+export interface ConversationListResponse {
+  conversations: ConversationSummary[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface MessagesListResponse {
+  messages: ChatMessage[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export const messageService = {
+  listConversations: (params?: PaginationParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<ConversationListResponse>(`/messages/conversations${query}`);
+  },
+
+  getConversation: (id: string) =>
+    api.get<{ conversation: ConversationSummary }>(`/messages/conversations/${id}`),
+
+  openConversation: (bookingId: string) =>
+    api.post<{ conversation: ConversationSummary }>("/messages/conversations", {
+      bookingId,
+    }),
+
+  listMessages: (conversationId: string, params?: PaginationParams) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<MessagesListResponse>(
+      `/messages/conversations/${conversationId}/messages${query}`,
+    );
+  },
+
+  sendMessage: (conversationId: string, content: string) =>
+    api.post<{ message: ChatMessage }>(
+      `/messages/conversations/${conversationId}/messages`,
+      { content },
+    ),
+
+  markRead: (conversationId: string) =>
+    api.patch<{ count: number }>(`/messages/conversations/${conversationId}/read`),
+
+  getUnreadCount: () =>
+    api.get<{ unreadCount: number }>("/messages/unread-count"),
 };
 
 // ============================================
@@ -3256,7 +3399,10 @@ export const ownerService = {
       reviews: Array<{
         id: string;
         rating: number;
+        dimensions: ReviewDimensions | null;
+        title: string | null;
         comment: string | null;
+        isRecommended: boolean | null;
         ownerResponse: string | null;
         createdAt: string;
         tripDate: string;
@@ -3284,6 +3430,7 @@ export const ownerService = {
       pendingResponses: number;
       responseRate: number;
       ratingDistribution: Record<number, number>;
+      dimensionAverages: ReviewDimensions;
     }>("/owner/reviews/summary"),
 
   /**

@@ -1,6 +1,10 @@
 import type { Request, Response } from "express";
 import { ResponseHelper } from "../../utils/response.js";
 import * as notificationService from "./notification.service.js";
+import {
+  NOTIFICATION_CATEGORIES,
+  type NotificationCategory,
+} from "./notification.schemas.js";
 
 /**
  * Get user's notifications with pagination
@@ -10,12 +14,20 @@ export const getNotifications = async (req: Request, res: Response) => {
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
   const unreadOnly = req.query.unreadOnly === "true";
+  const rawCategory =
+    typeof req.query.category === "string" ? req.query.category : undefined;
+  const category =
+    rawCategory &&
+    (NOTIFICATION_CATEGORIES as readonly string[]).includes(rawCategory)
+      ? (rawCategory as NotificationCategory)
+      : undefined;
 
   const result = await notificationService.getUserNotifications(
     userId,
     page,
     limit,
     unreadOnly,
+    category,
   );
 
   return ResponseHelper.success(res, result);

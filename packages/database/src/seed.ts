@@ -1855,6 +1855,41 @@ async function main() {
     },
   });
 
+  // 4th SENT quotation for customer1's Colombo→Kandy trip — enables 4-column comparison demo
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer1.id,
+      vehicleId: owner4Vehicles[0]?.id,
+      vehicleType: "SEMI_LUXURY",
+      startDate: new Date("2026-02-25T08:00:00.000Z"),
+      endDate: new Date("2026-02-26T20:00:00.000Z"),
+      startTime: "08:00 AM",
+      pickupLocation: "Colombo - Galle Face Green",
+      dropoffLocation: "Kandy - Temple of the Tooth",
+      passengerCount: 35,
+      estimatedDistance: "120 km",
+      estimatedDuration: "3.5 hours",
+      specialRequests:
+        "Air conditioning required. Need experienced driver familiar with hill country roads.",
+      status: "SENT",
+      vehicleRentalCost: 25000,
+      driverCost: 5500,
+      fuelCost: 9000,
+      tollCharges: 1800,
+      permitFees: 1200,
+      customItems: [],
+      subtotal: 42500,
+      tax: 4250,
+      totalAmount: 46750,
+      additionalNotes:
+        "Value-for-money option with a reliable semi-luxury vehicle. Driver has 10+ years of experience on this route.",
+      validityDays: 5,
+      validUntil: new Date("2026-02-27T23:59:59.000Z"),
+      sentAt: new Date("2026-02-19T12:30:00.000Z"),
+    },
+  });
+
   // Add more quotations covering all statuses
   // Quotation 4: VIEWED - Customer viewed but hasn't responded
   await prisma.quotation.create({
@@ -1994,6 +2029,26 @@ async function main() {
       validUntil: new Date("2026-01-18T23:59:59.000Z"),
       sentAt: new Date("2026-01-15T10:00:00.000Z"),
       viewedAt: new Date("2026-01-16T11:00:00.000Z"),
+    },
+  });
+
+  // Quotation 7b: EXPIRED - Customer request that received no responses and expired
+  // vehicleId is null to represent a pure customer-side quotation_request (no owner response arrived).
+  await prisma.quotation.create({
+    data: {
+      quotationId: generateQuotationId(),
+      customerId: customer1.id,
+      vehicleType: "ORDINARY",
+      startDate: new Date("2026-01-05T09:00:00.000Z"),
+      endDate: new Date("2026-01-05T18:00:00.000Z"),
+      startTime: "09:00 AM",
+      pickupLocation: "Kurunegala - Town Hall",
+      dropoffLocation: "Anuradhapura - Sacred City",
+      passengerCount: 25,
+      estimatedDistance: "95 km",
+      estimatedDuration: "2.5 hours",
+      specialRequests: "School field trip — no responses received before expiry",
+      status: "EXPIRED",
     },
   });
 
@@ -3265,21 +3320,27 @@ async function main() {
 
   let totalReviews = 0;
 
-  // Review 1: Excellent experience
+  // Review 1: Excellent experience — full 6-dimension set
   if (completedBookings[0]) {
     await prisma.review.create({
       data: {
-        bookingId: completedBookings[0].id,
-        vehicleId: completedBookings[0].vehicleId,
+        bookingId:  completedBookings[0].id,
+        vehicleId:  completedBookings[0].vehicleId,
         customerId: completedBookings[0].customerId,
         rating: 5,
+        title: "Exceptional from start to finish",
         comment:
           "Excellent service! The bus was very clean and comfortable. The driver was professional and knew the routes very well. Air conditioning worked perfectly throughout the trip. Highly recommend Perera Transport for any long-distance travel in Sri Lanka. Will definitely use again!",
+        isRecommended: true,
+        ratingVehicleCondition: 5,
+        ratingDriverBehavior:   5,
+        ratingPunctuality:      5,
+        ratingCleanliness:      5,
+        ratingValueForMoney:    4,
       },
     });
     totalReviews++;
 
-    // Owner response
     await prisma.review.update({
       where: { bookingId: completedBookings[0].id },
       data: {
@@ -3289,21 +3350,27 @@ async function main() {
     });
   }
 
-  // Review 2: Very good experience
+  // Review 2: Very good experience — full 6-dimension set
   if (completedBookings[1]) {
     await prisma.review.create({
       data: {
-        bookingId: completedBookings[1].id,
-        vehicleId: completedBookings[1].vehicleId,
+        bookingId:  completedBookings[1].id,
+        vehicleId:  completedBookings[1].vehicleId,
         customerId: completedBookings[1].customerId,
         rating: 4,
+        title: "Good journey, small AC issue",
         comment:
           "Very good experience overall. The vehicle arrived on time and was well-maintained. The journey through the Northern Province was comfortable. Driver was courteous and accommodating. Only minor issue was the AC was a bit too cold at times, but they adjusted it when we asked. Good value for money!",
+        isRecommended: true,
+        ratingVehicleCondition: 4,
+        ratingDriverBehavior:   5,
+        ratingPunctuality:      4,
+        ratingCleanliness:      4,
+        ratingValueForMoney:    4,
       },
     });
     totalReviews++;
 
-    // Owner response
     await prisma.review.update({
       where: { bookingId: completedBookings[1].id },
       data: {
@@ -3313,31 +3380,45 @@ async function main() {
     });
   }
 
-  // Review 3: Great hill country tour
+  // Review 3: Great hill country tour — full 6-dimension set
   if (completedBookings[2]) {
     await prisma.review.create({
       data: {
-        bookingId: completedBookings[2].id,
-        vehicleId: completedBookings[2].vehicleId,
+        bookingId:  completedBookings[2].id,
+        vehicleId:  completedBookings[2].vehicleId,
         customerId: completedBookings[2].customerId,
         rating: 5,
+        title: "Perfect for the hill country scenery",
         comment:
           "Perfect for hill country tours! The panoramic windows were great for enjoying the scenic views. Driver was experienced with mountain roads and made us feel safe throughout the journey. The bus was spacious and clean. Chaminda's service is top-notch. Highly recommended for Kandy and Nuwara Eliya trips!",
+        isRecommended: true,
+        ratingVehicleCondition: 5,
+        ratingDriverBehavior:   5,
+        ratingPunctuality:      5,
+        ratingCleanliness:      5,
+        ratingValueForMoney:    5,
       },
     });
     totalReviews++;
   }
 
-  // Review 4: Satisfactory service
+  // Review 4: Satisfactory service — partial dimensions
   if (completedBookings[3]) {
     await prisma.review.create({
       data: {
-        bookingId: completedBookings[3].id,
-        vehicleId: completedBookings[3].vehicleId,
+        bookingId:  completedBookings[3].id,
+        vehicleId:  completedBookings[3].vehicleId,
         customerId: completedBookings[3].customerId,
         rating: 4,
+        title: "Solid budget option for smaller groups",
         comment:
           "Good service for a budget-friendly option. The mini bus was suitable for our small group. Everything went smoothly. Driver was punctual and helpful with our luggage. The vehicle could use some interior updates but overall served our purpose well for the eastern coast trip.",
+        isRecommended: true,
+        ratingVehicleCondition: 3,
+        ratingDriverBehavior:   4,
+        ratingPunctuality:      5,
+        ratingCleanliness:      4,
+        ratingValueForMoney:    4,
       },
     });
     totalReviews++;
@@ -3350,12 +3431,19 @@ async function main() {
   if (completedBookings[5]) {
     await prisma.review.create({
       data: {
-        bookingId: completedBookings[5].id,
-        vehicleId: completedBookings[5].vehicleId,
+        bookingId:  completedBookings[5].id,
+        vehicleId:  completedBookings[5].vehicleId,
         customerId: completedBookings[5].customerId,
         rating: 3,
+        title: "Punctuality needs improvement",
         comment:
           "Average experience. Bus arrived late by 30 minutes. The vehicle condition was acceptable but seats could be more comfortable. Driver was friendly though. Service needs improvement in terms of punctuality.",
+        isRecommended: false,
+        ratingVehicleCondition: 3,
+        ratingDriverBehavior:   4,
+        ratingPunctuality:      2,
+        ratingCleanliness:      3,
+        ratingValueForMoney:    3,
       },
     });
     totalReviews++;
@@ -3364,17 +3452,23 @@ async function main() {
   if (completedBookings[6]) {
     await prisma.review.create({
       data: {
-        bookingId: completedBookings[6].id,
-        vehicleId: completedBookings[6].vehicleId,
+        bookingId:  completedBookings[6].id,
+        vehicleId:  completedBookings[6].vehicleId,
         customerId: completedBookings[6].customerId,
         rating: 5,
+        title: "Outstanding luxury experience",
         comment:
           "Outstanding service! The luxury coach exceeded our expectations. Professional driver, spotless interior, and smooth ride. Perfect for long-distance travel. Will recommend to everyone!",
+        isRecommended: true,
+        ratingVehicleCondition: 5,
+        ratingDriverBehavior:   5,
+        ratingPunctuality:      5,
+        ratingCleanliness:      5,
+        ratingValueForMoney:    5,
       },
     });
     totalReviews++;
 
-    // Owner response
     await prisma.review.update({
       where: { bookingId: completedBookings[6].id },
       data: {
@@ -3400,8 +3494,15 @@ async function main() {
       where: { bookingId: recentCompletedBooking.id },
       data: {
         rating: 5,
+        title: "Excellent Polonnaruwa Heritage Tour",
         comment:
           "Fantastic experience exploring Polonnaruwa! The driver was very knowledgeable about the historical sites and gave us excellent recommendations. The bus was spotless and comfortable. AC worked perfectly in the hot weather. Will definitely book again for our next heritage tour!",
+        isRecommended: true,
+        ratingVehicleCondition: 5,
+        ratingDriverBehavior: 5,
+        ratingPunctuality: 5,
+        ratingCleanliness: 5,
+        ratingValueForMoney: 4,
       },
     });
   } else {
@@ -3411,8 +3512,15 @@ async function main() {
         vehicleId: recentCompletedBooking.vehicleId,
         customerId: recentCompletedBooking.customerId,
         rating: 5,
+        title: "Excellent Polonnaruwa Heritage Tour",
         comment:
           "Fantastic experience exploring Polonnaruwa! The driver was very knowledgeable about the historical sites and gave us excellent recommendations. The bus was spotless and comfortable. AC worked perfectly in the hot weather. Will definitely book again for our next heritage tour!",
+        isRecommended: true,
+        ratingVehicleCondition: 5,
+        ratingDriverBehavior: 5,
+        ratingPunctuality: 5,
+        ratingCleanliness: 5,
+        ratingValueForMoney: 4,
       },
     });
     totalReviews++;
@@ -3427,8 +3535,15 @@ async function main() {
       where: { bookingId: readyForReviewBooking.id },
       data: {
         rating: 4,
+        title: "Reliable Airport Transfer",
         comment:
           "Good airport transfer service. Driver arrived 10 minutes early which was perfect. The minibus was clean and comfortable. Smooth ride to the airport with no issues. Only suggestion would be to provide bottled water. Overall very satisfied!",
+        isRecommended: true,
+        ratingVehicleCondition: 4,
+        ratingDriverBehavior: 5,
+        ratingPunctuality: 5,
+        ratingCleanliness: 4,
+        ratingValueForMoney: 3,
       },
     });
   } else {
@@ -3438,8 +3553,15 @@ async function main() {
         vehicleId: readyForReviewBooking.vehicleId,
         customerId: readyForReviewBooking.customerId,
         rating: 4,
+        title: "Reliable Airport Transfer",
         comment:
           "Good airport transfer service. Driver arrived 10 minutes early which was perfect. The minibus was clean and comfortable. Smooth ride to the airport with no issues. Only suggestion would be to provide bottled water. Overall very satisfied!",
+        isRecommended: true,
+        ratingVehicleCondition: 4,
+        ratingDriverBehavior: 5,
+        ratingPunctuality: 5,
+        ratingCleanliness: 4,
+        ratingValueForMoney: 3,
       },
     });
     totalReviews++;
@@ -4096,6 +4218,7 @@ async function main() {
         title: "Booking Confirmed",
         message: "Your booking for Colombo to Nuwara Eliya has been confirmed!",
         type: "info",
+        category: "Bookings",
         isRead: false,
       },
       {
@@ -4103,6 +4226,7 @@ async function main() {
         title: "Quotation Received",
         message: "You have received a new quotation for your trip request.",
         type: "info",
+        category: "Quotations",
         isRead: true,
       },
       {
@@ -4110,6 +4234,7 @@ async function main() {
         title: "Payment Successful",
         message: "Your payment of LKR 150,000 has been processed successfully.",
         type: "success",
+        category: "Payments",
         isRead: true,
       },
     ],
@@ -4124,6 +4249,7 @@ async function main() {
         title: "New Quotation Available",
         message: "Check out the quotation for your Negombo to Jaffna trip!",
         type: "info",
+        category: "Quotations",
         isRead: false,
       },
       {
@@ -4132,6 +4258,7 @@ async function main() {
         message:
           "Your trip starts tomorrow. Please be ready at the pickup location.",
         type: "warning",
+        category: "Bookings",
         isRead: false,
       },
     ],
@@ -4146,6 +4273,7 @@ async function main() {
         title: "New Quotation Request",
         message: "You have a new quotation request from Dilshan Jayawardena.",
         type: "info",
+        category: "Quotations",
         isRead: false,
       },
       {
@@ -4153,6 +4281,7 @@ async function main() {
         title: "Booking Confirmed",
         message: "A new booking has been confirmed for your vehicle.",
         type: "success",
+        category: "Bookings",
         isRead: true,
       },
       {
@@ -4160,6 +4289,7 @@ async function main() {
         title: "Payment Received",
         message: "Payment of LKR 150,000 has been credited to your account.",
         type: "success",
+        category: "Payments",
         isRead: true,
       },
       {
@@ -4167,6 +4297,7 @@ async function main() {
         title: "New Review",
         message: "A customer has left a 5-star review for your service!",
         type: "info",
+        category: "Reviews",
         isRead: false,
       },
     ],
@@ -4182,6 +4313,7 @@ async function main() {
         message:
           "Your insurance certificate has been rejected. Please upload a valid document.",
         type: "error",
+        category: "System",
         isRead: false,
       },
       {
@@ -4189,6 +4321,7 @@ async function main() {
         title: "Vehicle Maintenance Reminder",
         message: "It's time for your vehicle's regular maintenance check.",
         type: "warning",
+        category: "System",
         isRead: true,
       },
     ],
@@ -4204,6 +4337,7 @@ async function main() {
         message:
           "Your owner registration is currently being reviewed by our team.",
         type: "info",
+        category: "System",
         isRead: false,
       },
       {
@@ -4211,6 +4345,7 @@ async function main() {
         title: "Documents Pending Verification",
         message: "Please wait while we verify your submitted documents.",
         type: "warning",
+        category: "System",
         isRead: true,
       },
     ],
@@ -4233,6 +4368,7 @@ async function main() {
         message:
           "You have received 3 quotations for your Cultural Triangle tour. Compare and choose the best option!",
         type: "info",
+        category: "Quotations",
         isRead: false,
       },
       {
@@ -4241,6 +4377,7 @@ async function main() {
         message:
           "Check out the latest quotation for your beach party trip to Bentota!",
         type: "info",
+        category: "Quotations",
         isRead: false,
       },
       {
@@ -4249,6 +4386,7 @@ async function main() {
         message:
           "Your 5-day hill country tour is currently ongoing. Have a great trip!",
         type: "success",
+        category: "Bookings",
         isRead: true,
       },
     ],
@@ -4264,6 +4402,7 @@ async function main() {
         message:
           "Your trip to Trincomalee is currently in progress. Safe travels!",
         type: "success",
+        category: "Bookings",
         isRead: true,
       },
       {
@@ -4272,6 +4411,7 @@ async function main() {
         message:
           "How was your airport transfer? Please leave a review to help other travelers!",
         type: "info",
+        category: "Reviews",
         isRead: false,
       },
       {
@@ -4280,6 +4420,7 @@ async function main() {
         message:
           "Your booking for Galle Fort day trip is awaiting owner confirmation.",
         type: "warning",
+        category: "Bookings",
         isRead: false,
       },
     ],
@@ -4295,6 +4436,7 @@ async function main() {
         message:
           "Your pilgrimage tour to Kataragama starting tomorrow has been confirmed!",
         type: "success",
+        category: "Bookings",
         isRead: true,
       },
       {
@@ -4303,6 +4445,7 @@ async function main() {
         message:
           "Payment pending for your Hikkaduwa beach trip. Please complete payment to confirm booking.",
         type: "warning",
+        category: "Payments",
         isRead: false,
       },
       {
@@ -4311,6 +4454,7 @@ async function main() {
         message:
           "Reminder: Your trip starts tomorrow at 5:00 AM. Please be at pickup location 15 minutes early.",
         type: "warning",
+        category: "Bookings",
         isRead: false,
       },
     ],
@@ -4326,6 +4470,7 @@ async function main() {
         message:
           "Your quotation for Yala Safari trip has been accepted! Booking created successfully.",
         type: "success",
+        category: "Quotations",
         isRead: true,
       },
       {
@@ -4333,6 +4478,7 @@ async function main() {
         title: "Payment Successful",
         message: "Payment of LKR 78,100 received for your Yala Safari booking.",
         type: "success",
+        category: "Payments",
         isRead: true,
       },
     ],
@@ -4348,6 +4494,7 @@ async function main() {
         message:
           "New quotation received for your Anuradhapura pilgrimage tour!",
         type: "info",
+        category: "Quotations",
         isRead: false,
       },
       {
@@ -4356,6 +4503,7 @@ async function main() {
         message:
           "Your booking to Sigiriya has been cancelled. Refund will be processed within 5-7 business days.",
         type: "info",
+        category: "Bookings",
         isRead: true,
       },
     ],
@@ -4371,6 +4519,7 @@ async function main() {
         message:
           "Your quotation for the 5-day Cultural Triangle tour has been sent to the customer.",
         type: "success",
+        category: "Quotations",
         isRead: true,
       },
       {
@@ -4378,6 +4527,7 @@ async function main() {
         title: "Multiple Quotation Requests",
         message: "You have 2 new quotation requests awaiting your response!",
         type: "warning",
+        category: "Quotations",
         isRead: false,
       },
       {
@@ -4386,6 +4536,7 @@ async function main() {
         message:
           "Your vehicle is currently on a 5-day hill country tour. Trip ends on Feb 23.",
         type: "info",
+        category: "Bookings",
         isRead: true,
       },
       {
@@ -4394,6 +4545,7 @@ async function main() {
         message:
           "New booking confirmed for Cultural Triangle tour starting Feb 28!",
         type: "success",
+        category: "Bookings",
         isRead: false,
       },
     ],
@@ -4409,6 +4561,7 @@ async function main() {
         message:
           "Customer rejected your quotation for Trincomalee tour. View feedback for improvement.",
         type: "warning",
+        category: "Quotations",
         isRead: true,
       },
       {
@@ -4417,6 +4570,7 @@ async function main() {
         message:
           "New booking confirmed for Arugam Bay surfing trip starting March 3!",
         type: "success",
+        category: "Bookings",
         isRead: false,
       },
       {
@@ -4424,6 +4578,7 @@ async function main() {
         title: "Payment Received",
         message: "Payment of LKR 135,000 has been credited to your account.",
         type: "success",
+        category: "Payments",
         isRead: false,
       },
     ],
@@ -4439,6 +4594,7 @@ async function main() {
         message:
           "Owner Kasun Fernando has submitted documents for verification.",
         type: "warning",
+        category: "System",
         isRead: false,
       },
       {
@@ -4447,6 +4603,7 @@ async function main() {
         message:
           "Today: 8 new quotations, 5 bookings confirmed, 2 trips ongoing.",
         type: "info",
+        category: "System",
         isRead: false,
       },
       {
@@ -4455,6 +4612,7 @@ async function main() {
         message:
           "Insurance document rejected for owner Sivakumar. Owner notified to resubmit.",
         type: "info",
+        category: "System",
         isRead: true,
       },
     ],
@@ -4463,6 +4621,167 @@ async function main() {
 
   console.log(
     `Created ${notificationCount} total notifications for comprehensive demo\n`,
+  );
+
+  // ===========================================
+  // Booking-scoped Conversations + Messages
+  // ===========================================
+  console.log("Seeding booking-scoped conversations and messages...");
+
+  const bookingsForChat = await prisma.booking.findMany({
+    select: {
+      id: true,
+      status: true,
+      customerId: true,
+      pickupLocation: true,
+      dropoffLocation: true,
+      vehicle: { select: { ownerId: true, name: true } },
+    },
+  });
+
+  const messageTemplates: Record<
+    string,
+    Array<{ from: "customer" | "owner"; text: (b: typeof bookingsForChat[number]) => string; offsetMin: number }>
+  > = {
+    PENDING: [
+      {
+        from: "customer",
+        offsetMin: -180,
+        text: (b) =>
+          `Hi! I just submitted a booking for the trip to ${b.dropoffLocation ?? "the destination"}. Could you confirm availability?`,
+      },
+      {
+        from: "owner",
+        offsetMin: -150,
+        text: () =>
+          "Hello! Thanks for booking. I'll review and confirm within the next hour. Anything special I should arrange?",
+      },
+      {
+        from: "customer",
+        offsetMin: -120,
+        text: () => "We'll have some elderly passengers — pickup at the gate would be ideal.",
+      },
+    ],
+    CONFIRMED: [
+      {
+        from: "owner",
+        offsetMin: -2880,
+        text: () =>
+          "Your booking is confirmed. The driver will reach the pickup point 15 minutes early.",
+      },
+      {
+        from: "customer",
+        offsetMin: -2820,
+        text: () => "Perfect, thank you. Can you share the driver's contact closer to the date?",
+      },
+      {
+        from: "owner",
+        offsetMin: -1440,
+        text: () => "Of course — I'll share it the day before. Have a great trip planned!",
+      },
+      {
+        from: "customer",
+        offsetMin: -60,
+        text: (b) =>
+          `Quick check — is the pickup from ${b.pickupLocation} still on time?`,
+      },
+    ],
+    ONGOING: [
+      {
+        from: "owner",
+        offsetMin: -240,
+        text: () => "Driver has reached the pickup point. He'll call once he's outside.",
+      },
+      {
+        from: "customer",
+        offsetMin: -200,
+        text: () => "We're all set, boarding now. Thanks for the smooth handoff!",
+      },
+      {
+        from: "owner",
+        offsetMin: -60,
+        text: () => "Have a wonderful trip. Let me know if you need anything along the way.",
+      },
+    ],
+    COMPLETED: [
+      {
+        from: "owner",
+        offsetMin: -10080,
+        text: () =>
+          "Hope you enjoyed the trip! If you have a minute, a quick review would mean a lot.",
+      },
+      {
+        from: "customer",
+        offsetMin: -9900,
+        text: () =>
+          "Trip went really well — driver was punctual and the bus was clean. Will leave a review today.",
+      },
+      {
+        from: "owner",
+        offsetMin: -9800,
+        text: () => "Thank you so much! Looking forward to hosting you again.",
+      },
+    ],
+    CANCELLED: [
+      {
+        from: "customer",
+        offsetMin: -4320,
+        text: () =>
+          "Unfortunately we have to cancel — our group's plans changed. Apologies for the inconvenience.",
+      },
+      {
+        from: "owner",
+        offsetMin: -4260,
+        text: () =>
+          "Understood, things happen. I've processed the cancellation per policy. Hope to host you next time.",
+      },
+    ],
+  };
+
+  let conversationCount = 0;
+  let messageCount = 0;
+
+  for (const booking of bookingsForChat) {
+    if (!booking.vehicle?.ownerId) continue;
+
+    const template = messageTemplates[booking.status] ?? messageTemplates.CONFIRMED;
+    const now = Date.now();
+
+    const conversation = await prisma.conversation.create({
+      data: {
+        bookingId: booking.id,
+        lastMessageAt: new Date(now + template[template.length - 1].offsetMin * 60_000),
+      },
+    });
+    conversationCount += 1;
+
+    for (let i = 0; i < template.length; i += 1) {
+      const entry = template[i];
+      const isLast = i === template.length - 1;
+      const senderId =
+        entry.from === "customer" ? booking.customerId : booking.vehicle.ownerId;
+      // Mark all but the most recent message as read for completed/cancelled/ongoing
+      // threads so the unread badge tells a realistic story.
+      const shouldBeRead =
+        !isLast ||
+        booking.status === "COMPLETED" ||
+        booking.status === "CANCELLED";
+
+      await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          senderId,
+          content: entry.text(booking),
+          createdAt: new Date(now + entry.offsetMin * 60_000),
+          readAt: shouldBeRead ? new Date(now + entry.offsetMin * 60_000 + 30_000) : null,
+        },
+      });
+      messageCount += 1;
+    }
+  }
+
+  console.log(
+    `Created ${conversationCount} conversations and ${messageCount} messages.\n`,
   );
 
   const totalVehicles =
@@ -4492,6 +4811,8 @@ async function main() {
   console.log(`   • Total quotations: ${quotationCounter - 1} (incl. 3 new for owner 4 + type variety)`);
   console.log(`   • Total reviews: ${totalReviews} (incl. 1★ and 2★ for distribution chart)`);
   console.log(`   • Total notifications: ${notificationCount}`);
+  console.log(`   • Conversations: ${conversationCount} (one per booking, with realistic message threads)`);
+  console.log(`   • Messages: ${messageCount}`);
   console.log(`   • Settlements: 9 records (owners 1–4, Jan–Mar 2026)`);
   console.log(`   • Trip itineraries: 2 multi-day bookings (3 days each)`);
   console.log("\nQuotation Statuses Covered:");

@@ -60,11 +60,17 @@ export function QuotationCard({
                 {quotation.ownerName}
               </h3>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <StarRating rating={quotation.rating} size="xs" showValue />
-                <span>•</span>
-                <span>
-                  {quotation.totalTrips} {t("trips")}
-                </span>
+                {quotation.rating != null ? (
+                  <>
+                    <StarRating rating={quotation.rating} size="xs" showValue />
+                    <span>•</span>
+                    <span>
+                      {quotation.totalTrips ?? 0} {t("trips")}
+                    </span>
+                  </>
+                ) : (
+                  <span>{t("comparison.ratingUnavailable")}</span>
+                )}
               </div>
             </div>
           </div>

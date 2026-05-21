@@ -1,5 +1,7 @@
 import app from "./app.js";
 import { config } from "./config/index.js";
+import { initSocketServer } from "./realtime/socket.js";
+import { startNotificationRetentionJob } from "./jobs/notificationRetention.js";
 
 const startServer = async () => {
   try {
@@ -13,9 +15,13 @@ TraveNest API Server Started
 Environment: ${config.env}
 URL: http://localhost:${config.port}
 API Base: http://localhost:${config.port}/api/${config.apiVersion}
+Realtime: ws://localhost:${config.port}/socket.io
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       `);
     });
+
+    initSocketServer(server);
+    startNotificationRetentionJob();
 
     server.on("error", (error: NodeJS.ErrnoException) => {
       if (error.code === "EADDRINUSE") {

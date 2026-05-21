@@ -248,6 +248,7 @@ model User {
   disputesAgainst Dispute[]           @relation("DisputesAgainst")
   disputesAssigned Dispute[]          @relation("DisputesAssignedTo")
   disputeMessages DisputeMessage[]    @relation("DisputeMessagesSent")
+  messagesSent  Message[]             @relation("MessagesSent")
   settlements Settlement[]            @relation("OwnerSettlements")
   processedSettlements Settlement[]   @relation("SettlementProcessors")
   ownerBankAccounts OwnerBankAccount[]
@@ -518,6 +519,7 @@ model Booking {
   itinerary       TripItinerary[]
   disputes        Dispute[]
   settlementItems SettlementBooking[]
+  conversation    Conversation?
 
   @@index([customerId])
   @@index([vehicleId])
@@ -617,20 +619,28 @@ model Quotation {
 }
 
 model Review {
-  id            String   @id @default(cuid())
-  customerId    String
-  vehicleId     String
-  bookingId     String   @unique
-  rating        Int      // 1-5
-  comment       String?
-  ownerResponse String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  customerId             String
+  vehicleId              String
+  bookingId              String   @unique
+  rating                 Int      // 1-5 overall rating
+  // 6-dimension sub-ratings (all optional for backward compat with v1 reviews)
+  ratingVehicleCondition Int?     // 1-5
+  ratingDriverBehavior   Int?     // 1-5
+  ratingPunctuality      Int?     // 1-5
+  ratingCleanliness      Int?     // 1-5
+  ratingValueForMoney    Int?     // 1-5
+  title                  String?
+  comment                String?
+  isRecommended          Boolean?
+  ownerResponse          String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   // Relations
-  customer      User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customer               User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vehicle                Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  booking                Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([customerId])
   @@index([vehicleId])
@@ -670,6 +680,7 @@ model Notification {
   id          String   @id @default(cuid())
   userId      String
   type        String   // booking_confirmed, payment_received, review_received, etc.
+  category    String   @default("System") // UI-filter group: Bookings | Payments | Quotations | Reviews | System
   title       String
   message     String
   data        Json?    // Additional data (bookingId, vehicleId, etc.)
@@ -681,6 +692,7 @@ model Notification {
 
   @@index([userId])
   @@index([isRead])
+  @@index([category])
   @@map("notifications")
 }
 
@@ -757,6 +769,39 @@ model DisputeMessage {
   @@index([senderId])
   @@index([createdAt])
   @@map("dispute_messages")
+}
+
+// Booking-scoped customer ↔ owner conversation. Exactly one per booking; the
+// owner is derived through Booking → Vehicle → ownerId, so it is not stored here.
+model Conversation {
+  id            String    @id @default(cuid())
+  bookingId     String    @unique
+  lastMessageAt DateTime? // Denormalized for efficient conversation-list sorting
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  messages      Message[]
+
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@index([readAt])
+  @@map("messages")
 }
 
 model Settlement {

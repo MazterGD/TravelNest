@@ -1,10 +1,21 @@
 import prisma from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { dispatchNotification } from "../notification/notification.service.js";
+import {
+  bookingCancelledToOwner,
+  bookingPlacedToCustomer,
+  bookingRequestedToOwner,
+  driverAssignedToCustomer,
+} from "../notification/notification.events.js";
 
 export interface BookingQuery {
   status?: string;
   page?: number;
   limit?: number;
+  startDate?: string;
+  endDate?: string;
+  vehicleType?: string;
+  sort?: string;
 }
 
 const getConfiguredCommissionRate = async (): Promise<number> => {
@@ -50,7 +61,15 @@ export const getCustomerBookings = async (
   customerId: string,
   query: BookingQuery,
 ) => {
-  const { status, page = 1, limit = 10 } = query;
+  const {
+    status,
+    page = 1,
+    limit = 10,
+    startDate,
+    endDate,
+    vehicleType,
+    sort = "createdAt_desc",
+  } = query;
   const skip = (page - 1) * limit;
 
   const where: any = { customerId };
@@ -58,6 +77,27 @@ export const getCustomerBookings = async (
   if (status && typeof status === "string") {
     where.status = status.toUpperCase();
   }
+
+  if (startDate || endDate) {
+    where.startDate = {};
+    if (startDate) where.startDate.gte = new Date(startDate);
+    if (endDate) where.startDate.lte = new Date(endDate);
+  }
+
+  if (vehicleType && typeof vehicleType === "string") {
+    where.vehicle = { type: vehicleType.toUpperCase() };
+  }
+
+  const [sortField, sortDir] = sort.split("_");
+  const sortDirection = sortDir === "asc" ? "asc" : "desc";
+  const sortFieldMap: Record<string, string> = {
+    createdAt: "createdAt",
+    startDate: "startDate",
+    totalAmount: "totalAmount",
+  };
+  const orderBy = {
+    [sortFieldMap[sortField] || "createdAt"]: sortDirection,
+  };
 
   const [bookings, total] = await Promise.all([
     prisma.booking.findMany({
@@ -101,12 +141,11 @@ export const getCustomerBookings = async (
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy,
     }),
     prisma.booking.count({ where }),
   ]);
 
-  // Transform to match frontend interface
   const transformedBookings = bookings.map((booking) => ({
     id: booking.id,
     bookingReference: `BK-${booking.id.slice(0, 8).toUpperCase()}`,
@@ -132,6 +171,7 @@ export const getCustomerBookings = async (
           ?.trim() || "",
     },
     vehicleName: booking.vehicle.name,
+    vehicleType: booking.vehicle.type,
     vehicleImage: booking.vehicle.images[0] || null,
     ownerName: `${booking.vehicle.owner.firstName} ${booking.vehicle.owner.lastName}`,
     ownerPhone: booking.vehicle.owner.phone || "",
@@ -327,6 +367,7 @@ export const cancelBooking = async (
       customerId: true,
       status: true,
       startDate: true,
+      vehicle: { select: { ownerId: true } },
     },
   });
 
@@ -365,6 +406,10 @@ export const cancelBooking = async (
       cancelReason: reason,
     },
   });
+
+  dispatchNotification(
+    bookingCancelledToOwner(booking.vehicle.ownerId, { bookingId }),
+  );
 
   return updatedBooking;
 };
@@ -469,6 +514,19 @@ export const createBookingFromQuotation = async (
     });
   });
 
+  const route = `${quotation.pickupLocation} → ${
+    quotation.dropoffLocation || quotation.pickupLocation
+  }`;
+  dispatchNotification(
+    bookingRequestedToOwner(quotation.vehicle.ownerId, {
+      bookingId: booking.id,
+      route,
+    }),
+  );
+  dispatchNotification(
+    bookingPlacedToCustomer(customerId, { bookingId: booking.id }),
+  );
+
   return booking;
 };
 
@@ -547,6 +605,12 @@ export const assignDriver = async (
       },
     },
   });
+
+  dispatchNotification(
+    driverAssignedToCustomer(updatedBooking.customer.id, {
+      bookingId: updatedBooking.id,
+    }),
+  );
 
   return updatedBooking;
 };

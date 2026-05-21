@@ -8,7 +8,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
-import { ArrowLeft, Calendar, MapPin, Users, Bus, Eye, Phone, Mail, Upload } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Users, Bus, Eye, Phone, Mail, Upload, MessageSquare } from "lucide-react";
 import { bookingService, ApiError } from "@/lib/api";
 
 type BookingStatus = "upcoming" | "in-progress" | "completed" | "cancelled";
@@ -85,6 +85,7 @@ function getPaymentStatusClasses(status: PaymentStatus): string {
 
 export default function BookingsManagementPage() {
   const t = useTranslations("bookingsManagement");
+  const tMsg = useTranslations("messages");
   const { user } = useAuthStore();
   const params = useParams();
   const locale = params.locale as string;
@@ -327,13 +328,20 @@ export default function BookingsManagementPage() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Link
                           href={`/${locale}/owner/bookings/${booking.id}`}
                           className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                         >
                           <Eye className="h-4 w-4" />
                           {t("viewDetails")}
+                        </Link>
+                        <Link
+                          href={`/${locale}/owner/messages?booking=${booking.id}`}
+                          className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          {tMsg("messageCustomer")}
                         </Link>
                         <a
                           href={`tel:${booking.customer.phone}`}

@@ -3,35 +3,45 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+import { AlertCircle, RefreshCw, Star, Calendar } from "lucide-react";
 import {
   PageHeader,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
   Tabs,
   EmptyState,
   EmptyBoxIcon,
   SkeletonList,
-  Button,
 } from "@/components/ui";
 import { ReviewDisplay, ReviewForm } from "@/components/features/customer";
 import { reviewService, ApiError } from "@/lib/api";
 
+// ── Types ─────────────────────────────────────────────────────
+interface ReviewDimensions {
+  vehicleCondition?: number | null;
+  driverBehavior?: number | null;
+  punctuality?: number | null;
+  cleanliness?: number | null;
+  valueForMoney?: number | null;
+}
+
 interface Review {
   id: string;
   rating: number;
-  comment: string;
+  dimensions?: ReviewDimensions | null;
+  title?: string | null;
+  comment?: string | null;
+  isRecommended?: boolean | null;
   createdAt: string;
   customerName: string;
   vehicleName: string;
   ownerName: string;
-  ownerResponse?: string;
-  ownerResponseDate?: string;
+  ownerResponse?: string | null;
+  ownerResponseDate?: string | null;
+  tripDate?: string;
 }
 
 interface PendingReview {
   bookingId: string;
+  vehicleId: string;
   vehicleName: string;
   ownerName: string;
   tripDate: string;
@@ -46,14 +56,12 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
   const searchParams = useSearchParams();
   const bookingParam = searchParams.get("booking");
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [pendingReviews, setPendingReviews] = useState<PendingReview[]>([]);
-  const [showReviewForm, setShowReviewForm] = useState<string | null>(
-    bookingParam,
-  );
-  const [submitting, setSubmitting] = useState(false);
+  const [isLoading, setIsLoading]                   = useState(true);
+  const [error, setError]                           = useState<string | null>(null);
+  const [reviews, setReviews]                       = useState<Review[]>([]);
+  const [pendingReviews, setPendingReviews]          = useState<PendingReview[]>([]);
+  const [showReviewForm, setShowReviewForm]          = useState<string | null>(bookingParam);
+  const [submitting, setSubmitting]                 = useState(false);
 
   const fetchReviews = useCallback(async () => {
     setIsLoading(true);
@@ -64,174 +72,186 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
         reviewService.getPendingReviews(),
       ]);
 
-      const reviewsData = reviewsResponse as any;
-      const pendingData = pendingResponse as any;
+      const reviewsData  = reviewsResponse as any;
+      const pendingData  = pendingResponse  as any;
 
-      // Transform my reviews
       const transformedReviews: Review[] = (
-        reviewsData.reviews ||
-        reviewsData ||
-        []
+        reviewsData.reviews ?? reviewsData ?? []
       ).map((r: any) => ({
-        id: r.id,
-        rating: r.rating,
-        comment: r.comment,
-        createdAt: r.createdAt,
-        customerName: "You",
-        vehicleName: r.vehicleName || r.vehicle?.name || "Vehicle",
-        ownerName: r.ownerName || r.owner?.name || "Owner",
-        ownerResponse: r.ownerResponse,
-        ownerResponseDate: r.ownerResponseDate,
+        id:                r.id,
+        rating:            r.rating,
+        dimensions:        r.dimensions ?? null,
+        title:             r.title ?? null,
+        comment:           r.comment ?? null,
+        isRecommended:     r.isRecommended ?? null,
+        createdAt:         r.createdAt,
+        customerName:      t("you"),
+        vehicleName:       r.vehicleName ?? r.vehicle?.name ?? t("vehicleFallback"),
+        ownerName:         r.ownerName   ?? r.owner?.name   ?? t("ownerFallback"),
+        ownerResponse:     r.ownerResponse     ?? null,
+        ownerResponseDate: r.ownerResponseDate ?? null,
+        tripDate:          r.tripDate,
       }));
 
-      // Transform pending reviews
       const transformedPending: PendingReview[] = (
-        pendingData.pendingReviews ||
-        pendingData.bookings ||
-        pendingData ||
-        []
+        pendingData.pendingReviews ?? pendingData.bookings ?? pendingData ?? []
       ).map((b: any) => ({
-        bookingId: b.bookingId || b.id,
-        vehicleName: b.vehicleName || b.vehicle?.name || "Vehicle",
-        ownerName: b.ownerName || b.owner?.name || "Owner",
-        tripDate: b.tripDate || b.endDate,
+        bookingId:   b.bookingId  ?? b.id,
+        vehicleId:   b.vehicleId  ?? "",
+        vehicleName: b.vehicleName ?? b.vehicle?.name ?? t("vehicleFallback"),
+        ownerName:   b.ownerName   ?? b.owner?.name   ?? t("ownerFallback"),
+        tripDate:    b.tripDate    ?? b.endDate,
       }));
 
       setReviews(transformedReviews);
       setPendingReviews(transformedPending);
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Failed to fetch reviews");
-      }
+      setError(err instanceof ApiError ? err.message : t("fetchError"));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchReviews();
   }, [fetchReviews]);
 
-  const handleSubmitReview = async (
-    bookingId: string,
-    data: { bookingId: string; rating: number; comment: string },
-  ): Promise<{ success: boolean; error?: string }> => {
+  const handleSubmitReview = async (data: {
+    bookingId: string;
+    vehicleId: string;
+    rating: number;
+    title?: string;
+    comment?: string;
+    isRecommended?: boolean;
+    dimensions?: Record<string, number>;
+  }): Promise<{ success: boolean; error?: string }> => {
     setSubmitting(true);
     try {
       await reviewService.create({
         bookingId: data.bookingId,
-        rating: data.rating,
-        comment: data.comment,
+        vehicleId: data.vehicleId,
+        rating:    data.rating,
+        title:     data.title,
+        comment:   data.comment,
+        isRecommended: data.isRecommended,
+        dimensions:    data.dimensions,
       });
       setShowReviewForm(null);
-      fetchReviews(); // Refresh the list
+      fetchReviews();
       return { success: true };
     } catch (err) {
-      const errorMsg =
-        err instanceof ApiError ? err.message : "Failed to submit review";
-      return { success: false, error: errorMsg };
+      const msg = err instanceof ApiError ? err.message : t("submitError");
+      return { success: false, error: msg };
     } finally {
       setSubmitting(false);
     }
   };
 
-  const tabContent = {
-    myReviews: (
-      <div className="space-y-4">
-        {reviews.length > 0 ? (
-          reviews.map((review) => (
-            <Card key={review.id}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base">
-                      {review.vehicleName}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {t("by")} {review.ownerName}
-                    </p>
-                  </div>
+  // ── Tab: My Reviews ──────────────────────────────────────────
+  const myReviewsContent = (
+    <div className="space-y-4">
+      {reviews.length > 0 ? (
+        reviews.map((review) => (
+          <div
+            key={review.id}
+            className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] p-6"
+          >
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  {review.vehicleName}
+                </h4>
+                <p className="text-xs text-[var(--color-text-secondary)]">
+                  {t("by")} {review.ownerName}
+                </p>
+              </div>
+              {review.tripDate && (
+                <span className="flex items-center gap-1 text-xs text-[var(--color-text-tertiary)] flex-shrink-0">
+                  <Calendar size={12} />
+                  {new Date(review.tripDate).toLocaleDateString(locale)}
+                </span>
+              )}
+            </div>
+            <ReviewDisplay review={review} showOwnerResponse />
+          </div>
+        ))
+      ) : (
+        <EmptyState
+          icon={<EmptyBoxIcon />}
+          title={t("noReviews")}
+          description={t("noReviewsDescription")}
+        />
+      )}
+    </div>
+  );
+
+  // ── Tab: Pending Reviews ─────────────────────────────────────
+  const pendingContent = (
+    <div className="space-y-4">
+      {pendingReviews.length > 0 ? (
+        pendingReviews.map((pending) => (
+          <div
+            key={pending.bookingId}
+            className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)]"
+          >
+            {showReviewForm === pending.bookingId ? (
+              <div className="p-6">
+                <ReviewForm
+                  bookingId={pending.bookingId}
+                  vehicleId={pending.vehicleId}
+                  vehicleName={pending.vehicleName}
+                  ownerName={pending.ownerName}
+                  onSubmit={handleSubmitReview}
+                  onCancel={() => setShowReviewForm(null)}
+                  onSkip={() => setShowReviewForm(null)}
+                  isLoading={submitting}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-4 p-6">
+                <div className="min-w-0">
+                  <h4 className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
+                    {pending.vehicleName}
+                  </h4>
+                  <p className="text-xs text-[var(--color-text-secondary)]">
+                    {t("by")} {pending.ownerName}
+                    {" · "}
+                    {new Date(pending.tripDate).toLocaleDateString(locale)}
+                  </p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <ReviewDisplay review={review} showOwnerResponse />
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <EmptyState
-            icon={<EmptyBoxIcon />}
-            title={t("noReviews")}
-            description={t("noReviewsDescription")}
-          />
-        )}
-      </div>
-    ),
-    pending: (
-      <div className="space-y-4">
-        {pendingReviews.length > 0 ? (
-          pendingReviews.map((pending) => (
-            <Card key={pending.bookingId}>
-              <CardContent className="p-4">
-                {showReviewForm === pending.bookingId ? (
-                  <ReviewForm
-                    bookingId={pending.bookingId}
-                    vehicleName={pending.vehicleName}
-                    ownerName={pending.ownerName}
-                    onSubmit={(data) =>
-                      handleSubmitReview(pending.bookingId, data)
-                    }
-                    onCancel={() => setShowReviewForm(null)}
-                    isLoading={submitting}
-                  />
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-foreground">
-                        {pending.vehicleName}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {t("by")} {pending.ownerName} •{" "}
-                        {new Date(pending.tripDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setShowReviewForm(pending.bookingId)}
-                    >
-                      {t("writeReview")}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <EmptyState
-            icon={<EmptyBoxIcon />}
-            title={t("noPendingReviews")}
-            description={t("noPendingReviewsDescription")}
-          />
-        )}
-      </div>
-    ),
-  };
+                <button
+                  onClick={() => setShowReviewForm(pending.bookingId)}
+                  className="inline-flex h-11 min-w-[44px] flex-shrink-0 items-center gap-2 rounded-xl border border-[var(--color-action-primary)] bg-[var(--color-bg-base)] px-4 text-sm font-medium text-[var(--color-action-primary)] transition-colors hover:bg-[var(--color-bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)]"
+                >
+                  <Star size={16} />
+                  {t("writeReview")}
+                </button>
+              </div>
+            )}
+          </div>
+        ))
+      ) : (
+        <EmptyState
+          icon={<EmptyBoxIcon />}
+          title={t("noPendingReviews")}
+          description={t("noPendingReviewsDescription")}
+        />
+      )}
+    </div>
+  );
 
   const tabs = [
     {
-      id: "myReviews",
-      label: t("myReviews"),
-      badge: reviews.length,
-      content: tabContent.myReviews,
+      id:      "myReviews",
+      label:   t("myReviews"),
+      badge:   reviews.length,
+      content: myReviewsContent,
     },
     {
-      id: "pending",
-      label: t("pendingReviews"),
-      badge: pendingReviews.length,
-      content: tabContent.pending,
+      id:      "pending",
+      label:   t("pendingReviews"),
+      badge:   pendingReviews.length,
+      content: pendingContent,
     },
   ];
 
@@ -242,12 +262,23 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
         description={t("reviewsDescription")}
       />
 
+      {/* Error banner */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-          {error}
-          <Button variant="link" onClick={fetchReviews} className="ml-2">
-            Retry
-          </Button>
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-4 rounded-xl border border-[var(--color-error-border)] bg-[var(--color-error-bg)] px-4 py-3 text-sm text-[var(--color-error-text)]"
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="flex-shrink-0" />
+            {error}
+          </div>
+          <button
+            onClick={fetchReviews}
+            className="flex items-center gap-1.5 rounded-xl border border-[var(--color-error-border)] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--color-error-border)]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)]"
+          >
+            <RefreshCw size={12} />
+            {t("retry")}
+          </button>
         </div>
       )}
 

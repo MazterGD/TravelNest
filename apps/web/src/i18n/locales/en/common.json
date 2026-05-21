@@ -583,10 +583,17 @@
     "login": "Login",
     "register": "Register",
     "dashboard": "Dashboard",
+    "quotations": "Quotations",
+    "bookings": "Bookings",
+    "messages": "Messages",
+    "reviews": "Reviews",
+    "notifications": "Notifications",
+    "settings": "Settings",
     "profile": "Profile",
     "logout": "Logout",
     "openMenu": "Open main menu",
-    "dashboardFor": "{name}'s Dashboard"
+    "dashboardFor": "{name}'s Dashboard",
+    "backToHome": "Back to Home"
   },
   "locations": {
     "colombo": "Colombo",
@@ -1569,17 +1576,6 @@
     "backToHome": "Back to Home",
     "newQuotationRequest": "New Request",
     "activeBookings": "Active Bookings",
-    "pendingQuotations": "Pending Quotations",
-    "completedTrips": "Completed Trips",
-    "totalSpent": "Total Spent",
-    "upcomingBookings": "Upcoming Bookings",
-    "noUpcomingBookings": "No upcoming bookings",
-    "noUpcomingBookingsDesc": "Your upcoming trips will appear here",
-    "pendingRequests": "Pending Requests",
-    "noPendingRequests": "No pending requests",
-    "noPendingRequestsDesc": "Request a quotation to find the best bus for your trip",
-    "createRequest": "Create Request",
-    "viewQuotations": "View Quotations",
     "quickActions": "Quick Actions",
     "newRequest": "New Request",
     "myBookings": "My Bookings",
@@ -1595,14 +1591,16 @@
       "trackBooking": "Track Booking",
       "trackBookingHint": "View your trips",
       "viewAll": "View All",
-      "viewDetails": "View Details"
+      "viewDetails": "View Details",
+      "callOwner": "Call owner {name}"
     },
     "pendingCount": "{count} pending",
     "metrics": {
       "totalBookings": "Total Bookings",
       "completedTrips": "Completed Trips",
       "pendingQuotations": "Pending Quotations",
-      "totalSpent": "Total Spent"
+      "totalSpent": "Total Spent",
+      "currency": "LKR {amount}"
     },
     "upcomingBookings": {
       "title": "Upcoming Bookings",
@@ -1618,41 +1616,113 @@
     },
     "notifications": {
       "title": "Notifications",
+      "subtitle": "Stay updated on your bookings and account activity.",
+      "listTitle": "All notifications",
       "viewAll": "View All Notifications",
-      "items": [
-        {
-          "title": "New Quotation Received",
-          "message": "You received 3 new quotations for your Kandy trip",
-          "time": "2 hours ago"
+      "empty": "You're all caught up",
+      "emptyDesc": "When you get updates, they'll show up here.",
+      "loadError": "We couldn't load your notifications. Please try again in a moment.",
+      "retry": "Retry",
+      "markAllRead": "Mark all as read",
+      "clearAll": "Clear all",
+      "clearAllConfirm": "Delete all your notifications? This can't be undone.",
+      "delete": "Delete notification",
+      "settingsLink": "Notification settings",
+      "tabs": {
+        "all": "All",
+        "Bookings": "Bookings",
+        "Payments": "Payments",
+        "Quotations": "Quotations",
+        "Reviews": "Reviews",
+        "System": "System"
+      },
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "pageOf": "Page {page} of {totalPages}",
+        "showing": "Showing {count} of {total}"
+      },
+      "time": {
+        "justNow": "Just now",
+        "minutesAgo": "{count}m ago",
+        "hoursAgo": "{count}h ago",
+        "daysAgo": "{count}d ago"
+      },
+      "actionError": "We couldn't complete that action. Please try again.",
+      "dismiss": "Dismiss",
+      "clearAllTitle": "Clear all notifications",
+      "unreadOnly": "Unread only",
+      "unreadBadge": "{count} unread notifications",
+      "emptyUnread": "No unread notifications",
+      "emptyUnreadDesc": "You've read everything. Turn off the filter to see all notifications.",
+      "events": {
+        "bookingRequested": {
+          "title": "New booking request",
+          "message": "A new booking request {reference} was placed for {route}."
         },
-        {
-          "title": "Booking Confirmed",
-          "message": "Your booking BK-001 has been confirmed",
-          "time": "5 hours ago"
+        "bookingPlaced": {
+          "title": "Booking placed",
+          "message": "Your booking {reference} is awaiting owner confirmation."
         },
-        {
-          "title": "Payment Successful",
-          "message": "Payment of LKR 15,000 processed successfully",
-          "time": "1 day ago"
+        "bookingConfirmed": {
+          "title": "Booking confirmed",
+          "message": "Your booking {reference} has been confirmed by the owner."
         },
-        {
-          "title": "Trip Reminder",
-          "message": "Your trip to Galle is scheduled for tomorrow",
-          "time": "1 day ago"
+        "bookingRejected": {
+          "title": "Booking declined",
+          "message": "Your booking {reference} was declined by the owner."
         },
-        {
-          "title": "Review Request",
-          "message": "Please review your recent trip with Kamal Perera",
-          "time": "2 days ago"
+        "bookingCancelled": {
+          "title": "Booking cancelled",
+          "message": "The customer cancelled booking {reference}."
+        },
+        "bookingCompleted": {
+          "title": "Trip completed",
+          "message": "Your trip {reference} is complete. Share your experience with a review."
+        },
+        "driverAssigned": {
+          "title": "Driver assigned",
+          "message": "A driver has been assigned to your booking {reference}."
+        },
+        "quotationRequested": {
+          "title": "New quotation request",
+          "message": "You have a new quotation request for {route}."
+        },
+        "quotationReceived": {
+          "title": "Quotation received",
+          "message": "You received a quotation for {route}. Review and compare it now."
+        },
+        "quotationAccepted": {
+          "title": "Quotation accepted",
+          "message": "Your quotation for {route} was accepted and a booking was created."
+        },
+        "quotationRejected": {
+          "title": "Quotation declined",
+          "message": "Your quotation for {route} was declined by the customer."
+        },
+        "paymentReceived": {
+          "title": "Payment received",
+          "message": "Your payment for booking {reference} was received successfully."
+        },
+        "paymentFailed": {
+          "title": "Payment failed",
+          "message": "Your payment for booking {reference} could not be processed."
         }
-      ]
+      }
     },
+    "vehicleFallback": "Bus",
+    "ownerFallback": "Owner",
     "status": {
       "confirmed": "Confirmed",
       "ongoing": "Ongoing",
       "pending": "Pending",
       "completed": "Completed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "sent": "Active",
+      "viewed": "Active",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "expired": "Expired"
     }
   },
   "quotation": {
@@ -1663,9 +1733,11 @@
     "newRequest": "New Request",
     "all": "All",
     "pending": "Pending",
-    "active": "Active",
-    "completed": "Completed",
+    "quoted": "Quoted",
+    "expired": "Expired",
     "cancelled": "Cancelled",
+    "fetchError": "Failed to fetch quotation requests",
+    "retry": "Retry",
     "noRequests": "No quotation requests",
     "noRequestsDescription": "You haven't made any quotation requests yet",
     "createFirstRequest": "Create Your First Request",
@@ -1716,7 +1788,87 @@
     "sortedByPrice": "Sorted by price",
     "lowestPrice": "Lowest Price",
     "viewQuotations": "View Quotations ({count})",
-    "compareQuotations": "Compare Quotations"
+    "compareQuotations": "Compare Quotations",
+    "requestQuotation": "Request Quotation",
+    "fillDetails": "Fill in your trip details to receive quotes from vehicle owners",
+    "backToDashboard": "Back to Dashboard",
+    "tripLocations": "Trip Locations",
+    "destination": "Destination",
+    "addIntermediateStop": "Add Intermediate Stop",
+    "removeStop": "Remove stop",
+    "stopLabel": "Stop {index}",
+    "saveDraft": "Save as Draft",
+    "requestQuotations": "Request Quotations",
+    "routeSummary": "Route Summary",
+    "tripEstimates": "Trip Estimates",
+    "estimatedDistance": "Distance",
+    "estimatedDuration": "Duration",
+    "estimateDisclaimer": "Estimates are approximate and may vary based on traffic and route conditions",
+    "proTip": "Pro Tip",
+    "proTipDescription": "Provide detailed information to receive more accurate quotations. Owners typically respond within 24 hours.",
+    "recentSearchesTitle": "Recent Searches",
+    "routeMapPlaceholder": "Route map will appear here",
+    "acRequired": "Air Conditioning Required",
+    "specialRequirements": "Special Requirements",
+    "specialRequirementsHint": "Include any additional information that will help owners provide accurate quotes",
+    "draftSaved": "Draft saved successfully!",
+    "validationError": {
+      "pickup": "Please enter pickup location details",
+      "dropoff": "Please enter destination details",
+      "pickupDate": "Please select a pickup date",
+      "pickupTime": "Please select a pickup time",
+      "returnDate": "Please select a return date for round trip",
+      "passengers": "At least 1 passenger is required"
+    },
+    "submitFailed": "Failed to submit quotation request. Please try again.",
+    "pickupFallback": "Pickup location",
+    "comparison": {
+      "title": "Compare Quotations",
+      "subtitle": "Compare up to 4 quotations side-by-side",
+      "backToQuotations": "Back to Quotations",
+      "downloadPDF": "Download PDF",
+      "pdfNotAvailable": "PDF export is not yet available. Please check back soon.",
+      "tripDetails": "Trip Details",
+      "route": "Route",
+      "dates": "Dates",
+      "at": "at",
+      "passengers": "Passengers",
+      "passengerCount": "{count} passengers",
+      "specialRequirements": "Special Requirements",
+      "filterBy": "Filter By",
+      "allQuotations": "All Quotations",
+      "bestValue": "Best Value",
+      "sortBy": "Sort By",
+      "priceLowHigh": "Price: Low to High",
+      "priceHighLow": "Price: High to Low",
+      "selectedCount": "Selected: {count}/4",
+      "noQuotationsSelected": "No quotations selected for comparison",
+      "viewAllQuotations": "View All Quotations",
+      "addMore": "Add More Quotations (up to 4)",
+      "bestValueBadge": "Best Value",
+      "addToComparison": "Add to comparison",
+      "removeFromComparison": "Remove from comparison",
+      "ratingUnavailable": "Rating not yet available",
+      "totalPrice": "Total Price",
+      "priceBreakdown": "Price Breakdown",
+      "vehicleRental": "Vehicle Rental",
+      "driverCost": "Driver Cost",
+      "fuelCost": "Fuel Cost",
+      "tollCharges": "Toll Charges",
+      "permitFees": "Permit Fees",
+      "otherCharges": "Other Charges",
+      "tax": "Tax",
+      "specifications": "Specifications",
+      "seats": "{count} Seats",
+      "amenities": "Amenities",
+      "validUntil": "Valid until:",
+      "acceptAndBook": "Accept & Book",
+      "reject": "Reject",
+      "contactOwner": "Contact Owner",
+      "rejectError": "Failed to reject quotation. Please try again.",
+      "ownerFallback": "Unknown Owner",
+      "vehicleFallback": "Vehicle"
+    }
   },
   "booking": {
     "pageTitle": "My Bookings - TravelNest",
@@ -1724,17 +1876,51 @@
     "myBookings": "My Bookings",
     "bookingsDescription": "View and manage all your vehicle bookings",
     "all": "All",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "ongoing": "Ongoing",
+    "completed": "Completed",
     "upcoming": "Upcoming",
     "past": "Past",
     "cancelled": "Cancelled",
     "noBookings": "No bookings yet",
     "noBookingsDescription": "Your bookings will appear here after you confirm a quotation",
     "startSearching": "Start Searching",
+    "exportCSV": "Export CSV",
+    "filters": {
+      "dateFrom": "From",
+      "dateTo": "To",
+      "vehicleType": "Vehicle Type",
+      "allTypes": "All Types",
+      "sortBy": "Sort By",
+      "sortDateDesc": "Newest First",
+      "sortDateAsc": "Oldest First",
+      "sortTripDesc": "Trip Date: Latest",
+      "sortTripAsc": "Trip Date: Earliest",
+      "sortAmountDesc": "Price: High to Low",
+      "sortAmountAsc": "Price: Low to High",
+      "clearFilters": "Clear Filters",
+      "activeFilters": "Active filters"
+    },
+    "vehicleTypes": {
+      "ordinary": "Ordinary",
+      "semiLuxury": "Semi-Luxury",
+      "luxuryAC": "Luxury AC"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "showing": "Showing {from}–{to} of {total}",
+      "page": "Page {current} of {total}"
+    },
     "pickup": "Pickup",
     "dropoff": "Dropoff",
     "driver": "Driver",
     "contact": "Contact",
     "leaveReview": "Leave Review",
+    "vehicleFallback": "Vehicle",
+    "ownerFallback": "Owner",
+    "retry": "Retry",
     "errors": {
       "fetchBookings": "Failed to fetch bookings",
       "cancelFailed": "Failed to cancel booking"
@@ -1759,20 +1945,43 @@
     "noPendingReviewsDescription": "Complete a trip to leave a review",
     "writeReview": "Write Review",
     "by": "by",
+    "you": "You",
     "leaveReview": "Leave a Review",
     "reviewFor": "Share your experience with",
     "yourRating": "Your Rating",
     "yourReview": "Your Review",
+    "reviewTitle": "Review Title",
+    "reviewTitlePlaceholder": "Summarise your experience in a few words",
+    "yourComment": "Your Review",
     "reviewPlaceholder": "Tell us about your experience with this vehicle and owner...",
     "reviewHint": "Your honest review helps other travelers make better decisions",
     "submitReview": "Submit Review",
+    "submitting": "Submitting...",
+    "skipReview": "Skip for Now",
+    "cancel": "Cancel",
     "ratingTerrible": "Terrible",
     "ratingPoor": "Poor",
     "ratingAverage": "Average",
     "ratingGood": "Good",
     "ratingExcellent": "Excellent",
-    "ratingRequired": "Please select a rating",
-    "ownerResponse": "Owner Response"
+    "ratingRequired": "Please select an overall rating",
+    "ownerResponse": "Owner Response",
+    "dimensionsTitle": "Rate Each Dimension",
+    "dimVehicleCondition": "Vehicle Condition",
+    "dimDriverBehavior": "Driver Behavior",
+    "dimPunctuality": "Punctuality",
+    "dimCleanliness": "Cleanliness",
+    "dimValueForMoney": "Value for Money",
+    "wouldRecommend": "Would you recommend this service?",
+    "yes": "Yes",
+    "no": "No",
+    "recommends": "Recommends",
+    "notRecommends": "Doesn't recommend",
+    "vehicleFallback": "Vehicle",
+    "ownerFallback": "Owner",
+    "fetchError": "Failed to fetch reviews. Please try again.",
+    "submitError": "Failed to submit review. Please try again.",
+    "retry": "Retry"
   },
   "profile": {
     "pageTitle": "My Profile - TravelNest",
@@ -2556,5 +2765,48 @@
     "modalConfirm": "Confirm Block",
     "errorNotFound": "Vehicle not found",
     "errorLoad": "Failed to load availability data"
+  },
+  "messages": {
+    "title": "Messages",
+    "subtitle": "Chat with bus owners and customers about your bookings.",
+    "ownerSubtitle": "Chat with customers about their bookings.",
+    "emptyListTitle": "No conversations yet",
+    "emptyListDesc": "When you book a trip, you can chat with the bus owner here.",
+    "emptyListDescOwner": "When customers book your buses, your conversations will appear here.",
+    "emptyThreadTitle": "Start the conversation",
+    "emptyThreadDesc": "Send your first message to get the trip details sorted.",
+    "noSelectionTitle": "Select a conversation",
+    "noSelectionDesc": "Choose a booking from the list to view its messages.",
+    "noSearchResults": "No matches found",
+    "noSearchResultsDesc": "No conversations match your search.",
+    "loadError": "We couldn't load your messages. Please try again in a moment.",
+    "retry": "Retry",
+    "loadMore": "Load more conversations",
+    "loadingMore": "Loading…",
+    "loadOlder": "Load earlier messages",
+    "loadingOlder": "Loading…",
+    "inputPlaceholder": "Type a message…",
+    "send": "Send",
+    "connected": "Connected",
+    "offline": "Reconnecting…",
+    "unreadBadge": "{count, plural, one {# unread} other {# unread}}",
+    "messageOwner": "Message owner",
+    "messageCustomer": "Message customer",
+    "messageReadByYou": "Read",
+    "messageDelivered": "Sent",
+    "searchPlaceholder": "Search by name or trip…",
+    "yesterdayLabel": "Yesterday",
+    "validation": {
+      "empty": "Message can't be empty.",
+      "tooLong": "Message can't exceed 2000 characters.",
+      "sendFailed": "Message couldn't be sent. Check your connection and try again."
+    },
+    "status": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "ONGOING": "Ongoing",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    }
   }
 }
