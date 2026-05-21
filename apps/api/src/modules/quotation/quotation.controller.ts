@@ -1,4 +1,6 @@
 import type { Request, Response } from "express";
+import type { VehicleType } from "@travenest/database";
+import type { QuotationQuery } from "./quotation.service.js";
 import * as quotationService from "./quotation.service.js";
 import { ResponseHelper } from "../../utils/response.js";
 
@@ -22,16 +24,26 @@ export const getOwnerQuotationRequests = async (
     sortBy,
   } = req.query;
 
+  const normalizedVehicleType =
+    typeof vehicleType === "string"
+      ? (vehicleType.toUpperCase() as VehicleType)
+      : undefined;
+
+  const normalizedSortBy =
+    typeof sortBy === "string"
+      ? (sortBy as QuotationQuery["sortBy"])
+      : undefined;
+
   const result = await quotationService.getOwnerQuotationRequests(ownerId, {
     status: status as any,
     page: page ? Number(page) : undefined,
     limit: limit ? Number(limit) : undefined,
     startDate: typeof startDate === "string" ? startDate : undefined,
     endDate: typeof endDate === "string" ? endDate : undefined,
-    vehicleType: typeof vehicleType === "string" ? vehicleType : undefined,
+    vehicleType: normalizedVehicleType,
     passengerMin: passengerMin ? Number(passengerMin) : undefined,
     passengerMax: passengerMax ? Number(passengerMax) : undefined,
-    sortBy: typeof sortBy === "string" ? sortBy : undefined,
+    sortBy: normalizedSortBy,
   });
 
   return ResponseHelper.success(res, result);

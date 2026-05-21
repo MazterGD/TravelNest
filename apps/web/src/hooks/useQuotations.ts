@@ -100,7 +100,7 @@ export function useQuotations() {
         await api.post(`/quotations/${quotationId}/accept`);
         // Update local state
         if (activeRequest) {
-          updateRequest(activeRequest.id, { status: "completed" });
+          updateRequest(activeRequest.id, { status: "quoted" });
         }
         return { success: true };
       } catch (err) {

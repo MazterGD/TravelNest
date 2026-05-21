@@ -1,4 +1,5 @@
 import { prisma } from "@travenest/database";
+import type { Prisma } from "@travenest/database";
 import type { QuotationStatus, VehicleType } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { config } from "../../config/index.js";
@@ -415,7 +416,7 @@ export const getOwnerQuotationRequests = async (
     AND: [baseScope, ...filterClauses],
   };
 
-  const orderBy =
+  const orderBy: Prisma.QuotationOrderByWithRelationInput =
     sortBy === "oldest"
       ? { createdAt: "asc" }
       : sortBy === "tripDate"

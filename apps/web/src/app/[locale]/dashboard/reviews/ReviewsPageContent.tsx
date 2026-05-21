@@ -12,6 +12,7 @@ import {
   SkeletonList,
 } from "@/components/ui";
 import { ReviewDisplay, ReviewForm } from "@/components/features/customer";
+import type { ReviewInput } from "@/components/features/customer/ReviewForm";
 import { reviewService, ApiError } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -56,12 +57,14 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
   const searchParams = useSearchParams();
   const bookingParam = searchParams.get("booking");
 
-  const [isLoading, setIsLoading]                   = useState(true);
-  const [error, setError]                           = useState<string | null>(null);
-  const [reviews, setReviews]                       = useState<Review[]>([]);
-  const [pendingReviews, setPendingReviews]          = useState<PendingReview[]>([]);
-  const [showReviewForm, setShowReviewForm]          = useState<string | null>(bookingParam);
-  const [submitting, setSubmitting]                 = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [pendingReviews, setPendingReviews] = useState<PendingReview[]>([]);
+  const [showReviewForm, setShowReviewForm] = useState<string | null>(
+    bookingParam,
+  );
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchReviews = useCallback(async () => {
     setIsLoading(true);
@@ -72,35 +75,40 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
         reviewService.getPendingReviews(),
       ]);
 
-      const reviewsData  = reviewsResponse as any;
-      const pendingData  = pendingResponse  as any;
+      const reviewsData = reviewsResponse as any;
+      const pendingData = pendingResponse as any;
 
       const transformedReviews: Review[] = (
-        reviewsData.reviews ?? reviewsData ?? []
+        reviewsData.reviews ??
+        reviewsData ??
+        []
       ).map((r: any) => ({
-        id:                r.id,
-        rating:            r.rating,
-        dimensions:        r.dimensions ?? null,
-        title:             r.title ?? null,
-        comment:           r.comment ?? null,
-        isRecommended:     r.isRecommended ?? null,
-        createdAt:         r.createdAt,
-        customerName:      t("you"),
-        vehicleName:       r.vehicleName ?? r.vehicle?.name ?? t("vehicleFallback"),
-        ownerName:         r.ownerName   ?? r.owner?.name   ?? t("ownerFallback"),
-        ownerResponse:     r.ownerResponse     ?? null,
+        id: r.id,
+        rating: r.rating,
+        dimensions: r.dimensions ?? null,
+        title: r.title ?? null,
+        comment: r.comment ?? null,
+        isRecommended: r.isRecommended ?? null,
+        createdAt: r.createdAt,
+        customerName: t("you"),
+        vehicleName: r.vehicleName ?? r.vehicle?.name ?? t("vehicleFallback"),
+        ownerName: r.ownerName ?? r.owner?.name ?? t("ownerFallback"),
+        ownerResponse: r.ownerResponse ?? null,
         ownerResponseDate: r.ownerResponseDate ?? null,
-        tripDate:          r.tripDate,
+        tripDate: r.tripDate,
       }));
 
       const transformedPending: PendingReview[] = (
-        pendingData.pendingReviews ?? pendingData.bookings ?? pendingData ?? []
+        pendingData.pendingReviews ??
+        pendingData.bookings ??
+        pendingData ??
+        []
       ).map((b: any) => ({
-        bookingId:   b.bookingId  ?? b.id,
-        vehicleId:   b.vehicleId  ?? "",
+        bookingId: b.bookingId ?? b.id,
+        vehicleId: b.vehicleId ?? "",
         vehicleName: b.vehicleName ?? b.vehicle?.name ?? t("vehicleFallback"),
-        ownerName:   b.ownerName   ?? b.owner?.name   ?? t("ownerFallback"),
-        tripDate:    b.tripDate    ?? b.endDate,
+        ownerName: b.ownerName ?? b.owner?.name ?? t("ownerFallback"),
+        tripDate: b.tripDate ?? b.endDate,
       }));
 
       setReviews(transformedReviews);
@@ -116,25 +124,19 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
     fetchReviews();
   }, [fetchReviews]);
 
-  const handleSubmitReview = async (data: {
-    bookingId: string;
-    vehicleId: string;
-    rating: number;
-    title?: string;
-    comment?: string;
-    isRecommended?: boolean;
-    dimensions?: Record<string, number>;
-  }): Promise<{ success: boolean; error?: string }> => {
+  const handleSubmitReview = async (
+    data: ReviewInput,
+  ): Promise<{ success: boolean; error?: string }> => {
     setSubmitting(true);
     try {
       await reviewService.create({
         bookingId: data.bookingId,
         vehicleId: data.vehicleId,
-        rating:    data.rating,
-        title:     data.title,
-        comment:   data.comment,
+        rating: data.rating,
+        title: data.title,
+        comment: data.comment,
         isRecommended: data.isRecommended,
-        dimensions:    data.dimensions,
+        dimensions: data.dimensions,
       });
       setShowReviewForm(null);
       fetchReviews();
@@ -242,15 +244,15 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
 
   const tabs = [
     {
-      id:      "myReviews",
-      label:   t("myReviews"),
-      badge:   reviews.length,
+      id: "myReviews",
+      label: t("myReviews"),
+      badge: reviews.length,
       content: myReviewsContent,
     },
     {
-      id:      "pending",
-      label:   t("pendingReviews"),
-      badge:   pendingReviews.length,
+      id: "pending",
+      label: t("pendingReviews"),
+      badge: pendingReviews.length,
       content: pendingContent,
     },
   ];

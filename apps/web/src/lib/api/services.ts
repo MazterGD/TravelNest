@@ -855,6 +855,14 @@ export interface ReviewDimensions {
   valueForMoney?: number | null;
 }
 
+export interface ReviewDimensionInput {
+  ratingVehicleCondition?: number | null;
+  ratingDriverBehavior?: number | null;
+  ratingPunctuality?: number | null;
+  ratingCleanliness?: number | null;
+  ratingValueForMoney?: number | null;
+}
+
 export interface ReviewCreateInput {
   bookingId: string;
   vehicleId: string;
@@ -862,7 +870,7 @@ export interface ReviewCreateInput {
   title?: string;
   comment?: string;
   isRecommended?: boolean;
-  dimensions?: ReviewDimensions;
+  dimensions?: ReviewDimensionInput;
 }
 
 // ============================================
@@ -898,7 +906,12 @@ export const reviewService = {
         ratingDistribution: Record<number, number>;
         dimensionAverages: ReviewDimensions;
       };
-      pagination: { page: number; limit: number; total: number; totalPages: number };
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
     }>(`/reviews/vehicle/${vehicleId}${query}`);
   },
 
@@ -922,7 +935,12 @@ export const reviewService = {
         ownerResponseDate: string | null;
         tripDate: string;
       }>;
-      pagination: { page: number; limit: number; total: number; totalPages: number };
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
     }>(`/reviews/my-reviews${query}`);
   },
 
@@ -939,8 +957,46 @@ export const reviewService = {
         ownerName: string;
         tripDate: string;
       }>;
-      pagination: { page: number; limit: number; total: number; totalPages: number };
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
     }>(`/reviews/pending${query}`);
+  },
+
+  /**
+   * Get reviews received by the authenticated owner
+   */
+  getByOwner: (
+    _ownerId: string,
+    params?: PaginationParams & { hasResponse?: boolean },
+  ) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<{
+      reviews: Array<{
+        id: string;
+        rating: number;
+        dimensions: ReviewDimensions | null;
+        title: string | null;
+        comment: string | null;
+        isRecommended: boolean | null;
+        ownerResponse: string | null;
+        createdAt: string;
+        tripDate: string;
+        customerName: string;
+        customerAvatar: string | null;
+        vehicleId: string;
+        vehicleName: string;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>(`/reviews/owner/list${query}`);
   },
 
   /**
@@ -1144,8 +1200,7 @@ export const notificationService = {
   /**
    * Mark all notifications as read
    */
-  markAllAsRead: () =>
-    api.patch<{ count: number }>("/notifications/read-all"),
+  markAllAsRead: () => api.patch<{ count: number }>("/notifications/read-all"),
 
   /**
    * Get unread count
@@ -1241,7 +1296,9 @@ export const messageService = {
   },
 
   getConversation: (id: string) =>
-    api.get<{ conversation: ConversationSummary }>(`/messages/conversations/${id}`),
+    api.get<{ conversation: ConversationSummary }>(
+      `/messages/conversations/${id}`,
+    ),
 
   openConversation: (bookingId: string) =>
     api.post<{ conversation: ConversationSummary }>("/messages/conversations", {
@@ -1262,7 +1319,9 @@ export const messageService = {
     ),
 
   markRead: (conversationId: string) =>
-    api.patch<{ count: number }>(`/messages/conversations/${conversationId}/read`),
+    api.patch<{ count: number }>(
+      `/messages/conversations/${conversationId}/read`,
+    ),
 
   getUnreadCount: () =>
     api.get<{ unreadCount: number }>("/messages/unread-count"),
