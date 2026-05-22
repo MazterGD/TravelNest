@@ -609,6 +609,8 @@ model Quotation {
   // Relations
   customer        User            @relation("CustomerQuotations", fields: [customerId], references: [id], onDelete: Cascade)
   vehicle         Vehicle?        @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  itineraryStops  ItineraryStop[]
+  itineraryRoute  ItineraryRoute?
 
   @@index([customerId])
   @@index([vehicleId])
@@ -1152,4 +1154,46 @@ model PlatformConfig {
   updatedAt   DateTime @updatedAt
 
   @@map("platform_configs")
+}
+
+// ============================================
+// Routing & Waypoints (OSRM)
+// ============================================
+
+model ItineraryStop {
+  id            String    @id @default(cuid())
+  quotationId   String
+  stopOrder     Int       // Maintains the ordered sequence of waypoints
+  locationName  String?
+  coordinates   Unsupported("geometry(Point, 4326)")
+  createdAt     DateTime  @default(now())
+
+  quotation     Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@index([stopOrder])
+  // Note: GIST index for coordinates is managed via raw SQL migration
+  @@map("itinerary_stops")
+}
+
+model ItineraryRoute {
+  id              String    @id @default(cuid())
+  quotationId     String    @unique
+  
+  // Storing waypoints as a LineString inherently preserves the exact order 
+  // without needing a separate table, but we keep itinerary_stops for metadata (names)
+  waypoints       Unsupported("geometry(LineString, 4326)")
+  
+  // The high-resolution path calculated by OSRM
+  routeGeometry   Unsupported("geometry(LineString, 4326)")
+  
+  distanceMeters  Float?
+  durationSeconds Float?
+  createdAt       DateTime  @default(now())
+
+  quotation       Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  // Note: GIST indexes for spatial columns are managed via raw SQL migration
+  @@map("itinerary_routes")
 }

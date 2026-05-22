@@ -176,6 +176,12 @@ export const config = {
     // Tolerance percentage for pricing validation (allow 20% variance)
     validationTolerance: 0.2,
   },
+
+  // OSRM (self-hosted routing engine)
+  osrm: {
+    baseUrl: process.env.OSRM_BASE_URL || "http://127.0.0.1:5001",
+    timeoutMs: parseInt(process.env.OSRM_TIMEOUT_MS || "15000", 10),
+  },
 } as const;
 
 // Validate required environment variables in production

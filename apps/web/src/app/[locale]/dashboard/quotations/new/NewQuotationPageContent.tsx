@@ -10,6 +10,7 @@ import {
   Select,
   TextArea,
   CTAButton,
+  InteractiveMap,
 } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useProtectedRoute } from "@/hooks";
@@ -730,13 +731,16 @@ export function NewQuotationPageContent({
                 <h3 className="mb-4 text-lg font-semibold text-[var(--color-text-primary)]">
                   {t("routeSummary")}
                 </h3>
-                <div className="mb-6 flex aspect-square items-center justify-center rounded-xl bg-[var(--color-bg-surface)]">
-                  <div className="text-center">
-                    <Route className="mx-auto mb-2 h-12 w-12 text-[var(--color-text-tertiary)]" />
-                    <p className="text-sm text-[var(--color-text-secondary)]">
-                      {t("routeMapPlaceholder")}
-                    </p>
-                  </div>
+                <div className="mb-6">
+                  <InteractiveMap
+                    readOnly={false}
+                    onRouteCalculated={(data) => {
+                      if (data?.route) {
+                        setEstimatedDistance(`${data.route.distanceKm} km`);
+                        setEstimatedDuration(`${data.route.durationMinutes} min`);
+                      }
+                    }}
+                  />
                 </div>
                 <div className="space-y-3">
                   {pickupLocation.city && (

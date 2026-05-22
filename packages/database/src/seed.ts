@@ -4797,6 +4797,100 @@ async function main() {
   console.log("\n" + "=".repeat(60));
   console.log("Sri Lankan TraveNest Database Seed Completed!");
   console.log("ENHANCED FOR OWNER PORTAL DEMO - May 2026");
+  // ===========================================
+  // Fetch OSRM Routes for Quotations and Bookings
+  // ===========================================
+  console.log("Fetching OSRM routes and calculating geometries...\n");
+  
+  const extractCity = (locStr: string) => {
+    if (!locStr) return null;
+    for (const city of Object.keys(LOCATIONS)) {
+      if (locStr.includes(city)) return LOCATIONS[city];
+    }
+    return null;
+  };
+
+  const quotations = await prisma.quotation.findMany();
+  for (const q of quotations) {
+    const start = extractCity(q.pickupLocation);
+    const end = extractCity(q.dropoffLocation || "");
+    if (!start || !end) continue;
+    
+    try {
+      const url = `http://127.0.0.1:5001/trip/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?steps=true&geometries=geojson&overview=full&annotations=true`;
+      const res = await fetch(url);
+      const data = (await res.json()) as any;
+      if (data.code === "Ok" && data.trips && data.trips.length > 0) {
+        const trip = data.trips[0];
+        const distanceMeters = trip.distance;
+        const durationSeconds = trip.duration;
+        const geometry = trip.geometry;
+        
+        await prismaAny.$executeRawUnsafe(
+          `INSERT INTO "itinerary_routes"
+             ("id", "quotationId", "waypoints", "routeGeometry", "distanceMeters", "durationSeconds", "createdAt")
+           VALUES (
+             gen_random_uuid()::text, $1,
+             ST_GeomFromGeoJSON($2), ST_GeomFromGeoJSON($3),
+             $4, $5, NOW()
+           ) ON CONFLICT ("quotationId") DO NOTHING`,
+          q.id,
+          JSON.stringify({
+            type: "LineString",
+            coordinates: [[start.longitude, start.latitude], [end.longitude, end.latitude]]
+          }),
+          JSON.stringify(geometry),
+          distanceMeters,
+          durationSeconds
+        );
+
+        await prismaAny.$executeRawUnsafe(
+          `INSERT INTO "itinerary_stops" ("id", "quotationId", "stopOrder", "locationName", "coordinates", "createdAt")
+           VALUES (gen_random_uuid()::text, $1, 0, $2, ST_SetSRID(ST_MakePoint($3, $4), 4326), NOW())`,
+          q.id, q.pickupLocation, start.longitude, start.latitude
+        );
+        await prismaAny.$executeRawUnsafe(
+          `INSERT INTO "itinerary_stops" ("id", "quotationId", "stopOrder", "locationName", "coordinates", "createdAt")
+           VALUES (gen_random_uuid()::text, $1, 1, $2, ST_SetSRID(ST_MakePoint($3, $4), 4326), NOW())`,
+          q.id, q.dropoffLocation, end.longitude, end.latitude
+        );
+
+        const distanceKm = (distanceMeters / 1000).toFixed(1) + " km";
+        const durationHrs = (durationSeconds / 3600).toFixed(1) + " hours";
+        
+        await prisma.quotation.update({
+          where: { id: q.id },
+          data: { estimatedDistance: distanceKm, estimatedDuration: durationHrs }
+        });
+      }
+    } catch (err) {
+      console.log("Failed to seed route for quotation " + q.id);
+    }
+  }
+
+  const bookings = await prisma.booking.findMany();
+  for (const b of bookings) {
+    const start = extractCity(b.pickupLocation);
+    const end = extractCity(b.dropoffLocation || "");
+    if (!start || !end) continue;
+    
+    try {
+      const url = `http://127.0.0.1:5001/trip/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?steps=true&geometries=geojson&overview=full&annotations=true`;
+      const res = await fetch(url);
+      const data = (await res.json()) as any;
+      if (data.code === "Ok" && data.trips && data.trips.length > 0) {
+        const distanceKm = (data.trips[0].distance / 1000).toFixed(1) + " km";
+        const durationHrs = (data.trips[0].duration / 3600).toFixed(1) + " hours";
+        await prisma.booking.update({
+          where: { id: b.id },
+          data: { estimatedDistance: distanceKm, estimatedDuration: durationHrs }
+        });
+      }
+    } catch (err) {
+      // ignore
+    }
+  }
+
   console.log("=".repeat(60));
   console.log("\nSummary:");
   console.log(`   • Admin users: 1`);
