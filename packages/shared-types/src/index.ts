@@ -148,7 +148,13 @@ export interface Payment {
   currency: string;
   status: PaymentStatus;
   method?: string;
-  stripePaymentId?: string;
+  payherePaymentId?: string; // PayHere order ID
+  payhereCustomerId?: string; // PayHere customer reference
+  bankReceiptUrl?: string;
+  bankReceiptName?: string;
+  bankReceiptSize?: number;
+  bankReceiptMime?: string;
+  bankReceiptAt?: Date;
   refundAmount?: number;
   refundReason?: string;
   createdAt: Date;
@@ -226,4 +232,87 @@ export interface BookingSearchParams {
   endDate?: string;
   page?: number;
   limit?: number;
+}
+
+// Driver Information types
+export interface DriverInfo {
+  name: string;
+  phone: string;
+  license: string;
+}
+
+export interface BookingDriverInfo {
+  bookingId: string;
+  driverAssigned: boolean;
+  driver?: DriverInfo;
+  message?: string;
+}
+
+// Trip Itinerary types
+export interface PickupDropoffPoint {
+  location: string;
+  time: string;
+}
+
+export interface TripItineraryDay {
+  id?: string;
+  dayNumber: number;
+  date: Date | string;
+  startLocation: string;
+  endLocation: string;
+  overnightStop?: string;
+  description?: string;
+  estimatedKm?: number;
+  pickupPoints?: PickupDropoffPoint[];
+  dropoffPoints?: PickupDropoffPoint[];
+}
+
+export interface TripItinerary {
+  bookingId: string;
+  tripDays: number;
+  startDate: Date | string;
+  endDate: Date | string;
+  hasItinerary: boolean;
+  itinerary: TripItineraryDay[];
+}
+
+// Pricing types (Sri Lankan Bus Rental Standards)
+export interface PriceRange {
+  min: number;
+  max: number;
+  suggested: number;
+  perKm?: number;
+  perDay?: number;
+}
+
+export interface PricingSuggestions {
+  quotationId: string;
+  vehicleId: string;
+  vehicleType: string;
+  tripDetails: {
+    estimatedDistanceKm: number;
+    tripDays: number;
+    startDate: Date | string;
+    endDate: Date | string;
+  };
+  minimumBooking: {
+    kilometers: number;
+    hours: number;
+    meetsMinimum: boolean;
+  };
+  suggestions: {
+    vehicleRentalCost: PriceRange;
+    driverCost: PriceRange;
+    fuelCost: PriceRange;
+  };
+  estimatedTotal: number;
+}
+
+export interface PricingValidation {
+  warnings: string[];
+  suggestions: {
+    fuelCost?: PriceRange;
+    driverCost?: PriceRange;
+    vehicleRentalCost?: PriceRange;
+  };
 }

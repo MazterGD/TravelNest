@@ -1,97 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
-import { FaBus, FaUser } from "react-icons/fa";
+import { Bus, User, CheckCircle, ArrowRight } from 'lucide-react';
 import { MainLayout } from "@/components/layout/MainLayout";
-import {
-  PageHeader,
-  Input,
-  Button,
-  Card,
-  LoadingSpinner,
-} from "@/components/ui";
-import { cn } from "@/lib/utils/cn";
-import { authService, ApiError } from "@/lib/api";
-import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
-import { useAuthStore } from "@/store";
+import { LoadingSpinner } from "@/components/ui";
 import { useGuestGuard } from "@/hooks";
-
-type AccountType = "customer" | "owner";
 
 export default function RegisterPage() {
   const t = useTranslations("auth.register");
   const params = useParams();
-  const router = useRouter();
   const locale = params.locale as string;
-  const { login } = useAuthStore();
 
   // Redirect authenticated users to their dashboard
   const { isLoading: guardLoading, isAuthorized } = useGuestGuard();
-
-  const [accountType, setAccountType] = useState<AccountType>("customer");
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-    agreeTerms: false,
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-    setFieldErrors({});
-
-    // Client-side validation
-    if (formData.password !== formData.confirmPassword) {
-      setFieldErrors({ confirmPassword: "Passwords do not match" });
-      setIsLoading(false);
-      return;
-    }
-
-    // Parse name into firstName and lastName
-    const nameParts = formData.name.trim().split(/\s+/);
-    const firstName = nameParts[0] || "";
-    const lastName = nameParts.slice(1).join(" ") || nameParts[0] || "";
-
-    try {
-      const response = await authService.register({
-        email: formData.email,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        firstName,
-        lastName,
-        phone: formData.phone || undefined,
-        role: accountType,
-      });
-
-      // Store user and token in auth store
-      login(response.user, response.accessToken);
-
-      // Redirect to role-specific dashboard
-      router.push(getDashboardUrl(response.user, locale));
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.isValidationError()) {
-          setFieldErrors(err.getValidationErrors());
-        } else {
-          setError(err.message);
-        }
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Show loading while checking auth state
   if (guardLoading || !isAuthorized) {
@@ -106,162 +30,145 @@ export default function RegisterPage() {
 
   return (
     <MainLayout>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      <div className="min-h-[calc(100vh-200px)] bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              {t("title")}
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              {t("intro")}
+            </p>
+          </div>
 
-      <section className="py-12 sm:py-16">
-        <div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8">
-          <Card className="p-8">
-            {/* Account Type Selection */}
-            <div className="mb-8">
-              <label className="block text-sm font-medium text-foreground mb-3">
-                {t("accountType")}
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setAccountType("customer")}
-                  className={cn(
-                    "flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-colors",
-                    accountType === "customer"
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border hover:border-muted-foreground",
-                  )}
-                >
-                  <FaUser className="h-6 w-6 mb-2" />
-                  <span className="text-sm font-medium">{t("customer")}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAccountType("owner")}
-                  className={cn(
-                    "flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-colors",
-                    accountType === "owner"
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border hover:border-muted-foreground",
-                  )}
-                >
-                  <FaBus className="h-6 w-6 mb-2" />
-                  <span className="text-sm font-medium">{t("owner")}</span>
-                </button>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-
-              <Input
-                label={t("name")}
-                type="text"
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                error={fieldErrors.firstName || fieldErrors.lastName}
-                required
-              />
-
-              <Input
-                label={t("email")}
-                type="email"
-                placeholder="you@example.com"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                error={fieldErrors.email}
-                required
-              />
-
-              <Input
-                label={t("phone")}
-                type="tel"
-                placeholder="+94 77 123 4567"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                error={fieldErrors.phone}
-              />
-
-              <Input
-                label={t("password")}
-                type="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                error={fieldErrors.password}
-                required
-              />
-
-              <Input
-                label={t("confirmPassword")}
-                type="password"
-                placeholder="••••••••"
-                value={formData.confirmPassword}
-                onChange={(e) =>
-                  setFormData({ ...formData, confirmPassword: e.target.value })
-                }
-                error={fieldErrors.confirmPassword}
-                required
-              />
-
-              <label className="flex items-start">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 mt-0.5 rounded border-border text-primary focus:ring-primary"
-                  checked={formData.agreeTerms}
-                  onChange={(e) =>
-                    setFormData({ ...formData, agreeTerms: e.target.checked })
-                  }
-                  required
+          {/* Account Type Selection Cards */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Customer Card */}
+            <Link
+              href={`/${locale}/register/customer`}
+              className="group bg-white rounded-3xl shadow-xl border-2 border-gray-100 hover:border-primary hover:shadow-2xl transition-all duration-300 overflow-hidden"
+            >
+              <div className="relative h-48 bg-gradient-to-br from-blue-100 to-blue-50">
+                <Image
+                  src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600"
+                  alt="Travel as Customer"
+                  fill
+                  className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-300"
+                  unoptimized
                 />
-                <span className="ml-2 text-sm text-muted-foreground">
-                  {t("terms")}{" "}
-                  <Link
-                    href={`/${locale}/terms`}
-                    className="text-primary hover:underline"
-                  >
-                    {t("termsLink")}
-                  </Link>{" "}
-                  {t("and")}{" "}
-                  <Link
-                    href={`/${locale}/privacy`}
-                    className="text-primary hover:underline"
-                  >
-                    {t("privacyLink")}
-                  </Link>
-                </span>
-              </label>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                <div className="absolute bottom-4 left-4">
+                  <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+                    <User className="w-7 h-7 text-primary" />
+                  </div>
+                </div>
+              </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-                isLoading={isLoading}
-              >
-                {t("submit")}
-              </Button>
-            </form>
+              <div className="p-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-primary transition-colors">
+                  {t("customer")}
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  {t("customerCard.description")}
+                </p>
 
-            <div className="mt-6 text-center text-sm text-muted-foreground">
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center gap-3 text-gray-700">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span>{t("customerCard.bullets.0")}</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-700">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span>{t("customerCard.bullets.1")}</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-700">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span>{t("customerCard.bullets.2")}</span>
+                  </li>
+                </ul>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-primary font-semibold group-hover:underline">
+                    {t("customerCard.cta")}
+                  </span>
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                    <ArrowRight className="w-4 h-4 text-primary group-hover:text-white transition-colors" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Owner Card */}
+            <Link
+              href={`/${locale}/register/owner`}
+              className="group bg-white rounded-3xl shadow-xl border-2 border-gray-100 hover:border-primary hover:shadow-2xl transition-all duration-300 overflow-hidden"
+            >
+              <div className="relative h-48 bg-gradient-to-br from-orange-100 to-orange-50">
+                <Image
+                  src="https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=600"
+                  alt="Bus Owner"
+                  fill
+                  className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-300"
+                  unoptimized
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                <div className="absolute bottom-4 left-4">
+                  <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+                    <Bus className="w-7 h-7 text-primary" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-primary transition-colors">
+                  {t("owner")}
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  {t("ownerCard.description")}
+                </p>
+
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center gap-3 text-gray-700">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span>{t("ownerCard.bullets.0")}</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-700">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span>{t("ownerCard.bullets.1")}</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-700">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span>{t("ownerCard.bullets.2")}</span>
+                  </li>
+                </ul>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-primary font-semibold group-hover:underline">
+                    {t("ownerCard.cta")}
+                  </span>
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                    <ArrowRight className="w-4 h-4 text-primary group-hover:text-white transition-colors" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Already have account */}
+          <div className="text-center mt-12">
+            <p className="text-gray-600">
               {t("hasAccount")}{" "}
               <Link
                 href={`/${locale}/login`}
-                className="font-medium text-primary hover:underline"
+                className="text-primary font-semibold hover:underline"
               >
                 {t("login")}
               </Link>
-            </div>
-          </Card>
+            </p>
+          </div>
         </div>
-      </section>
+      </div>
     </MainLayout>
   );
 }

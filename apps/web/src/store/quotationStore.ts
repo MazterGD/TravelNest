@@ -50,7 +50,7 @@ export interface QuotationRequest {
   specialRequests?: string;
   luggageCount: number;
   needsAC: boolean;
-  status: "pending" | "active" | "completed" | "cancelled";
+  status: "pending" | "quoted" | "expired" | "cancelled";
   quotationsCount: number;
   createdAt: string;
   updatedAt: string;
@@ -60,8 +60,8 @@ export interface ReceivedQuotation extends Quotation {
   ownerName: string;
   vehicleName: string;
   vehicleImage?: string;
-  rating: number;
-  totalTrips: number;
+  rating: number | null;
+  totalTrips: number | null;
   // Additional display fields
   price: number; // Alias for totalAmount for display convenience
   message?: string; // Optional message from owner
@@ -82,7 +82,7 @@ interface QuotationState {
   error: string | null;
 
   // Filters
-  requestFilter: "all" | "pending" | "active" | "completed" | "cancelled";
+  requestFilter: "all" | "pending" | "quoted" | "expired" | "cancelled";
   quotationFilter: "all" | QuotationStatus;
 
   // Actions

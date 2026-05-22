@@ -51,7 +51,7 @@ export default function PrivacyPolicyPage() {
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <Card className="p-8">
             <p className="text-sm text-muted-foreground mb-8">
-              {t("lastUpdated")}: January 1, 2025
+              {t("lastUpdated")}: {t("lastUpdatedDate")}
             </p>
 
             <div className="space-y-8">

@@ -1,113 +1,64 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
-import type { Request, Response } from "express";
+import { validate } from "../../middleware/validate.js";
+import { csrfProtection } from "../../middleware/csrf.js";
+import * as notificationController from "./notification.controller.js";
+import {
+  getNotificationsSchema,
+  markAsReadSchema,
+  deleteNotificationSchema,
+} from "./notification.schemas.js";
 
 const router = Router();
 
-// Get my notifications
+// Get my notifications with pagination
 router.get(
   "/",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { page = 1, limit = 20, unreadOnly = false } = req.query;
-
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: {
-        notifications: [],
-        unreadCount: 0,
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total: 0,
-          totalPages: 0,
-        },
-      },
-    });
-  })
+  validate(getNotificationsSchema),
+  asyncHandler(notificationController.getNotifications),
 );
 
-// Get unread count
+// Get unread notification count
 router.get(
   "/unread-count",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      data: { unreadCount: 0 },
-    });
-  })
+  asyncHandler(notificationController.getUnreadCount),
 );
 
-// Mark notification as read
+// Mark a specific notification as read
 router.patch(
   "/:id/read",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      message: `Notification ${id} marked as read`,
-    });
-  })
+  csrfProtection,
+  validate(markAsReadSchema),
+  asyncHandler(notificationController.markAsRead),
 );
 
 // Mark all notifications as read
 router.patch(
   "/read-all",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      message: "All notifications marked as read",
-    });
-  })
+  csrfProtection,
+  asyncHandler(notificationController.markAllAsRead),
 );
 
-// Delete a notification
+// Delete a specific notification
 router.delete(
   "/:id",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      message: `Notification ${id} deleted`,
-    });
-  })
+  csrfProtection,
+  validate(deleteNotificationSchema),
+  asyncHandler(notificationController.deleteNotification),
 );
 
 // Delete all notifications
 router.delete(
   "/",
   authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      message: "All notifications deleted",
-    });
-  })
-);
-
-// Update notification preferences
-router.put(
-  "/preferences",
-  authenticate,
-  asyncHandler(async (req: Request, res: Response) => {
-    const { email, push, sms } = req.body;
-    // TODO: Implement with database
-    res.json({
-      success: true,
-      message: "Notification preferences updated",
-    });
-  })
+  csrfProtection,
+  asyncHandler(notificationController.deleteAllNotifications),
 );
 
 export default router;

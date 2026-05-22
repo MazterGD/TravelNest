@@ -1,78 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import {
   PageHeader,
-  Button,
   Tabs,
   EmptyState,
   EmptyBoxIcon,
   SkeletonList,
+  CTAButton,
 } from "@/components/ui";
 import { QuotationRequestCard } from "@/components/features/customer";
+import { quotationService, ApiError } from "@/lib/api";
 import type { QuotationRequest } from "@/store";
-
-// Mock data
-const mockRequests: QuotationRequest[] = [
-  {
-    id: "req1",
-    customerId: "c1",
-    pickupLocation: {
-      address: "Bandaranaike Airport",
-      city: "Katunayake",
-      district: "Gampaha",
-    },
-    dropoffLocation: {
-      address: "Galle Face Hotel",
-      city: "Colombo",
-      district: "Colombo",
-    },
-    pickupDate: new Date(Date.now() + 86400000 * 7).toISOString().split("T")[0],
-    pickupTime: "14:00",
-    isRoundTrip: false,
-    passengerCount: 4,
-    vehicleType: "sedan",
-    luggageCount: 3,
-    needsAC: true,
-    status: "pending",
-    quotationsCount: 5,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "req2",
-    customerId: "c1",
-    pickupLocation: {
-      address: "Colombo Fort",
-      city: "Colombo",
-      district: "Colombo",
-    },
-    dropoffLocation: {
-      address: "Sigiriya Rock",
-      city: "Sigiriya",
-      district: "Matale",
-    },
-    pickupDate: new Date(Date.now() + 86400000 * 14)
-      .toISOString()
-      .split("T")[0],
-    pickupTime: "06:00",
-    returnDate: new Date(Date.now() + 86400000 * 15)
-      .toISOString()
-      .split("T")[0],
-    returnTime: "18:00",
-    isRoundTrip: true,
-    passengerCount: 6,
-    vehicleType: "van",
-    luggageCount: 4,
-    needsAC: true,
-    status: "active",
-    quotationsCount: 3,
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
 
 interface QuotationsPageContentProps {
   locale: string;
@@ -80,30 +21,147 @@ interface QuotationsPageContentProps {
 
 export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
   const t = useTranslations("quotation");
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [requests, setRequests] = useState<QuotationRequest[]>([]);
   const [activeTab, setActiveTab] = useState("all");
 
-  const filteredRequests = mockRequests.filter((req) => {
+  const fetchRequests = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await quotationService.getMyRequests();
+      const data = response as any;
+      const requestsList = data.data?.quotations || data.quotations || [];
+
+      // Group quotations by trip details and count owner responses per trip.
+      // The single `quotations` table holds both customer requests (status=PENDING,
+      // no pricing columns) and owner responses (status=SENT/VIEWED/ACCEPTED,
+      // with vehicleId and pricing columns).
+      const tripMap = new Map<string, any[]>();
+
+      requestsList.forEach((req: any) => {
+        const tripKey = `${req.pickupLocation}|${req.dropoffLocation}|${req.startDate?.split("T")[0] || req.pickupDate}`;
+        if (!tripMap.has(tripKey)) {
+          tripMap.set(tripKey, []);
+        }
+        tripMap.get(tripKey)!.push(req);
+      });
+
+      const transformedRequests: QuotationRequest[] = [];
+
+      tripMap.forEach((quotations) => {
+        // Prefer a PENDING entry without a vehicleId as the base (customer request).
+        // Fall back to the first entry if no such entry exists.
+        const baseRequest =
+          quotations.find(
+            (q: any) => q.status?.toUpperCase() === "PENDING" && !q.vehicleId,
+          ) || quotations[0];
+
+        // Count owner responses: entries that have a vehicle assigned and have been sent.
+        const responsesCount = quotations.filter(
+          (q: any) =>
+            q.vehicleId &&
+            ["SENT", "VIEWED", "ACCEPTED"].includes(q.status?.toUpperCase()),
+        ).length;
+
+        // Derive the canonical customer-facing status from the quotation_requests enum:
+        // pending | quoted | expired | cancelled
+        const baseStatusUpper = baseRequest.status?.toUpperCase();
+        let derivedStatus: QuotationRequest["status"];
+        if (baseStatusUpper === "EXPIRED") {
+          derivedStatus = "expired";
+        } else if (
+          baseStatusUpper === "CANCELLED" ||
+          baseStatusUpper === "REJECTED"
+        ) {
+          derivedStatus = "cancelled";
+        } else if (responsesCount > 0) {
+          // At least one owner has sent a price → request is now "quoted"
+          derivedStatus = "quoted";
+        } else {
+          derivedStatus = "pending";
+        }
+
+        transformedRequests.push({
+          id: baseRequest.id,
+          customerId: baseRequest.customerId,
+          pickupLocation:
+            typeof baseRequest.pickupLocation === "string"
+              ? {
+                  address: baseRequest.pickupLocation,
+                  city: baseRequest.pickupLocation.split(",")[0]?.trim() || "",
+                  district: "",
+                }
+              : baseRequest.pickupLocation,
+          dropoffLocation:
+            typeof baseRequest.dropoffLocation === "string"
+              ? {
+                  address: baseRequest.dropoffLocation,
+                  city:
+                    baseRequest.dropoffLocation.split(",")[0]?.trim() || "",
+                  district: "",
+                }
+              : baseRequest.dropoffLocation,
+          pickupDate: baseRequest.pickupDate || baseRequest.startDate,
+          pickupTime: baseRequest.pickupTime || baseRequest.startTime,
+          returnDate: baseRequest.returnDate,
+          returnTime: baseRequest.returnTime,
+          isRoundTrip: baseRequest.isRoundTrip || false,
+          passengerCount: baseRequest.passengerCount,
+          vehicleType:
+            baseRequest.vehicleType || baseRequest.preferredVehicleType,
+          luggageCount: baseRequest.luggageCount || 0,
+          needsAC: baseRequest.needsAC ?? true,
+          status: derivedStatus,
+          quotationsCount: responsesCount,
+          createdAt: baseRequest.createdAt,
+          updatedAt: baseRequest.updatedAt,
+        });
+      });
+
+      setRequests(transformedRequests);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError(t("fetchError"));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  const filteredRequests = requests.filter((req) => {
     if (activeTab === "all") return true;
     return req.status === activeTab;
   });
 
   const tabs = [
-    { id: "all", label: t("all"), badge: mockRequests.length },
+    { id: "all", label: t("all"), badge: requests.length },
     {
       id: "pending",
       label: t("pending"),
-      badge: mockRequests.filter((r) => r.status === "pending").length,
+      badge: requests.filter((r) => r.status === "pending").length,
     },
     {
-      id: "active",
-      label: t("active"),
-      badge: mockRequests.filter((r) => r.status === "active").length,
+      id: "quoted",
+      label: t("quoted"),
+      badge: requests.filter((r) => r.status === "quoted").length,
     },
     {
-      id: "completed",
-      label: t("completed"),
-      badge: mockRequests.filter((r) => r.status === "completed").length,
+      id: "expired",
+      label: t("expired"),
+      badge: requests.filter((r) => r.status === "expired").length,
+    },
+    {
+      id: "cancelled",
+      label: t("cancelled"),
+      badge: requests.filter((r) => r.status === "cancelled").length,
     },
   ];
 
@@ -113,24 +171,12 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
         title={t("myQuotationRequests")}
         description={t("quotationRequestsDescription")}
         action={
-          <Link href={`/${locale}/dashboard/quotations/new`}>
-            <Button>
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              {t("newRequest")}
-            </Button>
-          </Link>
+          <CTAButton
+            href={`/${locale}/dashboard/quotations/new`}
+            leftIcon={<Plus size={16} />}
+          >
+            {t("newRequest")}
+          </CTAButton>
         }
       />
 
@@ -144,10 +190,25 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
         variant="pills"
       />
 
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center justify-between p-4 bg-[var(--color-error-bg)] border border-[var(--color-error-border)] rounded-xl text-[var(--color-error-text)]"
+        >
+          <span className="text-sm">{error}</span>
+          <button
+            onClick={fetchRequests}
+            className="ml-4 text-sm font-medium underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2 rounded"
+          >
+            {t("retry")}
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <SkeletonList count={3} />
       ) : filteredRequests.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
           {filteredRequests.map((request) => (
             <QuotationRequestCard
               key={request.id}
@@ -162,9 +223,9 @@ export function QuotationsPageContent({ locale }: QuotationsPageContentProps) {
           title={t("noRequests")}
           description={t("noRequestsDescription")}
           action={
-            <Link href={`/${locale}/dashboard/quotations/new`}>
-              <Button>{t("createFirstRequest")}</Button>
-            </Link>
+            <CTAButton href={`/${locale}/dashboard/quotations/new`}>
+              {t("createFirstRequest")}
+            </CTAButton>
           }
         />
       )}

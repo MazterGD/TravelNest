@@ -17,6 +17,13 @@ enum UserRole {
   ADMIN
 }
 
+enum AdminRole {
+  SUPER_ADMIN
+  MODERATOR
+  FINANCE_ADMIN
+  SUPPORT_ADMIN
+}
+
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -33,11 +40,12 @@ enum BookingStatus {
 }
 
 enum QuotationStatus {
-  PENDING
-  RESPONDED
-  ACCEPTED
-  REJECTED
-  EXPIRED
+  PENDING      // Initial request from customer
+  SENT         // Owner has sent the quotation
+  VIEWED       // Customer has viewed the quotation
+  ACCEPTED     // Customer accepted
+  REJECTED     // Customer rejected
+  EXPIRED      // Validity period has passed
 }
 
 enum PaymentStatus {
@@ -49,12 +57,9 @@ enum PaymentStatus {
 }
 
 enum VehicleType {
-  CAR
-  VAN
-  MINI_BUS
-  SUV
-  BUS
-  MOTORCYCLE
+  ORDINARY
+  SEMI_LUXURY
+  LUXURY_AC
 }
 
 enum VehicleStatus {
@@ -76,6 +81,112 @@ enum TransmissionType {
   MANUAL
 }
 
+enum DocumentType {
+  NIC
+  DRIVING_LICENSE
+  INSURANCE
+  REGISTRATION_CERTIFICATE
+  PROFILE_PHOTO
+  VEHICLE_PHOTO
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum DisputeType {
+  BOOKING_QUALITY_ISSUE
+  CANCELLATION_DISPUTE
+  PAYMENT_ISSUE
+  VEHICLE_CONDITION
+  BEHAVIOR_COMPLAINT
+  SERVICE_NOT_PROVIDED
+  OTHER
+}
+
+enum DisputePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DisputeStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
+enum SettlementStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum CommissionType {
+  PERCENTAGE
+  FIXED
+  TIERED
+}
+
+enum PlatformNotificationStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum PlatformNotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum AdminReportType {
+  USERS
+  BOOKINGS
+  FINANCIAL
+  OPERATIONS
+  AUDIT
+  DISPUTES
+  VERIFICATIONS
+  SYSTEM
+}
+
+enum AdminReportFormat {
+  CSV
+  PDF
+  EXCEL
+}
+
+enum AdminReportFrequency {
+  ON_DEMAND
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum ScheduledReportRunStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum OtpPurpose {
+  LOGIN
+  REGISTRATION
+  PHONE_VERIFICATION
+}
+
 // Models
 model User {
   id            String     @id @default(cuid())
@@ -84,22 +195,176 @@ model User {
   firstName     String
   lastName      String
   phone         String?
+  nicNumber     String?    // NIC number (moved from vehicle registration)
   avatar        String?
+  
+  // Address fields
+  address       String?
+  city          String?
+  district      String?
+  postalCode    String?
+  baseLocation  String?
+  
   role          UserRole   @default(CUSTOMER)
+  adminRole     AdminRole?
   status        UserStatus @default(ACTIVE)
   isVerified    Boolean    @default(false)
+  emailVerified Boolean    @default(false)
+  phoneVerified Boolean    @default(false)
+  verifiedAt    DateTime?  // When the owner was verified
+  verifiedBy    String?    // Admin user ID who verified
+  rejectedAt    DateTime?  // When registration was rejected (if applicable)
+  rejectionReason String?  // Reason for rejection
+
+  // Owner business profile fields
+  businessName      String?
+  businessType      String?
+  businessRegNumber String?
+  tinNumber         String?
+  
+  // Security fields
+  tokenVersion  Int        @default(0)  // Increment on password change to invalidate old tokens
+  failedLoginAttempts Int  @default(0)  // Track failed login attempts
+  lockedUntil   DateTime?                 // Account locked until this time
+  lastLoginAt   DateTime?                 // Track last successful login
+  
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
   // Relations
   vehicles      Vehicle[]
+  documents     OwnerDocument[]
   bookings      Booking[]       @relation("CustomerBookings")
   quotationRequests Quotation[] @relation("CustomerQuotations")
   reviews       Review[]
   notifications Notification[]
   payments      Payment[]
+  passwordResets PasswordResetToken[]
+  otpTokens     OtpToken[]
+  tripPackages  TripPackage[]
+  adminPermissions AdminPermission[]
+  auditLogs     AuditLog[]
+  disputesRaised Dispute[]            @relation("DisputesRaisedBy")
+  disputesAgainst Dispute[]           @relation("DisputesAgainst")
+  disputesAssigned Dispute[]          @relation("DisputesAssignedTo")
+  disputeMessages DisputeMessage[]    @relation("DisputeMessagesSent")
+  messagesSent  Message[]             @relation("MessagesSent")
+  settlements Settlement[]            @relation("OwnerSettlements")
+  processedSettlements Settlement[]   @relation("SettlementProcessors")
+  ownerBankAccounts OwnerBankAccount[]
+  createdCommissionRules CommissionRule[] @relation("CommissionRuleCreators")
+  updatedCommissionRules CommissionRule[] @relation("CommissionRuleUpdaters")
+  updatedPlatformSettings PlatformSettings[] @relation("PlatformSettingsUpdatedBy")
+  updatedContentPages ContentPage[] @relation("ContentPageUpdatedBy")
+  updatedFaqs Faq[] @relation("FaqUpdatedBy")
+  updatedAmenities Amenity[] @relation("AmenityUpdatedBy")
+  createdPlatformNotifications PlatformNotification[] @relation("PlatformNotificationCreatedBy")
+  createdScheduledReports ScheduledReport[] @relation("ScheduledReportCreatedBy")
+  updatedScheduledReports ScheduledReport[] @relation("ScheduledReportUpdatedBy")
+  triggeredScheduledReportRuns ScheduledReportRun[] @relation("ScheduledReportRunTriggeredBy")
+  repliedContactMessages ContactMessage[] @relation("ContactMessageReplies")
 
   @@map("users")
+}
+
+model AdminPermission {
+  id          String   @id @default(cuid())
+  adminId     String
+  permission  String
+  grantedAt   DateTime @default(now())
+  grantedBy   String
+  expiresAt   DateTime?
+
+  admin       User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@unique([adminId, permission])
+  @@index([adminId])
+  @@map("admin_permissions")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  adminId      String
+  action       String
+  entityType   String
+  entityId     String
+  changes      Json?
+  ipAddress    String?
+  userAgent    String?
+  status       String   @default("success")
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  admin        User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Password reset tokens (single-use, time-limited)
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique  // Hashed token
+  expiresAt DateTime             // Token expiration (typically 1 hour)
+  usedAt    DateTime?            // When the token was used (null if not used)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("password_reset_tokens")
+}
+
+model OtpToken {
+  id        String     @id @default(cuid())
+  userId    String?
+  phone     String?
+  email     String?
+  code      String
+  purpose   OtpPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int        @default(0)
+  createdAt DateTime   @default(now())
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone, purpose])
+  @@index([email, purpose])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("otp_tokens")
+}
+
+// Owner document uploads (NIC, Profile Photo, etc.)
+model OwnerDocument {
+  id            String         @id @default(cuid())
+  ownerId       String
+  type          DocumentType
+  url           String         // S3 URL or file path
+  fileName      String
+  fileSize      Int            // in bytes
+  mimeType      String
+  status        DocumentStatus @default(PENDING)
+  rejectionReason String?
+  verifiedAt    DateTime?
+  verifiedBy    String?        // Admin user ID who verified
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([type])
+  @@index([status])
+  @@map("owner_documents")
 }
 
 model Vehicle {
@@ -117,11 +382,22 @@ model Vehicle {
   doors           Int?
   fuelType        FuelType
   transmission    TransmissionType
+  acType          String?          // full-ac, ac, non-ac
+  condition       String?          // excellent, good, fair
   mileage         Int?
-  features        String[]
+  features        Json?            // JSON field for vehicle features
+  amenities       String[]         // Array of amenities (wifi, ac, gps, etc)
   images          String[]
   pricePerDay     Float
   pricePerHour    Float?
+  pricePerKm      Float?           // Price per kilometer
+  driverAllowance Float?           // Daily driver allowance
+  
+  // Pricing rules for quotation validation
+  minBookingKm    Int?             // Minimum kilometers per booking (default: 100km)
+  minBookingHours Int?             // Minimum hours per booking (default: 8 hours)
+  fuelCostPerKm   Float?           // Estimated fuel cost per km for validation
+  
   location        String
   latitude        Float?
   longitude       Float?
@@ -132,15 +408,63 @@ model Vehicle {
 
   // Relations
   owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documents       VehicleDocument[]
+  photos          VehiclePhoto[]
   bookings        Booking[]
   quotations      Quotation[]
   reviews         Review[]
   availability    VehicleAvailability[]
+  tripPackages    TripPackage[]
 
   @@index([ownerId])
   @@index([type])
   @@index([location])
   @@map("vehicles")
+}
+
+// Vehicle documents (License, Insurance, Registration Certificate)
+model VehicleDocument {
+  id              String         @id @default(cuid())
+  vehicleId       String
+  type            DocumentType   // DRIVING_LICENSE, INSURANCE, REGISTRATION_CERTIFICATE
+  url             String         // S3 URL or file path
+  fileName        String
+  fileSize        Int            // in bytes
+  mimeType        String
+  status          DocumentStatus @default(PENDING)
+  rejectionReason String?
+  expiryDate      DateTime?      // For insurance and license
+  verifiedAt      DateTime?
+  verifiedBy      String?        // Admin user ID who verified
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  vehicle         Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([type])
+  @@index([status])
+  @@map("vehicle_documents")
+}
+
+// Vehicle photos (multiple photos per vehicle)
+model VehiclePhoto {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  url         String   // S3 URL or file path
+  fileName    String
+  fileSize    Int      // in bytes
+  mimeType    String
+  isPrimary   Boolean  @default(false) // Primary display photo
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_photos")
 }
 
 model VehicleAvailability {
@@ -163,46 +487,121 @@ model Booking {
   id              String        @id @default(cuid())
   customerId      String
   vehicleId       String
+  tripPackageId   String?
   startDate       DateTime
   endDate         DateTime
   pickupLocation  String
   dropoffLocation String?
+  totalPassengers Int?
   totalAmount     Float
   status          BookingStatus @default(PENDING)
   notes           String?
   cancelReason    String?
+  
+  // Driver information
+  driverName      String?
+  driverPhone     String?
+  driverLicense   String?
+  
+  // Trip details from quotation
+  estimatedDistance String?
+  estimatedDuration String?
+  
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   // Relations
   customer        User          @relation("CustomerBookings", fields: [customerId], references: [id], onDelete: Cascade)
   vehicle         Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  tripPackage     TripPackage?  @relation(fields: [tripPackageId], references: [id], onDelete: SetNull)
   payment         Payment?
   review          Review?
+  itinerary       TripItinerary[]
+  disputes        Dispute[]
+  settlementItems SettlementBooking[]
+  conversation    Conversation?
 
   @@index([customerId])
   @@index([vehicleId])
   @@index([status])
+  @@index([tripPackageId])
+  @@index([customerId, status, startDate])
+  @@index([vehicleId, startDate, endDate])
   @@map("bookings")
+}
+
+model TripPackage {
+  id            String   @id @default(cuid())
+  ownerId       String
+  vehicleId     String
+  title         String
+  description   String?
+  startLocation String
+  endLocation   String
+  durationDays  Int
+  price         Float
+  minPassengers Int
+  maxPassengers Int
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  bookings      Booking[]
+
+  @@index([ownerId])
+  @@index([vehicleId])
+  @@index([startLocation])
+  @@index([endLocation])
+  @@map("trip_packages")
 }
 
 model Quotation {
   id              String          @id @default(cuid())
+  quotationId     String          @unique // QUO-2026-001 format
   customerId      String
   vehicleId       String?
   vehicleType     VehicleType?
+  
+  // Trip details
   startDate       DateTime
   endDate         DateTime
+  startTime       String?
   pickupLocation  String
   dropoffLocation String?
   passengerCount  Int?
+  estimatedDistance String?
+  estimatedDuration String?
   specialRequests String?
+  
+  // Quotation status
   status          QuotationStatus @default(PENDING)
   
-  // Owner response
-  quotedPrice     Float?
-  ownerMessage    String?
+  // Owner response details
+  vehicleRentalCost Float?
+  driverCost      Float?
+  fuelCost        Float?
+  tollCharges     Float?
+  permitFees      Float?
+  customItems     Json?           // Array of {description, amount}
+  subtotal        Float?
+  tax             Float?
+  totalAmount     Float?
+  
+  // Additional details
+  additionalNotes String?
+  validityDays    Int?            // Number of days quotation is valid
   validUntil      DateTime?
+  
+  // Customer response
+  rejectionReason String?
+  
+  // Tracking dates
+  sentAt          DateTime?       // When owner sent the quotation
+  viewedAt        DateTime?       // When customer viewed it
+  respondedAt     DateTime?       // When customer accepted/rejected
   
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -214,24 +613,34 @@ model Quotation {
   @@index([customerId])
   @@index([vehicleId])
   @@index([status])
+  @@index([quotationId])
+  @@index([validUntil])
   @@map("quotations")
 }
 
 model Review {
-  id            String   @id @default(cuid())
-  customerId    String
-  vehicleId     String
-  bookingId     String   @unique
-  rating        Int      // 1-5
-  comment       String?
-  ownerResponse String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  customerId             String
+  vehicleId              String
+  bookingId              String   @unique
+  rating                 Int      // 1-5 overall rating
+  // 6-dimension sub-ratings (all optional for backward compat with v1 reviews)
+  ratingVehicleCondition Int?     // 1-5
+  ratingDriverBehavior   Int?     // 1-5
+  ratingPunctuality      Int?     // 1-5
+  ratingCleanliness      Int?     // 1-5
+  ratingValueForMoney    Int?     // 1-5
+  title                  String?
+  comment                String?
+  isRecommended          Boolean?
+  ownerResponse          String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   // Relations
-  customer      User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customer               User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vehicle                Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  booking                Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([customerId])
   @@index([vehicleId])
@@ -246,8 +655,13 @@ model Payment {
   currency          String        @default("LKR")
   status            PaymentStatus @default(PENDING)
   method            String?
-  stripePaymentId   String?       @unique
-  stripeCustomerId  String?
+  payherePaymentId  String?       @unique  // PayHere order ID
+  payhereCustomerId String?                // PayHere customer reference
+  bankReceiptUrl    String?
+  bankReceiptName   String?
+  bankReceiptSize   Int?
+  bankReceiptMime   String?
+  bankReceiptAt     DateTime?
   refundAmount      Float?
   refundReason      String?
   createdAt         DateTime      @default(now())
@@ -266,6 +680,7 @@ model Notification {
   id          String   @id @default(cuid())
   userId      String
   type        String   // booking_confirmed, payment_received, review_received, etc.
+  category    String   @default("System") // UI-filter group: Bookings | Payments | Quotations | Reviews | System
   title       String
   message     String
   data        Json?    // Additional data (bookingId, vehicleId, etc.)
@@ -277,5 +692,464 @@ model Notification {
 
   @@index([userId])
   @@index([isRead])
+  @@index([category])
   @@map("notifications")
+}
+
+model ContactMessage {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  subject     String
+  message     String
+  referenceId String   @unique
+  isRead      Boolean  @default(false)
+  repliedAt   DateTime?
+  repliedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  repliedByAdmin User? @relation("ContactMessageReplies", fields: [repliedBy], references: [id], onDelete: SetNull)
+
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+model Dispute {
+  id                 String          @id @default(cuid())
+  disputeCode        String          @unique
+  bookingId          String
+  raisedBy           String
+  raisedAgainst      String
+  type               DisputeType
+  priority           DisputePriority @default(MEDIUM)
+  status             DisputeStatus   @default(OPEN)
+  subject            String
+  description        String
+  evidenceUrls       String[]
+  assignedTo         String?
+  proposedResolution String?
+  resolution         String?
+  resolutionType     String?
+  resolutionAmount   Float?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  closedAt           DateTime?
+
+  booking            Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  raisedByUser       User            @relation("DisputesRaisedBy", fields: [raisedBy], references: [id], onDelete: Cascade)
+  againstUser        User            @relation("DisputesAgainst", fields: [raisedAgainst], references: [id], onDelete: Cascade)
+  assignedAdmin      User?           @relation("DisputesAssignedTo", fields: [assignedTo], references: [id], onDelete: SetNull)
+  messages           DisputeMessage[]
+
+  @@index([bookingId])
+  @@index([raisedBy])
+  @@index([raisedAgainst])
+  @@index([status])
+  @@index([priority])
+  @@index([assignedTo])
+  @@index([createdAt])
+  @@map("disputes")
+}
+
+model DisputeMessage {
+  id             String   @id @default(cuid())
+  disputeId      String
+  senderId       String
+  message        String
+  isInternalNote Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  dispute        Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  sender         User     @relation("DisputeMessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("dispute_messages")
+}
+
+// Booking-scoped customer ↔ owner conversation. Exactly one per booking; the
+// owner is derived through Booking → Vehicle → ownerId, so it is not stored here.
+model Conversation {
+  id            String    @id @default(cuid())
+  bookingId     String    @unique
+  lastMessageAt DateTime? // Denormalized for efficient conversation-list sorting
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  messages      Message[]
+
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@index([readAt])
+  @@map("messages")
+}
+
+model Settlement {
+  id                String           @id @default(cuid())
+  settlementCode    String           @unique
+  ownerId           String
+  period            String
+  totalBookings     Int
+  grossAmount       Float
+  commissionAmount  Float
+  netAmount         Float
+  status            SettlementStatus @default(PENDING)
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankCode          String?
+  processedBy       String?
+  processedAt       DateTime?
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  owner             User             @relation("OwnerSettlements", fields: [ownerId], references: [id], onDelete: Cascade)
+  processedByAdmin  User?            @relation("SettlementProcessors", fields: [processedBy], references: [id], onDelete: SetNull)
+  bookings          SettlementBooking[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([period])
+  @@map("settlements")
+}
+
+model SettlementBooking {
+  id           String      @id @default(cuid())
+  settlementId String
+  bookingId    String
+  amount       Float
+  commission   Float
+  net          Float
+
+  settlement   Settlement  @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  booking      Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([settlementId, bookingId])
+  @@index([settlementId])
+  @@index([bookingId])
+  @@map("settlement_bookings")
+}
+
+model OwnerBankAccount {
+  id                String   @id @default(cuid())
+  ownerId           String
+  accountHolderName String
+  accountNumber     String   // Encrypted at rest via settlementBankEncryption.ts
+  bankName          String
+  bankCode          String?
+  branchName        String?
+  branchCode        String?
+  isPrimary         Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  owner             User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@map("owner_bank_accounts")
+}
+
+model CommissionRule {
+  id          String         @id @default(cuid())
+  name        String
+  type        CommissionType
+  percentage  Float?
+  fixedAmount Float?
+  minAmount   Float?
+  maxAmount   Float?
+  tiers       Json?
+  appliesFrom DateTime?
+  appliesTo   DateTime?
+  isActive    Boolean        @default(true)
+  createdBy   String?
+  updatedBy   String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  createdByAdmin User?       @relation("CommissionRuleCreators", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByAdmin User?       @relation("CommissionRuleUpdaters", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([isActive])
+  @@index([appliesFrom, appliesTo])
+  @@map("commission_rules")
+}
+
+model PlatformSettings {
+  id                   String   @id @default(cuid())
+  generalSettings      Json?
+  notificationSettings Json?
+  paymentSettings      Json?
+  bookingSettings      Json?
+  securitySettings     Json?
+  mapSettings          Json?
+  maintenanceMode      Boolean  @default(false)
+  maintenanceMessage   String?
+  updatedBy            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  updatedByAdmin       User?    @relation("PlatformSettingsUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([updatedBy])
+  @@map("platform_settings")
+}
+
+model ContentPage {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  content        Json
+  excerpt        String?
+  seoTitle       String?
+  seoDescription String?
+  isPublished    Boolean  @default(false)
+  publishedAt    DateTime?
+  updatedBy      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  updatedByAdmin User?    @relation("ContentPageUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([isPublished])
+  @@index([updatedAt])
+  @@map("content_pages")
+}
+
+model Faq {
+  id             String   @id @default(cuid())
+  question       String
+  answer         String
+  category       String?
+  sortOrder      Int      @default(0)
+  isPublished    Boolean  @default(true)
+  updatedBy      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  updatedByAdmin User?    @relation("FaqUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([category])
+  @@index([sortOrder])
+  @@map("faqs")
+}
+
+model Amenity {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  name           String
+  description    String?
+  icon           String?
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  updatedBy      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  updatedByAdmin User?    @relation("AmenityUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("amenities")
+}
+
+model PlatformNotification {
+  id            String                      @id @default(cuid())
+  title         String
+  message       String
+  type          String                      @default("ANNOUNCEMENT")
+  channel       PlatformNotificationChannel @default(IN_APP)
+  status        PlatformNotificationStatus  @default(DRAFT)
+  targetRole    UserRole?
+  targetUserIds String[]                    @default([])
+  metadata      Json?
+  scheduledFor  DateTime?
+  sentAt        DateTime?
+  createdBy     String
+  resentFromId  String?
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+
+  createdByAdmin User                      @relation("PlatformNotificationCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  resentFrom     PlatformNotification?     @relation("PlatformNotificationResends", fields: [resentFromId], references: [id], onDelete: SetNull)
+  resends        PlatformNotification[]    @relation("PlatformNotificationResends")
+
+  @@index([status])
+  @@index([targetRole])
+  @@index([createdBy])
+  @@index([sentAt])
+  @@map("platform_notifications")
+}
+
+model ScheduledReport {
+  id             String               @id @default(cuid())
+  name           String
+  description    String?
+  reportType     AdminReportType
+  format         AdminReportFormat    @default(CSV)
+  frequency      AdminReportFrequency @default(ON_DEMAND)
+  cronExpression String?
+  timezone       String               @default("Asia/Colombo")
+  configuration  Json?
+  recipients     String[]             @default([])
+  isActive       Boolean              @default(true)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  createdBy      String
+  updatedBy      String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  createdByAdmin User                 @relation("ScheduledReportCreatedBy", fields: [createdBy], references: [id], onDelete: Cascade)
+  updatedByAdmin User?                @relation("ScheduledReportUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  runs          ScheduledReportRun[]
+
+  @@index([reportType])
+  @@index([frequency, isActive])
+  @@index([nextRunAt])
+  @@index([createdBy])
+  @@index([updatedAt])
+  @@map("scheduled_reports")
+}
+
+model ScheduledReportRun {
+  id             String                  @id @default(cuid())
+  reportId       String
+  triggeredBy    String?
+  triggerSource  String                  @default("MANUAL")
+  status         ScheduledReportRunStatus @default(QUEUED)
+  format         AdminReportFormat       @default(CSV)
+  fileName       String?
+  rowCount       Int                     @default(0)
+  errorMessage   String?
+  startedAt      DateTime                @default(now())
+  completedAt    DateTime?
+
+  report         ScheduledReport         @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  triggeredByAdmin User?                 @relation("ScheduledReportRunTriggeredBy", fields: [triggeredBy], references: [id], onDelete: SetNull)
+
+  @@index([reportId, startedAt])
+  @@index([status])
+  @@index([triggeredBy])
+  @@index([startedAt])
+  @@map("scheduled_report_runs")
+}
+
+// Trip itinerary for multi-day trips
+model TripItinerary {
+  id            String   @id @default(cuid())
+  bookingId     String
+  dayNumber     Int      // Day 1, Day 2, etc.
+  date          DateTime
+  startLocation String
+  endLocation   String
+  overnightStop String?  // Where the vehicle stays overnight
+  description   String?  // Route description or activities
+  estimatedKm   Int?     // Estimated kilometers for this day
+  pickupPoints  Json?    // Array of {location, time} for multiple pickups
+  dropoffPoints Json?    // Array of {location, time} for multiple drop-offs
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, dayNumber])
+  @@index([bookingId])
+  @@map("trip_itineraries")
+}
+
+// ============================================
+// Platform & Landing Page Configuration
+// ============================================
+
+model PlatformStat {
+  id          String   @id @default(cuid())
+  key         String   @unique     // e.g. "verified_buses", "successful_trips"
+  value       String               // e.g. "500+"
+  label       String               // e.g. "Verified Buses"
+  sublabel    String?              // e.g. "Across Sri Lanka"
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("platform_stats")
+}
+
+model PopularRoute {
+  id             String   @id @default(cuid())
+  fromCity       String
+  toCity         String
+  durationHours  Float
+  avgPrice       Float
+  bookingsCount  Int      @default(0)
+  imageUrl       String
+  isPopular      Boolean  @default(false)
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("popular_routes")
+}
+
+model Testimonial {
+  id            String   @id @default(cuid())
+  name          String
+  role          String
+  organization  String
+  imageUrl      String
+  rating        Int      @default(5)
+  quote         String
+  tripDetails   String?
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("testimonials")
+}
+
+model TrustedPartner {
+  id          String   @id @default(cuid())
+  name        String
+  logoUrl     String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("trusted_partners")
+}
+
+model PlatformConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("platform_configs")
 }

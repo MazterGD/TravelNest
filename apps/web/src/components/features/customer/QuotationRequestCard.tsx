@@ -2,9 +2,18 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
+import {
+  MapPin,
+  CalendarDays,
+  Clock,
+  Users,
+  Snowflake,
+  ArrowLeftRight,
+} from "lucide-react";
 import { Card, CardContent, Button } from "@/components/ui";
 import type { QuotationRequest } from "@/store";
 import { cn } from "@/lib/utils/cn";
+import { formatDate } from "@/lib/utils/formatters";
 
 interface QuotationRequestCardProps {
   request: QuotationRequest;
@@ -19,31 +28,20 @@ export function QuotationRequestCard({
 }: QuotationRequestCardProps) {
   const t = useTranslations("quotation");
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-LK", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const formatTime = (timeString: string) => {
-    return timeString;
-  };
-
-  const getStatusColor = (status: QuotationRequest["status"]) => {
+  const getStatusClasses = (status: QuotationRequest["status"]) => {
     switch (status) {
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "active":
-        return "bg-blue-100 text-blue-800";
-      case "completed":
-        return "bg-green-100 text-green-800";
+        // Neutral — awaiting owner responses
+        return "bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border-default)]";
+      case "quoted":
+        // Brand accent — responses have arrived
+        return "bg-primary/10 text-primary";
+      case "expired":
+        return "bg-[var(--color-error-bg)] text-[var(--color-error-text)]";
       case "cancelled":
-        return "bg-red-100 text-red-800";
+        return "bg-[var(--color-error-bg)] text-[var(--color-error-text)]";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] border border-[var(--color-border-default)]";
     }
   };
 
@@ -56,20 +54,20 @@ export function QuotationRequestCard({
             <div className="flex items-center gap-2 mb-1">
               <span
                 className={cn(
-                  "px-2 py-0.5 text-xs font-medium rounded-full",
-                  getStatusColor(request.status)
+                  "px-2 py-0.5 text-xs font-medium rounded-lg",
+                  getStatusClasses(request.status),
                 )}
               >
                 {t(request.status)}
               </span>
               {request.isRoundTrip && (
-                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary">
+                <span className="px-2 py-0.5 text-xs font-medium rounded-lg bg-primary/10 text-primary">
                   {t("roundTrip")}
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {t("requestedOn")} {formatDate(request.createdAt)}
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {t("requestedOn")} {formatDate(request.createdAt, "medium")}
             </p>
           </div>
           {request.quotationsCount > 0 && (
@@ -77,7 +75,7 @@ export function QuotationRequestCard({
               <p className="text-lg font-bold text-primary">
                 {request.quotationsCount}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-[var(--color-text-secondary)]">
                 {t("quotationsReceived")}
               </p>
             </div>
@@ -88,22 +86,21 @@ export function QuotationRequestCard({
         <div className="space-y-3 mb-4">
           {/* Pickup */}
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-              <svg
-                className="w-4 h-4 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <circle cx="12" cy="12" r="3" strokeWidth={2} />
-              </svg>
+            <div className="w-8 h-8 rounded-xl bg-[var(--color-success-bg)] flex items-center justify-center flex-shrink-0">
+              <MapPin
+                size={16}
+                className="text-[var(--color-success-text)]"
+                aria-hidden="true"
+              />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
+              <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
                 {request.pickupLocation.address}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {request.pickupLocation.city}, {request.pickupLocation.district}
+              <p className="text-xs text-[var(--color-text-secondary)]">
+                {[request.pickupLocation.city, request.pickupLocation.district]
+                  .filter(Boolean)
+                  .join(", ")}
               </p>
             </div>
           </div>
@@ -111,137 +108,128 @@ export function QuotationRequestCard({
           {/* Connection Line */}
           <div className="flex items-center gap-3">
             <div className="w-8 flex justify-center">
-              <div className="w-0.5 h-4 bg-border" />
+              <div className="w-0.5 h-4 bg-[var(--color-border-default)]" />
             </div>
           </div>
 
           {/* Dropoff */}
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-              <svg
-                className="w-4 h-4 text-red-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                />
-              </svg>
+            <div className="w-8 h-8 rounded-xl bg-[var(--color-error-bg)] flex items-center justify-center flex-shrink-0">
+              <MapPin
+                size={16}
+                className="text-[var(--color-error-text)]"
+                aria-hidden="true"
+              />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
+              <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
                 {request.dropoffLocation.address}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {request.dropoffLocation.city},{" "}
-                {request.dropoffLocation.district}
+              <p className="text-xs text-[var(--color-text-secondary)]">
+                {[
+                  request.dropoffLocation.city,
+                  request.dropoffLocation.district,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
               </p>
             </div>
           </div>
         </div>
 
         {/* Trip Details */}
-        <div className="flex flex-wrap gap-4 text-sm mb-4 p-3 bg-muted rounded-lg">
+        <div className="flex flex-wrap gap-4 text-sm mb-4 p-3 bg-[var(--color-bg-surface)] rounded-lg border border-[var(--color-border-default)]">
           <div className="flex items-center gap-1.5">
-            <svg
-              className="w-4 h-4 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            <span>{formatDate(request.pickupDate)}</span>
+            <CalendarDays
+              size={16}
+              className="text-[var(--color-text-secondary)]"
+              aria-hidden="true"
+            />
+            <span className="text-[var(--color-text-primary)]">
+              {formatDate(request.pickupDate, "medium")}
+            </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <svg
-              className="w-4 h-4 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <span>{formatTime(request.pickupTime)}</span>
+            <Clock
+              size={16}
+              className="text-[var(--color-text-secondary)]"
+              aria-hidden="true"
+            />
+            <span className="text-[var(--color-text-primary)]">
+              {request.pickupTime}
+            </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <svg
-              className="w-4 h-4 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
-            <span>
+            <Users
+              size={16}
+              className="text-[var(--color-text-secondary)]"
+              aria-hidden="true"
+            />
+            <span className="text-[var(--color-text-primary)]">
               {request.passengerCount} {t("passengers")}
             </span>
           </div>
           {request.needsAC && (
             <div className="flex items-center gap-1.5">
-              <svg
-                className="w-4 h-4 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-              <span>{t("withAC")}</span>
+              <Snowflake
+                size={16}
+                className="text-[var(--color-action-primary)]"
+                aria-hidden="true"
+              />
+              <span className="text-[var(--color-text-primary)]">
+                {t("withAC")}
+              </span>
             </div>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2">
-          {request.status === "pending" && onCancel && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCancel}
-              className="flex-1 text-destructive hover:bg-destructive/10"
-            >
-              {t("cancelRequest")}
-            </Button>
-          )}
-          {request.quotationsCount > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            {request.status === "pending" && onCancel && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCancel}
+                className="flex-1 text-[var(--color-error-text)] hover:bg-[var(--color-error-bg)] border-[var(--color-error-border)]"
+              >
+                {t("cancelRequest")}
+              </Button>
+            )}
+            {request.quotationsCount > 0 && (
+              <Link
+                href={`/${locale}/dashboard/quotations/${request.id}`}
+                className="flex-1"
+              >
+                <Button size="sm" className="w-full">
+                  {t("viewQuotations", { count: request.quotationsCount })}
+                </Button>
+              </Link>
+            )}
+            {request.quotationsCount === 0 && request.status === "pending" && (
+              <div className="flex-1 text-center py-2 text-sm text-[var(--color-text-secondary)]">
+                {t("waitingForQuotations")}
+              </div>
+            )}
+          </div>
+          {request.quotationsCount >= 2 && (
             <Link
-              href={`/${locale}/dashboard/quotations/${request.id}`}
-              className="flex-1"
+              href={`/${locale}/dashboard/quotations/compare?requestId=${request.id}`}
+              className="w-full"
             >
-              <Button size="sm" className="w-full">
-                {t("viewQuotations")} ({request.quotationsCount})
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-[var(--color-action-primary)] text-[var(--color-action-primary)] hover:bg-[var(--color-bg-surface)]"
+              >
+                <ArrowLeftRight
+                  size={16}
+                  className="mr-2"
+                  aria-hidden="true"
+                />
+                {t("compareQuotations")}
               </Button>
             </Link>
-          )}
-          {request.quotationsCount === 0 && request.status === "pending" && (
-            <div className="flex-1 text-center py-2 text-sm text-muted-foreground">
-              {t("waitingForQuotations")}
-            </div>
           )}
         </div>
       </CardContent>

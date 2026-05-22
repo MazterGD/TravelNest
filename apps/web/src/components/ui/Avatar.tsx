@@ -27,23 +27,10 @@ function getInitials(name: string): string {
 
 function getColorFromName(name: string): string {
   const colors = [
-    "bg-red-500",
-    "bg-orange-500",
-    "bg-amber-500",
-    "bg-yellow-500",
-    "bg-lime-500",
-    "bg-green-500",
-    "bg-emerald-500",
-    "bg-teal-500",
-    "bg-cyan-500",
-    "bg-sky-500",
-    "bg-blue-500",
-    "bg-indigo-500",
-    "bg-violet-500",
-    "bg-purple-500",
-    "bg-fuchsia-500",
-    "bg-pink-500",
-    "bg-rose-500",
+    "bg-primary",
+    "bg-muted-foreground",
+    "bg-foreground",
+    "bg-action-primary-hover",
   ];
 
   let hash = 0;
@@ -69,7 +56,7 @@ export function Avatar({
       className={cn(
         "relative inline-flex items-center justify-center rounded-full overflow-hidden flex-shrink-0",
         sizeClasses[size],
-        className
+        className,
       )}
     >
       {src ? (
@@ -78,7 +65,7 @@ export function Avatar({
         <div
           className={cn(
             "w-full h-full flex items-center justify-center text-white font-medium",
-            bgColor
+            bgColor,
           )}
         >
           {initials}
@@ -119,7 +106,7 @@ export function AvatarGroup({
         <div
           className={cn(
             "inline-flex items-center justify-center rounded-full bg-muted text-muted-foreground font-medium ring-2 ring-background",
-            sizeClasses[size]
+            sizeClasses[size],
           )}
         >
           +{remainingCount}

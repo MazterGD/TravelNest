@@ -16,6 +16,7 @@ interface AuthState {
   logout: () => void;
   setLoading: (loading: boolean) => void;
   setHasHydrated: (state: boolean) => void;
+  updateUser: (userData: Partial<User>) => void;
 
   // Role checks
   isCustomer: () => boolean;
@@ -55,6 +56,11 @@ export const useAuthStore = create<AuthState>()(
 
       setHasHydrated: (state) =>
         set({ _hasHydrated: state, isLoading: !state }),
+
+      updateUser: (userData) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...userData } : null,
+        })),
 
       // Role check helpers
       isCustomer: () => get().user?.role === UserRole.CUSTOMER,

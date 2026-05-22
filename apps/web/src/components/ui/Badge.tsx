@@ -21,13 +21,12 @@ interface BadgeProps {
 
 const variantClasses: Record<BadgeVariant, string> = {
   default: "bg-primary text-primary-foreground",
-  secondary: "bg-secondary text-secondary-foreground",
-  success: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-  warning:
-    "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
-  danger: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
-  info: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  outline: "border border-current bg-transparent",
+  secondary: "bg-muted text-muted-foreground border border-border",
+  success: "bg-success-bg text-success-text border border-success-border",
+  warning: "bg-muted text-foreground border border-border",
+  danger: "bg-error-bg text-error-text border border-error-border",
+  info: "bg-muted text-primary border border-border",
+  outline: "border border-border bg-transparent text-foreground",
 };
 
 const sizeClasses: Record<BadgeSize, string> = {
@@ -38,11 +37,11 @@ const sizeClasses: Record<BadgeSize, string> = {
 
 const dotColors: Record<BadgeVariant, string> = {
   default: "bg-primary-foreground",
-  secondary: "bg-secondary-foreground",
-  success: "bg-green-600",
-  warning: "bg-yellow-600",
-  danger: "bg-red-600",
-  info: "bg-blue-600",
+  secondary: "bg-muted-foreground",
+  success: "bg-success",
+  warning: "bg-foreground",
+  danger: "bg-error",
+  info: "bg-primary",
   outline: "bg-current",
 };
 
@@ -56,10 +55,10 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center font-medium rounded-full",
+        "inline-flex items-center rounded-lg font-medium",
         variantClasses[variant],
         sizeClasses[size],
-        className
+        className,
       )}
     >
       {dot && (

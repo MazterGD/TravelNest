@@ -37,7 +37,7 @@ export function useQuotations() {
     setError(null);
     try {
       const response = await api.get<QuotationRequest[]>(
-        "/quotations/requests"
+        "/quotations/my-requests",
       );
       setRequests(response);
     } catch (err) {
@@ -53,10 +53,7 @@ export function useQuotations() {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.post<QuotationRequest>(
-          "/quotations/requests",
-          data
-        );
+        const response = await api.post<QuotationRequest>("/quotations", data);
         addRequest(response);
         return { success: true, data: response };
       } catch (err) {
@@ -68,7 +65,7 @@ export function useQuotations() {
         setLoading(false);
       }
     },
-    [addRequest, setLoading, setError]
+    [addRequest, setLoading, setError],
   );
 
   // Fetch quotations received for a specific request
@@ -78,20 +75,20 @@ export function useQuotations() {
       setError(null);
       try {
         const response = await api.get<ReceivedQuotation[]>(
-          `/quotations/requests/${requestId}/quotations`
+          `/quotations/requests/${requestId}/quotations`,
         );
         setReceivedQuotations(response);
         return response;
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to fetch quotations"
+          err instanceof Error ? err.message : "Failed to fetch quotations",
         );
         return [];
       } finally {
         setLoading(false);
       }
     },
-    [setReceivedQuotations, setLoading, setError]
+    [setReceivedQuotations, setLoading, setError],
   );
 
   // Accept a quotation
@@ -103,7 +100,7 @@ export function useQuotations() {
         await api.post(`/quotations/${quotationId}/accept`);
         // Update local state
         if (activeRequest) {
-          updateRequest(activeRequest.id, { status: "completed" });
+          updateRequest(activeRequest.id, { status: "quoted" });
         }
         return { success: true };
       } catch (err) {
@@ -115,7 +112,7 @@ export function useQuotations() {
         setLoading(false);
       }
     },
-    [activeRequest, updateRequest, setLoading, setError]
+    [activeRequest, updateRequest, setLoading, setError],
   );
 
   // Decline a quotation
@@ -126,7 +123,7 @@ export function useQuotations() {
         await api.post(`/quotations/${quotationId}/decline`);
         // Remove from received quotations
         setReceivedQuotations(
-          receivedQuotations.filter((q) => q.id !== quotationId)
+          receivedQuotations.filter((q) => q.id !== quotationId),
         );
         return { success: true };
       } catch (err) {
@@ -138,7 +135,7 @@ export function useQuotations() {
         setLoading(false);
       }
     },
-    [receivedQuotations, setReceivedQuotations, setLoading, setError]
+    [receivedQuotations, setReceivedQuotations, setLoading, setError],
   );
 
   // Cancel a quotation request
@@ -158,7 +155,7 @@ export function useQuotations() {
         setLoading(false);
       }
     },
-    [updateRequest, setLoading, setError]
+    [updateRequest, setLoading, setError],
   );
 
   // Filtered requests based on current filter

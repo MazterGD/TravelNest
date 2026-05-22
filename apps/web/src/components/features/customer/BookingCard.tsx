@@ -1,6 +1,9 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { MessageSquare } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -38,6 +41,9 @@ export function BookingCard({
   variant = "default",
 }: BookingCardProps) {
   const t = useTranslations("booking");
+  const tMsg = useTranslations("messages");
+  const locale = useLocale();
+  const router = useRouter();
 
   const isUpcoming = new Date(booking.startDate) > new Date();
   const canCancel = booking.status === BookingStatus.CONFIRMED && isUpcoming;
@@ -53,17 +59,21 @@ export function BookingCard({
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             {booking.vehicleImage && (
-              <img
-                src={booking.vehicleImage}
-                alt={booking.vehicleName}
-                className="w-16 h-12 object-cover rounded-lg"
-              />
+              <div className="relative w-16 h-12 shrink-0">
+                <Image
+                  src={booking.vehicleImage}
+                  alt={booking.vehicleName}
+                  fill
+                  sizes="64px"
+                  className="object-cover rounded-xl"
+                />
+              </div>
             )}
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-foreground truncate">
+              <h3 className="font-medium text-[var(--color-text-primary)] truncate">
                 {booking.vehicleName}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[var(--color-text-secondary)]">
                 {formatDate(booking.startDate, "medium")}
               </p>
             </div>
@@ -78,42 +88,49 @@ export function BookingCard({
     <Card
       className={cn(
         "hover:shadow-md transition-shadow",
-        onViewDetails && "cursor-pointer"
+        onViewDetails && "cursor-pointer",
       )}
       onClick={onViewDetails}
     >
       <CardContent className="p-0">
-        {/* Header with Vehicle Image */}
-        <div className="relative">
-          {booking.vehicleImage && (
-            <img
+        {/* Vehicle image header */}
+        {booking.vehicleImage && (
+          <div className="relative h-40">
+            <Image
               src={booking.vehicleImage}
               alt={booking.vehicleName}
-              className="w-full h-40 object-cover rounded-t-xl"
+              fill
+              sizes="(max-width: 640px) 100vw, 50vw"
+              className="object-cover rounded-t-[20px]"
             />
-          )}
+            <div className="absolute top-3 right-3">
+              <StatusBadge status={booking.status} />
+            </div>
+          </div>
+        )}
+        {!booking.vehicleImage && (
           <div className="absolute top-3 right-3">
             <StatusBadge status={booking.status} />
           </div>
-        </div>
+        )}
 
         {/* Content */}
         <div className="p-4">
           {/* Vehicle & Owner Info */}
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="font-semibold text-lg text-foreground">
+              <h3 className="font-semibold text-lg text-[var(--color-text-primary)]">
                 {booking.vehicleName}
               </h3>
               <div className="flex items-center gap-2 mt-1">
                 <Avatar name={booking.ownerName} size="xs" />
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-[var(--color-text-secondary)]">
                   {booking.ownerName}
                 </span>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-2xl font-bold text-[var(--color-action-primary)]">
                 {formatCurrency(booking.totalAmount)}
               </p>
               <StatusBadge status={booking.paymentStatus} />
@@ -124,14 +141,14 @@ export function BookingCard({
           <div className="space-y-3 mb-4">
             {/* Dates */}
             <div className="flex items-center gap-3 text-sm">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <CalendarIcon className="w-4 h-4 text-primary" />
+              <div className="w-8 h-8 rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] flex items-center justify-center shrink-0">
+                <CalendarIcon className="w-4 h-4 text-[var(--color-action-primary)]" />
               </div>
               <div>
-                <p className="font-medium">
+                <p className="font-medium text-[var(--color-text-primary)]">
                   {formatDate(booking.startDate, "medium")}
                 </p>
-                <p className="text-muted-foreground">
+                <p className="text-[var(--color-text-secondary)]">
                   {formatTime(booking.startDate)} -{" "}
                   {formatTime(booking.endDate)}
                 </p>
@@ -140,23 +157,29 @@ export function BookingCard({
 
             {/* Pickup Location */}
             <div className="flex items-center gap-3 text-sm">
-              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                <MapPinIcon className="w-4 h-4 text-green-600" />
+              <div className="w-8 h-8 rounded-xl bg-[var(--color-success-bg)] flex items-center justify-center shrink-0">
+                <MapPinIcon className="w-4 h-4 text-[var(--color-success-text)]" />
               </div>
               <div>
-                <p className="text-muted-foreground">{t("pickup")}</p>
-                <p className="font-medium">{booking.pickupLocation?.address}</p>
+                <p className="text-[var(--color-text-secondary)]">
+                  {t("pickup")}
+                </p>
+                <p className="font-medium text-[var(--color-text-primary)]">
+                  {booking.pickupLocation?.address}
+                </p>
               </div>
             </div>
 
             {/* Dropoff Location */}
             <div className="flex items-center gap-3 text-sm">
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                <MapPinIcon className="w-4 h-4 text-red-600" />
+              <div className="w-8 h-8 rounded-xl bg-[var(--color-error-bg)] flex items-center justify-center shrink-0">
+                <MapPinIcon className="w-4 h-4 text-[var(--color-error-text)]" />
               </div>
               <div>
-                <p className="text-muted-foreground">{t("dropoff")}</p>
-                <p className="font-medium">
+                <p className="text-[var(--color-text-secondary)]">
+                  {t("dropoff")}
+                </p>
+                <p className="font-medium text-[var(--color-text-primary)]">
                   {booking.dropoffLocation?.address}
                 </p>
               </div>
@@ -165,12 +188,16 @@ export function BookingCard({
             {/* Driver Info (if assigned) */}
             {booking.driverName && (
               <div className="flex items-center gap-3 text-sm">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <UserIcon className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] flex items-center justify-center shrink-0">
+                  <UserIcon className="w-4 h-4 text-[var(--color-text-secondary)]" />
                 </div>
                 <div>
-                  <p className="text-muted-foreground">{t("driver")}</p>
-                  <p className="font-medium">{booking.driverName}</p>
+                  <p className="text-[var(--color-text-secondary)]">
+                    {t("driver")}
+                  </p>
+                  <p className="font-medium text-[var(--color-text-primary)]">
+                    {booking.driverName}
+                  </p>
                 </div>
               </div>
             )}
@@ -178,7 +205,21 @@ export function BookingCard({
 
           {/* Actions */}
           {showActions && (
-            <div className="flex gap-2 pt-4 border-t border-border">
+            <div className="flex flex-wrap gap-2 pt-4 border-t border-[var(--color-border-default)]">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(
+                    `/${locale}/dashboard/messages?booking=${booking.id}`,
+                  );
+                }}
+                className="flex-1 focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                {tMsg("messageOwner")}
+              </Button>
               {onContact && (
                 <Button
                   variant="outline"
@@ -187,7 +228,7 @@ export function BookingCard({
                     e.stopPropagation();
                     onContact();
                   }}
-                  className="flex-1"
+                  className="flex-1 focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
                 >
                   <PhoneIcon className="w-4 h-4 mr-2" />
                   {t("contact")}
@@ -201,7 +242,7 @@ export function BookingCard({
                     e.stopPropagation();
                     onCancel();
                   }}
-                  className="flex-1 text-destructive hover:bg-destructive/10"
+                  className="flex-1 text-[var(--color-error-text)] hover:bg-[var(--color-error-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-error-border)] focus-visible:ring-offset-2"
                 >
                   {t("cancel")}
                 </Button>
@@ -213,7 +254,7 @@ export function BookingCard({
                     e.stopPropagation();
                     onReview();
                   }}
-                  className="flex-1"
+                  className="flex-1 focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
                 >
                   <StarIcon className="w-4 h-4 mr-2" />
                   {t("leaveReview")}

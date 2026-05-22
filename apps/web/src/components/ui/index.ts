@@ -1,8 +1,12 @@
 // Re-export all UI components for cleaner imports
 export { PageHeader } from "./PageHeader";
 export { Button } from "./Button";
+export { CTAButton } from "./CTAButton";
 export { Input } from "./Input";
+export { Select } from "./Select";
 export { TextArea } from "./TextArea";
+export { FileUpload, type UploadedFile } from "./FileUpload";
+export { ImageUpload } from "./ImageUpload";
 export { LoadingSpinner } from "./LoadingSpinner";
 export {
   Card,
@@ -14,7 +18,8 @@ export {
 } from "./Card";
 export { Accordion, AccordionItem } from "./Accordion";
 export { Modal } from "./Modal";
-export { Select, type SelectOption } from "./Select";
+export { OtpVerificationModal } from "./OtpVerificationModal";
+export { ConfirmDialog } from "./ConfirmDialog";
 export { DatePicker, TimePicker, DateTimePicker } from "./DatePicker";
 export { Badge, StatusBadge } from "./Badge";
 export { Avatar, AvatarGroup } from "./Avatar";

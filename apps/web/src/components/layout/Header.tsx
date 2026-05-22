@@ -3,16 +3,74 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useSyncExternalStore } from "react";
-import { FaBars, FaTimes, FaSignOutAlt, FaUser } from "react-icons/fa";
+import { useCallback, useState, useEffect, useSyncExternalStore } from "react";
+import { Bell, Menu, X, LogOut, User } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuthStore } from "@/store";
+import { useNotificationStream } from "@/hooks";
+import { notificationService } from "@/lib/api";
 import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 
-// Simple subscription for hydration state - avoids setState in useEffect
 const emptySubscribe = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
+
+/**
+ * Notification bell for the owner chrome — the owner portal has no sidebar, so
+ * `MainLayout`'s `Header` is the only persistent surface for an unread
+ * indicator. Rendered only for authenticated owners, so the socket connection
+ * is never opened for guests or customers.
+ */
+function OwnerNotificationBell({ locale }: { locale: string }) {
+  const tNotif = useTranslations("dashboard.notifications");
+  const [unread, setUnread] = useState(0);
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await notificationService.getUnreadCount();
+      setUnread(data?.unreadCount ?? 0);
+    } catch {
+      // A failed poll just leaves the badge hidden.
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await notificationService.getUnreadCount();
+        if (!cancelled) setUnread(data?.unreadCount ?? 0);
+      } catch {
+        // A failed poll just leaves the badge hidden.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useNotificationStream(() => {
+    void refresh();
+  });
+
+  return (
+    <Link
+      href={`/${locale}/owner/notifications`}
+      className="relative p-2 text-muted-foreground transition-colors hover:text-foreground"
+      title={tNotif("title")}
+    >
+      <Bell className="h-5 w-5" aria-hidden="true" />
+      {unread > 0 && (
+        <span
+          className="absolute -right-1 -top-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-error-border)] px-1.5 text-xs font-semibold text-[var(--color-primary-foreground)]"
+          aria-label={tNotif("unreadBadge", { count: unread })}
+        >
+          {unread > 99 ? "99+" : unread}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export function Header() {
   const t = useTranslations("navigation");
@@ -20,8 +78,8 @@ export function Header() {
   const router = useRouter();
   const locale = params.locale as string;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  // Use useSyncExternalStore to safely detect hydration without setState in effect
   const isHydrated = useSyncExternalStore(
     emptySubscribe,
     getClientSnapshot,
@@ -30,18 +88,27 @@ export function Header() {
 
   const { user, isAuthenticated, isLoading, logout } = useAuthStore();
 
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleLogout = () => {
     logout();
     setMobileMenuOpen(false);
     router.push(`/${locale}`);
   };
 
-  // Show guest UI during SSR and initial hydration
   const showAuthenticatedUI =
     isHydrated && !isLoading && isAuthenticated && user;
 
+  const homeUrl = showAuthenticatedUI
+    ? getDashboardUrl(user, locale)
+    : `/${locale}`;
+
   const navigation = [
-    { name: t("home"), href: `/${locale}` },
+    { name: t("home"), href: homeUrl },
     { name: t("search"), href: `/${locale}/search` },
     { name: t("howItWorks"), href: `/${locale}/how-it-works` },
     { name: t("about"), href: `/${locale}/about` },
@@ -49,14 +116,18 @@ export function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <header
+      className={`sticky top-0 z-50 border-b border-border bg-white/95 shadow-sm backdrop-blur-md transition-all duration-300 ${
+        scrolled ? "shadow-sm" : "shadow-none"
+      }`}
+    >
+      <nav className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href={`/${locale}`} className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-white font-bold text-lg">TN</span>
+            <Link href={homeUrl} className="flex items-center space-x-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary">
+                <span className="text-lg font-bold text-white">TN</span>
               </div>
               <span className="text-xl font-bold text-foreground">
                 TravelNest
@@ -70,7 +141,7 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 {item.name}
               </Link>
@@ -82,18 +153,25 @@ export function Header() {
             <LanguageSwitcher />
             {showAuthenticatedUI ? (
               <>
+                {user.role === "VEHICLE_OWNER" && (
+                  <OwnerNotificationBell locale={locale} />
+                )}
                 <Link
-                  href={getDashboardUrl(user, locale)}
-                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                  href={
+                    user.role === "VEHICLE_OWNER"
+                      ? `/${locale}/owner/profile`
+                      : getDashboardUrl(user, locale)
+                  }
+                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <FaUser className="h-4 w-4" />
+                  <User className="h-4 w-4" />
                   {user.firstName}
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
+                  className="flex items-center gap-2 rounded-xl border border-error-border bg-error-bg px-4 py-2 text-sm font-medium text-error-foreground hover:opacity-80 transition-opacity"
                 >
-                  <FaSignOutAlt className="h-4 w-4" />
+                  <LogOut className="h-4 w-4" />
                   {t("logout", { defaultValue: "Logout" })}
                 </button>
               </>
@@ -101,13 +179,13 @@ export function Header() {
               <>
                 <Link
                   href={`/${locale}/login`}
-                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {t("login")}
                 </Link>
                 <Link
                   href={`/${locale}/register`}
-                  className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+                  className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-primary-hover"
                 >
                   {t("register")}
                 </Link>
@@ -120,14 +198,14 @@ export function Header() {
             <LanguageSwitcher />
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              aria-label={t("openMenu")}
+              className="inline-flex items-center justify-center rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              <span className="sr-only">Open main menu</span>
               {mobileMenuOpen ? (
-                <FaTimes className="h-6 w-6" aria-hidden="true" />
+                <X className="h-6 w-6" aria-hidden="true" />
               ) : (
-                <FaBars className="h-6 w-6" aria-hidden="true" />
+                <Menu className="h-6 w-6" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -136,34 +214,50 @@ export function Header() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border">
+        <div className="border-t border-border md:hidden">
           <div className="space-y-1 px-4 pb-3 pt-2">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className="block rounded-xl px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.name}
               </Link>
             ))}
-            <div className="border-t border-border pt-4 pb-1">
+            <div className="border-t border-border pb-1 pt-4">
               {showAuthenticatedUI ? (
                 <>
+                  {user.role === "VEHICLE_OWNER" && (
+                    <Link
+                      href={`/${locale}/owner/notifications`}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Bell className="h-4 w-4" />
+                      {t("notifications", { defaultValue: "Notifications" })}
+                    </Link>
+                  )}
                   <Link
-                    href={getDashboardUrl(user, locale)}
-                    className="flex items-center gap-2 rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    href={
+                      user.role === "VEHICLE_OWNER"
+                        ? `/${locale}/owner/profile`
+                        : getDashboardUrl(user, locale)
+                    }
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <FaUser className="h-4 w-4" />
-                    {user.firstName}&apos;s Dashboard
+                    <User className="h-4 w-4" />
+                    {user.role === "VEHICLE_OWNER"
+                      ? t("profile")
+                      : t("dashboardFor", { name: user.firstName })}
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <FaSignOutAlt className="h-4 w-4" />
+                    <LogOut className="h-4 w-4" />
                     {t("logout", { defaultValue: "Logout" })}
                   </button>
                 </>
@@ -171,14 +265,14 @@ export function Header() {
                 <>
                   <Link
                     href={`/${locale}/login`}
-                    className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    className="block rounded-xl px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {t("login")}
                   </Link>
                   <Link
                     href={`/${locale}/register`}
-                    className="block rounded-md px-3 py-2 text-base font-medium text-primary hover:bg-muted transition-colors"
+                    className="block rounded-xl px-3 py-2 text-base font-medium text-primary hover:bg-muted transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {t("register")}

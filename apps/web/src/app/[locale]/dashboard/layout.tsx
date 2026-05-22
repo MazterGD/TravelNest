@@ -1,4 +1,5 @@
-import { DashboardLayoutClient } from "./DashboardLayoutClient";
+import { CustomerSidebar } from "@/components/layout/CustomerSidebar";
+import { Header } from "@/components/layout/Header";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,12 @@ export default async function DashboardLayout({
   const { locale } = await params;
 
   return (
-    <DashboardLayoutClient locale={locale}>{children}</DashboardLayoutClient>
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <div className="flex flex-1">
+        <CustomerSidebar locale={locale} />
+        <main className="flex-1 bg-gray-50">{children}</main>
+      </div>
+    </div>
   );
 }

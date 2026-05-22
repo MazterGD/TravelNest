@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store";
-import { authService, userService, ApiError } from "@/lib/api";
+import { authService, userService, ApiError, api } from "@/lib/api";
 import type { User } from "@/types";
 import type {
   LoginInput,
@@ -28,6 +28,8 @@ interface AuthResult {
 export function useAuth() {
   const router = useRouter();
   const initRef = useRef(false);
+  const params = useParams();
+  const locale = params.locale as string;
 
   const {
     user,
@@ -47,7 +49,7 @@ export function useAuth() {
 
     const initializeAuth = async () => {
       try {
-        const storedAuth = localStorage.getItem("travelnest-auth");
+        const storedAuth = localStorage.getItem("travenest-auth");
         if (storedAuth) {
           const parsed = JSON.parse(storedAuth);
           if (parsed?.state?.token) {
@@ -55,6 +57,8 @@ export function useAuth() {
             try {
               const response = await authService.me();
               setLogin(response.user, parsed.state.token);
+              // Start automatic token refresh
+              api.startTokenRefresh();
             } catch (error) {
               // Token invalid/expired - try refresh
               if (error instanceof ApiError && error.isAuthError()) {
@@ -62,19 +66,24 @@ export function useAuth() {
                   const refreshResponse = await authService.refreshToken();
                   // Re-fetch user with new token
                   setLogin(parsed.state.user, refreshResponse.accessToken);
+                  // Start automatic token refresh
+                  api.startTokenRefresh();
                 } catch {
                   // Refresh failed - clear auth
                   setLogout();
-                  localStorage.removeItem("travelnest-auth");
+                  localStorage.removeItem("travenest-auth");
+                  api.stopTokenRefresh();
                 }
               } else {
                 setLogout();
+                api.stopTokenRefresh();
               }
             }
           }
         }
       } catch {
         setLogout();
+        api.stopTokenRefresh();
       } finally {
         setLoading(false);
       }
@@ -85,12 +94,18 @@ export function useAuth() {
     // Listen for auth errors from API client
     const handleAuthError = () => {
       setLogout();
-      localStorage.removeItem("travelnest-auth");
-      router.push("/login?session=expired");
+      localStorage.removeItem("travenest-auth");
+      api.stopTokenRefresh();
+      router.push(`/${locale}/login?session=expired`);
     };
 
     window.addEventListener("auth:error", handleAuthError);
-    return () => window.removeEventListener("auth:error", handleAuthError);
+
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener("auth:error", handleAuthError);
+      api.stopTokenRefresh();
+    };
   }, [setLogin, setLogout, setLoading, router]);
 
   /**
@@ -102,6 +117,8 @@ export function useAuth() {
       try {
         const response = await authService.login(data);
         setLogin(response.user, response.accessToken);
+        // Start automatic token refresh
+        api.startTokenRefresh();
         return { success: true };
       } catch (error) {
         if (error instanceof ApiError) {
@@ -134,6 +151,8 @@ export function useAuth() {
       try {
         const response = await authService.register(data);
         setLogin(response.user, response.accessToken);
+        // Start automatic token refresh
+        api.startTokenRefresh();
         return { success: true };
       } catch (error) {
         if (error instanceof ApiError) {
@@ -167,7 +186,7 @@ export function useAuth() {
       // Ignore logout errors
     } finally {
       setLogout();
-      localStorage.removeItem("travelnest-auth");
+      localStorage.removeItem("travenest-auth");
       router.push("/");
     }
   }, [setLogout, router]);
@@ -187,7 +206,7 @@ export function useAuth() {
 
       setLoading(true);
       try {
-        const updatedUser = await userService.updateProfile(data);
+        const updatedUser = await userService.updatePersonalInfo(data);
         setUser(updatedUser);
         return { success: true };
       } catch (error) {

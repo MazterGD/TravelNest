@@ -1,9 +1,14 @@
 import { UserRole, type User } from "@/types";
 
 /**
- * Get the appropriate dashboard URL based on user role
+ * Get the appropriate dashboard URL based on user role and verification status
  */
 export function getDashboardUrl(user: User, locale: string): string {
+  // Vehicle owners need to be verified before accessing dashboard
+  if (user.role === UserRole.VEHICLE_OWNER && !user.isVerified) {
+    return `/${locale}/owner/pending-approval`;
+  }
+
   switch (user.role) {
     case UserRole.ADMIN:
       return `/${locale}/admin`;

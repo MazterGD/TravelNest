@@ -23,9 +23,12 @@ export { useApiErrorHandler, getErrorMessage } from "./useApiErrorHandler";
 // Domain Hooks
 export { useQuotations } from "./useQuotations";
 export { useBookings } from "./useBookings";
+export { useChat, type UseChatState } from "./useChat";
+export { useNotificationStream } from "./useNotificationStream";
 
 // Form
 export { useForm } from "./useForm";
+export { useDialogPrompts } from "./useDialogPrompts";
 
 // Utilities
 export {

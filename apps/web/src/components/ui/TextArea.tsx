@@ -1,8 +1,7 @@
 import { forwardRef, TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils/cn";
 
-export interface TextAreaProps
-  extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
   helperText?: string;
@@ -17,7 +16,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         {label && (
           <label
             htmlFor={textareaId}
-            className="block text-sm font-medium text-foreground mb-1.5"
+            className="mb-1.5 block text-sm font-medium text-foreground"
           >
             {label}
           </label>
@@ -25,12 +24,12 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         <textarea
           id={textareaId}
           className={cn(
-            "flex min-h-[120px] w-full rounded-md border bg-background px-3 py-2 text-sm transition-colors resize-y",
+            "flex min-h-[120px] w-full resize-y rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground transition-colors",
             "placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             "disabled:cursor-not-allowed disabled:opacity-50",
-            error ? "border-error focus-visible:ring-error" : "border-border",
-            className
+            error ? "border-error focus-visible:ring-error" : "",
+            className,
           )}
           ref={ref}
           {...props}
@@ -41,7 +40,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 TextArea.displayName = "TextArea";

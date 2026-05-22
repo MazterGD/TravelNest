@@ -1,6 +1,49 @@
 import { type Request, type Response, type NextFunction } from "express";
 import * as authService from "./auth.service.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
+import { setCSRFToken } from "../../middleware/csrf.js";
+import { ResponseHelper } from "../../utils/response.js";
+import { config } from "../../config/index.js";
+
+const getAppBaseUrl = () =>
+  config.appUrl.endsWith("/") ? config.appUrl : `${config.appUrl}/`;
+
+const getDefaultReturnTo = () =>
+  new URL("auth/callback", getAppBaseUrl()).toString();
+
+const getSafeReturnTo = (returnTo?: string) => {
+  const fallback = getDefaultReturnTo();
+
+  if (!returnTo) {
+    return fallback;
+  }
+
+  try {
+    const baseUrl = new URL(getAppBaseUrl());
+    const resolved = returnTo.startsWith("/")
+      ? new URL(returnTo, baseUrl)
+      : new URL(returnTo);
+
+    if (resolved.origin !== baseUrl.origin) {
+      return fallback;
+    }
+
+    return resolved.toString();
+  } catch {
+    return fallback;
+  }
+};
+
+const buildReturnToWithParams = (
+  returnTo: string,
+  params: Record<string, string>,
+) => {
+  const url = new URL(returnTo);
+  Object.entries(params).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
+  return url.toString();
+};
 
 // Register a new user
 export const register = asyncHandler(async (req: Request, res: Response) => {
@@ -14,12 +57,12 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
-  res.status(201).json({
-    success: true,
-    data: {
-      user: result.user,
-      accessToken: result.accessToken,
-    },
+  // Set CSRF token
+  setCSRFToken(res);
+
+  return ResponseHelper.created(res, {
+    user: result.user,
+    accessToken: result.accessToken,
   });
 });
 
@@ -35,13 +78,45 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
-  res.status(200).json({
-    success: true,
-    data: {
+  // Set CSRF token
+  setCSRFToken(res);
+
+  return ResponseHelper.success(res, {
+    user: result.user,
+    accessToken: result.accessToken,
+  });
+});
+
+export const sendOtp = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.sendOtpCode(req.body);
+  return ResponseHelper.success(res, result, "OTP sent successfully");
+});
+
+export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
+  const result = await authService.verifyOtpCode(req.body);
+
+  if (
+    "accessToken" in result &&
+    "refreshToken" in result &&
+    "user" in result
+  ) {
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    setCSRFToken(res);
+
+    return ResponseHelper.success(res, {
+      verified: true,
       user: result.user,
       accessToken: result.accessToken,
-    },
-  });
+    });
+  }
+
+  return ResponseHelper.success(res, { verified: true });
 });
 
 // Refresh tokens
@@ -58,13 +133,10 @@ export const refreshToken = asyncHandler(
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
-    res.status(200).json({
-      success: true,
-      data: {
-        accessToken: tokens.accessToken,
-      },
+    return ResponseHelper.success(res, {
+      accessToken: tokens.accessToken,
     });
-  }
+  },
 );
 
 // Logout user
@@ -76,10 +148,7 @@ export const logout = asyncHandler(async (_req: Request, res: Response) => {
     sameSite: "strict",
   });
 
-  res.status(200).json({
-    success: true,
-    message: "Logged out successfully",
-  });
+  return ResponseHelper.success(res, null, "Logged out successfully");
 });
 
 // Get current user
@@ -87,11 +156,8 @@ export const getCurrentUser = asyncHandler(
   async (req: Request, res: Response) => {
     const user = await authService.getUserById(req.user!.id);
 
-    res.status(200).json({
-      success: true,
-      data: { user },
-    });
-  }
+    return ResponseHelper.success(res, { user });
+  },
 );
 
 // Change password
@@ -101,14 +167,11 @@ export const changePassword = asyncHandler(
     const result = await authService.changeUserPassword(
       req.user!.id,
       currentPassword,
-      newPassword
+      newPassword,
     );
 
-    res.status(200).json({
-      success: true,
-      ...result,
-    });
-  }
+    return ResponseHelper.success(res, null, result.message);
+  },
 );
 
 // Forgot password
@@ -116,11 +179,8 @@ export const forgotPassword = asyncHandler(
   async (req: Request, res: Response) => {
     const result = await authService.generatePasswordResetToken(req.body.email);
 
-    res.status(200).json({
-      success: true,
-      ...result,
-    });
-  }
+    return ResponseHelper.success(res, null, result.message);
+  },
 );
 
 // Reset password
@@ -129,9 +189,158 @@ export const resetPassword = asyncHandler(
     const { token, password } = req.body;
     const result = await authService.resetUserPassword(token, password);
 
-    res.status(200).json({
-      success: true,
-      ...result,
+    return ResponseHelper.success(res, null, result.message);
+  },
+);
+
+// OAuth (Google/Facebook) Start
+export const startGoogleOAuth = asyncHandler(
+  async (req: Request, res: Response) => {
+    const returnTo = getSafeReturnTo(req.query.returnTo as string | undefined);
+    const state = authService.createOAuthStateToken({
+      provider: "google",
+      returnTo,
     });
-  }
+    const authUrl = authService.getOAuthAuthorizationUrl("google", state);
+    return res.redirect(authUrl);
+  },
+);
+
+export const startFacebookOAuth = asyncHandler(
+  async (req: Request, res: Response) => {
+    const returnTo = getSafeReturnTo(req.query.returnTo as string | undefined);
+    const state = authService.createOAuthStateToken({
+      provider: "facebook",
+      returnTo,
+    });
+    const authUrl = authService.getOAuthAuthorizationUrl("facebook", state);
+    return res.redirect(authUrl);
+  },
+);
+
+// OAuth (Google/Facebook) Callback
+export const handleGoogleCallback = asyncHandler(
+  async (req: Request, res: Response) => {
+    const code = req.query.code as string | undefined;
+    const state = req.query.state as string | undefined;
+    const providerError = req.query.error as string | undefined;
+
+    let returnTo = getDefaultReturnTo();
+
+    if (state) {
+      try {
+        const parsedState = authService.verifyOAuthStateToken(state);
+        if (parsedState.provider !== "google") {
+          return res.redirect(
+            buildReturnToWithParams(returnTo, { error: "INVALID_STATE" }),
+          );
+        }
+        returnTo = parsedState.returnTo;
+      } catch {
+        return res.redirect(
+          buildReturnToWithParams(returnTo, { error: "INVALID_STATE" }),
+        );
+      }
+    }
+
+    if (providerError) {
+      return res.redirect(
+        buildReturnToWithParams(returnTo, { error: "OAUTH_DENIED" }),
+      );
+    }
+
+    if (!code) {
+      return res.redirect(
+        buildReturnToWithParams(returnTo, { error: "MISSING_CODE" }),
+      );
+    }
+
+    try {
+      const profile = await authService.getGoogleProfileFromCode(code);
+      const result = await authService.loginWithOAuthProfile(profile);
+
+      res.cookie("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+
+      setCSRFToken(res);
+
+      return res.redirect(
+        buildReturnToWithParams(returnTo, {
+          accessToken: result.accessToken,
+          provider: "google",
+        }),
+      );
+    } catch {
+      return res.redirect(
+        buildReturnToWithParams(returnTo, { error: "PROFILE_ERROR" }),
+      );
+    }
+  },
+);
+
+export const handleFacebookCallback = asyncHandler(
+  async (req: Request, res: Response) => {
+    const code = req.query.code as string | undefined;
+    const state = req.query.state as string | undefined;
+    const providerError = req.query.error as string | undefined;
+
+    let returnTo = getDefaultReturnTo();
+
+    if (state) {
+      try {
+        const parsedState = authService.verifyOAuthStateToken(state);
+        if (parsedState.provider !== "facebook") {
+          return res.redirect(
+            buildReturnToWithParams(returnTo, { error: "INVALID_STATE" }),
+          );
+        }
+        returnTo = parsedState.returnTo;
+      } catch {
+        return res.redirect(
+          buildReturnToWithParams(returnTo, { error: "INVALID_STATE" }),
+        );
+      }
+    }
+
+    if (providerError) {
+      return res.redirect(
+        buildReturnToWithParams(returnTo, { error: "OAUTH_DENIED" }),
+      );
+    }
+
+    if (!code) {
+      return res.redirect(
+        buildReturnToWithParams(returnTo, { error: "MISSING_CODE" }),
+      );
+    }
+
+    try {
+      const profile = await authService.getFacebookProfileFromCode(code);
+      const result = await authService.loginWithOAuthProfile(profile);
+
+      res.cookie("refreshToken", result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+
+      setCSRFToken(res);
+
+      return res.redirect(
+        buildReturnToWithParams(returnTo, {
+          accessToken: result.accessToken,
+          provider: "facebook",
+        }),
+      );
+    } catch {
+      return res.redirect(
+        buildReturnToWithParams(returnTo, { error: "PROFILE_ERROR" }),
+      );
+    }
+  },
 );

@@ -31,6 +31,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       onChange,
       disabled,
       id,
+      // Strip `required` so the browser's HTML5 validation never fires on the
+      // visually-hidden native select — validation is handled in JS (handleSubmit).
+      required: _required,
       ...props
     },
     ref

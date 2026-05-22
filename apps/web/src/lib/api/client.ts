@@ -88,6 +88,7 @@ export class ApiError extends Error {
  */
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
+let refreshIntervalId: NodeJS.Timeout | null = null;
 
 const subscribeTokenRefresh = (callback: (token: string) => void) => {
   refreshSubscribers.push(callback);
@@ -122,7 +123,7 @@ class ApiClient {
     if (typeof window === "undefined") return null;
 
     try {
-      const stored = localStorage.getItem("travelnest-auth");
+      const stored = localStorage.getItem("travenest-auth");
       if (stored) {
         const parsed = JSON.parse(stored);
         return parsed.state?.token || null;
@@ -140,10 +141,10 @@ class ApiClient {
     if (typeof window === "undefined") return;
 
     try {
-      const stored = localStorage.getItem("travelnest-auth");
+      const stored = localStorage.getItem("travenest-auth");
       const parsed = stored ? JSON.parse(stored) : { state: {} };
       parsed.state.token = token;
-      localStorage.setItem("travelnest-auth", JSON.stringify(parsed));
+      localStorage.setItem("travenest-auth", JSON.stringify(parsed));
     } catch {
       // Ignore storage errors
     }
@@ -154,7 +155,100 @@ class ApiClient {
    */
   private clearAuthToken(): void {
     if (typeof window === "undefined") return;
-    localStorage.removeItem("travelnest-auth");
+    localStorage.removeItem("travenest-auth");
+  }
+
+  /**
+   * Decode JWT token to extract expiry time
+   */
+  private decodeToken(token: string): { exp?: number } | null {
+    try {
+      const base64Url = token.split(".")[1];
+      if (!base64Url) return null;
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join(""),
+      );
+      return JSON.parse(jsonPayload);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Check if token is expired or will expire soon (within 5 minutes)
+   */
+  private isTokenExpiringSoon(token: string): boolean {
+    const decoded = this.decodeToken(token);
+    if (!decoded || !decoded.exp) return true;
+
+    const expiryTime = decoded.exp * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+
+    // Return true if token expires within 5 minutes
+    return expiryTime - now < fiveMinutes;
+  }
+
+  /**
+   * Start automatic token refresh
+   * Checks every minute if token needs refresh (expires within 5 minutes)
+   */
+  public startTokenRefresh(): void {
+    if (typeof window === "undefined") return;
+
+    // Clear any existing interval
+    this.stopTokenRefresh();
+
+    // Check immediately
+    this.checkAndRefreshToken();
+
+    // Check every minute
+    refreshIntervalId = setInterval(() => {
+      this.checkAndRefreshToken();
+    }, 60 * 1000); // 1 minute
+  }
+
+  /**
+   * Stop automatic token refresh
+   */
+  public stopTokenRefresh(): void {
+    if (refreshIntervalId) {
+      clearInterval(refreshIntervalId);
+      refreshIntervalId = null;
+    }
+  }
+
+  /**
+   * Check token expiry and refresh if needed
+   */
+  private async checkAndRefreshToken(): Promise<void> {
+    const token = this.getAuthToken();
+    if (!token) {
+      this.stopTokenRefresh();
+      return;
+    }
+
+    // Only refresh if token is expiring soon and not already refreshing
+    if (this.isTokenExpiringSoon(token) && !isRefreshing) {
+      try {
+        await this.handleTokenRefresh();
+      } catch (error) {
+        console.error("[TokenRefresh] Failed to refresh token:", error);
+        this.stopTokenRefresh();
+        // Dispatch auth error event
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("auth:error", {
+              detail: { error },
+            }),
+          );
+        }
+      }
+    }
   }
 
   /**
@@ -213,6 +307,22 @@ class ApiClient {
   }
 
   /**
+   * Get CSRF token from cookie
+   */
+  private getCSRFToken(): string | null {
+    if (typeof document === "undefined") return null;
+
+    const cookies = document.cookie.split(";");
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split("=");
+      if (name === "csrf-token") {
+        return decodeURIComponent(value);
+      }
+    }
+    return null;
+  }
+
+  /**
    * Create AbortController with timeout
    */
   private createAbortController(timeout: number): {
@@ -251,6 +361,14 @@ class ApiClient {
 
     if (token) {
       requestHeaders["Authorization"] = `Bearer ${token}`;
+    }
+
+    // Add CSRF token for state-changing methods
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+      const csrfToken = this.getCSRFToken();
+      if (csrfToken) {
+        requestHeaders["x-csrf-token"] = csrfToken;
+      }
     }
 
     // Generate request ID for tracing
@@ -408,6 +526,11 @@ class ApiClient {
 
     if (token) {
       requestHeaders["Authorization"] = `Bearer ${token}`;
+    }
+
+    const csrfToken = this.getCSRFToken();
+    if (csrfToken) {
+      requestHeaders["x-csrf-token"] = csrfToken;
     }
 
     const requestId = `web_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;

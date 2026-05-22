@@ -1,0 +1,112 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { cn } from "@/lib/utils/cn";
+import { Home, ClipboardList, Calendar, Star, User, MapPin } from 'lucide-react';
+
+interface SidebarItem {
+  id: string;
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface CustomerSidebarProps {
+  locale: string;
+}
+
+export function CustomerSidebar({ locale }: CustomerSidebarProps) {
+  const pathname = usePathname();
+  const t = useTranslations("dashboard");
+
+  const menuItems: SidebarItem[] = [
+    {
+      id: "overview",
+      label: t("overview"),
+      href: `/${locale}/dashboard`,
+      icon: Home,
+    },
+    {
+      id: "quotations",
+      label: t("quotations"),
+      href: `/${locale}/dashboard/quotations`,
+      icon: ClipboardList,
+    },
+    {
+      id: "packages",
+      label: t("packages"),
+      href: `/${locale}/dashboard/packages`,
+      icon: MapPin,
+    },
+    {
+      id: "bookings",
+      label: t("bookings"),
+      href: `/${locale}/dashboard/bookings`,
+      icon: Calendar,
+    },
+    {
+      id: "reviews",
+      label: t("reviews"),
+      href: `/${locale}/dashboard/reviews`,
+      icon: Star,
+    },
+    {
+      id: "profile",
+      label: t("profile"),
+      href: `/${locale}/dashboard/profile`,
+      icon: User,
+    },
+  ];
+
+  const isActive = (href: string) => {
+    if (href === `/${locale}/dashboard`) {
+      return pathname === href;
+    }
+    return pathname.startsWith(href);
+  };
+
+  return (
+    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen">
+      <div className="sticky top-0 py-6">
+        {/* Logo/Brand */}
+        {/* <div className="px-6 mb-8">
+          <Link
+            href={`/${locale}/dashboard`}
+            className="flex items-center gap-2"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0B5F7F] text-white font-bold text-lg">
+              T
+            </div>
+            <span className="text-xl font-bold text-gray-900">TraveNest</span>
+          </Link>
+        </div> */}
+
+        {/* Navigation Menu */}
+        <nav className="px-3 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+                  active
+                    ? "bg-[#0B5F7F] text-white"
+                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+    </aside>
+  );
+}

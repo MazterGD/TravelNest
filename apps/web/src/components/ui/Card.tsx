@@ -18,10 +18,11 @@ export function Card({
     <Component
       onClick={onClick}
       className={cn(
-        "bg-card rounded-lg border border-border p-6 text-left w-full",
-        hover && "hover:shadow-lg transition-shadow",
+        "w-full rounded-[20px] border border-border bg-muted p-6 text-left",
+        hover &&
+          "transition-all duration-200 hover:-translate-y-1 hover:shadow-md",
         onClick && "cursor-pointer",
-        className
+        className,
       )}
     >
       {children}

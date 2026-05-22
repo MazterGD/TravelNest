@@ -27,6 +27,19 @@ export interface User {
   lastName: string;
   phone: string | null;
   avatar: string | null;
+  nicNumber?: string | null;
+  address?: string | null;
+  city?: string | null;
+  district?: string | null;
+  postalCode?: string | null;
+  baseLocation?: string | null;
+  // Business fields (for vehicle owners)
+  businessName?: string | null;
+  businessType?: string | null;
+  businessRegNumber?: string | null;
+  tinNumber?: string | null;
+  registrationNumber?: string | null;
+  taxId?: string | null;
   role: UserRole;
   status: UserStatus;
   isVerified: boolean;
@@ -51,10 +64,9 @@ export const isAdmin = (user: User): boolean => user.role === UserRole.ADMIN;
 
 // Vehicle Types
 export enum VehicleType {
-  MINI_BUS = "mini_bus",
-  STANDARD_BUS = "standard_bus",
-  LUXURY_BUS = "luxury_bus",
-  SEMI_LUXURY_BUS = "semi_luxury_bus",
+  ORDINARY = "ORDINARY",
+  SEMI_LUXURY = "SEMI_LUXURY",
+  LUXURY_AC = "LUXURY_AC",
 }
 
 export enum ACType {
@@ -72,26 +84,62 @@ export enum VehicleStatus {
 export interface Vehicle {
   id: string;
   ownerId: string;
-  registrationNumber: string;
-  type: VehicleType;
-  make: string;
+  name: string;
+  licensePlate: string;
+  type: VehicleType | string;
+  brand: string;
   model: string;
   year: number;
-  capacity: number;
-  acType: ACType;
-  color: string;
+  seats: number;
+  doors?: number;
+  acType: string; // full-ac, ac, non-ac
+  color?: string;
   description?: string;
-  basePricePerKm: number;
-  basePricePerDay: number;
-  driverAllowancePerDay: number;
-  amenities: string[];
+  fuelType?: string;
+  transmission?: string;
+  mileage?: number;
+  condition?: string; // excellent, good, fair
+  pricePerDay: number;
+  pricePerHour?: number;
+  pricePerKm?: number;
+  driverAllowance?: number;
+  amenities?: string[];
+  features?: any; // JSON field
   images: string[];
-  status: VehicleStatus;
-  gpsEnabled: boolean;
+  location: string;
+  latitude?: number;
+  longitude?: number;
   averageRating?: number;
-  totalBookings: number;
-  createdAt: Date;
-  updatedAt: Date;
+  totalBookings?: number;
+  isAvailable: boolean;
+  isActive: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  // Extended fields from joins
+  owner?: Partial<User>;
+  photos?: any[];
+  documents?: any[];
+  reviews?: any[];
+}
+
+// Trip Package Types
+export interface TripPackage {
+  id: string;
+  ownerId: string;
+  vehicleId: string;
+  title: string;
+  description?: string | null;
+  startLocation: string;
+  endLocation: string;
+  durationDays: number;
+  price: number;
+  minPassengers: number;
+  maxPassengers: number;
+  isActive: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  vehicle?: Partial<Vehicle>;
+  owner?: Partial<User>;
 }
 
 // Booking Types
@@ -137,33 +185,53 @@ export interface Booking {
 
 // Quotation Types
 export enum QuotationStatus {
-  PENDING = "pending",
-  SENT = "sent",
-  VIEWED = "viewed",
-  ACCEPTED = "accepted",
-  REJECTED = "rejected",
-  EXPIRED = "expired",
+  PENDING = "PENDING",
+  SENT = "SENT",
+  VIEWED = "VIEWED",
+  ACCEPTED = "ACCEPTED",
+  REJECTED = "REJECTED",
+  EXPIRED = "EXPIRED",
 }
 
 export interface Quotation {
   id: string;
-  requestId: string;
-  ownerId: string;
-  vehicleId: string;
+  quotationId: string;
+  customerId: string;
+  vehicleId?: string | null;
+  vehicleType: string;
+  startDate: Date;
+  endDate: Date;
+  startTime?: string;
+  pickupLocation: string;
+  dropoffLocation: string;
+  passengerCount: number;
+  estimatedDistance?: string;
+  estimatedDuration?: string;
+  specialRequests?: string;
   status: QuotationStatus;
-  vehicleRentalCost: number;
-  driverCost: number;
-  fuelCost: number;
-  tollCharges: number;
-  permitFees: number;
-  otherCharges: number;
-  tax: number;
-  totalAmount: number;
-  validityDays: number;
-  expiryDate: Date;
-  notes?: string;
+  // Pricing fields (nullable for PENDING status)
+  vehicleRentalCost?: number;
+  driverCost?: number;
+  fuelCost?: number;
+  tollCharges?: number;
+  permitFees?: number;
+  customItems?: Array<{ description: string; amount: number }>;
+  subtotal?: number;
+  tax?: number;
+  totalAmount?: number;
+  additionalNotes?: string;
+  validityDays?: number;
+  validUntil?: Date;
+  rejectionReason?: string;
+  // Timestamps
+  sentAt?: Date;
+  viewedAt?: Date;
+  respondedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  // Relations
+  customer?: Partial<User>;
+  vehicle?: Partial<Vehicle>;
 }
 
 // Location Type
@@ -206,12 +274,78 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  quotations?: T[];
+  vehicles?: T[];
+  bookings?: T[];
+  users?: T[];
+  data?: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 // Language Type
 export type Locale = "en" | "si" | "ta";
+
+// ============================================
+// Owner Registration Types
+// ============================================
+export interface OwnerRegistrationVehicleDocument {
+  type: "DRIVING_LICENSE" | "INSURANCE" | "REGISTRATION_CERTIFICATE";
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  url: string;
+}
+
+export interface OwnerRegistrationVehiclePhoto {
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  isPrimary?: boolean;
+  url: string;
+}
+
+export interface OwnerRegistrationVehicle {
+  registrationNumber: string; // Maps to licensePlate in DB
+  vehicleType: "ORDINARY" | "SEMI_LUXURY" | "LUXURY_AC";
+  make: string; // Maps to brand in DB
+  model: string;
+  year: number;
+  seatingCapacity: number; // Maps to seats in DB
+  acType: "FULL_AC" | "AC" | "NON_AC";
+  photos?: OwnerRegistrationVehiclePhoto[];
+  documents: OwnerRegistrationVehicleDocument[];
+}
+
+export interface OwnerRegistrationDocument {
+  type: "NIC" | "PROFILE_PHOTO";
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  url: string;
+}
+
+export interface OwnerRegistrationAddress {
+  address: string;
+  city: string;
+  district: string;
+  postalCode?: string;
+  baseLocation: string;
+}
+
+export interface OwnerRegistrationInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  nicNumber: string;
+  password: string;
+  confirmPassword: string;
+  address: OwnerRegistrationAddress;
+  ownerDocuments: OwnerRegistrationDocument[];
+  vehicles: OwnerRegistrationVehicle[];
+}

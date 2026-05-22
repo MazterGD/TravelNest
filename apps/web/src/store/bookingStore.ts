@@ -36,6 +36,7 @@ export interface BookingWithDetails {
   };
   // Display fields
   vehicleName: string;
+  vehicleType?: string;
   vehicleImage?: string;
   ownerName: string;
   ownerPhone: string;

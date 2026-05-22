@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import {
   PageHeader,
@@ -13,44 +13,75 @@ import {
   Avatar,
   SkeletonProfile,
 } from "@/components/ui";
+import { useAuthStore } from "@/store";
+import { userService, ApiError } from "@/lib/api";
 
 interface ProfilePageContentProps {
   locale: string;
 }
 
-// Mock user data
-const mockUser = {
-  id: "1",
-  email: "john.doe@example.com",
-  name: "John Doe",
-  phone: "+94 77 123 4567",
-  role: "customer" as const,
-  isVerified: true,
-  createdAt: new Date().toISOString(),
-  avatar: null as string | null,
-};
-
 export function ProfilePageContent({ locale }: ProfilePageContentProps) {
   const t = useTranslations("profile");
-  const [isLoading] = useState(false);
+  const { user, setUser } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: mockUser.name,
-    phone: mockUser.phone,
+    firstName: "",
+    lastName: "",
+    phone: "",
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Load user profile on mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await userService.getProfile();
+        setFormData({
+          firstName: profile.firstName || "",
+          lastName: profile.lastName || "",
+          phone: profile.phone || "",
+        });
+      } catch (err) {
+        if (err instanceof ApiError) {
+          setError(err.message);
+        } else {
+          setError("Failed to load profile");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user) {
+      setFormData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        phone: user.phone || "",
+      });
+      setIsLoading(false);
+    } else {
+      loadProfile();
+    }
+  }, [user]);
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: "" }));
+    setFormErrors((prev) => ({ ...prev, [field]: "" }));
+    setError(null);
+    setSuccessMessage(null);
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.name.trim()) newErrors.name = t("nameRequired");
+    if (!formData.firstName.trim())
+      newErrors.firstName = t("firstNameRequired");
+    if (!formData.lastName.trim()) newErrors.lastName = t("lastNameRequired");
     if (!formData.phone.trim()) newErrors.phone = t("phoneRequired");
-    setErrors(newErrors);
+    setFormErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -59,12 +90,34 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
     if (!validateForm()) return;
 
     setIsSaving(true);
+    setError(null);
+    setSuccessMessage(null);
+
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const updatedUser = await userService.updatePersonalInfo({
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        phone: formData.phone.trim(),
+      });
+
+      // Update the auth store with new user data
+      if (user) {
+        setUser({
+          ...user,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          phone: updatedUser.phone,
+        });
+      }
+
+      setSuccessMessage(t("profileUpdated"));
       setIsEditing(false);
-    } catch (error) {
-      // TODO: Add proper error handling/toast notification
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to update profile");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -72,10 +125,13 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
 
   const handleCancel = () => {
     setFormData({
-      name: mockUser.name,
-      phone: mockUser.phone,
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      phone: user?.phone || "",
     });
-    setErrors({});
+    setFormErrors({});
+    setError(null);
+    setSuccessMessage(null);
     setIsEditing(false);
   };
 
@@ -83,22 +139,43 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
     return <SkeletonProfile />;
   }
 
+  const displayName = user
+    ? `${user.firstName} ${user.lastName}`
+    : formData.firstName + " " + formData.lastName;
+  const displayEmail = user?.email || "";
+  const isVerified = user?.isVerified ?? false;
+  const createdAt = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString()
+    : "";
+
   return (
     <div className="space-y-6 max-w-2xl">
       <PageHeader title={t("myProfile")} subtitle={t("profileDescription")} />
+
+      {/* Success/Error Messages */}
+      {successMessage && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+          {successMessage}
+        </div>
+      )}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+          {error}
+        </div>
+      )}
 
       {/* Profile Header */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center gap-6">
-            <Avatar name={mockUser.name} size="xl" src={mockUser.avatar} />
+            <Avatar name={displayName} size="xl" src={user?.avatar} />
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-foreground">
-                {mockUser.name}
+                {displayName}
               </h2>
-              <p className="text-muted-foreground">{mockUser.email}</p>
+              <p className="text-muted-foreground">{displayEmail}</p>
               <div className="flex items-center gap-2 mt-2">
-                {mockUser.isVerified ? (
+                {isVerified ? (
                   <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
                     <svg
                       className="w-3 h-3 mr-1"
@@ -118,10 +195,11 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
                     {t("unverified")}
                   </span>
                 )}
-                <span className="text-xs text-muted-foreground">
-                  {t("memberSince")}{" "}
-                  {new Date(mockUser.createdAt).toLocaleDateString()}
-                </span>
+                {createdAt && (
+                  <span className="text-xs text-muted-foreground">
+                    {t("memberSince")} {createdAt}
+                  </span>
+                )}
               </div>
             </div>
             <Button variant="outline" size="sm">
@@ -149,15 +227,22 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <Input
-                value={formData.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                label={t("fullName")}
+                value={formData.firstName}
+                onChange={(e) => updateField("firstName", e.target.value)}
+                label={t("firstName")}
                 disabled={!isEditing}
-                error={errors.name}
+                error={formErrors.firstName}
+              />
+              <Input
+                value={formData.lastName}
+                onChange={(e) => updateField("lastName", e.target.value)}
+                label={t("lastName")}
+                disabled={!isEditing}
+                error={formErrors.lastName}
               />
               <Input
                 label={t("email")}
-                value={mockUser.email}
+                value={displayEmail}
                 disabled
                 helperText={t("emailCannotBeChanged")}
               />
@@ -166,7 +251,7 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
                 onChange={(e) => updateField("phone", e.target.value)}
                 label={t("phone")}
                 disabled={!isEditing}
-                error={errors.phone}
+                error={formErrors.phone}
               />
             </div>
 
