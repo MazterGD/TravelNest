@@ -44,17 +44,19 @@ export default function CustomerNotificationsPage({
 
   return (
     <DashboardLayoutClient locale={locale}>
-      <div className="mb-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8 space-y-8">
         <h1 className="text-3xl font-bold text-[var(--color-text-primary)] mb-2">
           {t("title")}
         </h1>
         <p className="text-[var(--color-text-secondary)]">{t("subtitle")}</p>
       </div>
 
-      <NotificationList
-        settingsHref={`/${locale}/dashboard/settings`}
-        resolveHref={resolveHref}
-      />
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8 space-y-8">
+        <NotificationList
+          settingsHref={`/${locale}/dashboard/settings`}
+          resolveHref={resolveHref}
+        />
+      </div>
     </DashboardLayoutClient>
   );
 }

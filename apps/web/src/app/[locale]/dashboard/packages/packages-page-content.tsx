@@ -194,7 +194,7 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
   };
 
   return (
-    <div className="space-y-6">
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8 space-y-8">
       <PageHeader title={t("title")} description={t("subtitle")} />
 
       <Card className="p-4">

@@ -105,3 +105,18 @@ export const uploadAvatar = async (req: Request, res: Response) => {
     "Avatar updated successfully",
   );
 };
+
+/**
+ * Delete avatar image
+ * DELETE /api/v1/users/avatar
+ */
+export const deleteAvatar = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const updatedUser = await userService.deleteAvatar(userId);
+
+  return ResponseHelper.success(
+    res,
+    updatedUser,
+    "Avatar deleted successfully",
+  );
+};

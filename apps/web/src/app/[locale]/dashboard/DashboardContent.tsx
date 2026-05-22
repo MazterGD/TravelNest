@@ -23,11 +23,12 @@ import {
   ClipboardList,
   Clock,
   DollarSign,
-  Eye,
   MapPin,
   Phone,
   Search,
 } from "lucide-react";
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface DashboardMetrics {
   totalBookings: number;
@@ -71,25 +72,32 @@ interface DashboardPageProps {
   locale: string;
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 const formatCurrency = (amount: number, locale: string) =>
-  new Intl.NumberFormat(locale === "si" || locale === "ta" ? "en-LK" : "en-US", {
-    maximumFractionDigits: 0,
-  }).format(Math.max(0, Math.round(amount)));
+  new Intl.NumberFormat(
+    locale === "si" || locale === "ta" ? "en-LK" : "en-US",
+    { maximumFractionDigits: 0 },
+  ).format(Math.max(0, Math.round(amount)));
 
 const categorizeNotification = (
   type: string | undefined,
   title: string | undefined,
 ): NotificationCategory => {
   const haystack = `${type ?? ""} ${title ?? ""}`.toLowerCase();
-  if (haystack.includes("quotation") || haystack.includes("quote")) {
-    return "quotation";
-  }
-  if (haystack.includes("payment") || haystack.includes("refund") || haystack.includes("invoice")) {
+  if (haystack.includes("quotation") || haystack.includes("quote")) return "quotation";
+  if (
+    haystack.includes("payment") ||
+    haystack.includes("refund") ||
+    haystack.includes("invoice")
+  )
     return "payment";
-  }
-  if (haystack.includes("booking") || haystack.includes("trip") || haystack.includes("reservation")) {
+  if (
+    haystack.includes("booking") ||
+    haystack.includes("trip") ||
+    haystack.includes("reservation")
+  )
     return "booking";
-  }
   return "general";
 };
 
@@ -98,8 +106,26 @@ const tripKey = (pickup?: string | null, dropoff?: string | null, date?: string 
 
 const isResponseQuotation = (status?: string) => {
   const upper = (status ?? "").toUpperCase();
-  return upper === "SENT" || upper === "VIEWED" || upper === "ACCEPTED" || upper === "REJECTED";
+  return (
+    upper === "SENT" || upper === "VIEWED" || upper === "ACCEPTED" || upper === "REJECTED"
+  );
 };
+
+// ── Shared class constants ────────────────────────────────────────────────────
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2";
+
+const cardSurface =
+  "rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)]";
+
+const innerCard =
+  "rounded-xl border border-[var(--color-border-default)]";
+
+const iconBadge =
+  "rounded-xl bg-[var(--color-bg-surface)] p-3 text-[var(--color-action-primary)]";
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function DashboardContent({ locale }: DashboardPageProps) {
   const t = useTranslations("dashboard");
@@ -124,32 +150,28 @@ export function DashboardContent({ locale }: DashboardPageProps) {
   const formatRelativeTime = (dateString: string) => {
     const date = new Date(dateString);
     if (Number.isNaN(date.getTime())) return "";
-
     const diffMs = Date.now() - date.getTime();
     const diffMinutes = Math.floor(diffMs / 60_000);
-
     if (diffMinutes < 1) return t("notifications.time.justNow");
-    if (diffMinutes < 60) return t("notifications.time.minutesAgo", { count: diffMinutes });
-
+    if (diffMinutes < 60)
+      return t("notifications.time.minutesAgo", { count: diffMinutes });
     const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return t("notifications.time.hoursAgo", { count: diffHours });
-
+    if (diffHours < 24)
+      return t("notifications.time.hoursAgo", { count: diffHours });
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return t("notifications.time.daysAgo", { count: diffDays });
-
+    if (diffDays < 7)
+      return t("notifications.time.daysAgo", { count: diffDays });
     return date.toLocaleDateString(currentLocale);
   };
 
   useEffect(() => {
     if (!user || !isAuthorized) return;
-
     const controller = new AbortController();
+    const vehicleFallback = t("vehicleFallback");
+    const ownerFallback = t("ownerFallback");
 
     const fetchDashboardData = async () => {
       setIsLoadingData(true);
-
-      const vehicleFallback = t("vehicleFallback");
-      const ownerFallback = t("ownerFallback");
 
       await Promise.allSettled([
         userService
@@ -169,9 +191,9 @@ export function DashboardContent({ locale }: DashboardPageProps) {
           .getMyBookings({ limit: 20 })
           .then((response) => {
             if (controller.signal.aborted) return;
-            const bookings = ((response as { bookings?: unknown[] })?.bookings ?? []) as Array<
-              Record<string, unknown>
-            >;
+            const bookings = (
+              (response as { bookings?: unknown[] })?.bookings ?? []
+            ) as Array<Record<string, unknown>>;
             const upcoming = bookings
               .filter((b) => {
                 const status = String(b.status ?? "").toUpperCase();
@@ -179,15 +201,24 @@ export function DashboardContent({ locale }: DashboardPageProps) {
               })
               .slice(0, 3)
               .map<UpcomingBooking>((b) => {
-                const pickup = (b.pickupLocation as { city?: string } | string | undefined);
-                const dropoff = (b.dropoffLocation as { city?: string } | string | undefined);
+                const pickup = b.pickupLocation as
+                  | { city?: string }
+                  | string
+                  | undefined;
+                const dropoff = b.dropoffLocation as
+                  | { city?: string }
+                  | string
+                  | undefined;
                 const pickupCity =
                   typeof pickup === "string" ? pickup : pickup?.city ?? "";
                 const dropoffCity =
                   typeof dropoff === "string" ? dropoff : dropoff?.city ?? "";
                 return {
                   id: String(b.id ?? ""),
-                  bookingReference: String(b.bookingReference ?? `BK-${String(b.id ?? "").slice(0, 8).toUpperCase()}`),
+                  bookingReference: String(
+                    b.bookingReference ??
+                      `BK-${String(b.id ?? "").slice(0, 8).toUpperCase()}`,
+                  ),
                   startDate: String(b.startDate ?? ""),
                   route: `${pickupCity || "—"} → ${dropoffCity || "—"}`,
                   vehicleName: String(b.vehicleName ?? vehicleFallback),
@@ -207,9 +238,9 @@ export function DashboardContent({ locale }: DashboardPageProps) {
           .getMyRequests()
           .then((response) => {
             if (controller.signal.aborted) return;
-            const rows = ((response as { quotations?: unknown[] })?.quotations ?? []) as Array<
-              Record<string, unknown>
-            >;
+            const rows = (
+              (response as { quotations?: unknown[] })?.quotations ?? []
+            ) as Array<Record<string, unknown>>;
             const groups = new Map<string, RecentQuotation>();
             for (const row of rows) {
               const pickup = String(row.pickupLocation ?? "");
@@ -222,9 +253,8 @@ export function DashboardContent({ locale }: DashboardPageProps) {
               if (existing) {
                 existing.quotesCount += responses;
                 if (status === "ACCEPTED") existing.status = "ACCEPTED";
-                else if (existing.status !== "ACCEPTED" && isResponseQuotation(status)) {
+                else if (existing.status !== "ACCEPTED" && isResponseQuotation(status))
                   existing.status = "SENT";
-                }
               } else {
                 groups.set(key, {
                   id: String(row.id ?? ""),
@@ -272,7 +302,9 @@ export function DashboardContent({ locale }: DashboardPageProps) {
           .getUnreadCount()
           .then((response) => {
             if (controller.signal.aborted) return;
-            const raw = response as { unreadCount?: number; count?: number } | undefined;
+            const raw = response as
+              | { unreadCount?: number; count?: number }
+              | undefined;
             setUnreadCount(raw?.unreadCount ?? raw?.count ?? 0);
           })
           .catch(() => {
@@ -280,13 +312,10 @@ export function DashboardContent({ locale }: DashboardPageProps) {
           }),
       ]);
 
-      if (!controller.signal.aborted) {
-        setIsLoadingData(false);
-      }
+      if (!controller.signal.aborted) setIsLoadingData(false);
     };
 
     fetchDashboardData();
-
     return () => controller.abort();
   }, [user, isAuthorized, t]);
 
@@ -297,6 +326,8 @@ export function DashboardContent({ locale }: DashboardPageProps) {
       </div>
     );
   }
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
 
   const getStatusBadgeVariant = (
     status: string,
@@ -338,461 +369,504 @@ export function DashboardContent({ locale }: DashboardPageProps) {
     }
   };
 
-  const cardSurface =
-    "rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)]";
-  const innerCardSurface =
-    "rounded-xl border border-[var(--color-border-default)]";
-  const focusRing =
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2";
-  const quickActionLink = `flex items-center gap-4 p-6 transition-colors hover:border-[var(--color-action-primary)] hover:bg-[var(--color-bg-surface)] ${cardSurface} ${focusRing}`;
-  const iconBadge =
-    "rounded-xl bg-[var(--color-bg-surface)] p-3 text-[var(--color-action-primary)]";
+  const nextTrip = upcomingBookings[0] ?? null;
+
+  // ── JSX ─────────────────────────────────────────────────────────────────────
 
   return (
-    <>
-      <header className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-base)]">
-        <div className="mx-auto max-w-7xl px-6 py-6 lg:px-8">
-          <div>
-            <h1 className="text-2xl font-semibold text-[var(--color-text-primary)]">
-              {t("customerDashboard")}
-            </h1>
+    <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8 space-y-8">
+
+      {/* ── Greeting ──────────────────────────────────────────────────────── */}
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
+          {t("welcomeUser", { name: user.firstName })}
+        </h1>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          {t("dashboardSubtitle", { defaultValue: "Here's what's happening with your journeys." })}
+        </p>
+      </div>
+
+      {/* ── Next Journey hero ─────────────────────────────────────────────── */}
+      {isLoadingData ? (
+        <div className="rounded-[20px] overflow-hidden">
+          <Skeleton className="h-48 w-full" variant="rectangular" />
+        </div>
+      ) : nextTrip ? (
+        <section
+          aria-labelledby="next-journey-heading"
+          className="relative overflow-hidden rounded-[20px] bg-[var(--color-text-primary)] p-6 md:p-8"
+        >
+          {/* Decorative route arc — purely visual, hidden from screen readers */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-0 h-64 w-64 translate-x-1/3 -translate-y-1/3 rounded-full border border-white/5"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-0 h-96 w-96 translate-x-1/3 -translate-y-1/3 rounded-full border border-white/[0.03]"
+          />
+
+          <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            {/* Left: trip details */}
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-action-primary)]">
+                  {t("nextJourney.label", { defaultValue: "Next Journey" })}
+                </p>
+                <h2
+                  id="next-journey-heading"
+                  className="mt-2 text-2xl font-bold text-white md:text-3xl"
+                >
+                  {nextTrip.route}
+                </h2>
+              </div>
+
+              {/* Route timeline */}
+              <div className="flex items-center gap-3" aria-hidden="true">
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-action-primary)]" />
+                <div className="h-px flex-1 bg-white/20" />
+                <span className="h-2.5 w-2.5 rounded-full border-2 border-white/40 bg-transparent" />
+              </div>
+
+              {/* Meta */}
+              <div className="flex flex-wrap items-center gap-4 text-sm text-white/60">
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" aria-hidden="true" />
+                  {nextTrip.startDate
+                    ? new Date(nextTrip.startDate).toLocaleDateString(currentLocale, {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "—"}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Bus className="h-4 w-4" aria-hidden="true" />
+                  {nextTrip.vehicleName}
+                </span>
+                <span className="rounded-lg border border-white/10 px-2 py-0.5 text-xs font-medium text-white/70">
+                  {nextTrip.vehicleType}
+                </span>
+              </div>
+            </div>
+
+            {/* Right: action buttons */}
+            <div className="flex shrink-0 flex-wrap gap-3">
+              {nextTrip.ownerPhone && (
+                <a
+                  href={`tel:${nextTrip.ownerPhone}`}
+                  aria-label={t("actions.callOwner", { name: nextTrip.ownerName })}
+                  className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/20 ${focusRing} focus-visible:ring-offset-[var(--color-text-primary)]`}
+                >
+                  <Phone className="h-4 w-4" aria-hidden="true" />
+                  {t("actions.callOwner", { name: "", defaultValue: "Call owner" })}
+                </a>
+              )}
+              <Link
+                href={`/${currentLocale}/dashboard/bookings/${nextTrip.id}`}
+                className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[var(--color-action-primary)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-action-primary-hover)] ${focusRing} focus-visible:ring-offset-[var(--color-text-primary)]`}
+              >
+                {t("actions.viewDetails")}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : (
+        /* Empty hero — no upcoming bookings */
+        <section
+          aria-labelledby="plan-trip-heading"
+          className={`${cardSurface} flex flex-col items-center gap-4 p-8 text-center md:flex-row md:text-left`}
+        >
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-surface)]">
+            <MapPin
+              className="h-7 w-7 text-[var(--color-text-tertiary)]"
+              aria-hidden="true"
+            />
+          </div>
+          <div className="flex-1">
+            <h2
+              id="plan-trip-heading"
+              className="font-semibold text-[var(--color-text-primary)]"
+            >
+              {t("upcomingBookings.emptyTitle")}
+            </h2>
             <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-              {t("welcomeUser", { name: user.firstName })}
+              {t("upcomingBookings.emptySubtitle")}
             </p>
           </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-        <section className="mb-8" aria-labelledby="quick-actions-heading">
-          <h2
-            id="quick-actions-heading"
-            className="mb-4 text-lg font-semibold text-[var(--color-text-primary)]"
+          <Link
+            href={`/${currentLocale}/search`}
+            className={`inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-[var(--color-action-primary)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-action-primary-hover)] ${focusRing}`}
           >
-            {t("quickActions")}
-          </h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Link href={`/${currentLocale}/search`} className={quickActionLink}>
-              <div className={iconBadge}>
-                <Search className="h-6 w-6" aria-hidden="true" />
-              </div>
-              <div>
-                <h3 className="font-medium text-[var(--color-text-primary)]">
-                  {t("actions.searchBuses")}
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  {t("actions.searchBusesHint")}
-                </p>
-              </div>
-            </Link>
-
-            <Link
-              href={`/${currentLocale}/dashboard/quotations`}
-              className={quickActionLink}
-            >
-              <div className={iconBadge}>
-                <ClipboardList className="h-6 w-6" aria-hidden="true" />
-              </div>
-              <div>
-                <h3 className="font-medium text-[var(--color-text-primary)]">
-                  {t("actions.viewQuotations")}
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  {t("pendingCount", { count: metrics.pendingQuotations })}
-                </p>
-              </div>
-            </Link>
-
-            <Link
-              href={`/${currentLocale}/dashboard/bookings`}
-              className={quickActionLink}
-            >
-              <div className={iconBadge}>
-                <Eye className="h-6 w-6" aria-hidden="true" />
-              </div>
-              <div>
-                <h3 className="font-medium text-[var(--color-text-primary)]">
-                  {t("actions.trackBooking")}
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  {t("actions.trackBookingHint")}
-                </p>
-              </div>
-            </Link>
-          </div>
+            <Search className="h-4 w-4" aria-hidden="true" />
+            {t("actions.searchBuses")}
+          </Link>
         </section>
+      )}
 
-        <section className="mb-8" aria-labelledby="metrics-heading">
-          <h2 id="metrics-heading" className="sr-only">
-            {t("overview")}
-          </h2>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              label={t("metrics.totalBookings")}
-              value={metrics.totalBookings}
-              icon={<Bus className="h-6 w-6" aria-hidden="true" />}
-              loading={isLoadingData}
-              iconClassName={iconBadge}
-              cardClassName={`${cardSurface} p-6`}
-            />
-            <MetricCard
-              label={t("metrics.completedTrips")}
-              value={metrics.completedTrips}
-              icon={<CheckCircle className="h-6 w-6" aria-hidden="true" />}
-              loading={isLoadingData}
-              iconClassName={iconBadge}
-              cardClassName={`${cardSurface} p-6`}
-            />
-            <MetricCard
-              label={t("metrics.pendingQuotations")}
-              value={metrics.pendingQuotations}
-              icon={<ClipboardList className="h-6 w-6" aria-hidden="true" />}
-              loading={isLoadingData}
-              iconClassName={iconBadge}
-              cardClassName={`${cardSurface} p-6`}
-            />
-            <MetricCard
-              label={t("metrics.totalSpent")}
-              value={t("metrics.currency", {
-                amount: formatCurrency(metrics.totalSpent, currentLocale),
-              })}
-              icon={<DollarSign className="h-6 w-6" aria-hidden="true" />}
-              loading={isLoadingData}
-              iconClassName={iconBadge}
-              cardClassName={`${cardSurface} p-6`}
-            />
-          </div>
-        </section>
+      {/* ── Stat cards ────────────────────────────────────────────────────── */}
+      <section aria-label={t("overview")}>
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label={t("metrics.totalBookings")}
+            value={metrics.totalBookings}
+            icon={<Bus className="h-5 w-5" aria-hidden="true" />}
+            loading={isLoadingData}
+          />
+          <MetricCard
+            label={t("metrics.completedTrips")}
+            value={metrics.completedTrips}
+            icon={<CheckCircle className="h-5 w-5" aria-hidden="true" />}
+            loading={isLoadingData}
+          />
+          <MetricCard
+            label={t("metrics.pendingQuotations")}
+            value={metrics.pendingQuotations}
+            icon={<ClipboardList className="h-5 w-5" aria-hidden="true" />}
+            loading={isLoadingData}
+          />
+          <MetricCard
+            label={t("metrics.totalSpent")}
+            value={t("metrics.currency", {
+              amount: formatCurrency(metrics.totalSpent, currentLocale),
+            })}
+            icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
+            loading={isLoadingData}
+          />
+        </div>
+      </section>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-8 lg:col-span-2">
-            <section className={cardSurface} aria-labelledby="upcoming-heading">
-              <div className="flex items-center justify-between border-b border-[var(--color-border-default)] p-6">
-                <div>
-                  <h2
-                    id="upcoming-heading"
-                    className="text-lg font-semibold text-[var(--color-text-primary)]"
-                  >
-                    {t("upcomingBookings.title")}
-                  </h2>
-                  <p className="text-sm text-[var(--color-text-secondary)]">
-                    {t("upcomingBookings.subtitle", {
-                      count: upcomingBookings.length,
-                    })}
-                  </p>
-                </div>
-                <Link
-                  href={`/${currentLocale}/dashboard/bookings`}
-                  className={`flex items-center gap-1 rounded-xl px-2 py-1 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] ${focusRing}`}
+      {/* ── Main bento grid ───────────────────────────────────────────────── */}
+      <div className="grid gap-6 lg:grid-cols-3">
+
+        {/* Left column: upcoming bookings + recent quotations */}
+        <div className="space-y-6 lg:col-span-2">
+
+          {/* Upcoming bookings */}
+          <section className={cardSurface} aria-labelledby="upcoming-heading">
+            <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-6 py-4">
+              <div>
+                <h2
+                  id="upcoming-heading"
+                  className="font-semibold text-[var(--color-text-primary)]"
                 >
-                  {t("actions.viewAll")}
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
+                  {t("upcomingBookings.title")}
+                </h2>
+                <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+                  {t("upcomingBookings.subtitle", { count: upcomingBookings.length })}
+                </p>
               </div>
+              <Link
+                href={`/${currentLocale}/dashboard/bookings`}
+                className={`flex items-center gap-1 rounded-xl px-2 py-1 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] ${focusRing}`}
+              >
+                {t("actions.viewAll")}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
 
-              <div className="p-6">
-                {isLoadingData ? (
-                  <div className="space-y-4">
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className={`${innerCardSurface} p-4`}>
-                        <div className="mb-3 flex items-center justify-between">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-5 w-20" variant="rectangular" />
-                        </div>
-                        <Skeleton className="mb-2 h-3 w-3/4" />
-                        <Skeleton className="h-9 w-full" variant="rectangular" />
+            <div className="p-4">
+              {isLoadingData ? (
+                <div className="space-y-3">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className={`${innerCard} p-4`}>
+                      <div className="mb-3 flex items-center justify-between">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-5 w-20" variant="rectangular" />
                       </div>
-                    ))}
-                  </div>
-                ) : upcomingBookings.length > 0 ? (
-                  <div className="space-y-4">
-                    {upcomingBookings.map((booking) => (
-                      <article
-                        key={booking.id}
-                        className={`${innerCardSurface} p-4 transition-colors hover:bg-[var(--color-bg-surface)]`}
-                      >
-                        <div className="mb-3 flex items-start justify-between">
-                          <div>
-                            <h3 className="font-medium text-[var(--color-text-primary)]">
-                              {booking.bookingReference}
-                            </h3>
-                            <p className="text-sm text-[var(--color-text-secondary)]">
-                              {booking.vehicleName} · {booking.vehicleType}
-                            </p>
-                          </div>
-                          <Badge variant={getStatusBadgeVariant(booking.status)}>
-                            {formatStatusLabel(booking.status)}
-                          </Badge>
-                        </div>
-
-                        <div className="mb-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
-                            <Calendar
-                              className="h-4 w-4 text-[var(--color-text-tertiary)]"
-                              aria-hidden="true"
-                            />
-                            <span>
-                              {booking.startDate
-                                ? new Date(booking.startDate).toLocaleDateString(currentLocale)
-                                : "—"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
-                            <MapPin
-                              className="h-4 w-4 text-[var(--color-text-tertiary)]"
-                              aria-hidden="true"
-                            />
-                            <span>{booking.route}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Link
-                            href={`/${currentLocale}/dashboard/bookings/${booking.id}`}
-                            className={`flex-1 rounded-xl bg-[var(--color-text-primary)] px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-[var(--color-text-primary)]/90 ${focusRing}`}
-                          >
-                            {t("actions.viewDetails")}
-                          </Link>
-                          {booking.ownerPhone ? (
-                            <a
-                              href={`tel:${booking.ownerPhone}`}
-                              aria-label={t("actions.callOwner", { name: booking.ownerName })}
-                              className={`flex min-h-[44px] min-w-[44px] flex-1 items-center justify-center rounded-xl border border-[var(--color-border-default)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-bg-surface)] ${focusRing}`}
-                            >
-                              <Phone className="h-4 w-4" aria-hidden="true" />
-                            </a>
-                          ) : null}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-bg-surface)]">
-                      <Bus
-                        className="h-8 w-8 text-[var(--color-text-tertiary)]"
-                        aria-hidden="true"
-                      />
+                      <Skeleton className="mb-2 h-3 w-3/4" />
+                      <Skeleton className="h-9 w-full" variant="rectangular" />
                     </div>
-                    <h3 className="mb-2 font-semibold text-[var(--color-text-primary)]">
-                      {t("upcomingBookings.emptyTitle")}
-                    </h3>
-                    <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
-                      {t("upcomingBookings.emptySubtitle")}
-                    </p>
-                    <Link
-                      href={`/${currentLocale}/search`}
-                      className={`inline-flex items-center gap-2 rounded-xl bg-[var(--color-action-primary)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-action-primary-hover)] ${focusRing}`}
-                    >
-                      <Search className="h-4 w-4" aria-hidden="true" />
-                      {t("actions.searchBuses")}
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <section className={cardSurface} aria-labelledby="recent-quotations-heading">
-              <div className="flex items-center justify-between border-b border-[var(--color-border-default)] p-6">
-                <div>
-                  <h2
-                    id="recent-quotations-heading"
-                    className="text-lg font-semibold text-[var(--color-text-primary)]"
-                  >
-                    {t("recentQuotations.title")}
-                  </h2>
-                  <p className="text-sm text-[var(--color-text-secondary)]">
-                    {t("recentQuotations.subtitle")}
-                  </p>
+                  ))}
                 </div>
-                <Link
-                  href={`/${currentLocale}/dashboard/quotations`}
-                  className={`flex items-center gap-1 rounded-xl px-2 py-1 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] ${focusRing}`}
-                >
-                  {t("actions.viewAll")}
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
-              </div>
-
-              <div className="p-6">
-                {isLoadingData ? (
-                  <div className="space-y-3">
-                    {[0, 1, 2].map((i) => (
-                      <div key={i} className={`${innerCardSurface} p-4`}>
-                        <Skeleton className="mb-2 h-4 w-1/2" />
-                        <Skeleton className="h-3 w-1/3" />
-                      </div>
-                    ))}
-                  </div>
-                ) : recentQuotations.length > 0 ? (
-                  <div className="space-y-3">
-                    {recentQuotations.map((quotation) => (
-                      <Link
-                        key={quotation.id}
-                        href={`/${currentLocale}/dashboard/quotations/${quotation.id}`}
-                        className={`flex items-center justify-between ${innerCardSurface} p-4 transition-colors hover:bg-[var(--color-bg-surface)] ${focusRing}`}
-                      >
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-medium text-[var(--color-text-primary)]">
-                              {quotation.route}
-                            </h3>
-                            {quotation.quotesCount > 0 ? (
-                              <Badge variant="info">
-                                {t("recentQuotations.quotesCount", {
-                                  count: quotation.quotesCount,
-                                })}
-                              </Badge>
-                            ) : null}
-                            <Badge variant={getStatusBadgeVariant(quotation.status)}>
-                              {formatStatusLabel(quotation.status)}
-                            </Badge>
-                          </div>
-                          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                            {quotation.date
-                              ? new Date(quotation.date).toLocaleDateString(currentLocale)
-                              : "—"}
+              ) : upcomingBookings.length > 0 ? (
+                <div className="space-y-3">
+                  {upcomingBookings.map((booking) => (
+                    <article
+                      key={booking.id}
+                      className={`${innerCard} p-4 transition-colors hover:bg-[var(--color-bg-surface)]`}
+                    >
+                      <div className="mb-3 flex items-start justify-between">
+                        <div>
+                          <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
+                            {booking.bookingReference}
+                          </h3>
+                          <p className="text-xs text-[var(--color-text-secondary)]">
+                            {booking.vehicleName} · {booking.vehicleType}
                           </p>
                         </div>
-                        <ArrowRight
-                          className="h-4 w-4 text-[var(--color-text-tertiary)]"
-                          aria-hidden="true"
-                        />
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center">
-                    <ClipboardList
-                      className="mx-auto mb-3 h-8 w-8 text-[var(--color-text-tertiary)]"
+                        <Badge variant={getStatusBadgeVariant(booking.status)}>
+                          {formatStatusLabel(booking.status)}
+                        </Badge>
+                      </div>
+
+                      <div className="mb-4 flex flex-wrap gap-4 text-xs text-[var(--color-text-secondary)]">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar
+                            className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]"
+                            aria-hidden="true"
+                          />
+                          {booking.startDate
+                            ? new Date(booking.startDate).toLocaleDateString(
+                                currentLocale,
+                              )
+                            : "—"}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <MapPin
+                            className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]"
+                            aria-hidden="true"
+                          />
+                          {booking.route}
+                        </span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Link
+                          href={`/${currentLocale}/dashboard/bookings/${booking.id}`}
+                          className={`flex-1 rounded-xl bg-[var(--color-text-primary)] px-4 py-2 text-center text-xs font-medium text-white transition-colors hover:bg-[var(--color-text-primary)]/90 ${focusRing}`}
+                        >
+                          {t("actions.viewDetails")}
+                        </Link>
+                        {booking.ownerPhone ? (
+                          <a
+                            href={`tel:${booking.ownerPhone}`}
+                            aria-label={t("actions.callOwner", {
+                              name: booking.ownerName,
+                            })}
+                            className={`flex min-h-[36px] min-w-[44px] items-center justify-center rounded-xl border border-[var(--color-border-default)] px-3 text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-bg-surface)] ${focusRing}`}
+                          >
+                            <Phone className="h-4 w-4" aria-hidden="true" />
+                          </a>
+                        ) : null}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-10 text-center">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-bg-surface)]">
+                    <Bus
+                      className="h-6 w-6 text-[var(--color-text-tertiary)]"
                       aria-hidden="true"
                     />
-                    <p className="text-sm text-[var(--color-text-secondary)]">
-                      {t("recentQuotations.empty")}
-                    </p>
                   </div>
-                )}
-              </div>
-            </section>
-          </div>
+                  <p className="mb-1 text-sm font-semibold text-[var(--color-text-primary)]">
+                    {t("upcomingBookings.emptyTitle")}
+                  </p>
+                  <p className="mb-4 text-xs text-[var(--color-text-secondary)]">
+                    {t("upcomingBookings.emptySubtitle")}
+                  </p>
+                  <Link
+                    href={`/${currentLocale}/search`}
+                    className={`inline-flex items-center gap-2 rounded-xl bg-[var(--color-action-primary)] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--color-action-primary-hover)] ${focusRing}`}
+                  >
+                    <Search className="h-4 w-4" aria-hidden="true" />
+                    {t("actions.searchBuses")}
+                  </Link>
+                </div>
+              )}
+            </div>
+          </section>
 
-          <aside className="space-y-8">
-            <section className={cardSurface} aria-labelledby="notifications-heading">
-              <div className="flex items-center justify-between border-b border-[var(--color-border-default)] p-6">
+          {/* Recent quotation replies */}
+          <section className={cardSurface} aria-labelledby="recent-quotations-heading">
+            <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-6 py-4">
+              <div>
                 <h2
-                  id="notifications-heading"
-                  className="text-lg font-semibold text-[var(--color-text-primary)]"
+                  id="recent-quotations-heading"
+                  className="font-semibold text-[var(--color-text-primary)]"
                 >
-                  {t("notifications.title")}
+                  {t("recentQuotations.title")}
                 </h2>
-                {unreadCount > 0 ? (
-                  <span className="rounded-lg bg-[var(--color-action-primary)] px-2 py-0.5 text-xs font-medium text-white">
-                    {unreadCount}
-                  </span>
-                ) : null}
+                <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+                  {t("recentQuotations.subtitle")}
+                </p>
               </div>
+              <Link
+                href={`/${currentLocale}/dashboard/quotations`}
+                className={`flex items-center gap-1 rounded-xl px-2 py-1 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] ${focusRing}`}
+              >
+                {t("actions.viewAll")}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
 
-              <div className="divide-y divide-[var(--color-border-default)]">
-                {isLoadingData ? (
-                  [0, 1, 2].map((i) => (
-                    <div key={i} className="flex items-start gap-3 p-4">
-                      <Skeleton variant="circular" className="h-8 w-8" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-3 w-full" />
-                      </div>
+            <div className="p-4">
+              {isLoadingData ? (
+                <div className="space-y-2">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className={`${innerCard} p-4`}>
+                      <Skeleton className="mb-1.5 h-4 w-1/2" />
+                      <Skeleton className="h-3 w-1/3" />
                     </div>
-                  ))
-                ) : notifications.length > 0 ? (
-                  notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-4 transition-colors hover:bg-[var(--color-bg-surface)] ${
-                        !notification.isRead ? "bg-[var(--color-bg-surface)]" : ""
-                      }`}
+                  ))}
+                </div>
+              ) : recentQuotations.length > 0 ? (
+                <div className="space-y-2">
+                  {recentQuotations.map((quotation) => (
+                    <Link
+                      key={quotation.id}
+                      href={`/${currentLocale}/dashboard/quotations/${quotation.id}`}
+                      className={`flex items-center justify-between ${innerCard} p-4 transition-colors hover:bg-[var(--color-bg-surface)] ${focusRing}`}
                     >
-                      <div className="flex gap-3">
-                        <div className="mt-0.5 rounded-xl bg-[var(--color-bg-surface)] p-2 text-[var(--color-action-primary)]">
-                          {getNotificationIcon(notification.category)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-sm font-medium text-[var(--color-text-primary)] truncate">
+                            {quotation.route}
+                          </h3>
+                          {quotation.quotesCount > 0 ? (
+                            <Badge variant="info">
+                              {t("recentQuotations.quotesCount", {
+                                count: quotation.quotesCount,
+                              })}
+                            </Badge>
+                          ) : null}
+                          <Badge variant={getStatusBadgeVariant(quotation.status)}>
+                            {formatStatusLabel(quotation.status)}
+                          </Badge>
                         </div>
-                        <div className="flex-1">
-                          <div className="mb-1 flex items-start justify-between gap-2">
-                            <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
-                              {notification.title}
-                            </h3>
-                            {!notification.isRead ? (
-                              <span
-                                className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-action-primary)]"
-                                aria-hidden="true"
-                              />
-                            ) : null}
-                          </div>
-                          <p className="mb-1 text-sm text-[var(--color-text-secondary)]">
-                            {notification.message}
-                          </p>
-                          <p className="flex items-center gap-1 text-xs text-[var(--color-text-tertiary)]">
-                            <Clock className="h-3 w-3" aria-hidden="true" />
-                            {formatRelativeTime(notification.createdAt)}
-                          </p>
+                        <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+                          {quotation.date
+                            ? new Date(quotation.date).toLocaleDateString(currentLocale)
+                            : "—"}
+                        </p>
+                      </div>
+                      <ArrowRight
+                        className="ml-3 h-4 w-4 shrink-0 text-[var(--color-text-tertiary)]"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <ClipboardList
+                    className="mx-auto mb-2 h-8 w-8 text-[var(--color-text-tertiary)]"
+                    aria-hidden="true"
+                  />
+                  <p className="text-sm text-[var(--color-text-secondary)]">
+                    {t("recentQuotations.empty")}
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {/* Right column: notifications */}
+        <aside>
+          <section className={cardSurface} aria-labelledby="notifications-heading">
+            <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-6 py-4">
+              <h2
+                id="notifications-heading"
+                className="font-semibold text-[var(--color-text-primary)]"
+              >
+                {t("notifications.title")}
+              </h2>
+              {unreadCount > 0 ? (
+                <span className="rounded-lg bg-[var(--color-action-primary)] px-2 py-0.5 text-xs font-medium text-white">
+                  {unreadCount}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="divide-y divide-[var(--color-border-default)]">
+              {isLoadingData ? (
+                [0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-start gap-3 p-4">
+                    <Skeleton variant="circular" className="h-8 w-8 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-full" />
+                    </div>
+                  </div>
+                ))
+              ) : notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`p-4 transition-colors hover:bg-[var(--color-bg-surface)] ${
+                      !notification.isRead ? "bg-[var(--color-bg-surface)]" : ""
+                    }`}
+                  >
+                    <div className="flex gap-3">
+                      <div className="mt-0.5 shrink-0 rounded-xl bg-[var(--color-bg-surface)] p-2 text-[var(--color-action-primary)]">
+                        {getNotificationIcon(notification.category)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="mb-1 flex items-start justify-between gap-2">
+                          <h3 className="text-sm font-medium text-[var(--color-text-primary)] truncate">
+                            {notification.title}
+                          </h3>
+                          {!notification.isRead ? (
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full bg-[var(--color-action-primary)]"
+                              aria-hidden="true"
+                            />
+                          ) : null}
                         </div>
+                        <p className="mb-1 text-xs text-[var(--color-text-secondary)] line-clamp-2">
+                          {notification.message}
+                        </p>
+                        <p className="flex items-center gap-1 text-xs text-[var(--color-text-tertiary)]">
+                          <Clock className="h-3 w-3" aria-hidden="true" />
+                          {formatRelativeTime(notification.createdAt)}
+                        </p>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="px-6 py-8 text-center text-sm text-[var(--color-text-secondary)]">
-                    {t("notifications.empty")}
                   </div>
-                )}
-              </div>
+                ))
+              ) : (
+                <div className="px-6 py-10 text-center text-sm text-[var(--color-text-secondary)]">
+                  {t("notifications.empty")}
+                </div>
+              )}
+            </div>
 
-              <div className="border-t border-[var(--color-border-default)] p-4">
-                <Link
-                  href={`/${currentLocale}/dashboard/notifications`}
-                  className={`flex items-center justify-center gap-1 rounded-xl py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] ${focusRing}`}
-                >
-                  {t("notifications.viewAll")}
-                  <ArrowRight className="h-3 w-3" aria-hidden="true" />
-                </Link>
-              </div>
-            </section>
-          </aside>
-        </div>
+            <div className="border-t border-[var(--color-border-default)] p-4">
+              <Link
+                href={`/${currentLocale}/dashboard/notifications`}
+                className={`flex items-center justify-center gap-1 rounded-xl py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] ${focusRing}`}
+              >
+                {t("notifications.viewAll")}
+                <ArrowRight className="h-3 w-3" aria-hidden="true" />
+              </Link>
+            </div>
+          </section>
+        </aside>
       </div>
-    </>
+    </div>
   );
 }
+
+// ── MetricCard ────────────────────────────────────────────────────────────────
 
 interface MetricCardProps {
   label: string;
   value: string | number;
   icon: React.ReactNode;
   loading: boolean;
-  cardClassName: string;
-  iconClassName: string;
 }
 
-function MetricCard({
-  label,
-  value,
-  icon,
-  loading,
-  cardClassName,
-  iconClassName,
-}: MetricCardProps) {
+function MetricCard({ label, value, icon, loading }: MetricCardProps) {
   return (
-    <div className={cardClassName}>
-      <div className="flex items-center justify-between gap-3">
+    <div className={`${cardSurface} p-5`}>
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--color-text-secondary)]">{label}</p>
+          <p className="text-xs font-medium text-[var(--color-text-secondary)] truncate">
+            {label}
+          </p>
           {loading ? (
             <Skeleton className="mt-2 h-7 w-20" />
           ) : (
-            <p className="mt-1 truncate text-2xl font-bold text-[var(--color-text-primary)]">
+            <p className="mt-1.5 text-2xl font-bold text-[var(--color-text-primary)] truncate">
               {value}
             </p>
           )}
         </div>
-        <div className={iconClassName}>{icon}</div>
+        <div className={iconBadge}>{icon}</div>
       </div>
     </div>
   );

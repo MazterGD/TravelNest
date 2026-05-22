@@ -18,7 +18,6 @@ export default function CustomerSettingsPage({ params: { locale } }: { params: {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(false);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +49,7 @@ export default function CustomerSettingsPage({ params: { locale } }: { params: {
 
   return (
     <DashboardLayoutClient locale={locale}>
-      <div className="mb-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8 space-y-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           {t("dashboard.settings.title", { defaultValue: "Account Settings" })}
         </h1>
@@ -59,7 +58,7 @@ export default function CustomerSettingsPage({ params: { locale } }: { params: {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="mx-auto max-w-7xl px-4 md:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Security / Password */}
         <div className="lg:col-span-2 space-y-8">
           <Card>
@@ -180,16 +179,6 @@ export default function CustomerSettingsPage({ params: { locale } }: { params: {
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" className="sr-only peer" checked={emailNotifications} onChange={(e) => setEmailNotifications(e.target.checked)} />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <div className="pr-4">
-                  <h4 className="text-sm font-medium text-gray-900">SMS Notifications</h4>
-                  <p className="text-xs text-gray-500">Receive trip updates directly on your phone.</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" checked={smsNotifications} onChange={(e) => setSmsNotifications(e.target.checked)} />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
               </div>

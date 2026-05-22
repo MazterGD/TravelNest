@@ -6,6 +6,7 @@ import prisma, {
   maskSettlementBankAccountNumber,
 } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { deleteByUrl } from "../../utils/storage.js";
 import { generateTokens, UserRole, UserStatus } from "../auth/auth.service.js";
 import type {
   OwnerRegistrationInput,
@@ -522,6 +523,15 @@ export const addOwnerDocument = async (
   validateFileSize(data.fileSize, data.fileName);
 
   return prisma.$transaction(async (tx) => {
+    const existingDocuments = await tx.ownerDocument.findMany({
+      where: { ownerId, type: data.type as any },
+      select: { url: true },
+    });
+
+    for (const existingDocument of existingDocuments) {
+      await deleteByUrl(existingDocument.url);
+    }
+
     await tx.ownerDocument.deleteMany({
       where: { ownerId, type: data.type as any },
     });
@@ -557,6 +567,7 @@ export const deleteOwnerDocument = async (
     throw ApiError.forbidden("You do not own this document");
   }
 
+  await deleteByUrl(doc.url);
   await prisma.ownerDocument.delete({ where: { id: docId } });
 };
 

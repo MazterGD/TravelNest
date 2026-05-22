@@ -3,16 +3,15 @@
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import {
-  PageHeader,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Button,
-  Input,
-  Avatar,
-  SkeletonProfile,
-} from "@/components/ui";
+  Camera,
+  CheckCircle2,
+  ShieldCheck,
+  Trash2,
+  User,
+  LoaderCircle,
+} from "lucide-react";
+import { Button, Input } from "@/components/ui";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuthStore } from "@/store";
 import { userService, ApiError } from "@/lib/api";
 
@@ -20,14 +19,27 @@ interface ProfilePageContentProps {
   locale: string;
 }
 
-export function ProfilePageContent({ locale }: ProfilePageContentProps) {
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2";
+
+const cardSurface =
+  "rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)]";
+
+export function ProfilePageContent({
+  locale: _locale,
+}: ProfilePageContentProps) {
   const t = useTranslations("profile");
   const { user, setUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isDeletingAvatar, setIsDeletingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [profileAvatar, setProfileAvatar] = useState<string | null>(
+    user?.avatar || null,
+  );
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -35,7 +47,6 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // Load user profile on mount
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -45,6 +56,8 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
           lastName: profile.lastName || "",
           phone: profile.phone || "",
         });
+        setProfileAvatar(profile.avatar || null);
+        setUser(profile);
       } catch (err) {
         if (err instanceof ApiError) {
           setError(err.message);
@@ -62,11 +75,75 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
         lastName: user.lastName || "",
         phone: user.phone || "",
       });
+      setProfileAvatar(user.avatar || null);
       setIsLoading(false);
-    } else {
+    }
+
+    if (!user || !user.avatar) {
       loadProfile();
     }
   }, [user]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const maxFileSize = 5 * 1024 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
+      setError(t("avatarInvalidType"));
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > maxFileSize) {
+      setError(t("avatarMaxSize"));
+      e.target.value = "";
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const updatedUser = await userService.uploadAvatar(file);
+      setProfileAvatar(updatedUser.avatar || null);
+      setUser(updatedUser);
+      setSuccessMessage(t("avatarUpdated"));
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError(t("avatarUploadFailed"));
+      }
+    } finally {
+      setIsUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleAvatarDelete = async () => {
+    setIsDeletingAvatar(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const updatedUser = await userService.deleteAvatar();
+      setProfileAvatar(null);
+      setUser(updatedUser);
+      setSuccessMessage(t("avatarDeleted"));
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError(t("avatarDeleteFailed"));
+      }
+    } finally {
+      setIsDeletingAvatar(false);
+    }
+  };
 
   const updateField = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -100,7 +177,6 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
         phone: formData.phone.trim(),
       });
 
-      // Update the auth store with new user data
       if (user) {
         setUser({
           ...user,
@@ -136,195 +212,342 @@ export function ProfilePageContent({ locale }: ProfilePageContentProps) {
   };
 
   if (isLoading) {
-    return <SkeletonProfile />;
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-8 md:px-6 space-y-6">
+        <Skeleton className="h-40 w-full" variant="rectangular" />
+        <Skeleton className="h-64 w-full" variant="rectangular" />
+        <Skeleton className="h-48 w-full" variant="rectangular" />
+      </div>
+    );
   }
 
   const displayName = user
     ? `${user.firstName} ${user.lastName}`
-    : formData.firstName + " " + formData.lastName;
+    : `${formData.firstName} ${formData.lastName}`;
   const displayEmail = user?.email || "";
   const isVerified = user?.isVerified ?? false;
   const createdAt = user?.createdAt
-    ? new Date(user.createdAt).toLocaleDateString()
+    ? new Date(user.createdAt).toLocaleDateString(undefined, {
+        month: "long",
+        year: "numeric",
+      })
     : "";
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <PageHeader title={t("myProfile")} subtitle={t("profileDescription")} />
+    <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8 space-y-8">
+      {/* ── Profile banner ────────────────────────────────────────────────── */}
+      <section
+        aria-labelledby="profile-name-heading"
+        className="relative overflow-hidden rounded-[20px] bg-[var(--color-text-primary)] px-6 py-8 md:px-8"
+      >
+        {/* Decorative circles */}
+        <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-0 h-64 w-64 translate-x-1/3 -translate-y-1/4 rounded-full bg-white/5 blur-3xl"
+        />
+        <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-10 top-10 h-96 w-96 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/5 blur-[80px]"
+        />
 
-      {/* Success/Error Messages */}
+        <div className="relative flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
+          {/* Avatar Section */}
+          <div className="group relative shrink-0">
+            <div className="h-24 w-24 overflow-hidden rounded-full border-3 border-white/10 bg-muted shadow-xl transition-transform duration-300 group-hover:scale-[1.02]">
+              {profileAvatar ? (
+                  <img
+                      src={profileAvatar}
+                      alt={t("profilePhoto")}
+                      className="h-full w-full object-cover"
+                  />
+              ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-zinc-800/50">
+                    <User className="h-10 w-10 text-white/30" />
+                  </div>
+              )}
+            </div>
+
+            {/* Integrated Hover Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-full bg-black/60 opacity-0 backdrop-blur-sm transition-all duration-200 focus-within:opacity-100 group-hover:opacity-100">
+              {profileAvatar && (
+                  <button
+                      type="button"
+                      onClick={handleAvatarDelete}
+                      disabled={isDeletingAvatar || isUploadingAvatar}
+                      aria-label={t("avatarDelete")}
+                      className={`flex h-8 w-8 items-center justify-center rounded-full bg-red-500/80 text-white shadow-sm transition-all hover:scale-110 hover:bg-red-500 disabled:scale-100 disabled:opacity-50 ${focusRing}`}
+                  >
+                    {isDeletingAvatar ? (
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+              )}
+              <label
+                  className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-sm backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 ${focusRing}`}
+                  aria-label={t("changePhoto")}
+              >
+                {isUploadingAvatar ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                    <Camera className="h-3.5 w-3.5" />
+                )}
+                <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={handleAvatarUpload}
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Name and Meta */}
+          <div className="flex min-w-0 flex-1 flex-col sm:justify-center">
+            <h1
+                id="profile-name-heading"
+                className="truncate text-2xl font-semibold tracking-tight text-white sm:text-3xl"
+            >
+              {displayName}
+            </h1>
+            <p className="mt-1 truncate text-sm text-white/50 sm:text-base">
+              {displayEmail}
+            </p>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+              {isVerified && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-success-bg)]/75 px-2.5 py-1 text-xs font-medium text-[var(--color-success-text)] shadow-sm">
+          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    {t("verified")}
+        </span>
+              )}
+              {createdAt && (
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-white/40">
+          <span className="h-1 w-1 rounded-full bg-white/20" aria-hidden="true" />
+                    {t("memberSince")} {createdAt}
+        </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Feedback banners ─────────────────────────────────────────────── */}
       {successMessage && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
-          {successMessage}
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-[20px] border border-[var(--color-success-border)] bg-[var(--color-success-bg)] p-4 text-sm text-[var(--color-success-text)]"
+        >
+          <CheckCircle2
+            className="mt-0.5 h-4 w-4 shrink-0"
+            aria-hidden="true"
+          />
+          <span>{successMessage}</span>
         </div>
       )}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+        <div
+          role="alert"
+          className="rounded-[20px] border border-[var(--color-error-border)] bg-[var(--color-error-bg)] p-4 text-sm text-[var(--color-error-text)]"
+        >
           {error}
         </div>
       )}
 
-      {/* Profile Header */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center gap-6">
-            <Avatar name={displayName} size="xl" src={user?.avatar} />
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-foreground">
-                {displayName}
+      {/* ── Section 01: About you ─────────────────────────────────────────── */}
+      <section className={cardSurface} aria-labelledby="about-heading">
+        <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-6 py-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
+                01
+              </span>
+              <h2
+                id="about-heading"
+                className="font-semibold text-[var(--color-text-primary)]"
+              >
+                {t("personalInfo")}
               </h2>
-              <p className="text-muted-foreground">{displayEmail}</p>
-              <div className="flex items-center gap-2 mt-2">
-                {isVerified ? (
-                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                    <svg
-                      className="w-3 h-3 mr-1"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    {t("verified")}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-                    {t("unverified")}
-                  </span>
-                )}
-                {createdAt && (
-                  <span className="text-xs text-muted-foreground">
-                    {t("memberSince")} {createdAt}
-                  </span>
-                )}
-              </div>
             </div>
-            <Button variant="outline" size="sm">
-              {t("changePhoto")}
-            </Button>
+            <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+              {t("profileDescription", {
+                defaultValue: "Your name, contact, and account details.",
+              })}
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Profile Form */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t("personalInfo")}</CardTitle>
           {!isEditing && (
-            <Button
-              variant="outline"
-              size="sm"
+            <button
+              type="button"
               onClick={() => setIsEditing(true)}
+              className={`inline-flex min-h-[44px] items-center rounded-xl border border-[var(--color-border-default)] px-3 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)] ${focusRing}`}
             >
               {t("edit")}
-            </Button>
+            </button>
           )}
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                value={formData.firstName}
-                onChange={(e) => updateField("firstName", e.target.value)}
-                label={t("firstName")}
-                disabled={!isEditing}
-                error={formErrors.firstName}
-              />
-              <Input
-                value={formData.lastName}
-                onChange={(e) => updateField("lastName", e.target.value)}
-                label={t("lastName")}
-                disabled={!isEditing}
-                error={formErrors.lastName}
-              />
-              <Input
-                label={t("email")}
-                value={displayEmail}
-                disabled
-                helperText={t("emailCannotBeChanged")}
-              />
-              <Input
-                value={formData.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
-                label={t("phone")}
-                disabled={!isEditing}
-                error={formErrors.phone}
-              />
-            </div>
+        </div>
 
-            {isEditing && (
-              <div className="flex gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={handleCancel}>
-                  {t("cancel")}
-                </Button>
-                <Button type="submit" isLoading={isSaving}>
-                  {t("saveChanges")}
-                </Button>
-              </div>
-            )}
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Security Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("security")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div>
-              <p className="font-medium text-foreground">{t("password")}</p>
-              <p className="text-sm text-muted-foreground">
-                {t("passwordDescription")}
-              </p>
-            </div>
-            <Button variant="outline" size="sm">
-              {t("changePassword")}
-            </Button>
+        <form onSubmit={handleSave} className="p-6 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              value={formData.firstName}
+              onChange={(e) => updateField("firstName", e.target.value)}
+              label={t("firstName")}
+              disabled={!isEditing}
+              error={formErrors.firstName}
+            />
+            <Input
+              value={formData.lastName}
+              onChange={(e) => updateField("lastName", e.target.value)}
+              label={t("lastName")}
+              disabled={!isEditing}
+              error={formErrors.lastName}
+            />
+            <Input
+              label={t("email")}
+              value={displayEmail}
+              disabled
+              helperText={t("emailCannotBeChanged")}
+            />
+            <Input
+              value={formData.phone}
+              onChange={(e) => updateField("phone", e.target.value)}
+              label={t("phone")}
+              disabled={!isEditing}
+              error={formErrors.phone}
+            />
           </div>
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div>
-              <p className="font-medium text-foreground">{t("twoFactor")}</p>
-              <p className="text-sm text-muted-foreground">
-                {t("twoFactorDescription")}
-              </p>
-            </div>
-            <Button variant="outline" size="sm">
-              {t("enable")}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Danger Zone */}
-      <Card className="border-red-200">
-        <CardHeader>
-          <CardTitle className="text-red-600">{t("dangerZone")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
-            <div>
-              <p className="font-medium text-foreground">
-                {t("deleteAccount")}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {t("deleteAccountDescription")}
-              </p>
+          {isEditing && (
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className={`inline-flex min-h-[44px] items-center rounded-xl border border-[var(--color-border-default)] px-4 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] ${focusRing}`}
+              >
+                {t("cancel")}
+              </button>
+              <Button type="submit" isLoading={isSaving}>
+                {t("saveChanges")}
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-red-300 text-red-600 hover:bg-red-50"
+          )}
+        </form>
+      </section>
+
+      {/* ── Section 02: Sign-in & security ────────────────────────────────── */}
+      <section className={cardSurface} aria-labelledby="security-heading">
+        <div className="border-b border-[var(--color-border-default)] px-6 py-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-tertiary)]">
+              02
+            </span>
+            <h2
+              id="security-heading"
+              className="font-semibold text-[var(--color-text-primary)]"
             >
-              {t("delete")}
-            </Button>
+              {t("security")}
+            </h2>
           </div>
-        </CardContent>
-      </Card>
+          <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+            {t("securityDescription", {
+              defaultValue: "Manage your password and account access.",
+            })}
+          </p>
+        </div>
+
+        <div className="divide-y divide-[var(--color-border-default)]">
+          {/* Password row */}
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-bg-surface)]">
+                <ShieldCheck
+                  className="h-5 w-5 text-[var(--color-text-secondary)]"
+                  aria-hidden="true"
+                />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                  {t("password")}
+                </p>
+                <p className="text-xs text-[var(--color-text-secondary)]">
+                  {t("passwordDescription")}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`inline-flex min-h-[44px] items-center rounded-xl border border-[var(--color-border-default)] px-3 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)] ${focusRing}`}
+            >
+              {t("changePassword")}
+            </button>
+          </div>
+
+          {/* 2FA row */}
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-bg-surface)]">
+                <ShieldCheck
+                  className="h-5 w-5 text-[var(--color-text-secondary)]"
+                  aria-hidden="true"
+                />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                  {t("twoFactor")}
+                </p>
+                <p className="text-xs text-[var(--color-text-secondary)]">
+                  {t("twoFactorDescription")}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`inline-flex min-h-[44px] items-center rounded-xl border border-[var(--color-border-default)] px-3 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)] ${focusRing}`}
+            >
+              {t("enable")}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Danger zone ───────────────────────────────────────────────────── */}
+      <section
+        className="rounded-[20px] border border-[var(--color-error-border)] bg-[var(--color-bg-base)]"
+        aria-labelledby="danger-heading"
+      >
+        <div className="border-b border-[var(--color-error-border)] px-6 py-4">
+          <h2
+            id="danger-heading"
+            className="text-sm font-semibold text-[var(--color-error-text)]"
+          >
+            {t("dangerZone")}
+          </h2>
+        </div>
+        <div className="flex items-center justify-between px-6 py-4">
+          <div>
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">
+              {t("deleteAccount")}
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
+              {t("deleteAccountDescription")}
+            </p>
+          </div>
+          <button
+            type="button"
+            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--color-error-border)] px-3 text-sm font-medium text-[var(--color-error-text)] transition-colors hover:bg-[var(--color-error-bg)] ${focusRing}`}
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            {t("delete")}
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

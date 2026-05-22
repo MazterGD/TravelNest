@@ -27,17 +27,19 @@ export default function CustomerMessagesPage({
 
   return (
     <DashboardLayoutClient locale={locale}>
-      <div className="mb-6">
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8">
         <h1 className="mb-2 text-3xl font-bold text-[var(--color-text-primary)]">
           {t("title")}
         </h1>
         <p className="text-[var(--color-text-secondary)]">{t("subtitle")}</p>
       </div>
 
-      <ChatLayout
-        emptyDescKey="emptyListDesc"
-        initialBookingId={initialBookingId}
-      />
+      <div className="mx-auto max-w-7xl px-4 md:px-6 lg:px-8 space-y-8">
+        <ChatLayout
+          emptyDescKey="emptyListDesc"
+          initialBookingId={initialBookingId}
+        />
+      </div>
     </DashboardLayoutClient>
   );
 }

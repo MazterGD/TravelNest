@@ -187,20 +187,6 @@ export function Footer() {
           <p className="text-center text-sm text-text-tertiary md:text-left">
             {t("copyright", { year: currentYear })}
           </p>
-          <div className="flex gap-6">
-            <Link
-              href={`/${locale}/privacy`}
-              className="text-sm text-text-tertiary transition-colors hover:text-primary"
-            >
-              {t("privacyPolicy")}
-            </Link>
-            <Link
-              href={`/${locale}/terms`}
-              className="text-sm text-text-tertiary transition-colors hover:text-primary"
-            >
-              {t("termsOfService")}
-            </Link>
-          </div>
         </div>
       </div>
     </footer>
