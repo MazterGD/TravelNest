@@ -20,7 +20,7 @@ export function PageHeader({
     // <section
     //   className={`bg-gradient-to-br from-muted via-background to-accent/20 py-16 sm:py-24 ${className}`}
     // >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
         {/*<div className={centered ? "text-center" : ""}>*/}
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
