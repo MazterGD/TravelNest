@@ -273,12 +273,16 @@ export const getBookingById = async (
     driverAllowance: number;
     additionalCharges: number;
   } | null = null;
+  
+  let itineraryStops: any[] | null = null;
+  let itineraryRoute: any | null = null;
 
   const quotationIdMatch = booking.notes?.match(/from quotation (QUO-[\w-]+)/);
   if (quotationIdMatch) {
     const quotation = await prisma.quotation.findUnique({
       where: { quotationId: quotationIdMatch[1] },
       select: {
+        id: true,
         vehicleRentalCost: true,
         driverCost: true,
         fuelCost: true,
@@ -295,6 +299,25 @@ export const getBookingById = async (
           (quotation.tollCharges ?? 0) +
           (quotation.permitFees ?? 0),
       };
+
+      const [stopsRaw, routeRaw] = await Promise.all([
+        (prisma as any).$queryRawUnsafe(`SELECT "id", "stopOrder", "locationName", ST_AsGeoJSON(coordinates) as coordinates FROM "itinerary_stops" WHERE "quotationId" = $1 ORDER BY "stopOrder" ASC`, quotation.id).catch(() => []),
+        (prisma as any).$queryRawUnsafe(`SELECT "id", ST_AsGeoJSON("routeGeometry") as "routeGeometry" FROM "itinerary_routes" WHERE "quotationId" = $1`, quotation.id).catch(() => [])
+      ]);
+
+      if (stopsRaw && stopsRaw.length > 0) {
+        itineraryStops = stopsRaw.map((s: any) => ({
+          ...s,
+          coordinates: s.coordinates ? JSON.parse(s.coordinates).coordinates : null,
+        }));
+      }
+
+      if (routeRaw && routeRaw.length > 0) {
+        itineraryRoute = {
+          ...routeRaw[0],
+          coordinates: routeRaw[0].routeGeometry ? JSON.parse(routeRaw[0].routeGeometry).coordinates : null,
+        };
+      }
     }
   }
 
@@ -329,6 +352,8 @@ export const getBookingById = async (
       pickupLocation: booking.pickupLocation,
       dropoffLocation: booking.dropoffLocation || booking.pickupLocation,
       passengers: booking.totalPassengers || 0,
+      itineraryStops,
+      itineraryRoute,
     },
     payment: {
       id: booking.payment?.id || null,

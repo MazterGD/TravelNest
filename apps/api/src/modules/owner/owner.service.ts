@@ -6,6 +6,7 @@ import prisma, {
   maskSettlementBankAccountNumber,
 } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { deleteByUrl } from "../../utils/storage.js";
 import { generateTokens, UserRole, UserStatus } from "../auth/auth.service.js";
 import type {
   OwnerRegistrationInput,
@@ -516,12 +517,23 @@ export const addOwnerDocument = async (
 ) => {
   validateMimeType(
     data.mimeType,
-    data.type === "PROFILE_PHOTO" ? ALLOWED_IMAGE_TYPES : ALLOWED_DOCUMENT_TYPES,
+    data.type === "PROFILE_PHOTO"
+      ? ALLOWED_IMAGE_TYPES
+      : ALLOWED_DOCUMENT_TYPES,
     data.fileName,
   );
   validateFileSize(data.fileSize, data.fileName);
 
   return prisma.$transaction(async (tx) => {
+    const existingDocuments = await tx.ownerDocument.findMany({
+      where: { ownerId, type: data.type as any },
+      select: { url: true },
+    });
+
+    for (const existingDocument of existingDocuments) {
+      await deleteByUrl(existingDocument.url);
+    }
+
     await tx.ownerDocument.deleteMany({
       where: { ownerId, type: data.type as any },
     });
@@ -543,10 +555,7 @@ export const addOwnerDocument = async (
 /**
  * Delete an owner document by ID (ownership-verified)
  */
-export const deleteOwnerDocument = async (
-  ownerId: string,
-  docId: string,
-) => {
+export const deleteOwnerDocument = async (ownerId: string, docId: string) => {
   const doc = await prisma.ownerDocument.findUnique({ where: { id: docId } });
 
   if (!doc) {
@@ -557,6 +566,7 @@ export const deleteOwnerDocument = async (
     throw ApiError.forbidden("You do not own this document");
   }
 
+  await deleteByUrl(doc.url);
   await prisma.ownerDocument.delete({ where: { id: docId } });
 };
 
@@ -758,21 +768,21 @@ export const getOwnerReviews = async (
       rating: r.rating,
       dimensions: {
         vehicleCondition: r.ratingVehicleCondition,
-        driverBehavior:   r.ratingDriverBehavior,
-        punctuality:      r.ratingPunctuality,
-        cleanliness:      r.ratingCleanliness,
-        valueForMoney:    r.ratingValueForMoney,
+        driverBehavior: r.ratingDriverBehavior,
+        punctuality: r.ratingPunctuality,
+        cleanliness: r.ratingCleanliness,
+        valueForMoney: r.ratingValueForMoney,
       },
-      title:         r.title,
-      comment:       r.comment,
+      title: r.title,
+      comment: r.comment,
       isRecommended: r.isRecommended,
       ownerResponse: r.ownerResponse,
-      createdAt:     r.createdAt.toISOString(),
-      tripDate:      r.booking.startDate.toISOString(),
-      customerName:  `${r.customer.firstName} ${r.customer.lastName.charAt(0)}.`,
+      createdAt: r.createdAt.toISOString(),
+      tripDate: r.booking.startDate.toISOString(),
+      customerName: `${r.customer.firstName} ${r.customer.lastName.charAt(0)}.`,
       customerAvatar: r.customer.avatar,
-      vehicleId:     r.vehicle.id,
-      vehicleName:   r.vehicle.name || r.vehicle.licensePlate,
+      vehicleId: r.vehicle.id,
+      vehicleName: r.vehicle.name || r.vehicle.licensePlate,
     })),
     pagination: {
       page,
@@ -784,31 +794,32 @@ export const getOwnerReviews = async (
 };
 
 export const getOwnerReviewSummary = async (ownerId: string) => {
-  const [aggregate, dimAggregate, ratingGroups, pendingCount] = await Promise.all([
-    prisma.review.aggregate({
-      where: { vehicle: { ownerId } },
-      _avg: { rating: true },
-      _count: { id: true },
-    }),
-    prisma.review.aggregate({
-      where: { vehicle: { ownerId } },
-      _avg: {
-        ratingVehicleCondition: true,
-        ratingDriverBehavior:   true,
-        ratingPunctuality:      true,
-        ratingCleanliness:      true,
-        ratingValueForMoney:    true,
-      },
-    }),
-    prisma.review.groupBy({
-      by: ["rating"],
-      where: { vehicle: { ownerId } },
-      _count: { id: true },
-    }),
-    prisma.review.count({
-      where: { vehicle: { ownerId }, ownerResponse: null },
-    }),
-  ]);
+  const [aggregate, dimAggregate, ratingGroups, pendingCount] =
+    await Promise.all([
+      prisma.review.aggregate({
+        where: { vehicle: { ownerId } },
+        _avg: { rating: true },
+        _count: { id: true },
+      }),
+      prisma.review.aggregate({
+        where: { vehicle: { ownerId } },
+        _avg: {
+          ratingVehicleCondition: true,
+          ratingDriverBehavior: true,
+          ratingPunctuality: true,
+          ratingCleanliness: true,
+          ratingValueForMoney: true,
+        },
+      }),
+      prisma.review.groupBy({
+        by: ["rating"],
+        where: { vehicle: { ownerId } },
+        _count: { id: true },
+      }),
+      prisma.review.count({
+        where: { vehicle: { ownerId }, ownerResponse: null },
+      }),
+    ]);
 
   const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   ratingGroups.forEach((g) => {
@@ -818,7 +829,8 @@ export const getOwnerReviewSummary = async (ownerId: string) => {
   const totalReviews = aggregate._count.id;
   const responded = totalReviews - pendingCount;
 
-  const round1 = (v: number | null) => (v !== null ? parseFloat(v.toFixed(1)) : null);
+  const round1 = (v: number | null) =>
+    v !== null ? parseFloat(v.toFixed(1)) : null;
 
   return {
     averageRating: parseFloat((aggregate._avg.rating ?? 0).toFixed(1)),
@@ -829,10 +841,10 @@ export const getOwnerReviewSummary = async (ownerId: string) => {
     ratingDistribution: distribution,
     dimensionAverages: {
       vehicleCondition: round1(dimAggregate._avg.ratingVehicleCondition),
-      driverBehavior:   round1(dimAggregate._avg.ratingDriverBehavior),
-      punctuality:      round1(dimAggregate._avg.ratingPunctuality),
-      cleanliness:      round1(dimAggregate._avg.ratingCleanliness),
-      valueForMoney:    round1(dimAggregate._avg.ratingValueForMoney),
+      driverBehavior: round1(dimAggregate._avg.ratingDriverBehavior),
+      punctuality: round1(dimAggregate._avg.ratingPunctuality),
+      cleanliness: round1(dimAggregate._avg.ratingCleanliness),
+      valueForMoney: round1(dimAggregate._avg.ratingValueForMoney),
     },
   };
 };
@@ -841,7 +853,14 @@ export const getAnalyticsOverview = async (ownerId: string) => {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  const endOfLastMonth = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    0,
+    23,
+    59,
+    59,
+  );
 
   const [
     totalRevenueAgg,
@@ -858,7 +877,11 @@ export const getAnalyticsOverview = async (ownerId: string) => {
       _sum: { totalAmount: true },
     }),
     prisma.booking.aggregate({
-      where: { vehicle: { ownerId }, status: "COMPLETED", updatedAt: { gte: startOfMonth } },
+      where: {
+        vehicle: { ownerId },
+        status: "COMPLETED",
+        updatedAt: { gte: startOfMonth },
+      },
       _sum: { totalAmount: true },
     }),
     prisma.booking.aggregate({
@@ -870,10 +893,15 @@ export const getAnalyticsOverview = async (ownerId: string) => {
       _sum: { totalAmount: true },
     }),
     prisma.booking.count({ where: { vehicle: { ownerId } } }),
-    prisma.booking.count({ where: { vehicle: { ownerId }, status: "COMPLETED" } }),
+    prisma.booking.count({
+      where: { vehicle: { ownerId }, status: "COMPLETED" },
+    }),
     prisma.vehicle.count({ where: { ownerId } }),
     prisma.vehicle.count({ where: { ownerId, isActive: true } }),
-    prisma.review.aggregate({ where: { vehicle: { ownerId } }, _avg: { rating: true } }),
+    prisma.review.aggregate({
+      where: { vehicle: { ownerId } },
+      _avg: { rating: true },
+    }),
   ]);
 
   const lastMonth = lastMonthRevenueAgg._sum.totalAmount ?? 0;
@@ -890,11 +918,15 @@ export const getAnalyticsOverview = async (ownerId: string) => {
     totalBookings,
     completedBookings,
     completionRate:
-      totalBookings > 0 ? Math.round((completedBookings / totalBookings) * 100) : 0,
+      totalBookings > 0
+        ? Math.round((completedBookings / totalBookings) * 100)
+        : 0,
     totalVehicles,
     activeVehicles,
     fleetUtilization:
-      totalVehicles > 0 ? Math.round((activeVehicles / totalVehicles) * 100) : 0,
+      totalVehicles > 0
+        ? Math.round((activeVehicles / totalVehicles) * 100)
+        : 0,
     averageRating: parseFloat((avgRatingAgg._avg.rating ?? 0).toFixed(1)),
   };
 };
@@ -914,7 +946,11 @@ export const getAnalyticsRevenue = async (ownerId: string) => {
     Promise.all(
       months.map(({ start, end }) =>
         prisma.booking.aggregate({
-          where: { vehicle: { ownerId }, status: "COMPLETED", updatedAt: { gte: start, lte: end } },
+          where: {
+            vehicle: { ownerId },
+            status: "COMPLETED",
+            updatedAt: { gte: start, lte: end },
+          },
           _sum: { totalAmount: true },
         }),
       ),
@@ -954,12 +990,20 @@ export const getAnalyticsVehicles = async (ownerId: string) => {
 
   return vehicles
     .map((v) => {
-      const completedBookings = v.bookings.filter((b) => b.status === "COMPLETED");
-      const revenue = completedBookings.reduce((sum, b) => sum + (b.totalAmount ?? 0), 0);
+      const completedBookings = v.bookings.filter(
+        (b) => b.status === "COMPLETED",
+      );
+      const revenue = completedBookings.reduce(
+        (sum, b) => sum + (b.totalAmount ?? 0),
+        0,
+      );
       const avgRating =
         v.reviews.length > 0
           ? parseFloat(
-              (v.reviews.reduce((sum, r) => sum + r.rating, 0) / v.reviews.length).toFixed(1),
+              (
+                v.reviews.reduce((sum, r) => sum + r.rating, 0) /
+                v.reviews.length
+              ).toFixed(1),
             )
           : 0;
       return {

@@ -22,6 +22,12 @@ import {
   FileText,
 } from "lucide-react";
 import { bookingService, ApiError } from "@/lib/api";
+import dynamic from "next/dynamic";
+
+const InteractiveMap = dynamic(
+  () => import("@/components/ui/InteractiveMap"),
+  { ssr: false, loading: () => <div className="h-[300px] w-full bg-muted animate-pulse rounded-lg flex items-center justify-center"><Map className="h-8 w-8 text-muted-foreground" /></div> }
+);
 
 export default function BookingDetailsPage({
   params,
@@ -234,14 +240,32 @@ export default function BookingDetailsPage({
                   </div>
                 </div>
 
-                <div className="mb-5 rounded-lg bg-muted p-8 text-center">
-                  <Map className="mx-auto mb-2 h-8 w-8 text-[var(--color-text-tertiary)]" />
-                  <p className="text-sm text-muted-foreground">{t("routeMapTitle")}</p>
-                  <p className="text-xs text-[var(--color-text-tertiary)]">
-                    {booking.pickupLocation && booking.dropoffLocation
-                      ? `${booking.pickupLocation} → ${booking.dropoffLocation}`
-                      : t("routeUnavailable")}
-                  </p>
+                <div className="mb-5">
+                  <InteractiveMap
+                    readOnly={true}
+                    initialWaypoints={
+                      booking.itineraryStops?.map((stop: any) => ({
+                        lat: stop.coordinates?.[1] || stop.lat,
+                        lng: stop.coordinates?.[0] || stop.lng,
+                        name: stop.locationName,
+                      })) ||
+                      trip.itineraryStops?.map((stop: any) => ({
+                        lat: stop.coordinates?.[1] || stop.lat,
+                        lng: stop.coordinates?.[0] || stop.lng,
+                        name: stop.locationName,
+                      })) ||
+                      []
+                    }
+                    initialRouteGeometry={
+                      booking.itineraryRoute?.coordinates?.map(
+                        ([lng, lat]: [number, number]) => [lat, lng]
+                      ) ||
+                      trip.itineraryRoute?.coordinates?.map(
+                        ([lng, lat]: [number, number]) => [lat, lng]
+                      ) ||
+                      []
+                    }
+                  />
                 </div>
 
                 <div>

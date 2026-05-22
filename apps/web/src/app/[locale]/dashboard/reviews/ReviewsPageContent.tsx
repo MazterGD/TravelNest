@@ -258,7 +258,7 @@ export function ReviewsPageContent({ locale }: ReviewsPageContentProps) {
   ];
 
   return (
-    <div className="space-y-6">
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8 space-y-8">
       <PageHeader
         title={t("reviewsTitle")}
         description={t("reviewsDescription")}

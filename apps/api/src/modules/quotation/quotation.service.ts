@@ -589,40 +589,62 @@ export const getQuotationById = async (
   userId: string,
   userRole: string,
 ) => {
-  const quotation = await prisma.quotation.findUnique({
-    where: { id: quotationId },
-    include: {
-      customer: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          phone: true,
+  const [quotation, stopsRaw, routeRaw] = await Promise.all([
+    prisma.quotation.findUnique({
+      where: { id: quotationId },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+          },
         },
-      },
-      vehicle: {
-        select: {
-          id: true,
-          licensePlate: true,
+        vehicle: {
+          select: {
+            id: true,
+            licensePlate: true,
 
-          year: true,
+            year: true,
 
-          pricePerDay: true,
-          ownerId: true,
-          owner: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              phone: true,
+            pricePerDay: true,
+            ownerId: true,
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    }),
+    prisma.$queryRawUnsafe<any[]>(`SELECT "id", "stopOrder", "locationName", ST_AsGeoJSON(coordinates) as coordinates FROM "itinerary_stops" WHERE "quotationId" = $1 ORDER BY "stopOrder" ASC`, quotationId).catch(() => []),
+    prisma.$queryRawUnsafe<any[]>(`SELECT "id", ST_AsGeoJSON("routeGeometry") as "routeGeometry" FROM "itinerary_routes" WHERE "quotationId" = $1`, quotationId).catch(() => [])
+  ]);
+
+  if (!quotation) {
+    throw ApiError.notFound("Quotation not found");
+  }
+
+  if (stopsRaw && stopsRaw.length > 0) {
+    (quotation as any).itineraryStops = stopsRaw.map((s) => ({
+      ...s,
+      coordinates: s.coordinates ? JSON.parse(s.coordinates).coordinates : null,
+    }));
+  }
+
+  if (routeRaw && routeRaw.length > 0) {
+    (quotation as any).itineraryRoute = {
+      ...routeRaw[0],
+      coordinates: routeRaw[0].routeGeometry ? JSON.parse(routeRaw[0].routeGeometry).coordinates : null,
+    };
+  }
 
   if (!quotation) {
     throw ApiError.notFound("Quotation not found");

@@ -372,8 +372,13 @@ export const userService = {
   uploadAvatar: async (file: File) => {
     const formData = new FormData();
     formData.append("avatar", file);
-    return api.upload<{ url: string }>("/users/avatar", formData);
+    return api.upload<User>("/users/avatar", formData);
   },
+
+  /**
+   * Delete avatar image
+   */
+  deleteAvatar: () => api.delete<User>("/users/avatar"),
 
   /**
    * Get user by ID (admin only)

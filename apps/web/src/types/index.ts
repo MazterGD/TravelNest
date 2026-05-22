@@ -232,6 +232,9 @@ export interface Quotation {
   // Relations
   customer?: Partial<User>;
   vehicle?: Partial<Vehicle>;
+  // Itinery
+  itineraryRoute?: string;
+  itineraryStops?: string[];
 }
 
 // Location Type

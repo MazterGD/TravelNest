@@ -5,7 +5,13 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
+import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store";
+
+const InteractiveMap = dynamic(
+  () => import("@/components/ui/InteractiveMap"),
+  { ssr: false, loading: () => <div className="h-[300px] w-full bg-muted animate-pulse rounded-lg flex items-center justify-center"><Map className="h-8 w-8 text-muted-foreground" /></div> }
+);
 import { useOwnerGuard } from "@/hooks";
 import { quotationService } from "@/lib/api/services";
 import { formatDate } from "@/lib/utils/formatters";
@@ -19,6 +25,7 @@ import {
   XCircle,
   Eye,
   FileText,
+  Map,
 } from "lucide-react";
 
 interface QuotationDetail {
@@ -37,6 +44,8 @@ interface QuotationDetail {
     startTime: string;
     estimatedDistance: string;
     estimatedDuration: string;
+    itineraryStops?: any[];
+    itineraryRoute?: any;
   };
   passengers: number;
   vehicle: {
@@ -112,6 +121,8 @@ export default function QuotationDetailPage({
             startTime: data.startTime || "",
             estimatedDistance: data.estimatedDistance || "",
             estimatedDuration: data.estimatedDuration || "",
+            itineraryStops: data.itineraryStops,
+            itineraryRoute: data.itineraryRoute,
           },
           passengers: data.passengerCount,
           vehicle: {
@@ -442,6 +453,21 @@ export default function QuotationDetailPage({
                         })}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Map Integration */}
+                  <div className="mt-6 rounded-lg overflow-hidden h-[300px]">
+                    <InteractiveMap
+                      readOnly={true}
+                      initialWaypoints={quotation.trip.itineraryStops?.map((stop: any) => ({
+                        lat: stop.coordinates?.[1] || stop.lat,
+                        lng: stop.coordinates?.[0] || stop.lng,
+                        name: stop.locationName,
+                      })) || []}
+                      initialRouteGeometry={quotation.trip.itineraryRoute?.coordinates?.map(
+                        ([lng, lat]: [number, number]) => [lat, lng]
+                      ) || []}
+                    />
                   </div>
 
                   {quotation.additionalNotes && (

@@ -29,6 +29,7 @@ import tripPackageRoutes from "./modules/trip-package/trip-package.routes.js";
 import uploadsRoutes from "./modules/uploads/uploads.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
 import landingRoutes from "./modules/landing/landing.routes.js";
+import routingRoutes from "./modules/routing/routing.routes.js";
 
 const app: Express = express();
 
@@ -138,6 +139,7 @@ app.use(`${apiBase}/packages`, tripPackageRoutes);
 app.use(`${apiBase}/uploads`, uploadsRoutes);
 app.use(`${apiBase}/admin`, adminRoutes);
 app.use(`${apiBase}/landing`, landingRoutes);
+app.use(`${apiBase}/routing`, routingRoutes);
 
 // API documentation endpoint
 app.get(`${apiBase}`, (_req: Request, res: Response) => {
@@ -159,6 +161,7 @@ app.get(`${apiBase}`, (_req: Request, res: Response) => {
       packages: `${apiBase}/packages`,
       admin: `${apiBase}/admin`,
       landing: `${apiBase}/landing`,
+      routing: `${apiBase}/routing`,
     },
   });
 });

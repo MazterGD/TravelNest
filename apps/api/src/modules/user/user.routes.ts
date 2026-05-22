@@ -87,6 +87,18 @@ router.post(
 );
 
 /**
+ * @route   DELETE /api/v1/users/avatar
+ * @desc    Delete user avatar
+ * @access  Private
+ */
+router.delete(
+  "/avatar",
+  authenticate,
+  csrfProtection,
+  asyncHandler(userController.deleteAvatar),
+);
+
+/**
  * @route   DELETE /api/v1/users/account
  * @desc    Delete user account
  * @access  Private

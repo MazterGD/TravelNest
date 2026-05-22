@@ -14,6 +14,13 @@ import {
   landingContentService,
 } from "@/lib/api/services";
 import { formatDate } from "@/lib/utils/formatters";
+import dynamic from "next/dynamic";
+import { Map } from "lucide-react";
+
+const InteractiveMap = dynamic(
+  () => import("@/components/ui/InteractiveMap"),
+  { ssr: false, loading: () => <div className="h-[300px] w-full bg-muted animate-pulse rounded-lg flex items-center justify-center"><Map className="h-8 w-8 text-muted-foreground" /></div> }
+);
 import {
   ArrowLeft,
   MapPin,
@@ -44,6 +51,9 @@ interface QuotationRequest {
     startTime: string;
     estimatedDuration: string;
     estimatedDistance: string;
+    // PostGIS data attached to Quotation
+    itineraryStops?: any[];
+    itineraryRoute?: any;
   };
   passengers: number;
   vehicleType: string;
@@ -58,6 +68,7 @@ interface Vehicle {
   capacity: number;
   baseRate: number;
   acType: string;
+  fuelCostPerKm?: number;
 }
 
 interface CustomLineItem {
@@ -144,6 +155,8 @@ export default function SendQuotationPage({
             startTime: data.startTime || "",
             estimatedDuration: data.estimatedDuration || "",
             estimatedDistance: data.estimatedDistance || "",
+            itineraryStops: (data as any).itineraryStops,
+            itineraryRoute: (data as any).itineraryRoute,
           },
           passengers: data.passengerCount,
           vehicleType: data.vehicleType,
@@ -172,6 +185,7 @@ export default function SendQuotationPage({
             capacity: v.seats || v.passengerCapacity || 0,
             baseRate: v.pricePerDay || 0,
             acType: v.acType || "",
+            fuelCostPerKm: (v as any).fuelCostPerKm || 0,
           }),
         );
         setVehicles(vehicleList);
@@ -184,6 +198,14 @@ export default function SendQuotationPage({
             setIsSpecificVehicleRequest(true);
             setRequestedVehicle(specificVehicle);
             setSelectedVehicle(data.vehicleId);
+
+            if (specificVehicle.fuelCostPerKm && data.estimatedDistance) {
+              const distanceMatch = data.estimatedDistance.match(/([\d.]+)/);
+              if (distanceMatch) {
+                const distance = parseFloat(distanceMatch[1]);
+                setFuelCost(Math.round(distance * specificVehicle.fuelCostPerKm));
+              }
+            }
           }
         }
       } catch {
@@ -277,7 +299,8 @@ export default function SendQuotationPage({
           Math.round(vehicle.baseRate * quotationPricing.driverCostPercentage),
         );
         const distance = parseFloat(request?.trip.estimatedDistance || "0");
-        setFuelCost(Math.round(distance * quotationPricing.fuelCostPerKm));
+        const perKmRate = vehicle.fuelCostPerKm || quotationPricing.fuelCostPerKm || 0;
+        setFuelCost(Math.round(distance * perKmRate));
         setTollCharges(quotationPricing.tollChargesBase);
         setPermitFees(quotationPricing.permitFeesBase);
       }
@@ -562,6 +585,21 @@ export default function SendQuotationPage({
                     </div>
                   </div>
 
+                  {/* Interactive Map (Read-Only) */}
+                  <div className="mt-6">
+                    <InteractiveMap
+                      readOnly={true}
+                      initialWaypoints={request.trip.itineraryStops?.map((stop: any) => ({
+                        lat: stop.coordinates?.[1] || stop.lat,
+                        lng: stop.coordinates?.[0] || stop.lng,
+                        name: stop.locationName,
+                      })) || []}
+                      initialRouteGeometry={request.trip.itineraryRoute?.coordinates?.map(
+                        ([lng, lat]: [number, number]) => [lat, lng]
+                      ) || []}
+                    />
+                  </div>
+
                   {/* Special Requirements */}
                   {request.specialRequirements && (
                     <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
@@ -822,8 +860,9 @@ export default function SendQuotationPage({
                       <input
                         type="number"
                         value={fuelCost}
-                        onChange={(e) => setFuelCost(Number(e.target.value))}
-                        className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        disabled
+                        readOnly
+                        className="h-11 w-full rounded-md border border-border bg-muted px-3 py-2 text-sm transition-colors cursor-not-allowed text-muted-foreground"
                       />
                     </div>
 

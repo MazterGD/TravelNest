@@ -198,6 +198,49 @@ export const updateAvatar = async (userId: string, avatarUrl: string) => {
 };
 
 /**
+ * Delete user avatar
+ */
+export const deleteAvatar = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { avatar: true },
+  });
+
+  if (!user) {
+    throw ApiError.notFound("User not found");
+  }
+
+  if (user.avatar) {
+    await deleteByUrl(user.avatar);
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { avatar: null },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      nicNumber: true,
+      avatar: true,
+      address: true,
+      city: true,
+      district: true,
+      postalCode: true,
+      role: true,
+      status: true,
+      isVerified: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return updatedUser;
+};
+
+/**
  * Change user password
  */
 export const changePassword = async (

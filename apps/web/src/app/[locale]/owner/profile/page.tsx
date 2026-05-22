@@ -36,6 +36,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Clock,
+  LoaderCircle,
 } from "lucide-react";
 
 type ProfileTab =
@@ -84,6 +85,8 @@ export default function OwnerProfilePage() {
   const [profilePicture, setProfilePicture] = useState<string | null>(
     user?.avatar || null,
   );
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isDeletingAvatar, setIsDeletingAvatar] = useState(false);
 
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
@@ -138,14 +141,31 @@ export default function OwnerProfilePage() {
     }
   }, [activeTab, user]);
 
+  const loadOwnerDocuments = async () => {
+    if (!user) return;
+
+    setIsLoadingDocs(true);
+    try {
+      const docs = await ownerService.getDocuments();
+      setDocuments(docs);
+      setProfilePicture(
+        docs.find((doc) => doc.type === "PROFILE_PHOTO")?.url || null,
+      );
+    } catch {
+      setDocuments([]);
+      setProfilePicture(null);
+    } finally {
+      setIsLoadingDocs(false);
+    }
+  };
+
   useEffect(() => {
-    if (activeTab === "documents" && user) {
-      setIsLoadingDocs(true);
-      ownerService
-        .getDocuments()
-        .then((docs) => setDocuments(docs))
-        .catch(() => setDocuments([]))
-        .finally(() => setIsLoadingDocs(false));
+    loadOwnerDocuments();
+  }, [user]);
+
+  useEffect(() => {
+    if (activeTab === "documents") {
+      loadOwnerDocuments();
     }
   }, [activeTab, user]);
 
@@ -180,14 +200,67 @@ export default function OwnerProfilePage() {
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  const handleProfilePictureChange = (
+  const handleProfilePhotoUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setProfilePicture(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const maxFileSize = 5 * 1024 * 1024;
+
+    if (!allowedTypes.includes(file.type)) {
+      setError(t("avatarInvalidType"));
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > maxFileSize) {
+      setError(t("avatarMaxSize"));
+      e.target.value = "";
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setError(null);
+    try {
+      const { url } = await storageService.uploadRegistrationFile(
+        file,
+        "owner-documents",
+        "PROFILE_PHOTO",
+      );
+      await ownerService.addDocument({
+        type: "PROFILE_PHOTO",
+        url,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type,
+      });
+
+      await loadOwnerDocuments();
+      showSuccess(t("avatarUpdated"));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("avatarUploadFailed"));
+    } finally {
+      setIsUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleAvatarDelete = async () => {
+    const profilePhoto = documents.find((doc) => doc.type === "PROFILE_PHOTO");
+    if (!profilePhoto) return;
+
+    setIsDeletingAvatar(true);
+    setError(null);
+    try {
+      await ownerService.deleteDocument(profilePhoto.id);
+      await loadOwnerDocuments();
+      showSuccess(t("avatarDeleted"));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("avatarDeleteFailed"));
+    } finally {
+      setIsDeletingAvatar(false);
     }
   };
 
@@ -307,6 +380,7 @@ export default function OwnerProfilePage() {
 
   const getDocumentByType = (type: string) =>
     documents.find((d) => d.type === type) || null;
+  const profilePhotoDocument = getDocumentByType("PROFILE_PHOTO");
 
   const StatusBadge = ({
     status,
@@ -445,8 +519,8 @@ export default function OwnerProfilePage() {
 
                   {/* Profile picture */}
                   <div className="mb-6 flex items-center gap-6">
-                    <div className="relative">
-                      <div className="h-24 w-24 rounded-full border-4 border-border bg-muted overflow-hidden">
+                    <div className="group relative">
+                      <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-border bg-muted">
                         {profilePicture ? (
                           <img
                             src={profilePicture}
@@ -459,18 +533,39 @@ export default function OwnerProfilePage() {
                           </div>
                         )}
                       </div>
-                      <label
-                        className="absolute -bottom-1 -right-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        aria-label="Change profile photo"
-                      >
-                        <Camera className="h-4 w-4" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          onChange={handleProfilePictureChange}
-                        />
-                      </label>
+                      <div className="absolute -right-1 -top-1 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                        {profilePhotoDocument && (
+                          <button
+                            type="button"
+                            onClick={handleAvatarDelete}
+                            disabled={isDeletingAvatar || isUploadingAvatar}
+                            aria-label={t("avatarDelete")}
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-error-bg)] text-[var(--color-error-text)] shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
+                          >
+                            {isDeletingAvatar ? (
+                              <LoaderCircle className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
+                        <label
+                          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[var(--color-action-primary)] text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
+                          aria-label={t("changePhoto")}
+                        >
+                          {isUploadingAvatar ? (
+                            <LoaderCircle className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Camera className="h-4 w-4" />
+                          )}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="sr-only"
+                            onChange={handleProfilePhotoUpload}
+                          />
+                        </label>
+                      </div>
                     </div>
                     <div>
                       <p className="font-medium text-foreground">

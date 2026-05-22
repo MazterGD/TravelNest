@@ -14,6 +14,13 @@ import {
 } from "@/components/ui";
 import { quotationService, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils/cn";
+import { Map } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const InteractiveMap = dynamic(
+  () => import("@/components/ui/InteractiveMap"),
+  { ssr: false, loading: () => <div className="h-[300px] w-full bg-muted animate-pulse rounded-lg flex items-center justify-center"><Map className="h-8 w-8 text-muted-foreground" /></div> }
+);
 
 interface QuotationDetailPageContentProps {
   locale: string;
@@ -63,6 +70,8 @@ interface QuotationRequest {
   passengerCount: number;
   vehicleType: string;
   status: string;
+  itineraryStops?: any[];
+  itineraryRoute?: any;
 }
 
 export function QuotationDetailPageContent({
@@ -117,6 +126,8 @@ export function QuotationDetailPageContent({
         passengerCount: baseQuotation.passengerCount || 0,
         vehicleType: baseQuotation.vehicleType || "",
         status: baseQuotation.status?.toLowerCase() || "pending",
+        itineraryStops: baseQuotation.itineraryStops,
+        itineraryRoute: baseQuotation.itineraryRoute,
       };
 
       setRequest(requestDetails);
@@ -373,6 +384,21 @@ export function QuotationDetailPageContent({
                 </p>
                 <p className="font-medium">{request.passengerCount}</p>
               </div>
+            </div>
+
+            {/* Map Integration */}
+            <div className="mt-6 rounded-lg overflow-hidden h-[300px]">
+              <InteractiveMap
+                readOnly={true}
+                initialWaypoints={request.itineraryStops?.map((stop: any) => ({
+                  lat: stop.coordinates?.[1] || stop.lat,
+                  lng: stop.coordinates?.[0] || stop.lng,
+                  name: stop.locationName,
+                })) || []}
+                initialRouteGeometry={request.itineraryRoute?.coordinates?.map(
+                  ([lng, lat]: [number, number]) => [lat, lng]
+                ) || []}
+              />
             </div>
           </div>
         </CardContent>

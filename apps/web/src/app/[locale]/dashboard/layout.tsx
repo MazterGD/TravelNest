@@ -1,5 +1,5 @@
 import { CustomerSidebar } from "@/components/layout/CustomerSidebar";
-import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,12 +13,12 @@ export default async function DashboardLayout({
   const { locale } = await params;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <div className="flex flex-1">
-        <CustomerSidebar locale={locale} />
-        <main className="flex-1 bg-gray-50">{children}</main>
-      </div>
+    <div className="flex min-h-screen bg-[var(--color-bg-surface)]">
+      <CustomerSidebar locale={locale} />
+      <main className="flex-1 min-w-0 pb-20 md:pb-0">
+        {children}
+        <Footer />
+      </main>
     </div>
   );
 }

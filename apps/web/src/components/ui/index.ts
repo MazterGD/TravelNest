@@ -86,3 +86,6 @@ export { InfoItem, InfoItemList } from "./InfoItem";
 
 // Quick Action Card - for dashboard quick actions
 export { QuickActionCard, QuickActionGrid } from "./QuickActionCard";
+
+// Map Component - for interactive routing and location selection
+export { InteractiveMap } from "./DynamicMap";

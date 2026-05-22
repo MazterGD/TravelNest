@@ -13,6 +13,12 @@ import {
 import { useProtectedRoute } from "@/hooks";
 import { bookingService } from "@/lib/api/services";
 import { ArrowLeft, MapPin, Calendar, Users, Star, Phone, XCircle, Download, ReceiptText, Map, AlertTriangle, MessageSquare } from 'lucide-react';
+import dynamic from "next/dynamic";
+
+const InteractiveMap = dynamic(
+  () => import("@/components/ui/InteractiveMap"),
+  { ssr: false, loading: () => <div className="h-[300px] w-full bg-muted animate-pulse rounded-lg flex items-center justify-center"><Map className="h-8 w-8 text-muted-foreground" /></div> }
+);
 
 export interface Message {
   id: string;
@@ -53,7 +59,11 @@ interface BookingDetails {
     endDate: string;
     pickupLocation: string;
     dropoffLocation: string;
+    estimatedDistance: string;
+    estimatedDuration: string;
     passengers: number;
+    itineraryStops?: any[];
+    itineraryRoute?: any;
   };
   payment: {
     id: string | null;
@@ -371,10 +381,20 @@ export default function BookingDetailsContent({
               </div>
               {/* NOTE: startTime is not stored in the database yet - will be added in future updates */}
 
-              {/* Route with Map placeholder */}
+              {/* Route with Map */}
               <div className="mb-6">
-                <div className="bg-gray-100 rounded-lg h-48 flex items-center justify-center mb-4">
-                  <Map className="text-gray-400 text-4xl" />
+                <div className="rounded-lg mb-4 overflow-hidden h-[300px]">
+                  <InteractiveMap
+                    readOnly={true}
+                    initialWaypoints={booking.trip?.itineraryStops?.map((stop: any) => ({
+                      lat: stop.coordinates?.[1] || stop.lat,
+                      lng: stop.coordinates?.[0] || stop.lng,
+                      name: stop.locationName,
+                    })) || []}
+                    initialRouteGeometry={booking.trip?.itineraryRoute?.coordinates?.map(
+                      ([lng, lat]: [number, number]) => [lat, lng]
+                    ) || []}
+                  />
                 </div>
 
                 {/* Route Details */}
