@@ -248,12 +248,12 @@ export function ProfilePageContent({
       >
         {/* Decorative circles */}
         <div
-            aria-hidden="true"
-            className="pointer-events-none absolute right-0 top-0 h-64 w-64 translate-x-1/3 -translate-y-1/4 rounded-full bg-white/5 blur-3xl"
+          aria-hidden="true"
+          className="pointer-events-none absolute right-0 top-0 h-64 w-64 translate-x-1/3 -translate-y-1/4 rounded-full bg-white/5 blur-3xl"
         />
         <div
-            aria-hidden="true"
-            className="pointer-events-none absolute right-10 top-10 h-96 w-96 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/5 blur-[80px]"
+          aria-hidden="true"
+          className="pointer-events-none absolute right-10 top-10 h-96 w-96 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/5 blur-[80px]"
         />
 
         <div className="relative flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
@@ -261,49 +261,49 @@ export function ProfilePageContent({
           <div className="group relative shrink-0">
             <div className="h-24 w-24 overflow-hidden rounded-full border-3 border-white/10 bg-muted shadow-xl transition-transform duration-300 group-hover:scale-[1.02]">
               {profileAvatar ? (
-                  <img
-                      src={profileAvatar}
-                      alt={t("profilePhoto")}
-                      className="h-full w-full object-cover"
-                  />
+                <img
+                  src={profileAvatar}
+                  alt={t("profilePhoto")}
+                  className="h-full w-full object-cover"
+                />
               ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-zinc-800/50">
-                    <User className="h-10 w-10 text-white/30" />
-                  </div>
+                <div className="flex h-full w-full items-center justify-center bg-zinc-800/50">
+                  <User className="h-10 w-10 text-white/30" />
+                </div>
               )}
             </div>
 
             {/* Integrated Hover Overlay */}
             <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-full bg-black/60 opacity-0 backdrop-blur-sm transition-all duration-200 focus-within:opacity-100 group-hover:opacity-100">
               {profileAvatar && (
-                  <button
-                      type="button"
-                      onClick={handleAvatarDelete}
-                      disabled={isDeletingAvatar || isUploadingAvatar}
-                      aria-label={t("avatarDelete")}
-                      className={`flex h-8 w-8 items-center justify-center rounded-full bg-red-500/80 text-white shadow-sm transition-all hover:scale-110 hover:bg-red-500 disabled:scale-100 disabled:opacity-50 ${focusRing}`}
-                  >
-                    {isDeletingAvatar ? (
-                        <LoaderCircle className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <Trash2 className="h-4 w-4" />
-                    )}
-                  </button>
+                <button
+                  type="button"
+                  onClick={handleAvatarDelete}
+                  disabled={isDeletingAvatar || isUploadingAvatar}
+                  aria-label={t("avatarDelete")}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full bg-red-500/80 text-white shadow-sm transition-all hover:scale-110 hover:bg-red-500 disabled:scale-100 disabled:opacity-50 ${focusRing}`}
+                >
+                  {isDeletingAvatar ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
               )}
               <label
-                  className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-sm backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 ${focusRing}`}
-                  aria-label={t("changePhoto")}
+                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white shadow-sm backdrop-blur-md transition-all hover:scale-110 hover:bg-white/30 ${focusRing}`}
+                aria-label={t("changePhoto")}
               >
                 {isUploadingAvatar ? (
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
                 ) : (
-                    <Camera className="h-3.5 w-3.5" />
+                  <Camera className="h-3.5 w-3.5" />
                 )}
                 <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
-                    onChange={handleAvatarUpload}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={handleAvatarUpload}
                 />
               </label>
             </div>
@@ -312,8 +312,8 @@ export function ProfilePageContent({
           {/* Name and Meta */}
           <div className="flex min-w-0 flex-1 flex-col sm:justify-center">
             <h1
-                id="profile-name-heading"
-                className="truncate text-2xl font-semibold tracking-tight text-white sm:text-3xl"
+              id="profile-name-heading"
+              className="truncate text-2xl font-semibold tracking-tight text-white sm:text-3xl"
             >
               {displayName}
             </h1>
@@ -323,16 +323,19 @@ export function ProfilePageContent({
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
               {isVerified && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-success-bg)]/75 px-2.5 py-1 text-xs font-medium text-[var(--color-success-text)] shadow-sm">
-          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    {t("verified")}
-        </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-success-bg)]/75 px-2.5 py-1 text-xs font-medium text-[var(--color-success-text)] shadow-sm">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  {t("verified")}
+                </span>
               )}
               {createdAt && (
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-white/40">
-          <span className="h-1 w-1 rounded-full bg-white/20" aria-hidden="true" />
-                    {t("memberSince")} {createdAt}
-        </span>
+                <span className="flex items-center gap-1.5 text-xs font-medium text-white/40">
+                  <span
+                    className="h-1 w-1 rounded-full bg-white/20"
+                    aria-hidden="true"
+                  />
+                  {t("memberSince")} {createdAt}
+                </span>
               )}
             </div>
           </div>
