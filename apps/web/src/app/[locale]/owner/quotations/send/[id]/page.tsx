@@ -108,6 +108,7 @@ export default function SendQuotationPage({
   const [vehicleRentalCost, setVehicleRentalCost] = useState<number>(0);
   const [driverCost, setDriverCost] = useState<number>(0);
   const [fuelCost, setFuelCost] = useState<number>(0);
+  const [fuelPricePerKm, setFuelPricePerKm] = useState<number>(0);
   const [tollCharges, setTollCharges] = useState<number>(0);
   const [permitFees, setPermitFees] = useState<number>(0);
   const [customLineItems, setCustomLineItems] = useState<CustomLineItem[]>([]);
@@ -300,12 +301,17 @@ export default function SendQuotationPage({
         );
         const distance = parseFloat(request?.trip.estimatedDistance || "0");
         const perKmRate = vehicle.fuelCostPerKm || quotationPricing.fuelCostPerKm || 0;
-        setFuelCost(Math.round(distance * perKmRate));
+        setFuelPricePerKm(perKmRate);
         setTollCharges(quotationPricing.tollChargesBase);
         setPermitFees(quotationPricing.permitFeesBase);
       }
     }
   }, [selectedVehicle, vehicles, request, quotationPricing]);
+
+  useEffect(() => {
+    const distance = parseFloat(request?.trip.estimatedDistance || "0");
+    setFuelCost(Math.round(distance * fuelPricePerKm));
+  }, [fuelPricePerKm, request]);
 
   const addCustomLineItem = () => {
     setCustomLineItems([
@@ -849,6 +855,18 @@ export default function SendQuotationPage({
                         type="number"
                         value={driverCost}
                         onChange={(e) => setDriverCost(Number(e.target.value))}
+                        className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-foreground">
+                        {t("pricing.fuelPricePerKm", { defaultValue: "Fuel Price per Km" })}
+                      </label>
+                      <input
+                        type="number"
+                        value={fuelPricePerKm}
+                        onChange={(e) => setFuelPricePerKm(Number(e.target.value))}
                         className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     </div>

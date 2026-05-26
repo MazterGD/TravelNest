@@ -10,11 +10,25 @@ import {
   Select,
   TextArea,
   CTAButton,
-  InteractiveMap,
+  LocationAutocomplete,
 } from "@/components/ui";
+import dynamic from "next/dynamic";
+import { Map } from "lucide-react";
+
+const DynamicInteractiveMap = dynamic(
+  () => import("@/components/ui/InteractiveMap").then((mod) => mod.InteractiveMap || mod.default || mod),
+  { ssr: false, loading: () => <div className="h-[300px] w-full bg-muted animate-pulse rounded-[20px] flex items-center justify-center"><Map className="h-8 w-8 text-muted-foreground" /></div> }
+);
 import { useAuthStore } from "@/store";
 import { useProtectedRoute } from "@/hooks";
-import { quotationService, landingContentService, ApiError } from "@/lib/api";
+import {
+  quotationService,
+  landingContentService,
+  vehicleService,
+  tripService,
+  ApiError,
+  type TripDTO,
+} from "@/lib/api";
 import {
   MapPin,
   Calendar,
@@ -30,12 +44,16 @@ import {
   Route,
   History,
   Lightbulb,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 interface Location {
   address: string;
   city: string;
   district: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface IntermediateStop {
@@ -65,13 +83,118 @@ export function NewQuotationPageContent({
   const { isLoading: guardLoading, isAuthorized } = useProtectedRoute();
 
   const [vehicleId, setVehicleId] = useState<string | undefined>(undefined);
+  const [vehicleAmenities, setVehicleAmenities] = useState<string[]>([]);
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+
+  // Trip-attachment state. When the customer has an active trip in flight,
+  // we ALWAYS prompt them whether to add this quotation to that trip or
+  // start a fresh one — per the chosen UX, no defaulting.
+  const [activeTrips, setActiveTrips] = useState<TripDTO[]>([]);
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [tripPromptResolved, setTripPromptResolved] = useState(false);
 
   useEffect(() => {
     const vehicleIdParam = searchParams.get("vehicleId");
+    const tripIdParam = searchParams.get("tripId");
     if (vehicleIdParam) {
       setVehicleId(vehicleIdParam);
+      // Load vehicle data to get amenities
+      vehicleService.getById(vehicleIdParam).then((res: any) => {
+        const vehicle = res?.vehicle ?? res;
+        if (vehicle) {
+          setSelectedVehicle(vehicle);
+          setVehicleAmenities(vehicle.amenities || []);
+        }
+      }).catch(console.error);
+    } else {
+      router.push(`/${locale}/dashboard/search`);
     }
-  }, [searchParams]);
+    if (tripIdParam) {
+      // Trip was pre-attached via URL (e.g. from Add-more-vehicles flow).
+      // Skip the prompt entirely.
+      setSelectedTripId(tripIdParam);
+      setTripPromptResolved(true);
+    }
+  }, [searchParams, router, locale]);
+
+  // Look up active trips on mount. If exactly one exists and the URL didn't
+  // already attach a trip, show the chooser modal.
+  useEffect(() => {
+    if (tripPromptResolved) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await tripService.getActive();
+        const trips = ((response as any)?.data?.trips ?? []) as TripDTO[];
+        if (cancelled) return;
+        setActiveTrips(trips);
+        if (trips.length === 0) {
+          setTripPromptResolved(true);
+        }
+      } catch (error) {
+        console.error("Failed to fetch active trips:", error);
+        if (!cancelled) setTripPromptResolved(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tripPromptResolved]);
+
+  // When the user picks an existing trip from the chooser, pre-fill the form
+  // so they don't have to retype anything.
+  const applyTripDetails = (trip: TripDTO) => {
+    setSelectedTripId(trip.id);
+    setPickupLocation({
+      address: trip.pickupLocation,
+      city: trip.pickupCity || trip.pickupLocation.split(",")[0] || "",
+      district: trip.pickupDistrict || "",
+      lat: trip.pickupLatitude ?? undefined,
+      lng: trip.pickupLongitude ?? undefined,
+    });
+    if (trip.dropoffLocation) {
+      setDropoffLocation({
+        address: trip.dropoffLocation,
+        city: trip.dropoffCity || trip.dropoffLocation.split(",")[0] || "",
+        district: trip.dropoffDistrict || "",
+        lat: trip.dropoffLatitude ?? undefined,
+        lng: trip.dropoffLongitude ?? undefined,
+      });
+    }
+    if (Array.isArray(trip.intermediateStops)) {
+      setIntermediateStops(
+        trip.intermediateStops.map((stop: any, i: number) => ({
+          id: stop.id || `stop-${i}-${Date.now()}`,
+          location: {
+            address: stop.location?.address || "",
+            city: stop.location?.city || "",
+            district: stop.location?.district || "",
+            lat: stop.location?.lat,
+            lng: stop.location?.lng,
+          },
+        })),
+      );
+    }
+    setPickupDate(new Date(trip.startDate).toISOString().split("T")[0]);
+    if (trip.startDate !== trip.endDate) {
+      setReturnDate(new Date(trip.endDate).toISOString().split("T")[0]);
+      setIsRoundTrip(trip.isRoundTrip || true);
+    }
+    if (trip.startTime) setPickupTime(trip.startTime);
+    setPassengerCount(trip.passengerCount);
+    if (trip.vehicleTypePreference) setVehicleType(trip.vehicleTypePreference);
+    setNeedsAC(trip.needsAC);
+    if (trip.specialRequests) setSpecialRequirements(trip.specialRequests);
+    if (trip.estimatedDistance) setEstimatedDistance(trip.estimatedDistance);
+    if (trip.estimatedDuration) setEstimatedDuration(trip.estimatedDuration);
+    setTripPromptResolved(true);
+  };
+
+  const startFreshTrip = () => {
+    setSelectedTripId(null);
+    setTripPromptResolved(true);
+  };
 
   // Form state
   const [pickupLocation, setPickupLocation] = useState<Location>({
@@ -104,6 +227,8 @@ export function NewQuotationPageContent({
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const [estimatedDistance, setEstimatedDistance] = useState("—");
   const [estimatedDuration, setEstimatedDuration] = useState("—");
+  const [itineraryStops, setItineraryStops] = useState<any[]>([]);
+  const [itineraryRoute, setItineraryRoute] = useState<any>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [draftSaveSuccess, setDraftSaveSuccess] = useState(false);
 
@@ -160,6 +285,38 @@ export function NewQuotationPageContent({
 
     return () => clearTimeout(timer);
   }, [pickupLocation, dropoffLocation, intermediateStops, isRoundTrip]);
+
+  const [mapWaypoints, setMapWaypoints] = useState<any[]>([]);
+
+  useEffect(() => {
+    const waypoints = [];
+    if (pickupLocation.lat && pickupLocation.lng) {
+      waypoints.push({ lat: pickupLocation.lat, lng: pickupLocation.lng, name: pickupLocation.city });
+    }
+    intermediateStops.forEach(stop => {
+      if (stop.location.lat && stop.location.lng) {
+        waypoints.push({ lat: stop.location.lat, lng: stop.location.lng, name: stop.location.city });
+      }
+    });
+    if (dropoffLocation.lat && dropoffLocation.lng) {
+      waypoints.push({ lat: dropoffLocation.lat, lng: dropoffLocation.lng, name: dropoffLocation.city });
+    }
+    setMapWaypoints(waypoints);
+  }, [pickupLocation, intermediateStops, dropoffLocation]);
+
+  const moveStopUp = (index: number) => {
+    if (index === 0) return;
+    const newStops = [...intermediateStops];
+    [newStops[index - 1], newStops[index]] = [newStops[index], newStops[index - 1]];
+    setIntermediateStops(newStops);
+  };
+
+  const moveStopDown = (index: number) => {
+    if (index === intermediateStops.length - 1) return;
+    const newStops = [...intermediateStops];
+    [newStops[index + 1], newStops[index]] = [newStops[index], newStops[index + 1]];
+    setIntermediateStops(newStops);
+  };
 
   const handleAddStop = () => {
     setIntermediateStops([
@@ -239,21 +396,26 @@ export function NewQuotationPageContent({
     setIsSubmitting(true);
 
     try {
-      await quotationService.requestQuotation({
+      const response = (await quotationService.requestQuotation({
         vehicleId,
+        tripId: selectedTripId || undefined,
         pickupLocation: {
           address: pickupLocation.address || pickupLocation.city,
           city: pickupLocation.city,
           district: pickupLocation.district,
-        },
+          lat: pickupLocation.lat,
+          lng: pickupLocation.lng,
+        } as any,
         dropoffLocation: {
           address: dropoffLocation.address || dropoffLocation.city,
           city: dropoffLocation.city,
           district: dropoffLocation.district,
-        },
-        pickupDate: new Date(pickupDate).toISOString(),
-        pickupTime,
-        returnDate: isRoundTrip ? returnDate : undefined,
+          lat: dropoffLocation.lat,
+          lng: dropoffLocation.lng,
+        } as any,
+        startDate: new Date(pickupDate).toISOString(),
+        startTime: pickupTime,
+        endDate: isRoundTrip ? returnDate : undefined,
         returnTime: undefined,
         isRoundTrip,
         passengerCount,
@@ -261,10 +423,23 @@ export function NewQuotationPageContent({
         specialRequests: specialRequirements || undefined,
         luggageCount: 0,
         needsAC,
-      });
+        estimatedDistance,
+        estimatedDuration,
+        intermediateStops: intermediateStops as any,
+        itineraryStops: itineraryStops.length > 0 ? itineraryStops : undefined,
+        itineraryRoute: itineraryRoute || undefined,
+      } as any)) as any;
 
       localStorage.removeItem("quotation-draft");
-      router.push(`/${locale}/dashboard/quotations`);
+      const quotationTripId =
+        response?.data?.quotation?.tripId ||
+        response?.quotation?.tripId ||
+        selectedTripId;
+      if (quotationTripId) {
+        router.push(`/${locale}/dashboard/trips/${quotationTripId}`);
+      } else {
+        router.push(`/${locale}/dashboard/trips`);
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setSubmitError(err.message);
@@ -292,8 +467,85 @@ export function NewQuotationPageContent({
     );
   }
 
+  const showTripPrompt =
+    !tripPromptResolved && activeTrips.length > 0 && !!vehicleId;
+
   return (
     <>
+      {/* Trip-attachment chooser. Shown when the customer has at least one
+          active trip and the URL didn't already attach a trip. Forces an
+          explicit choice — attach to an existing trip (with pre-filled
+          details) or start a new one. */}
+      {showTripPrompt ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="trip-prompt-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-text-primary)]/40 p-4 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-lg rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] p-6">
+            <h2
+              id="trip-prompt-title"
+              className="text-lg font-semibold text-[var(--color-text-primary)]"
+            >
+              {t("tripPrompt.title")}
+            </h2>
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+              {t("tripPrompt.body")}
+            </p>
+            <ul className="mt-5 space-y-2" role="list">
+              {activeTrips.map((trip) => {
+                const date = new Date(trip.startDate).toLocaleDateString(
+                  locale,
+                  {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  },
+                );
+                const tripTitle =
+                  trip.title ||
+                  `${trip.pickupCity || trip.pickupLocation.split(",")[0]} → ${
+                    trip.dropoffCity ||
+                    trip.dropoffLocation?.split(",")[0] ||
+                    t("tripPrompt.noDestination")
+                  }`;
+                return (
+                  <li key={trip.id}>
+                    <button
+                      type="button"
+                      onClick={() => applyTripDetails(trip)}
+                      className="flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-base)] px-4 py-3 text-left transition-colors hover:border-[var(--color-action-primary)] hover:bg-[var(--color-bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">
+                          {tripTitle}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-[var(--color-text-secondary)]">
+                          {date} · {trip.tripCode}
+                        </p>
+                      </div>
+                      <span className="rounded-lg bg-[var(--color-action-primary)] px-2.5 py-1 text-xs font-medium text-white">
+                        {t("tripPrompt.attach")}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-between">
+              <button
+                type="button"
+                onClick={startFreshTrip}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-base)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
+              >
+                {t("tripPrompt.startNew")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Page header */}
       <header className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-base)]">
         <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
@@ -412,6 +664,28 @@ export function NewQuotationPageContent({
                 </div>
               </div>
 
+              {/* Selected Vehicle Info */}
+              {selectedVehicle && (
+                <div className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] p-6">
+                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--color-text-primary)]">
+                    <Bus className="h-5 w-5 text-[var(--color-text-secondary)]" />
+                    Selected Vehicle
+                  </h2>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-[var(--color-bg-surface)] p-4 rounded-xl border border-[var(--color-border-default)]">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-lg text-[var(--color-text-primary)]">{selectedVehicle.brand} {selectedVehicle.model}</span>
+                      <span className="text-sm text-[var(--color-text-secondary)]">{selectedVehicle.type} • {selectedVehicle.licensePlate}</span>
+                    </div>
+                    <div className="mt-3 sm:mt-0 flex flex-col sm:text-right">
+                      <span className="text-sm text-[var(--color-text-secondary)]">Max Capacity</span>
+                      <span className="font-medium text-[var(--color-text-primary)] flex items-center gap-1 sm:justify-end">
+                        <Users className="h-4 w-4" /> {selectedVehicle.seats}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Locations */}
               <div className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] p-6">
                 <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--color-text-primary)]">
@@ -424,42 +698,14 @@ export function NewQuotationPageContent({
                   <label className="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]">
                     {t("pickupLocation")}
                   </label>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <Input
-                      placeholder={t("address")}
-                      value={pickupLocation.address}
-                      onChange={(e) =>
-                        setPickupLocation({
-                          ...pickupLocation,
-                          address: e.target.value,
-                        })
-                      }
-                    />
-                    <Input
-                      placeholder={t("city")}
-                      value={pickupLocation.city}
-                      onChange={(e) =>
-                        setPickupLocation({
-                          ...pickupLocation,
-                          city: e.target.value,
-                        })
-                      }
-                    />
-                    <Select
-                      value={pickupLocation.district}
-                      onChange={(value) =>
-                        setPickupLocation({
-                          ...pickupLocation,
-                          district: value,
-                        })
-                      }
-                      options={[
-                        { value: "", label: t("selectDistrict") },
-                        ...districts.map((d) => ({ value: d, label: d })),
-                      ]}
-                      placeholder={t("selectDistrict")}
-                    />
-                  </div>
+                  <LocationAutocomplete
+                    placeholder={t("pickupLocation")}
+                    value={pickupLocation.address || pickupLocation.city}
+                    onChange={(val) => setPickupLocation({ ...pickupLocation, address: val, city: val })}
+                    onSelectLocation={(loc) => {
+                      setPickupLocation({ address: loc.displayName, city: loc.city || loc.displayName.split(",")[0], district: loc.district, lat: loc.lat, lng: loc.lng });
+                    }}
+                  />
                 </div>
 
                 {/* Intermediate Stops */}
@@ -469,42 +715,41 @@ export function NewQuotationPageContent({
                       <label className="text-sm font-medium text-[var(--color-text-secondary)]">
                         {t("stopLabel", { index: index + 1 })}
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveStop(stop.id)}
-                        aria-label={t("removeStop")}
-                        className="rounded-xl p-1 text-[var(--color-error-text)] transition-colors hover:text-[var(--color-error-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => moveStopUp(index)}
+                          disabled={index === 0}
+                          className="rounded-xl p-1 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-action-primary)] disabled:opacity-50"
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveStopDown(index)}
+                          disabled={index === intermediateStops.length - 1}
+                          className="rounded-xl p-1 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-action-primary)] disabled:opacity-50"
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStop(stop.id)}
+                          aria-label={t("removeStop")}
+                          className="rounded-xl p-1 text-[var(--color-error-text)] transition-colors hover:text-[var(--color-error-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <Input
-                        placeholder={t("address")}
-                        value={stop.location.address}
-                        onChange={(e) =>
-                          handleUpdateStop(stop.id, { address: e.target.value })
-                        }
-                      />
-                      <Input
-                        placeholder={t("city")}
-                        value={stop.location.city}
-                        onChange={(e) =>
-                          handleUpdateStop(stop.id, { city: e.target.value })
-                        }
-                      />
-                      <Select
-                        value={stop.location.district}
-                        onChange={(value) =>
-                          handleUpdateStop(stop.id, { district: value })
-                        }
-                        options={[
-                          { value: "", label: t("selectDistrict") },
-                          ...districts.map((d) => ({ value: d, label: d })),
-                        ]}
-                        placeholder={t("selectDistrict")}
-                      />
-                    </div>
+                    <LocationAutocomplete
+                      placeholder={t("stopLabel", { index: index + 1 })}
+                      value={stop.location.address || stop.location.city}
+                      onChange={(val) => handleUpdateStop(stop.id, { address: val, city: val })}
+                      onSelectLocation={(loc) => {
+                        handleUpdateStop(stop.id, { address: loc.displayName, city: loc.city || loc.displayName.split(",")[0], district: loc.district, lat: loc.lat, lng: loc.lng });
+                      }}
+                    />
                   </div>
                 ))}
 
@@ -523,50 +768,22 @@ export function NewQuotationPageContent({
                   <label className="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]">
                     {t("destination")}
                   </label>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <Input
-                      placeholder={t("address")}
-                      value={dropoffLocation.address}
-                      onChange={(e) =>
-                        setDropoffLocation({
-                          ...dropoffLocation,
-                          address: e.target.value,
-                        })
-                      }
-                    />
-                    <Input
-                      placeholder={t("city")}
-                      value={dropoffLocation.city}
-                      onChange={(e) =>
-                        setDropoffLocation({
-                          ...dropoffLocation,
-                          city: e.target.value,
-                        })
-                      }
-                    />
-                    <Select
-                      value={dropoffLocation.district}
-                      onChange={(value) =>
-                        setDropoffLocation({
-                          ...dropoffLocation,
-                          district: value,
-                        })
-                      }
-                      options={[
-                        { value: "", label: t("selectDistrict") },
-                        ...districts.map((d) => ({ value: d, label: d })),
-                      ]}
-                      placeholder={t("selectDistrict")}
-                    />
-                  </div>
+                  <LocationAutocomplete
+                    placeholder={t("destination")}
+                    value={dropoffLocation.address || dropoffLocation.city}
+                    onChange={(val) => setDropoffLocation({ ...dropoffLocation, address: val, city: val })}
+                    onSelectLocation={(loc) => {
+                      setDropoffLocation({ address: loc.displayName, city: loc.city || loc.displayName.split(",")[0], district: loc.district, lat: loc.lat, lng: loc.lng });
+                    }}
+                  />
                 </div>
               </div>
 
-              {/* Date & Time */}
+              {/* Trip Details */}
               <div className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] p-6">
                 <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--color-text-primary)]">
                   <Calendar className="h-5 w-5 text-[var(--color-text-secondary)]" />
-                  {t("dateTime")}
+                  Trip Details
                 </h2>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
@@ -605,76 +822,64 @@ export function NewQuotationPageContent({
                       onChange={(e) => setPickupTime(e.target.value)}
                     />
                   </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]">
+                      Passenger Count
+                    </label>
+                    <div className="flex items-center gap-2 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-4 py-2 focus-within:ring-2 focus-within:ring-[var(--color-action-focus)] focus-within:ring-offset-2">
+                      <Users className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={passengerCount === 0 ? "" : String(passengerCount)}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/[^0-9]/g, "");
+                          if (digits === "") {
+                            setPassengerCount(0);
+                          } else {
+                            const n = parseInt(digits, 10);
+                            if (!isNaN(n) && n > 0) setPassengerCount(n);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (passengerCount < 1) setPassengerCount(1);
+                        }}
+                        placeholder="Enter count"
+                        aria-label="Passenger count"
+                        className="w-full bg-transparent font-medium text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-tertiary)]"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Vehicle Preferences */}
-              <div className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] p-6">
-                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--color-text-primary)]">
-                  <Bus className="h-5 w-5 text-[var(--color-text-secondary)]" />
-                  {t("vehiclePreferences")}
-                </h2>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]">
-                      {t("passengers")}
+                {vehicleAmenities.length > 0 && (
+                  <div className="mt-6">
+                    <label className="mb-3 block text-sm font-medium text-[var(--color-text-secondary)]">
+                      Required Amenities
                     </label>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setPassengerCount(Math.max(1, passengerCount - 1))
-                        }
-                        className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-base)] px-4 py-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
-                      >
-                        -
-                      </button>
-                      <div className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-4 py-2">
-                        <Users className="h-4 w-4 text-[var(--color-text-secondary)]" />
-                        <span className="font-medium text-[var(--color-text-primary)]">
-                          {passengerCount}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setPassengerCount(passengerCount + 1)}
-                        className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-base)] px-4 py-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
-                      >
-                        +
-                      </button>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {vehicleAmenities.map((amenity) => (
+                        <label key={amenity} className="flex cursor-pointer items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedAmenities.includes(amenity)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedAmenities([...selectedAmenities, amenity]);
+                              } else {
+                                setSelectedAmenities(selectedAmenities.filter(a => a !== amenity));
+                              }
+                            }}
+                            className="h-5 w-5 rounded border-[var(--color-border-default)] accent-[var(--color-action-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
+                          />
+                          <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                            {amenity}
+                          </span>
+                        </label>
+                      ))}
                     </div>
                   </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-[var(--color-text-secondary)]">
-                      {t("vehicleType")}
-                    </label>
-                    <Select
-                      value={vehicleType}
-                      onChange={(value) => setVehicleType(value)}
-                      options={[
-                        { value: "", label: t("selectVehicleType") },
-                        ...vehicleTypeOptions,
-                      ]}
-                      placeholder={t("selectVehicleType")}
-                    />
-                  </div>
-                </div>
-                <div className="mt-6">
-                  <label className="flex cursor-pointer items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={needsAC}
-                      onChange={(e) => setNeedsAC(e.target.checked)}
-                      className="h-5 w-5 rounded border-[var(--color-border-default)] accent-[var(--color-action-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
-                    />
-                    <div className="flex items-center gap-2">
-                      <Snowflake className="h-4 w-4 text-[var(--color-action-primary)]" />
-                      <span className="text-sm font-medium text-[var(--color-text-secondary)]">
-                        {t("acRequired")}
-                      </span>
-                    </div>
-                  </label>
-                </div>
+                )}
               </div>
 
               {/* Special Requirements */}
@@ -731,68 +936,22 @@ export function NewQuotationPageContent({
                 <h3 className="mb-4 text-lg font-semibold text-[var(--color-text-primary)]">
                   {t("routeSummary")}
                 </h3>
-                <div className="mb-6">
-                  <InteractiveMap
+                <div className="mb-6 relative z-0">
+                  <DynamicInteractiveMap
                     readOnly={false}
+                    autoCalculate={true}
+                    initialWaypoints={mapWaypoints}
                     onRouteCalculated={(data) => {
                       if (data?.route) {
-                        setEstimatedDistance(`${data.route.distanceKm} km`);
-                        setEstimatedDuration(`${data.route.durationMinutes} min`);
+                        setEstimatedDistance(`${data.route.distanceKm.toFixed(1)} km`);
+                        const hrs = Math.floor(data.route.durationMinutes / 60);
+                        const mins = Math.round(data.route.durationMinutes % 60);
+                        setEstimatedDuration(hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`);
+                        setItineraryStops(data.route.optimizedWaypoints || []);
+                        setItineraryRoute(data.route.geometry || data.route);
                       }
                     }}
                   />
-                </div>
-                <div className="space-y-3">
-                  {pickupLocation.city && (
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-success-bg)]">
-                        <div className="h-3 w-3 rounded-full bg-[var(--color-success-border)]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                          {pickupLocation.city}
-                        </p>
-                        <p className="text-xs text-[var(--color-text-secondary)]">
-                          {pickupLocation.district || t("pickupFallback")}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {intermediateStops.map(
-                    (stop, index) =>
-                      stop.location.city && (
-                        <div key={stop.id} className="flex items-start gap-3">
-                          <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-surface)] border border-[var(--color-border-default)]">
-                            <span className="text-xs font-medium text-[var(--color-action-primary)]">
-                              {index + 1}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                              {stop.location.city}
-                            </p>
-                            <p className="text-xs text-[var(--color-text-secondary)]">
-                              {t("stopLabel", { index: index + 1 })}
-                            </p>
-                          </div>
-                        </div>
-                      ),
-                  )}
-                  {dropoffLocation.city && (
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-error-bg)]">
-                        <div className="h-3 w-3 rounded-full bg-[var(--color-error-border)]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                          {dropoffLocation.city}
-                        </p>
-                        <p className="text-xs text-[var(--color-text-secondary)]">
-                          {dropoffLocation.district || t("destination")}
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 

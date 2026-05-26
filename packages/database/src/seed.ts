@@ -96,6 +96,8 @@ async function main() {
   await prisma.booking.deleteMany({});
   await prisma.tripPackage.deleteMany({});
   await prisma.quotation.deleteMany({});
+  // @ts-ignore - prisma client regeneration pending; trip table exists after migration
+  await prismaAny.trip.deleteMany({});
   await prisma.vehiclePhoto.deleteMany({});
   await prisma.vehicleDocument.deleteMany({});
   await prisma.vehicle.deleteMany({});
@@ -2403,6 +2405,303 @@ async function main() {
 
   console.log(
     `Created ${quotationCounter - 1} quotations covering all statuses\n`,
+  );
+
+  // ===========================================
+  // Backfill Trip records from existing quotations.
+  // Each (customer, pickup, dropoff, startDate) group becomes one Trip and
+  // every member quotation gets its tripId set. Status is derived from the
+  // member quotations so the demo data matches the Trip lifecycle.
+  // ===========================================
+  console.log("Backfilling trip records from quotations...\n");
+
+  // Coordinate table for cities seen in quotation/trip seed data. The route
+  // map on /dashboard/trips/[id] uses pickupLatitude/Longitude (and the
+  // intermediateStops JSON) to draw waypoints; without coordinates the map
+  // renders empty. Keeping this list in seed because OSRM lookups during seed
+  // would pound the public demo endpoint.
+  const CITY_COORDS: Record<string, { lat: number; lng: number; district: string }> = {
+    Colombo: { lat: 6.9271, lng: 79.8612, district: "Colombo" },
+    Negombo: { lat: 7.2008, lng: 79.8737, district: "Gampaha" },
+    Kandy: { lat: 7.2906, lng: 80.6337, district: "Kandy" },
+    Galle: { lat: 6.0535, lng: 80.221, district: "Galle" },
+    Matara: { lat: 5.9549, lng: 80.555, district: "Matara" },
+    Mirissa: { lat: 5.9483, lng: 80.4719, district: "Matara" },
+    Hambantota: { lat: 6.1241, lng: 81.1185, district: "Hambantota" },
+    Anuradhapura: { lat: 8.3114, lng: 80.4037, district: "Anuradhapura" },
+    Sigiriya: { lat: 7.957, lng: 80.7603, district: "Matale" },
+    Jaffna: { lat: 9.6615, lng: 80.0255, district: "Jaffna" },
+    Trincomalee: { lat: 8.5874, lng: 81.2152, district: "Trincomalee" },
+    Batticaloa: { lat: 7.7102, lng: 81.6924, district: "Batticaloa" },
+    Kurunegala: { lat: 7.4863, lng: 80.3647, district: "Kurunegala" },
+    Ella: { lat: 6.8667, lng: 81.0466, district: "Badulla" },
+    Kegalle: { lat: 7.2513, lng: 80.3464, district: "Kegalle" },
+    Dambulla: { lat: 7.8731, lng: 80.6517, district: "Matale" },
+    Bentota: { lat: 6.4259, lng: 79.9947, district: "Galle" },
+    Polonnaruwa: { lat: 7.9403, lng: 81.0188, district: "Polonnaruwa" },
+  };
+
+  // Intermediate stops for well-known long-distance routes so the map shows
+  // a multi-waypoint path instead of a straight A → B line. Order matters.
+  const ROUTE_STOPS: Record<string, string[]> = {
+    "Colombo|Kandy": ["Kegalle"],
+    "Colombo|Anuradhapura": ["Kurunegala"],
+    "Colombo|Jaffna": ["Kurunegala", "Anuradhapura"],
+    "Colombo|Trincomalee": ["Kurunegala", "Anuradhapura"],
+    "Colombo|Ella": ["Kandy"],
+    "Colombo|Mirissa": ["Galle"],
+    "Colombo|Sigiriya": ["Kurunegala", "Dambulla"],
+    "Negombo|Jaffna": ["Anuradhapura"],
+    "Negombo|Sigiriya": ["Kurunegala", "Dambulla"],
+    "Kurunegala|Anuradhapura": [],
+    "Matara|Kandy": ["Colombo", "Kegalle"],
+  };
+
+  const lookupCity = (raw: string | null | undefined) => {
+    if (!raw) return null;
+    const cityToken = raw.split(" - ")[0]?.trim();
+    if (!cityToken) return null;
+    return CITY_COORDS[cityToken] ?? null;
+  };
+
+  const buildIntermediateStops = (
+    pickupCity: string | null,
+    dropoffCity: string | null,
+  ) => {
+    if (!pickupCity || !dropoffCity) return null;
+    const key = `${pickupCity}|${dropoffCity}`;
+    const stops = ROUTE_STOPS[key];
+    if (!stops || stops.length === 0) return null;
+    return stops
+      .map((cityName, i) => {
+        const coord = CITY_COORDS[cityName];
+        if (!coord) return null;
+        return {
+          id: `stop-${i}`,
+          location: {
+            address: cityName,
+            city: cityName,
+            district: coord.district,
+            lat: coord.lat,
+            lng: coord.lng,
+          },
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const allQuotations = await prisma.quotation.findMany({
+    orderBy: { createdAt: "asc" },
+  });
+
+  const tripGroups = new Map<string, typeof allQuotations>();
+  for (const q of allQuotations) {
+    const key = [
+      q.customerId,
+      q.pickupLocation || "",
+      q.dropoffLocation || "",
+      q.startDate.toISOString().slice(0, 10),
+    ].join("|");
+    if (!tripGroups.has(key)) tripGroups.set(key, []);
+    tripGroups.get(key)!.push(q);
+  }
+
+  let tripCounter = 1;
+  const now = new Date();
+  for (const [, members] of tripGroups) {
+    const primary = members[0];
+    const tripCode = `TRP-2026-${String(tripCounter).padStart(3, "0")}`;
+    tripCounter += 1;
+
+    // Derive trip status from members.
+    let status: string = "PLANNING";
+    const statuses = members.map((m) => m.status);
+    if (statuses.includes("ACCEPTED")) {
+      status = "CONFIRMED";
+    } else if (
+      statuses.some((s) => s === "SENT" || s === "VIEWED" || s === "REJECTED")
+    ) {
+      status = "AWAITING_QUOTES";
+    } else if (statuses.every((s) => s === "EXPIRED")) {
+      status = "EXPIRED";
+    } else if (statuses.every((s) => s === "REJECTED")) {
+      status = "CANCELLED";
+    } else if (primary.endDate < now) {
+      status = "EXPIRED";
+    } else {
+      status = "AWAITING_QUOTES";
+    }
+
+    // Use the first non-empty special requests / estimates among members.
+    const specialRequests =
+      members.find((m) => m.specialRequests)?.specialRequests ?? null;
+    const estimatedDistance =
+      members.find((m) => m.estimatedDistance)?.estimatedDistance ?? null;
+    const estimatedDuration =
+      members.find((m) => m.estimatedDuration)?.estimatedDuration ?? null;
+    const vehicleTypePreference =
+      members.find((m) => m.vehicleType)?.vehicleType ?? null;
+
+    const pickupCity =
+      primary.pickupLocation.split(" - ")[0]?.trim() || null;
+    const dropoffCity =
+      primary.dropoffLocation?.split(" - ")[0]?.trim() || null;
+    const pickupCoord = lookupCity(primary.pickupLocation);
+    const dropoffCoord = lookupCity(primary.dropoffLocation);
+    const intermediateStops = buildIntermediateStops(pickupCity, dropoffCity);
+
+    const trip = await prismaAny.trip.create({
+      data: {
+        tripCode,
+        customerId: primary.customerId,
+        title: null,
+        pickupLocation: primary.pickupLocation,
+        pickupCity,
+        pickupDistrict: pickupCoord?.district ?? null,
+        pickupLatitude: pickupCoord?.lat ?? null,
+        pickupLongitude: pickupCoord?.lng ?? null,
+        dropoffLocation: primary.dropoffLocation,
+        dropoffCity,
+        dropoffDistrict: dropoffCoord?.district ?? null,
+        dropoffLatitude: dropoffCoord?.lat ?? null,
+        dropoffLongitude: dropoffCoord?.lng ?? null,
+        startDate: primary.startDate,
+        endDate: primary.endDate,
+        startTime: primary.startTime,
+        isRoundTrip: false,
+        passengerCount: primary.passengerCount ?? 1,
+        vehicleTypePreference,
+        needsAC: true,
+        specialRequests,
+        estimatedDistance,
+        estimatedDuration,
+        intermediateStops: intermediateStops ?? undefined,
+        status,
+      },
+    });
+
+    // Attach all member quotations to this trip.
+    await prisma.quotation.updateMany({
+      where: { id: { in: members.map((m) => m.id) } },
+      data: { tripId: trip.id },
+    });
+  }
+
+  console.log(
+    `Created ${tripCounter - 1} trip records and linked ${allQuotations.length} quotations\n`,
+  );
+
+  // Add a couple of standalone "PLANNING" trips so the dashboard CTA and the
+  // trips-list page show realistic empty/in-flight states without quotations
+  // attached yet.
+  await prismaAny.trip.create({
+    data: {
+      tripCode: `TRP-2026-${String(tripCounter).padStart(3, "0")}`,
+      customerId: customer1.id,
+      title: "Mirissa weekend with friends",
+      pickupLocation: "Colombo - Colpetty",
+      pickupCity: "Colombo",
+      pickupDistrict: "Colombo",
+      pickupLatitude: CITY_COORDS.Colombo.lat,
+      pickupLongitude: CITY_COORDS.Colombo.lng,
+      dropoffLocation: "Mirissa - Beach Strip",
+      dropoffCity: "Mirissa",
+      dropoffDistrict: "Matara",
+      dropoffLatitude: CITY_COORDS.Mirissa.lat,
+      dropoffLongitude: CITY_COORDS.Mirissa.lng,
+      startDate: new Date("2026-06-12T07:00:00.000Z"),
+      endDate: new Date("2026-06-14T20:00:00.000Z"),
+      startTime: "07:00 AM",
+      isRoundTrip: true,
+      passengerCount: 18,
+      vehicleTypePreference: "LUXURY_AC",
+      needsAC: true,
+      specialRequests:
+        "Friends weekend — looking for a comfortable AC bus with ample luggage space.",
+      estimatedDistance: "155 km",
+      estimatedDuration: "3.5 hours",
+      intermediateStops: [
+        {
+          id: "stop-galle",
+          location: {
+            address: "Galle",
+            city: "Galle",
+            district: "Galle",
+            lat: CITY_COORDS.Galle.lat,
+            lng: CITY_COORDS.Galle.lng,
+          },
+        },
+        {
+          id: "stop-bentota",
+          location: {
+            address: "Bentota",
+            city: "Bentota",
+            district: "Galle",
+            lat: CITY_COORDS.Bentota.lat,
+            lng: CITY_COORDS.Bentota.lng,
+          },
+        },
+      ],
+      status: "PLANNING",
+    },
+  });
+  tripCounter += 1;
+
+  await prismaAny.trip.create({
+    data: {
+      tripCode: `TRP-2026-${String(tripCounter).padStart(3, "0")}`,
+      customerId: customer3.id,
+      title: "Sigiriya school excursion",
+      pickupLocation: "Colombo - Lyceum International",
+      pickupCity: "Colombo",
+      pickupDistrict: "Colombo",
+      pickupLatitude: CITY_COORDS.Colombo.lat,
+      pickupLongitude: CITY_COORDS.Colombo.lng,
+      dropoffLocation: "Sigiriya - Rock Fortress",
+      dropoffCity: "Sigiriya",
+      dropoffDistrict: "Matale",
+      dropoffLatitude: CITY_COORDS.Sigiriya.lat,
+      dropoffLongitude: CITY_COORDS.Sigiriya.lng,
+      startDate: new Date("2026-07-08T05:30:00.000Z"),
+      endDate: new Date("2026-07-08T22:00:00.000Z"),
+      startTime: "05:30 AM",
+      isRoundTrip: true,
+      passengerCount: 45,
+      vehicleTypePreference: "SEMI_LUXURY",
+      needsAC: true,
+      specialRequests:
+        "School field trip. Need a verified driver and bus with first-aid kit.",
+      estimatedDistance: "175 km",
+      estimatedDuration: "4 hours",
+      intermediateStops: [
+        {
+          id: "stop-kurunegala",
+          location: {
+            address: "Kurunegala",
+            city: "Kurunegala",
+            district: "Kurunegala",
+            lat: CITY_COORDS.Kurunegala.lat,
+            lng: CITY_COORDS.Kurunegala.lng,
+          },
+        },
+        {
+          id: "stop-dambulla",
+          location: {
+            address: "Dambulla",
+            city: "Dambulla",
+            district: "Matale",
+            lat: CITY_COORDS.Dambulla.lat,
+            lng: CITY_COORDS.Dambulla.lng,
+          },
+        },
+      ],
+      status: "PLANNING",
+    },
+  });
+  tripCounter += 1;
+
+  console.log(
+    `Added ${tripCounter - 1} total trip records (including 2 PLANNING demos)\n`,
   );
 
   // ===========================================

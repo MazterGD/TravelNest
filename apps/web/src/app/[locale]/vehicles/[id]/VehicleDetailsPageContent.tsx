@@ -31,6 +31,7 @@ import { localizePlaceName } from "@/lib/i18n/placeName";
 interface VehicleDetailsPageContentProps {
   locale: string;
   vehicleId: string;
+  isDashboard?: boolean;
 }
 
 interface Vehicle {
@@ -115,6 +116,7 @@ interface SimilarVehicle {
 export default function VehicleDetailsPageContent({
   locale,
   vehicleId,
+  isDashboard,
 }: VehicleDetailsPageContentProps) {
   const t = useTranslations("vehicle");
   const tCommon = useTranslations("common");
@@ -416,7 +418,7 @@ export default function VehicleDetailsPageContent({
       <section className="bg-black">
         <div className="container mx-auto px-4 py-8">
           <Link
-            href={`/${locale}/search`}
+            href={`/${locale}${isDashboard ? '/dashboard/search' : '/search'}`}
             className="inline-flex items-center text-sm text-white/70 hover:text-white mb-4"
           >
             <svg
@@ -768,7 +770,7 @@ export default function VehicleDetailsPageContent({
                         return (
                           <Link
                             key={similarVehicle.id}
-                            href={`/${locale}/vehicles/${similarVehicle.id}`}
+                            href={`/${locale}${isDashboard ? '/dashboard' : ''}/vehicles/${similarVehicle.id}`}
                             className="border border-border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
                           >
                             <div className="h-36 bg-muted">

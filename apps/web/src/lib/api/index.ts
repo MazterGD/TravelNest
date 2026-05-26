@@ -25,6 +25,13 @@ export {
   // Quotation
   quotationService,
 
+  // Trip
+  tripService,
+  type CreateTripInput,
+  type UpdateTripInput,
+  type TripDTO,
+  type TripLocation,
+
   // Booking
   bookingService,
   type BookingSearchParams,

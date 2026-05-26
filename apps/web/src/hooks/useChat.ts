@@ -103,7 +103,7 @@ export interface UseChatState {
   loadOlderMessages: () => void;
   currentUserId: string;
   isConnected: boolean;
-  selectConversation: (id: string) => void;
+  selectConversation: (id: string | null) => void;
   sendMessage: (content: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -310,7 +310,7 @@ export function useChat(options: UseChatOptions = {}): UseChatState {
     };
   }, [loadConversations]);
 
-  const selectConversation = useCallback((id: string) => {
+  const selectConversation = useCallback((id: string | null) => {
     setActiveConversationId(id);
     activeIdRef.current = id;
     setActiveMessages([]);
@@ -319,6 +319,12 @@ export function useChat(options: UseChatOptions = {}): UseChatState {
     setMessagesHasMore(false);
     setMessagesLoadingOlder(false);
     messagesPageRef.current = 1;
+
+    // Deselecting (mobile back button) — nothing else to do.
+    if (id === null) {
+      setMessagesLoading(false);
+      return;
+    }
 
     const socket = socketRef.current;
     if (socket && !joinedRoomsRef.current.has(id)) {

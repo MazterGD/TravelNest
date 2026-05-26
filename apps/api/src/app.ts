@@ -20,6 +20,7 @@ import userRoutes from "./modules/user/user.routes.js";
 import vehicleRoutes from "./modules/vehicle/vehicle.routes.js";
 import bookingRoutes from "./modules/booking/booking.routes.js";
 import quotationRoutes from "./modules/quotation/quotation.routes.js";
+import tripRoutes from "./modules/trip/trip.routes.js";
 import reviewRoutes from "./modules/review/review.routes.js";
 import paymentRoutes from "./modules/payment/payment.routes.js";
 import notificationRoutes from "./modules/notification/notification.routes.js";
@@ -130,6 +131,7 @@ app.use(`${apiBase}/users`, userRoutes);
 app.use(`${apiBase}/vehicles`, vehicleRoutes);
 app.use(`${apiBase}/bookings`, bookingRoutes);
 app.use(`${apiBase}/quotations`, quotationRoutes);
+app.use(`${apiBase}/trips`, tripRoutes);
 app.use(`${apiBase}/reviews`, reviewRoutes);
 app.use(`${apiBase}/payments`, paymentRoutes);
 app.use(`${apiBase}/notifications`, notificationRoutes);
@@ -153,6 +155,7 @@ app.get(`${apiBase}`, (_req: Request, res: Response) => {
       vehicles: `${apiBase}/vehicles`,
       bookings: `${apiBase}/bookings`,
       quotations: `${apiBase}/quotations`,
+      trips: `${apiBase}/trips`,
       reviews: `${apiBase}/reviews`,
       payments: `${apiBase}/payments`,
       notifications: `${apiBase}/notifications`,

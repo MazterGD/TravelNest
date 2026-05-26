@@ -776,6 +776,155 @@ export const quotationService = {
 };
 
 // ============================================
+// Trip Services (customer-only)
+// ============================================
+export interface TripLocation {
+  address?: string;
+  city?: string;
+  district?: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface CreateTripInput {
+  title?: string;
+  pickupLocation: TripLocation | string;
+  dropoffLocation?: TripLocation | string;
+  intermediateStops?: Array<{ id?: string; location: TripLocation }>;
+  startDate: string;
+  endDate?: string;
+  startTime?: string;
+  isRoundTrip?: boolean;
+  passengerCount: number;
+  vehicleTypePreference?: string;
+  needsAC?: boolean;
+  specialRequests?: string;
+  estimatedDistance?: string;
+  estimatedDuration?: string;
+  itineraryStops?: any[];
+  itineraryRoute?: any;
+}
+
+export type UpdateTripInput = Partial<CreateTripInput>;
+
+export interface TripDTO {
+  id: string;
+  tripCode: string;
+  customerId: string;
+  title?: string | null;
+  pickupLocation: string;
+  pickupCity?: string | null;
+  pickupDistrict?: string | null;
+  pickupLatitude?: number | null;
+  pickupLongitude?: number | null;
+  dropoffLocation?: string | null;
+  dropoffCity?: string | null;
+  dropoffDistrict?: string | null;
+  dropoffLatitude?: number | null;
+  dropoffLongitude?: number | null;
+  startDate: string;
+  endDate: string;
+  startTime?: string | null;
+  isRoundTrip: boolean;
+  passengerCount: number;
+  vehicleTypePreference?: string | null;
+  needsAC: boolean;
+  specialRequests?: string | null;
+  estimatedDistance?: string | null;
+  estimatedDuration?: string | null;
+  itineraryStops?: any;
+  itineraryRoute?: any;
+  intermediateStops?: any;
+  status:
+    | "PLANNING"
+    | "AWAITING_QUOTES"
+    | "CONFIRMED"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "EXPIRED";
+  createdAt: string;
+  updatedAt: string;
+  quotations?: Quotation[];
+  _count?: { quotations: number };
+}
+
+export const tripService = {
+  /**
+   * Plan a new trip for the authenticated customer.
+   */
+  create: (data: CreateTripInput) =>
+    api.post<{
+      success: boolean;
+      message: string;
+      data: { trip: TripDTO };
+    }>("/trips", data),
+
+  /**
+   * List the current customer's trips.
+   */
+  list: (params?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+    activeOnly?: boolean;
+  }) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<{
+      success: boolean;
+      data: {
+        trips: TripDTO[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      };
+    }>(`/trips${query}`);
+  },
+
+  /**
+   * Get one trip with its quotation responses.
+   */
+  getById: (id: string) =>
+    api.get<{
+      success: boolean;
+      data: { trip: TripDTO };
+    }>(`/trips/${id}`),
+
+  /**
+   * Get the customer's still-active (not confirmed/cancelled/expired) trips —
+   * used to offer "Add this vehicle to your existing trip" on the new
+   * quotation flow.
+   */
+  getActive: () =>
+    api.get<{
+      success: boolean;
+      data: { trips: TripDTO[] };
+    }>(`/trips/active`),
+
+  /**
+   * Update an editable trip.
+   */
+  update: (id: string, data: UpdateTripInput) =>
+    api.patch<{
+      success: boolean;
+      message: string;
+      data: { trip: TripDTO };
+    }>(`/trips/${id}`, data),
+
+  /**
+   * Cancel a trip.
+   */
+  cancel: (id: string) =>
+    api.patch<{
+      success: boolean;
+      message: string;
+      data: { trip: TripDTO };
+    }>(`/trips/${id}/cancel`),
+};
+
+// ============================================
 // Booking Services
 // ============================================
 export interface BookingSearchParams extends PaginationParams {

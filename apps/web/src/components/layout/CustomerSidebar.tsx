@@ -10,12 +10,12 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  ClipboardList,
   Globe,
   Home,
   LogOut,
   MapPin,
   MessageSquare,
+  Route,
   Settings,
   Star,
   User,
@@ -24,7 +24,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/store";
 import { useNotificationStream } from "@/hooks";
-import { messageService, notificationService } from "@/lib/api";
+import { authService, api, messageService, notificationService } from "@/lib/api";
 import { APP_NAME, LOCALE_LABELS } from "@/constants";
 
 interface CustomerSidebarProps {
@@ -99,8 +99,13 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
 
   const handleLogout = () => {
     setUserMenuOpen(false);
+    authService.logout().catch(() => {});
     logout();
-    router.push(`/${locale}`);
+    localStorage.removeItem("travenest-auth");
+    api.stopTokenRefresh();
+    // Hard navigation prevents auth guards on the current page from
+    // racing to redirect to /login before the router push resolves.
+    window.location.replace(`/${currentLocale}`);
   };
 
   const handleLocaleChange = (newLocale: string) => {
@@ -124,10 +129,10 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
       exact: true,
     },
     {
-      id: "quotations",
-      label: t("quotations"),
-      href: `/${locale}/dashboard/quotations`,
-      icon: ClipboardList,
+      id: "trips",
+      label: t("trips", { defaultValue: "Trips" }),
+      href: `/${locale}/dashboard/trips`,
+      icon: Route,
     },
     {
       id: "search",
@@ -173,7 +178,7 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  const mobileNavIds = ["overview", "bookings", "quotations", "messages", "reviews"];
+  const mobileNavIds = ["overview", "bookings", "trips", "messages", "reviews"];
   const mobileNavItems = mobileNavIds
     .map((id) => navItems.find((item) => item.id === id))
     .filter(Boolean) as (typeof navItems)[number][];

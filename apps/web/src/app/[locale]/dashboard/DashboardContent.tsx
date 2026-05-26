@@ -12,7 +12,9 @@ import {
   bookingService,
   notificationService,
   quotationService,
+  tripService,
   userService,
+  type TripDTO,
 } from "@/lib/api";
 import {
   ArrowRight,
@@ -22,10 +24,13 @@ import {
   CheckCircle,
   ClipboardList,
   Clock,
+  Compass,
   DollarSign,
   MapPin,
   Phone,
+  Route as RouteIcon,
   Search,
+  Users,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -144,6 +149,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
   });
   const [upcomingBookings, setUpcomingBookings] = useState<UpcomingBooking[]>([]);
   const [recentQuotations, setRecentQuotations] = useState<RecentQuotation[]>([]);
+  const [activeTrips, setActiveTrips] = useState<TripDTO[]>([]);
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -271,6 +277,17 @@ export function DashboardContent({ locale }: DashboardPageProps) {
             setRecentQuotations([]);
           }),
 
+        tripService
+          .getActive()
+          .then((response) => {
+            if (controller.signal.aborted) return;
+            const trips = ((response as any)?.data?.trips ?? []) as TripDTO[];
+            setActiveTrips(trips);
+          })
+          .catch(() => {
+            setActiveTrips([]);
+          }),
+
         notificationService
           .getAll({ limit: 5 })
           .then((response) => {
@@ -370,6 +387,16 @@ export function DashboardContent({ locale }: DashboardPageProps) {
   };
 
   const nextTrip = upcomingBookings[0] ?? null;
+  // Highlight a single in-flight trip (PLANNING / AWAITING_QUOTES) so the
+  // customer's focus snaps to the work they haven't finished yet.
+  const activeTrip = activeTrips[0] ?? null;
+  const activeTripRoute = activeTrip
+    ? `${activeTrip.pickupCity || activeTrip.pickupLocation.split(",")[0]} → ${
+        activeTrip.dropoffCity ||
+        activeTrip.dropoffLocation?.split(",")[0] ||
+        "—"
+      }`
+    : null;
 
   // ── JSX ─────────────────────────────────────────────────────────────────────
 
@@ -472,35 +499,97 @@ export function DashboardContent({ locale }: DashboardPageProps) {
             </div>
           </div>
         </section>
+      ) : activeTrip ? (
+        /* Customer has an in-flight trip but no booking yet — surface it as
+            the primary call-to-action so they don't lose track of work in
+            progress. Bordered with the primary blue to draw focus. */
+        <section
+          aria-labelledby="active-trip-heading"
+          className={`relative overflow-hidden rounded-[20px] border-2 border-[var(--color-action-primary)] bg-[var(--color-bg-base)] p-6 md:p-8`}
+        >
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="rounded-lg bg-[var(--color-action-primary)] px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+                  {t("activeTrip.label")}
+                </span>
+                <span className="text-xs font-medium text-[var(--color-text-tertiary)]">
+                  {activeTrip.tripCode}
+                </span>
+              </div>
+              <h2
+                id="active-trip-heading"
+                className="text-2xl font-bold text-[var(--color-text-primary)] md:text-3xl"
+              >
+                {activeTrip.title || activeTripRoute}
+              </h2>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--color-text-secondary)]">
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" aria-hidden="true" />
+                  {new Date(activeTrip.startDate).toLocaleDateString(
+                    currentLocale,
+                    { weekday: "short", month: "short", day: "numeric" },
+                  )}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-4 w-4" aria-hidden="true" />
+                  {t("activeTrip.passengers", {
+                    count: activeTrip.passengerCount,
+                  })}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <ClipboardList className="h-4 w-4" aria-hidden="true" />
+                  {t("activeTrip.quotesAttached", {
+                    count: activeTrip._count?.quotations ?? 0,
+                  })}
+                </span>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-3">
+              <Link
+                href={`/${currentLocale}/dashboard/search?tripId=${activeTrip.id}`}
+                className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-base)] px-4 py-2.5 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-bg-surface)] ${focusRing}`}
+              >
+                <Search className="h-4 w-4" aria-hidden="true" />
+                {t("activeTrip.addVehicles")}
+              </Link>
+              <Link
+                href={`/${currentLocale}/dashboard/trips/${activeTrip.id}`}
+                className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[var(--color-action-primary)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-action-primary-hover)] ${focusRing}`}
+              >
+                {t("activeTrip.viewTrip")}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </section>
       ) : (
-        /* Empty hero — no upcoming bookings */
+        /* No bookings and no active trips — invite the customer to plan
+            their first one. Primary blue CTA makes the next step obvious. */
         <section
           aria-labelledby="plan-trip-heading"
           className={`${cardSurface} flex flex-col items-center gap-4 p-8 text-center md:flex-row md:text-left`}
         >
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-surface)]">
-            <MapPin
-              className="h-7 w-7 text-[var(--color-text-tertiary)]"
-              aria-hidden="true"
-            />
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-surface)] text-[var(--color-action-primary)]">
+            <Compass className="h-7 w-7" aria-hidden="true" />
           </div>
           <div className="flex-1">
             <h2
               id="plan-trip-heading"
               className="font-semibold text-[var(--color-text-primary)]"
             >
-              {t("upcomingBookings.emptyTitle")}
+              {t("planTrip.emptyTitle")}
             </h2>
             <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-              {t("upcomingBookings.emptySubtitle")}
+              {t("planTrip.emptySubtitle")}
             </p>
           </div>
           <Link
-            href={`/${currentLocale}/search`}
+            href={`/${currentLocale}/dashboard/trips/new`}
             className={`inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-[var(--color-action-primary)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--color-action-primary-hover)] ${focusRing}`}
           >
-            <Search className="h-4 w-4" aria-hidden="true" />
-            {t("actions.searchBuses")}
+            <RouteIcon className="h-4 w-4" aria-hidden="true" />
+            {t("planTrip.cta")}
           </Link>
         </section>
       )}
@@ -685,7 +774,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                 </p>
               </div>
               <Link
-                href={`/${currentLocale}/dashboard/quotations`}
+                href={`/${currentLocale}/dashboard/trips`}
                 className={`flex items-center gap-1 rounded-xl px-2 py-1 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] ${focusRing}`}
               >
                 {t("actions.viewAll")}
