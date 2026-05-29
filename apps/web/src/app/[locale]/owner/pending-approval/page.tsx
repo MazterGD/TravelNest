@@ -1,35 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Clock, CheckCircle, FileText, Phone, Mail, LogOut, Building, Bus, Contact, AlertTriangle } from 'lucide-react';
+import { motion, useReducedMotion } from "motion/react";
+import { useTranslations } from "next-intl";
+import {
+  Clock,
+  CheckCircle2,
+  FileText,
+  Phone,
+  Mail,
+  LogOut,
+  Bus,
+  AlertTriangle,
+  ArrowLeft,
+} from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { LoadingSpinner } from "@/components/ui";
+import { LoadingSpinner, Badge, CTAButton } from "@/components/ui";
 import { useAuthStore } from "@/store";
+
+type StepState = "complete" | "active" | "upcoming";
 
 export default function PendingApprovalPage() {
   const params = useParams();
   const router = useRouter();
   const locale = params.locale as string;
+  const t = useTranslations("ownerPendingApproval");
   const { user, isAuthenticated, logout, isLoading } = useAuthStore();
+  const prefersReducedMotion = useReducedMotion();
 
-  // Redirect unauthenticated users to login
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push(`/${locale}/login`);
     }
   }, [isAuthenticated, isLoading, locale, router]);
 
-  // Redirect verified owners to dashboard
   useEffect(() => {
     if (user && user.isVerified && user.role === "VEHICLE_OWNER") {
       router.push(`/${locale}/owner/dashboard`);
     }
   }, [user, locale, router]);
 
-  // Redirect non-owners to their appropriate page
   useEffect(() => {
     if (user && user.role !== "VEHICLE_OWNER") {
       router.push(`/${locale}/dashboard`);
@@ -51,267 +63,363 @@ export default function PendingApprovalPage() {
     );
   }
 
+  const submittedDate = new Date(user.createdAt).toLocaleDateString(locale, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const timelineSteps: Array<{
+    state: StepState;
+    title: string;
+    desc: string;
+  }> = [
+    {
+      state: "complete",
+      title: t("timeline.submittedTitle"),
+      desc: t("timeline.submittedDesc"),
+    },
+    {
+      state: "active",
+      title: t("timeline.reviewTitle"),
+      desc: t("timeline.reviewDesc"),
+    },
+    {
+      state: "upcoming",
+      title: t("timeline.approvedTitle"),
+      desc: t("timeline.approvedDesc"),
+    },
+  ];
+
+  const restrictions = [
+    t("restrictions.item1"),
+    t("restrictions.item2"),
+    t("restrictions.item3"),
+    t("restrictions.item4"),
+    t("restrictions.item5"),
+  ];
+
+  const nextSteps = [
+    t("nextSteps.step1"),
+    t("nextSteps.step2"),
+    t("nextSteps.step3"),
+    t("nextSteps.step4"),
+  ];
+
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Status Card */}
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-2 border-amber-100">
-            {/* Header with pending status */}
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-8 py-12 text-center">
-              <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
-                <Clock className="w-12 h-12 text-white animate-pulse bg-muted rounded-xl" />
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                Registration Pending Approval
-              </h1>
-              <p className="text-amber-100 text-lg max-w-2xl mx-auto">
-                Thank you for registering with TraveNest! Your application is
-                being reviewed by our team.
-              </p>
-            </div>
-
-            {/* Main Content */}
-            <div className="px-8 py-10">
-              {/* Timeline */}
-              <div className="mb-10">
-                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <FileText className="text-amber-500" />
-                  Verification Process
-                </h2>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 pb-4 border-l-2 border-green-200 pl-6 -ml-5">
-                      <h3 className="font-semibold text-gray-900">
-                        Registration Submitted
-                      </h3>
-                      <p className="text-gray-600 text-sm">
-                        Your registration form has been successfully submitted
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse bg-muted rounded-xl">
-                      <Clock className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 pb-4 border-l-2 border-amber-200 pl-6 -ml-5">
-                      <h3 className="font-semibold text-gray-900">
-                        Under Review
-                      </h3>
-                      <p className="text-gray-600 text-sm">
-                        Our team is verifying your information and documents
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-5 h-5 text-gray-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-400">
-                        Approval Complete
-                      </h3>
-                      <p className="text-gray-400 text-sm">
-                        You&apos;ll be notified once your account is approved
-                      </p>
-                    </div>
-                  </div>
+      <div className="bg-bg-surface min-h-screen px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1024px]">
+          <article className="overflow-hidden rounded-[20px] border border-border bg-background shadow-sm">
+            {/* Hero */}
+            <header className="border-b border-border bg-background px-6 py-8 sm:px-8 sm:py-12">
+              <div className="flex flex-col items-center text-center">
+                <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-bg-surface text-primary">
+                  {!prefersReducedMotion && (
+                    <motion.span
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-full border-2 border-primary"
+                      initial={{ opacity: 0.6, scale: 1 }}
+                      animate={{ opacity: 0, scale: 1.4 }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeOut",
+                      }}
+                    />
+                  )}
+                  <Clock className="relative h-6 w-6" />
+                </div>
+                <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
+                  {t("title")}
+                </h1>
+                <p className="mt-3 max-w-[60ch] text-base text-muted-foreground">
+                  {t("subtitle")}
+                </p>
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                  <Badge variant="warning" size="md" dot>
+                    {t("statusBadge")}
+                  </Badge>
+                  <Badge variant="info" size="md">
+                    <Bus className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                    {t("roleBadge")}
+                  </Badge>
                 </div>
               </div>
+            </header>
 
-              {/* Estimated Time */}
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 mb-8 border border-amber-200">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <Clock className="w-7 h-7 text-amber-600" />
+            <div className="space-y-6 px-6 py-8 sm:px-8 sm:py-12">
+              {/* Verification timeline */}
+              <section
+                aria-labelledby="timeline-heading"
+                className="rounded-xl border border-border bg-bg-surface p-6"
+              >
+                <h2
+                  id="timeline-heading"
+                  className="mb-6 flex items-center gap-2 text-lg font-semibold text-foreground"
+                >
+                  <FileText
+                    className="h-5 w-5 text-primary"
+                    aria-hidden="true"
+                  />
+                  {t("timeline.heading")}
+                </h2>
+                <ol className="space-y-1">
+                  {timelineSteps.map((step, index) => {
+                    const isLast = index === timelineSteps.length - 1;
+                    return (
+                      <li key={step.title} className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <TimelineIcon state={step.state} />
+                          {!isLast && (
+                            <span
+                              aria-hidden="true"
+                              className={`mt-1 mb-1 w-px flex-1 ${
+                                step.state === "complete"
+                                  ? "bg-success-border"
+                                  : "bg-border"
+                              }`}
+                            />
+                          )}
+                        </div>
+                        <div className={`flex-1 ${isLast ? "" : "pb-6"}`}>
+                          <h3
+                            className={`text-base font-semibold ${
+                              step.state === "upcoming"
+                                ? "text-muted-foreground"
+                                : "text-foreground"
+                            }`}
+                          >
+                            {step.title}
+                          </h3>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {step.desc}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
+
+              {/* Estimated review time */}
+              <section
+                aria-labelledby="estimated-heading"
+                className="flex items-center gap-4 rounded-xl border border-border bg-bg-surface p-6"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-background text-primary">
+                  <Clock className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <div>
+                  <h2
+                    id="estimated-heading"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    {t("estimated.heading")}
+                  </h2>
+                  <p className="mt-1 text-xl font-semibold text-foreground">
+                    {t("estimated.value")}
+                  </p>
+                </div>
+              </section>
+
+              {/* Registration details */}
+              <section
+                aria-labelledby="details-heading"
+                className="rounded-xl border border-border bg-bg-surface p-6"
+              >
+                <h2
+                  id="details-heading"
+                  className="mb-4 text-lg font-semibold text-foreground"
+                >
+                  {t("details.heading")}
+                </h2>
+                <dl className="grid gap-4 sm:grid-cols-2">
+                  <DetailRow
+                    label={t("details.name")}
+                    value={`${user.firstName} ${user.lastName}`}
+                  />
+                  <DetailRow label={t("details.email")} value={user.email} />
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      {t("details.status")}
+                    </dt>
+                    <dd className="mt-1">
+                      <Badge variant="warning" size="sm" dot>
+                        {t("statusBadge")}
+                      </Badge>
+                    </dd>
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 text-lg">
-                      Estimated Review Time
-                    </h3>
-                    <p className="text-amber-700 font-semibold text-xl">
-                      2-3 Business Days
-                    </p>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      {t("details.role")}
+                    </dt>
+                    <dd className="mt-1">
+                      <Badge variant="info" size="sm">
+                        <Bus
+                          className="mr-1.5 h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                        {t("roleBadge")}
+                      </Badge>
+                    </dd>
                   </div>
-                </div>
-              </div>
+                </dl>
+              </section>
 
-              {/* Your Registration Details */}
-              <div className="bg-gray-50 rounded-2xl p-6 mb-8">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Contact className="text-gray-500" />
-                  Your Registration Details
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <span className="font-medium">Name:</span>
-                    <span>
-                      {user.firstName} {user.lastName}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <span className="font-medium">Email:</span>
-                    <span>{user.email}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <span className="font-medium">Status:</span>
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
-                      <Clock className="w-3 h-3" />
-                      Pending Verification
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <span className="font-medium">Role:</span>
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                      <Bus className="w-3 h-3" />
-                      Bus Owner
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* What You Cannot Do */}
-              <div className="bg-red-50 rounded-2xl p-6 mb-8 border border-red-200">
-                <h3 className="font-bold text-red-800 mb-4 flex items-center gap-2">
-                  <AlertTriangle className="text-red-500" />
-                  Account Restrictions
-                </h3>
-                <p className="text-red-700 mb-4">
-                  Until your account is approved, you <strong>cannot</strong>{" "}
-                  perform the following actions:
+              {/* Account restrictions */}
+              <section
+                aria-labelledby="restrictions-heading"
+                className="rounded-xl border border-error-border bg-error-bg p-6"
+              >
+                <h2
+                  id="restrictions-heading"
+                  className="mb-2 flex items-center gap-2 text-lg font-semibold text-error-text"
+                >
+                  <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+                  {t("restrictions.heading")}
+                </h2>
+                <p className="mb-4 text-sm text-error-text">
+                  {t("restrictions.intro")}
                 </p>
-                <ul className="space-y-2 text-red-700">
-                  <li className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-red-400 rounded-full"></span>
-                    List your vehicles for booking
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-red-400 rounded-full"></span>
-                    Receive booking requests from customers
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-red-400 rounded-full"></span>
-                    Set pricing for your vehicles
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-red-400 rounded-full"></span>
-                    Access the owner dashboard
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-red-400 rounded-full"></span>
-                    Respond to customer quotation requests
-                  </li>
+                <ul className="space-y-2">
+                  {restrictions.map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-start gap-3 text-sm text-error-text"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-error"
+                      />
+                      <span>{item}</span>
+                    </li>
+                  ))}
                 </ul>
-              </div>
+              </section>
 
-              {/* What Happens Next */}
-              <div className="bg-blue-50 rounded-2xl p-6 mb-8 border border-blue-200">
-                <h3 className="font-bold text-blue-800 mb-4 flex items-center gap-2">
-                  <Building className="text-blue-500" />
-                  What Happens Next?
-                </h3>
-                <ul className="space-y-3 text-blue-800">
-                  <li className="flex items-start gap-3">
-                    <span className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-sm font-bold text-blue-700 flex-shrink-0">
-                      1
-                    </span>
-                    <span>
-                      Our team will review your personal information and verify
-                      your NIC details
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-sm font-bold text-blue-700 flex-shrink-0">
-                      2
-                    </span>
-                    <span>
-                      We&apos;ll verify your vehicle registration and
-                      documentation
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-sm font-bold text-blue-700 flex-shrink-0">
-                      3
-                    </span>
-                    <span>
-                      Once approved, you&apos;ll receive an email notification
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-sm font-bold text-blue-700 flex-shrink-0">
-                      4
-                    </span>
-                    <span>
-                      You can then set up your vehicle pricing and start
-                      receiving bookings
-                    </span>
-                  </li>
-                </ul>
-              </div>
+              {/* What happens next */}
+              <section
+                aria-labelledby="next-heading"
+                className="rounded-xl border border-border bg-bg-surface p-6"
+              >
+                <h2
+                  id="next-heading"
+                  className="mb-4 text-lg font-semibold text-foreground"
+                >
+                  {t("nextSteps.heading")}
+                </h2>
+                <ol className="space-y-4">
+                  {nextSteps.map((step, index) => (
+                    <li key={step} className="flex items-start gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background text-sm font-semibold text-primary"
+                      >
+                        {index + 1}
+                      </span>
+                      <p className="pt-0.5 text-sm text-muted-foreground">
+                        {step}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              </section>
 
-              {/* Contact Support */}
-              <div className="bg-gray-100 rounded-2xl p-6">
-                <h3 className="font-bold text-gray-900 mb-4">Need Help?</h3>
-                <p className="text-gray-600 mb-4">
-                  If you have any questions about the verification process or
-                  need to update your registration details, please contact our
-                  support team.
+              {/* Support */}
+              <section
+                aria-labelledby="support-heading"
+                className="rounded-xl border border-border bg-bg-surface p-6"
+              >
+                <h2
+                  id="support-heading"
+                  className="text-lg font-semibold text-foreground"
+                >
+                  {t("support.heading")}
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {t("support.description")}
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <a
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <CTAButton
                     href="mailto:support@travenest.lk"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-semibold"
+                    variant="primary"
+                    size="md"
+                    leftIcon={<Mail className="h-4 w-4" aria-hidden="true" />}
                   >
-                    <Mail className="w-4 h-4" />
-                    Email Support
-                  </a>
-                  <a
+                    {t("support.emailSupport")}
+                  </CTAButton>
+                  <CTAButton
                     href="tel:+94112345678"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:border-primary hover:text-primary transition-colors font-semibold"
+                    variant="secondary"
+                    size="md"
+                    leftIcon={<Phone className="h-4 w-4" aria-hidden="true" />}
                   >
-                    <Phone className="w-4 h-4" />
-                    Call Support
-                  </a>
+                    {t("support.callSupport")}
+                  </CTAButton>
                 </div>
-              </div>
+              </section>
             </div>
 
-            {/* Footer Actions */}
-            <div className="bg-gray-50 px-8 py-6 flex flex-col sm:flex-row gap-4 justify-between items-center border-t">
+            {/* Footer actions */}
+            <footer className="flex flex-col gap-3 border-t border-border bg-bg-surface px-6 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-8">
               <Link
                 href={`/${locale}`}
-                className="text-primary hover:underline font-medium"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-medium text-primary transition-colors hover:text-action-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg-surface"
               >
-                ← Back to Home
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                {t("footer.backHome")}
               </Link>
-              <button
+              <CTAButton
+                variant="secondary"
+                size="md"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors font-semibold"
+                leftIcon={<LogOut className="h-4 w-4" aria-hidden="true" />}
+                ringOffsetClassName="focus-visible:ring-offset-bg-surface"
               >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
-            </div>
-          </div>
+                {t("footer.logout")}
+              </CTAButton>
+            </footer>
+          </article>
 
-          {/* Additional Info */}
-          <div className="mt-8 text-center text-gray-500 text-sm">
-            <p>
-              Your registration was submitted on{" "}
-              <span className="font-medium">
-                {new Date().toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </span>
-            </p>
-          </div>
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            {t("footer.submittedOn", { date: submittedDate })}
+          </p>
         </div>
       </div>
     </MainLayout>
+  );
+}
+
+function TimelineIcon({ state }: { state: StepState }) {
+  if (state === "complete") {
+    return (
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-success-bg text-success-text">
+        <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+      </span>
+    );
+  }
+  if (state === "active") {
+    return (
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+        <Clock className="h-5 w-5" aria-hidden="true" />
+      </span>
+    );
+  }
+  return (
+    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-background text-muted-foreground">
+      <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+    </span>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
+      <dd className="mt-1 text-sm font-medium text-foreground break-words">
+        {value}
+      </dd>
+    </div>
   );
 }

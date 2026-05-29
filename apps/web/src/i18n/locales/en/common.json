@@ -557,6 +557,14 @@
     "bookingCreatedDesc": "Customer submitted booking request",
     "paymentReceived": "Payment Received",
     "paymentReceivedDesc": "Customer completed payment via",
+    "bookingConfirmed": "Booking Confirmed",
+    "driverAssigned": "Driver Assigned",
+    "tripStarted": "Trip Started",
+    "tripCompleted": "Trip Completed",
+    "bookingCancelled": "Booking Cancelled",
+    "amenitiesTitle": "Vehicle Amenities",
+    "noAmenities": "No amenities listed",
+    "startTimeLabel": "Start time",
     "sectionActions": "Quick Actions",
     "generateInvoice": "Generate Invoice",
     "reportIssue": "Report Issue",
@@ -596,7 +604,8 @@
     "logout": "Logout",
     "openMenu": "Open main menu",
     "dashboardFor": "{name}'s Dashboard",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "disabledPending": "Available after your account is approved"
   },
   "locations": {
     "colombo": "Colombo",
@@ -1377,6 +1386,17 @@
         "finalizeFailed": "Failed to finalize OAuth login. Please try again.",
         "default": "OAuth login failed. Please try again."
       }
+    },
+    "forgotPassword": {
+      "backToLogin": "Back to Login",
+      "title": "Password Reset",
+      "subtitle": "We'll send you an email with instructions to reset your password.",
+      "emailLabel": "Email Address",
+      "emailPlaceholder": "Enter your email address",
+      "submitButton": "Send Reset Link",
+      "successTitle": "Password Reset Link Sent",
+      "successMessage": "If an account with that email exists, a password reset link has been sent.",
+      "error": "Failed to send reset link. Please try again."
     }
   },
   "faq": {
@@ -1403,7 +1423,7 @@
       },
       "cancellation": {
         "question": "What is the cancellation policy?",
-        "answer": "Cancellation policies vary by bus owner. Generally, cancellations made 7+ days before the trip receive a full refund, 3-7 days receive 50%, and less than 3 days may not be eligible for refund."
+        "answer": "Cancellation policies vary by bus owner. Generally, cancellations made 14+ days before the trip receive a full refund, 7-14 days receive 50%, and less than 7 days may not be eligible for refund."
       },
       "verification": {
         "question": "How are bus owners verified?",
@@ -2249,7 +2269,7 @@
         },
         "cancellation": {
           "question": "What is the cancellation policy?",
-          "answer": "Cancellation policies vary by owner, but are clearly displayed before booking. Generally, cancellations made 7+ days in advance receive a full refund minus processing fees. Cancellations within 48-72 hours may incur a 50% fee. Last-minute cancellations (< 24 hours) are typically non-refundable unless due to emergencies."
+          "answer": "Cancellation policies vary by owner, but are clearly displayed before booking. Generally, cancellations made 14+ days in advance receive a full refund minus processing fees. Cancellations within 7-14 days may incur a 50% fee. Last-minute cancellations (< 7 days) are typically non-refundable unless due to emergencies."
         },
         "contact": {
           "question": "Can I contact the bus owner directly?",
@@ -3014,5 +3034,355 @@
     "planningBannerBody": "Now browse buses or add vehicles to start collecting quotes.",
     "awaitingBannerTitle": "Waiting for owner responses",
     "awaitingBannerBody": "{received} of {total} owners have replied so far. We'll notify you when more quotes come in."
+  },
+  "customerBookingDetails": {
+    "title": "Booking Details",
+    "reference": "Reference: {ref}",
+    "payNow": "Pay Now",
+    "tripInfo": "Trip Information",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "pickupLocation": "Pickup Location",
+    "dropoffLocation": "Drop-off Location",
+    "passengersCount": "{count} Passengers",
+    "vehicleDetails": "Vehicle Details",
+    "seats": "{count} Seats",
+    "registrationNumber": "Registration Number: {reg}",
+    "ownerDetails": "Owner Details",
+    "contactOwner": "Contact Owner",
+    "pricingDetails": "Pricing Details",
+    "totalAmount": "Total Amount",
+    "platformCommission": "Platform Commission",
+    "netAmount": "Net Amount (Owner)",
+    "totalPayable": "Total Payable",
+    "amountPaid": "Amount Paid",
+    "paymentStatus": "Payment Status",
+    "paymentMethod": "Payment Method",
+    "receipt": "Receipt",
+    "viewReceipt": "View",
+    "downloadInvoice": "Download Invoice",
+    "downloadReceipt": "Download Receipt",
+    "actionsTitle": "Actions",
+    "cancelBooking": "Cancel Booking",
+    "rateService": "Rate Service",
+    "raiseDispute": "Raise Dispute",
+    "cancelDialog": {
+      "title": "Cancel Booking",
+      "description": "Please provide a reason for cancellation. Cancellation fees may apply.",
+      "placeholder": "Reason for cancellation...",
+      "confirm": "Confirm Cancellation",
+      "keep": "Keep Booking",
+      "reasonRequired": "Please provide a reason for cancellation",
+      "success": "Booking cancelled successfully",
+      "error": "Failed to cancel booking"
+    },
+    "ratingDialog": {
+      "title": "Rate Your Experience",
+      "ratingLabel": "Rating",
+      "placeholder": "Share your experience...",
+      "submit": "Submit Rating",
+      "cancel": "Cancel",
+      "success": "Rating submitted successfully!",
+      "error": "Failed to submit rating"
+    },
+    "loadError": "Failed to load booking details",
+    "specialRequirements": "Special Requirements",
+    "breakdownBasePrice": "Vehicle Rental",
+    "breakdownDriverAllowance": "Driver Allowance",
+    "breakdownAdditionalCharges": "Additional Charges",
+    "breakdownSubtotal": "Subtotal",
+    "breakdownTax": "Tax",
+    "stopLabel": "Stop {index}",
+    "notFound": "Booking not found",
+    "goToBookings": "Go to Bookings",
+    "startTime": "Start time",
+    "duration": "Duration",
+    "amenitiesTitle": "Vehicle Amenities",
+    "ownerCompletedTrips": "{count, plural, =0 {No completed trips} one {# completed trip} other {# completed trips}}",
+    "driverTitle": "Driver",
+    "driverLicense": "License",
+    "timelineTitle": "Booking Timeline",
+    "timeline": {
+      "bookingCreated": "Booking Created",
+      "bookingConfirmed": "Booking Confirmed",
+      "paymentReceived": "Payment Received",
+      "driverAssigned": "Driver Assigned",
+      "tripStarted": "Trip Started",
+      "tripCompleted": "Trip Completed",
+      "bookingCancelled": "Booking Cancelled"
+    },
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "ongoing": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "disputed": "Disputed"
+    },
+    "paymentStatusLabels": {
+      "pending": "Pending",
+      "partial": "Partial",
+      "paid": "Paid",
+      "completed": "Paid",
+      "refunded": "Refunded",
+      "failed": "Failed"
+    }
+  },
+  "ownerPendingApproval": {
+    "title": "Registration Pending Approval",
+    "subtitle": "Thank you for registering with TraveNest. Our team is reviewing your application — we will notify you the moment it is approved.",
+    "statusBadge": "Pending Verification",
+    "roleBadge": "Bus Owner",
+    "timeline": {
+      "heading": "Verification Process",
+      "submittedTitle": "Registration Submitted",
+      "submittedDesc": "Your registration form has been successfully submitted.",
+      "reviewTitle": "Under Review",
+      "reviewDesc": "Our team is verifying your information and documents.",
+      "approvedTitle": "Approval Complete",
+      "approvedDesc": "You will be notified once your account is approved."
+    },
+    "estimated": {
+      "heading": "Estimated Review Time",
+      "value": "2–3 Business Days"
+    },
+    "details": {
+      "heading": "Your Registration Details",
+      "name": "Name",
+      "email": "Email",
+      "status": "Status",
+      "role": "Role"
+    },
+    "restrictions": {
+      "heading": "Account Restrictions",
+      "intro": "Until your account is approved, you cannot perform the following actions:",
+      "item1": "List your vehicles for booking",
+      "item2": "Receive booking requests from customers",
+      "item3": "Set pricing for your vehicles",
+      "item4": "Access the owner dashboard",
+      "item5": "Respond to customer quotation requests"
+    },
+    "nextSteps": {
+      "heading": "What Happens Next?",
+      "step1": "Our team will review your personal information and verify your NIC details.",
+      "step2": "We will verify your vehicle registration and documentation.",
+      "step3": "Once approved, you will receive an email notification.",
+      "step4": "You can then set up your vehicle pricing and start receiving bookings."
+    },
+    "support": {
+      "heading": "Need Help?",
+      "description": "If you have any questions about the verification process or need to update your registration details, please contact our support team.",
+      "emailSupport": "Email Support",
+      "callSupport": "Call Support"
+    },
+    "footer": {
+      "backHome": "Back to Home",
+      "logout": "Logout",
+      "submittedOn": "Your registration was submitted on {date}"
+    }
+  },
+  "adminNav": {
+    "badge": "ADMIN",
+    "sidebarLabel": "Admin portal navigation",
+    "primaryNavLabel": "Admin sections",
+    "selectLanguage": "Select language",
+    "openMenu": "Open admin menu",
+    "closeMenu": "Close menu",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "openAccountMenu": "open account menu",
+    "groups": {
+      "overview": "Overview",
+      "operations": "Operations",
+      "trust": "Trust & Quality",
+      "finance": "Finance",
+      "insights": "Insights",
+      "catalog": "Catalog",
+      "system": "System"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "bookings": "Bookings",
+      "disputes": "Disputes",
+      "ownerVerifications": "Owner verifications",
+      "vehicleVerifications": "Vehicle verifications",
+      "reviewModeration": "Review moderation",
+      "financial": "Financial",
+      "analytics": "Analytics",
+      "reports": "Reports",
+      "content": "Content",
+      "amenities": "Amenities",
+      "settings": "Settings",
+      "notifications": "Notifications",
+      "auditLogs": "Audit logs",
+      "profile": "Admin profile"
+    }
+  },
+  "adminShell": {
+    "breadcrumbRoot": "Admin"
+  },
+  "adminDashboard": {
+    "loadFailed": "Unable to load dashboard summary.",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing dashboard data…",
+    "ariaRefresh": "Refresh dashboard data",
+    "viewAllActivity": "View all activity",
+    "kpiLabel": "Key platform metrics",
+    "trendsLabel": "Six-month trends",
+    "kpi": {
+      "users": "Total users",
+      "vehicles": "Registered vehicles",
+      "bookings": "All bookings",
+      "revenue": "Completed revenue",
+      "subStat": {
+        "verifiedOwners": "{verified} of {total} owners verified",
+        "activeVehicles": "{count, plural, one {# active vehicle} other {# active vehicles}}",
+        "pendingBookings": "{count, plural, one {# booking pending} other {# bookings pending}}",
+        "payments": "{count, plural, one {# successful payment} other {# successful payments}}"
+      }
+    },
+    "alerts": {
+      "failedPayments": "{count, plural, one {# failed payment needs attention} other {# failed payments need attention}}",
+      "viewFinancial": "View financial"
+    },
+    "sections": {
+      "trends": "Trends (last 6 months)",
+      "trendsHint": "Updated with each dashboard refresh",
+      "activity": "Recent activity",
+      "activityHint": "Latest platform events across users and bookings",
+      "activityEmpty": "No activity available right now.",
+      "pending": "Pending actions",
+      "pendingEmpty": "Nothing waiting on you. Nice work.",
+      "pendingCount": "{count, plural, one {# item} other {# items}}"
+    },
+    "charts": {
+      "revenue": "Revenue by month",
+      "userGrowth": "User growth",
+      "bookingVolume": "Booking volume",
+      "empty": "No data yet — values will appear once activity begins."
+    }
+  },
+  "adminSettings": {
+    "title": "Platform settings",
+    "subtitle": "Adjust the platform-wide defaults used across booking, payment, notifications, and security.",
+    "lastUpdated": "Last updated by {by} on {at}",
+    "lastUpdatedUnknown": "Unknown admin",
+    "badges": {
+      "unsaved": "Unsaved changes",
+      "saved": "Saved"
+    },
+    "actions": {
+      "save": "Save changes",
+      "saving": "Saving…",
+      "revert": "Revert",
+      "reload": "Reload"
+    },
+    "tabs": {
+      "ariaLabel": "Settings categories",
+      "general": "General",
+      "notifications": "Notifications",
+      "payment": "Payment",
+      "booking": "Booking",
+      "security": "Security",
+      "map": "Map"
+    },
+    "maintenance": {
+      "title": "Maintenance mode",
+      "description": "When enabled, customers and owners see an interruption banner instead of the marketplace. Use during deploys or incidents.",
+      "toggleLabel": "Toggle maintenance mode",
+      "statusOn": "On",
+      "statusOff": "Off",
+      "activeWarning": "Customers cannot reach the marketplace while this is on.",
+      "messageLabel": "Maintenance message",
+      "messagePlaceholder": "TravelNest is undergoing scheduled maintenance. We'll be back shortly.",
+      "messageHelp": "{count} / 1000 characters"
+    },
+    "general": {
+      "platformName": {
+        "label": "Platform name",
+        "help": "Displayed in the header, emails, and PWA installer."
+      },
+      "supportEmail": {
+        "label": "Support email",
+        "help": "Customer-visible contact address for help requests."
+      },
+      "supportPhone": {
+        "label": "Support phone",
+        "help": "Local Sri Lankan number shown on contact pages."
+      },
+      "defaultLocale": {
+        "label": "Default locale",
+        "help": "Used when a new visitor has no language preference."
+      },
+      "defaultCurrency": {
+        "label": "Default currency",
+        "help": "Used for displayed prices and settlement reporting."
+      }
+    },
+    "notifications": {
+      "email": {
+        "label": "Email notifications",
+        "help": "Booking confirmations, quotation updates, settlement notices."
+      },
+      "sms": {
+        "label": "SMS notifications",
+        "help": "Turn on once the Twilio roadmap item is live."
+      },
+      "inApp": {
+        "label": "In-app notifications",
+        "help": "Notification center entries inside the customer and owner portals."
+      }
+    },
+    "payment": {
+      "provider": {
+        "label": "Primary payment provider",
+        "help": "PayHere is the default for v1.0. Other gateways are roadmap items."
+      },
+      "settlementWindow": {
+        "label": "Settlement window (days)",
+        "help": "Days between booking completion and owner settlement (1-60)."
+      }
+    },
+    "booking": {
+      "autoCancel": {
+        "label": "Auto-cancel unpaid bookings (hours)",
+        "help": "Bookings without payment are cancelled after this many hours (1-168)."
+      },
+      "refundWindow": {
+        "label": "Customer refund window (hours)",
+        "help": "Hours before trip start when refunds are still allowed."
+      }
+    },
+    "security": {
+      "strongPasswords": {
+        "label": "Require strong passwords",
+        "help": "Enforce minimum length, casing, and symbol rules at registration."
+      },
+      "sessionTimeout": {
+        "label": "Session timeout (minutes)",
+        "help": "Inactive sessions expire after this many minutes (5-1440)."
+      }
+    },
+    "map": {
+      "country": {
+        "label": "Default country code",
+        "help": "Two-letter ISO code (e.g. LK)."
+      },
+      "city": {
+        "label": "Default city",
+        "help": "City used as the search starting point for new sessions."
+      }
+    },
+    "errors": {
+      "platformNameRequired": "Platform name cannot be empty.",
+      "supportEmailInvalid": "Enter a valid support email address.",
+      "settlementWindowRange": "Settlement window must be between 1 and 60 days.",
+      "bookingHoursInvalid": "Booking hours must be positive values.",
+      "sessionTimeoutRange": "Session timeout must be between 5 and 1440 minutes.",
+      "maintenanceMessageTooLong": "Maintenance message must be 1000 characters or fewer.",
+      "saveFailed": "Failed to save settings."
+    }
   }
 }

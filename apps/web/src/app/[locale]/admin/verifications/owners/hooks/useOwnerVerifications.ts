@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   adminService,
   type AdminOwnerVerificationDetails,
@@ -28,18 +29,41 @@ interface UseOwnerVerificationsResult {
   refetch: () => Promise<void>;
 }
 
-const DEFAULT_FILTERS: AdminOwnerVerificationQuery = {
-  page: 1,
-  limit: 20,
-  search: "",
-};
+const VALID_OWNER_STATUSES: AdminOwnerVerificationStatus[] = [
+  "ACTIVE",
+  "INACTIVE",
+  "SUSPENDED",
+  "PENDING_VERIFICATION",
+];
+const VALID_DOC_STATUSES: AdminVerificationDocumentStatus[] = [
+  "PENDING",
+  "VERIFIED",
+  "REJECTED",
+];
 
 export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
+  // Seed from URL params so dashboard deep-links arrive pre-filtered.
+  const searchParams = useSearchParams();
+  const rawStatus = searchParams.get("status");
+  const rawDocStatus = searchParams.get("documentStatus");
+
+  const initialStatus = VALID_OWNER_STATUSES.includes(rawStatus as AdminOwnerVerificationStatus)
+    ? (rawStatus as AdminOwnerVerificationStatus)
+    : undefined;
+  const initialDocStatus = VALID_DOC_STATUSES.includes(rawDocStatus as AdminVerificationDocumentStatus)
+    ? (rawDocStatus as AdminVerificationDocumentStatus)
+    : undefined;
+
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilterState] =
-    useState<AdminOwnerVerificationQuery>(DEFAULT_FILTERS);
+  const [filters, setFilterState] = useState<AdminOwnerVerificationQuery>({
+    page: 1,
+    limit: 20,
+    search: "",
+    status: initialStatus,
+    documentStatus: initialDocStatus,
+  });
   const [queueData, setQueueData] =
     useState<AdminOwnerVerificationResponse | null>(null);
   const [selectedOwner, setSelectedOwner] =

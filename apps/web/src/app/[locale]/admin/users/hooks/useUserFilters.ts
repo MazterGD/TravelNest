@@ -46,7 +46,7 @@ interface UseUserFiltersResult {
 
 const DEFAULT_FILTERS: AdminUsersQuery = {
   page: 1,
-  limit: 20,
+  limit: 10,
   search: "",
 };
 

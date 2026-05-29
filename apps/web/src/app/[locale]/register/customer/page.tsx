@@ -184,22 +184,22 @@ export default function CustomerRegistrationPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Left Sidebar - Information */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-gray-100 sticky top-8">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              <div className="bg-white rounded-3xl shadow-2xl p-6 border-2 border-gray-100 sticky top-6">
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">
                     {t("sidebar.title")}
                   </h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <p className="text-sm text-gray-600 leading-relaxed">
                     {t("sidebar.subtitle")}
                   </p>
                 </div>
 
-                <div className="relative h-64 rounded-2xl overflow-hidden mb-6 bg-gradient-to-br from-primary/20 to-primary/10">
+                <div className="relative h-44 rounded-2xl overflow-hidden mb-4 bg-gradient-to-br from-primary/20 to-primary/10">
                   <Image
                     src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600"
                     alt="Travel with TraveNest"
@@ -209,55 +209,55 @@ export default function CustomerRegistrationPage() {
                   />
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-1">
+                      <h3 className="font-bold text-sm text-gray-900 mb-0.5">
                         {t("sidebar.benefits.easyBooking.title")}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         {t("sidebar.benefits.easyBooking.description")}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-1">
+                      <h3 className="font-bold text-sm text-gray-900 mb-0.5">
                         {t("sidebar.benefits.verifiedOperators.title")}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         {t("sidebar.benefits.verifiedOperators.description")}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-1">
+                      <h3 className="font-bold text-sm text-gray-900 mb-0.5">
                         {t("sidebar.benefits.support.title")}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         {t("sidebar.benefits.support.description")}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <p className="text-sm text-gray-600 mb-3">
+                <div className="mt-5 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-600 mb-2.5">
                     {t("sidebar.hasAccount")}
                   </p>
                   <Link
                     href={`/${locale}/login`}
-                    className="block w-full py-3 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold text-center"
+                    className="block w-full py-2.5 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold text-center text-sm"
                   >
                     {t("sidebar.signIn")}
                   </Link>
@@ -267,15 +267,15 @@ export default function CustomerRegistrationPage() {
 
             {/* Right Side - Registration Form */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 border-2 border-gray-100">
-                <div className="mb-8">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border-2 border-gray-100">
+                <div className="mb-5">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-1">
                     {t("title")}
                   </h1>
-                  <p className="text-lg text-gray-600">{t("subtitle")}</p>
+                  <p className="text-sm text-gray-600">{t("subtitle")}</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form onSubmit={handleSubmit} className="space-y-5">
                   {error && (
                     <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
                       {error}
@@ -284,16 +284,16 @@ export default function CustomerRegistrationPage() {
 
                   {/* Personal Information Section */}
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary/20">
+                    <h2 className="text-sm font-bold text-gray-900 mb-3 pb-1.5 border-b-2 border-primary/20 uppercase tracking-wide">
                       {t("sections.personalInfo")}
                     </h2>
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.firstName.label")}
                         </label>
                         <div className="relative group">
-                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type="text"
                             name="firstName"
@@ -301,7 +301,7 @@ export default function CustomerRegistrationPage() {
                             value={formData.firstName}
                             onChange={handleChange}
                             placeholder={t("fields.firstName.placeholder")}
-                            className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
                         {fieldErrors.firstName && (
@@ -312,11 +312,11 @@ export default function CustomerRegistrationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.lastName.label")}
                         </label>
                         <div className="relative group">
-                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type="text"
                             name="lastName"
@@ -324,7 +324,7 @@ export default function CustomerRegistrationPage() {
                             value={formData.lastName}
                             onChange={handleChange}
                             placeholder={t("fields.lastName.placeholder")}
-                            className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
                         {fieldErrors.lastName && (
@@ -335,11 +335,11 @@ export default function CustomerRegistrationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.email.label")}
                         </label>
                         <div className="relative group">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type="email"
                             name="email"
@@ -347,7 +347,7 @@ export default function CustomerRegistrationPage() {
                             value={formData.email}
                             onChange={handleChange}
                             placeholder={t("fields.email.placeholder")}
-                            className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
                         {fieldErrors.email && (
@@ -358,11 +358,11 @@ export default function CustomerRegistrationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.phone.label")}
                         </label>
                         <div className="relative group">
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type="tel"
                             name="phone"
@@ -370,7 +370,7 @@ export default function CustomerRegistrationPage() {
                             value={formData.phone}
                             onChange={handleChange}
                             placeholder={t("fields.phone.placeholder")}
-                            className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
                         {fieldErrors.phone && (
@@ -384,29 +384,29 @@ export default function CustomerRegistrationPage() {
 
                   {/* Organization Details (Optional) */}
                   {/* <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary/20">
+                    <h2 className="text-sm font-bold text-gray-900 mb-3 pb-1.5 border-b-2 border-primary/20 uppercase tracking-wide">
                       Organization Details (Optional)
                     </h2>
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           Organization Name
                         </label>
                         <div className="relative group">
-                          <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type="text"
                             name="organizationName"
                             value={formData.organizationName}
                             onChange={handleChange}
                             placeholder="Company or organization name"
-                            className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           Organization Type
                         </label>
                         <select className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
@@ -430,16 +430,16 @@ export default function CustomerRegistrationPage() {
 
                   {/* Address Section */}
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary/20">
+                    <h2 className="text-sm font-bold text-gray-900 mb-3 pb-1.5 border-b-2 border-primary/20 uppercase tracking-wide">
                       {t("sections.addressInfo")}
                     </h2>
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.address.label")}
                         </label>
                         <div className="relative group">
-                          <MapPin className="absolute left-4 top-4 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <textarea
                             name="address"
                             required
@@ -447,14 +447,14 @@ export default function CustomerRegistrationPage() {
                             onChange={handleChange}
                             rows={3}
                             placeholder={t("fields.address.placeholder")}
-                            className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white resize-none"
+                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white resize-none"
                           />
                         </div>
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-6">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.city.label")}
                           </label>
                           <input
@@ -464,12 +464,12 @@ export default function CustomerRegistrationPage() {
                             value={formData.city}
                             onChange={handleChange}
                             placeholder={t("fields.city.placeholder")}
-                            className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.postalCode.label")}
                           </label>
                           <input
@@ -478,7 +478,7 @@ export default function CustomerRegistrationPage() {
                             value={formData.postalCode}
                             onChange={handleChange}
                             placeholder={t("fields.postalCode.placeholder")}
-                            className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
                       </div>
@@ -487,16 +487,16 @@ export default function CustomerRegistrationPage() {
 
                   {/* Password Section */}
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-primary/20">
+                    <h2 className="text-sm font-bold text-gray-900 mb-3 pb-1.5 border-b-2 border-primary/20 uppercase tracking-wide">
                       {t("sections.password")}
                     </h2>
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.password.label")}
                         </label>
                         <div className="relative group">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type={showPassword ? "text" : "password"}
                             name="password"
@@ -504,7 +504,7 @@ export default function CustomerRegistrationPage() {
                             value={formData.password}
                             onChange={handleChange}
                             placeholder={t("fields.password.placeholder")}
-                            className="w-full pl-12 pr-12 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                           <button
                             type="button"
@@ -552,11 +552,11 @@ export default function CustomerRegistrationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.confirmPassword.label")}
                         </label>
                         <div className="relative group">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
                             type={showConfirmPassword ? "text" : "password"}
                             name="confirmPassword"
@@ -566,7 +566,7 @@ export default function CustomerRegistrationPage() {
                             placeholder={t(
                               "fields.confirmPassword.placeholder",
                             )}
-                            className="w-full pl-12 pr-12 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                           <button
                             type="button"
@@ -600,7 +600,7 @@ export default function CustomerRegistrationPage() {
                         required
                         checked={formData.termsAccepted}
                         onChange={handleChange}
-                        className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-1"
+                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
                       />
                       <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                         {t("terms.accept")}{" "}
@@ -621,7 +621,7 @@ export default function CustomerRegistrationPage() {
                         required
                         checked={formData.privacyAccepted}
                         onChange={handleChange}
-                        className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-1"
+                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
                       />
                       <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                         {t("terms.privacyAccept")}{" "}
@@ -640,7 +640,7 @@ export default function CustomerRegistrationPage() {
                   <button
                     type="submit"
                     disabled={isLoading || isSendingOtp}
-                    className="w-full bg-gradient-to-r from-primary to-primary/90 text-white py-5 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-primary to-primary/90 text-white py-3 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isLoading || isSendingOtp ? (
                       <LoadingSpinner size="sm" className="text-white" />

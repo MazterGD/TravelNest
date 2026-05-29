@@ -118,6 +118,14 @@ export function useAuthGuard(options: UseAuthGuardOptions): UseAuthGuardResult {
           auth = false;
           // Redirect to their appropriate dashboard instead
           redirect = getDashboardUrl(user, locale);
+        } else if (
+          user.role === UserRole.VEHICLE_OWNER &&
+          !user.isVerified
+        ) {
+          // Unverified owners can authenticate but cannot enter the owner
+          // workspace — funnel them to the pending-approval page.
+          auth = false;
+          redirect = `/${locale}/owner/pending-approval`;
         } else {
           auth = true;
         }

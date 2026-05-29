@@ -345,9 +345,7 @@ export const getActivityFeed = async (limit = 20) => {
 export const getPendingActions = async () => {
   const [
     pendingOwnerApprovals,
-    pendingOwnerDocuments,
-    pendingVehicleDocuments,
-    pendingQuotations,
+    pendingVehicleApprovals,
     pendingBookings,
     failedPayments,
     pendingDisputes,
@@ -359,9 +357,14 @@ export const getPendingActions = async () => {
         status: "PENDING_VERIFICATION",
       },
     }),
-    prisma.ownerDocument.count({ where: { status: "PENDING" } }),
-    prisma.vehicleDocument.count({ where: { status: "PENDING" } }),
-    prisma.quotation.count({ where: { status: "PENDING" } }),
+    // Count distinct vehicles with at least one pending document, not document rows.
+    prisma.vehicle.count({
+      where: {
+        documents: {
+          some: { status: "PENDING" },
+        },
+      },
+    }),
     prisma.booking.count({ where: { status: "PENDING" } }),
     prisma.payment.count({ where: { status: "FAILED" } }),
     prisma.dispute.count({
@@ -382,22 +385,10 @@ export const getPendingActions = async () => {
       href: "/admin/verifications/owners",
     },
     {
-      id: "owner-documents",
-      title: "Owner documents to review",
-      count: pendingOwnerDocuments,
-      href: "/admin/verifications/owners",
-    },
-    {
-      id: "vehicle-documents",
-      title: "Vehicle documents to review",
-      count: pendingVehicleDocuments,
+      id: "vehicle-approvals",
+      title: "Vehicle verification approvals",
+      count: pendingVehicleApprovals,
       href: "/admin/verifications/vehicles",
-    },
-    {
-      id: "pending-quotations",
-      title: "Pending quotation requests",
-      count: pendingQuotations,
-      href: "/admin/bookings",
     },
     {
       id: "pending-bookings",

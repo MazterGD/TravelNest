@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   adminService,
   type AdminBookingRecord,
@@ -31,17 +32,34 @@ interface UseBookingManagementResult {
   refetch: () => Promise<void>;
 }
 
-const DEFAULT_FILTERS: AdminBookingsQuery = {
-  page: 1,
-  limit: 20,
-  search: "",
-};
-
 export const useBookingManagement = (): UseBookingManagementResult => {
+  // Seed filters from URL params so deep-links from the dashboard arrive
+  // with the correct view pre-applied (e.g. ?status=PENDING).
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("search") ?? "";
+  const rawStatus = searchParams.get("status");
+  const rawPaymentStatus = searchParams.get("paymentStatus");
+
+  const VALID_STATUSES = ["PENDING", "CONFIRMED", "ONGOING", "COMPLETED", "CANCELLED"] as const;
+  const VALID_PAYMENT_STATUSES = ["PENDING", "PROCESSING", "COMPLETED", "FAILED", "REFUNDED"] as const;
+
+  const initialStatus = VALID_STATUSES.includes(rawStatus as typeof VALID_STATUSES[number])
+    ? (rawStatus as AdminBookingsQuery["status"])
+    : undefined;
+  const initialPaymentStatus = VALID_PAYMENT_STATUSES.includes(rawPaymentStatus as typeof VALID_PAYMENT_STATUSES[number])
+    ? (rawPaymentStatus as AdminBookingsQuery["paymentStatus"])
+    : undefined;
+
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilterState] = useState<AdminBookingsQuery>(DEFAULT_FILTERS);
+  const [filters, setFilterState] = useState<AdminBookingsQuery>({
+    page: 1,
+    limit: 20,
+    search: initialSearch,
+    status: initialStatus,
+    paymentStatus: initialPaymentStatus,
+  });
   const [bookingsData, setBookingsData] = useState<AdminBookingsResponse | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<
     UseBookingManagementResult["selectedBooking"]

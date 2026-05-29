@@ -280,8 +280,12 @@ export const loginUser = async (data: LoginInput) => {
     );
   }
 
-  // Check if user is active
-  if (user.status !== UserStatus.ACTIVE) {
+  // Block suspended/inactive accounts; PENDING_VERIFICATION owners are allowed
+  // through so the frontend can route them to the pending-approval page.
+  if (
+    user.status !== UserStatus.ACTIVE &&
+    user.status !== UserStatus.PENDING_VERIFICATION
+  ) {
     throw ApiError.forbidden(
       user.status === UserStatus.SUSPENDED
         ? "Your account has been suspended"
@@ -371,7 +375,11 @@ export const sendOtpCode = async (data: SendOtpInput) => {
           where: { phone: identifier },
         });
 
-    if (!user || user.status !== UserStatus.ACTIVE) {
+    if (
+      !user ||
+      (user.status !== UserStatus.ACTIVE &&
+        user.status !== UserStatus.PENDING_VERIFICATION)
+    ) {
       return {
         sent: true,
         destination: maskIdentifier(identifier),
@@ -477,7 +485,10 @@ export const verifyOtpCode = async (data: VerifyOtpInput) => {
     throw ApiError.unauthorized("User account not found for OTP login");
   }
 
-  if (user.status !== UserStatus.ACTIVE) {
+  if (
+    user.status !== UserStatus.ACTIVE &&
+    user.status !== UserStatus.PENDING_VERIFICATION
+  ) {
     throw ApiError.forbidden(
       user.status === UserStatus.SUSPENDED
         ? "Your account has been suspended"
@@ -532,7 +543,10 @@ export const refreshUserTokens = async (refreshToken: string) => {
       throw ApiError.unauthorized("Invalid refresh token");
     }
 
-    if (user.status !== UserStatus.ACTIVE) {
+    if (
+      user.status !== UserStatus.ACTIVE &&
+      user.status !== UserStatus.PENDING_VERIFICATION
+    ) {
       throw ApiError.forbidden("Account is not active");
     }
 
@@ -882,13 +896,20 @@ export const loginWithOAuthProfile = async (profile: OAuthProfile) => {
       );
     }
 
-    if (user.status !== UserStatus.ACTIVE) {
+    if (
+      user.status !== UserStatus.ACTIVE &&
+      user.status !== UserStatus.PENDING_VERIFICATION
+    ) {
       throw ApiError.forbidden(
         user.status === UserStatus.SUSPENDED
           ? "Your account has been suspended"
           : "Your account is not active",
       );
     }
+
+    // Vehicle owners must be approved by an admin — OAuth login must not
+    // auto-verify them. Preserve their existing isVerified flag.
+    const isOwner = user.role === UserRole.VEHICLE_OWNER;
 
     user = await prisma.user.update({
       where: { id: user.id },
@@ -897,7 +918,7 @@ export const loginWithOAuthProfile = async (profile: OAuthProfile) => {
         lockedUntil: null,
         lastLoginAt: new Date(),
         avatar: user.avatar || profile.avatarUrl || null,
-        isVerified: true,
+        isVerified: isOwner ? user.isVerified : true,
       },
     });
   }

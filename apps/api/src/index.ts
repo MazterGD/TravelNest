@@ -1,3 +1,10 @@
+import dns from "node:dns";
+
+// Force IPv4-first DNS resolution. Node 18+ prefers AAAA records, which on Windows
+// dev machines without working IPv6 routes (common with Supabase Storage's CDN endpoint)
+// causes undici fetch to hang until timeout and throw "fetch failed".
+dns.setDefaultResultOrder("ipv4first");
+
 import app from "./app.js";
 import { config } from "./config/index.js";
 import { initSocketServer } from "./realtime/socket.js";

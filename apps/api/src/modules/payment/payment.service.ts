@@ -42,6 +42,43 @@ const PAYHERE_ACTION_URLS = {
   live: "https://www.payhere.lk/pay/checkout",
 } as const;
 
+const PAYHERE_API_URLS = {
+  sandbox: "https://sandbox.payhere.lk/merchant/v1",
+  live: "https://www.payhere.lk/merchant/v1",
+} as const;
+
+const getPayHereAccessToken = async (): Promise<string> => {
+  if (!config.payhere.appId || !config.payhere.appSecret) {
+    throw ApiError.internal("PayHere App credentials are not configured");
+  }
+
+  const baseUrl =
+    config.payhere.mode === "live"
+      ? PAYHERE_API_URLS.live
+      : PAYHERE_API_URLS.sandbox;
+
+  const authString = Buffer.from(
+    `${config.payhere.appId}:${config.payhere.appSecret}`,
+  ).toString("base64");
+
+  const response = await fetch(`${baseUrl}/oauth/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${authString}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw ApiError.internal(`Failed to get PayHere access token: ${errorBody}`);
+  }
+
+  const data = (await response.json()) as { access_token: string };
+  return data.access_token;
+};
+
 const formatAmount = (amount: number) => Number(amount).toFixed(2);
 
 const buildPayHereHash = (
@@ -323,6 +360,39 @@ export const refundPayment = async (
 
   if (refundAmount <= 0 || refundAmount > payment.amount) {
     throw ApiError.badRequest("Invalid refund amount");
+  }
+
+  if (payment.method === "CARD" && payment.payherePaymentId) {
+    const accessToken = await getPayHereAccessToken();
+    const baseUrl =
+      config.payhere.mode === "live"
+        ? PAYHERE_API_URLS.live
+        : PAYHERE_API_URLS.sandbox;
+
+    const refundResponse = await fetch(`${baseUrl}/payment/refund`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        payment_id: payment.payherePaymentId,
+        description: reason,
+        amount: refundAmount,
+      }),
+    });
+
+    if (!refundResponse.ok) {
+      const errorBody = await refundResponse.text();
+      throw ApiError.internal(`PayHere refund failed: ${errorBody}`);
+    }
+
+    const refundData = (await refundResponse.json()) as { status: number; msg: string };
+    
+    // Status 1 means success in PayHere API
+    if (refundData.status !== 1) {
+      throw ApiError.internal(`PayHere refund rejected: ${refundData.msg}`);
+    }
   }
 
   const updated = await prisma.payment.update({

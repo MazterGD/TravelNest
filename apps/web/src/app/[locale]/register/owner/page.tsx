@@ -379,11 +379,7 @@ export default function OwnerRegistrationPage() {
         return true;
 
       case 5: // Terms
-        if (
-          !termsData.termsAccepted ||
-          !termsData.privacyAccepted ||
-          !termsData.dataProcessingAccepted
-        ) {
+        if (!termsData.termsAccepted || !termsData.privacyAccepted) {
           setError(t("errors.acceptTerms"));
           return false;
         }
@@ -690,16 +686,16 @@ export default function OwnerRegistrationPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Progress Indicator */}
-          <div className="mb-8">
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">
+          <div className="mb-4">
+            <div className="bg-white rounded-2xl shadow-lg p-4 border-2 border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl font-bold text-gray-900">
                   {t("title")}
                 </h2>
-                <span className="text-lg text-gray-600">
+                <span className="text-sm text-gray-600">
                   {t("progress.stepOf", {
                     current: currentStep,
                     total: TOTAL_STEPS,
@@ -716,7 +712,7 @@ export default function OwnerRegistrationPage() {
                     >
                       <div
                         className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all",
+                          "w-8 h-8 rounded-full flex items-center justify-center font-bold transition-all text-sm",
                           step <= currentStep
                             ? "bg-gradient-to-r from-primary to-primary/90 text-white shadow-lg"
                             : "bg-gray-200 text-gray-500",
@@ -745,7 +741,7 @@ export default function OwnerRegistrationPage() {
                     </div>
                   ))}
                 </div>
-                <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 -z-10">
+                <div className="absolute top-4 left-0 right-0 h-1 bg-gray-200 -z-10">
                   <div
                     className="h-full bg-gradient-to-r from-primary to-primary/90 transition-all duration-500"
                     style={{
@@ -757,20 +753,20 @@ export default function OwnerRegistrationPage() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-4">
             {/* Left Sidebar */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-gray-100 sticky top-8">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              <div className="bg-white rounded-3xl shadow-2xl p-6 border-2 border-gray-100 sticky top-6">
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">
                     {t("sidebar.title")}
                   </h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <p className="text-sm text-gray-600 leading-relaxed">
                     {t("sidebar.subtitle")}
                   </p>
                 </div>
 
-                <div className="relative h-64 rounded-2xl overflow-hidden mb-6 bg-gradient-to-br from-primary/20 to-primary/10">
+                <div className="relative h-44 rounded-2xl overflow-hidden mb-4 bg-gradient-to-br from-primary/20 to-primary/10">
                   <Image
                     src="https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=600"
                     alt={t("sidebar.imageAlt")}
@@ -780,55 +776,55 @@ export default function OwnerRegistrationPage() {
                   />
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-1">
+                      <h3 className="font-bold text-sm text-gray-900 mb-0.5">
                         {t("sidebar.benefits.noListingFees.title")}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         {t("sidebar.benefits.noListingFees.description")}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-1">
+                      <h3 className="font-bold text-sm text-gray-900 mb-0.5">
                         {t("sidebar.benefits.commission.title")}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         {t("sidebar.benefits.commission.description")}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-1">
+                      <h3 className="font-bold text-sm text-gray-900 mb-0.5">
                         {t("sidebar.benefits.dashboard.title")}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         {t("sidebar.benefits.dashboard.description")}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <p className="text-sm text-gray-600 mb-3">
+                <div className="mt-5 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-600 mb-2.5">
                     {t("sidebar.alreadyRegistered")}
                   </p>
                   <Link
                     href={`/${locale}/login`}
-                    className="block w-full py-3 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold text-center"
+                    className="block w-full py-2.5 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold text-center text-sm"
                   >
                     {t("sidebar.signIn")}
                   </Link>
@@ -838,33 +834,33 @@ export default function OwnerRegistrationPage() {
 
             {/* Right Side - Multi-step Form */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 border-2 border-gray-100">
+              <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border-2 border-gray-100">
                 <form onSubmit={handleSubmit}>
                   {error && (
-                    <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+                    <div className="mb-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
                       {error}
                     </div>
                   )}
 
                   {/* Step 1: Personal Information */}
                   {currentStep === 1 && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
                           {t("sections.personalInfo")}
                         </h2>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-sm text-gray-600 mb-3">
                           {t("sections.personalInfoDescription")}
                         </p>
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-6">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.firstName.label")}
                           </label>
                           <div className="relative group">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
                               type="text"
                               required
@@ -876,17 +872,17 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.firstName.placeholder")}
-                              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.lastName.label")}
                           </label>
                           <div className="relative group">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
                               type="text"
                               required
@@ -898,17 +894,17 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.lastName.placeholder")}
-                              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.email.label")}
                           </label>
                           <div className="relative group">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
                               type="email"
                               required
@@ -920,7 +916,7 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.email.placeholder")}
-                              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                             />
                           </div>
                           {fieldErrors.email && (
@@ -931,11 +927,11 @@ export default function OwnerRegistrationPage() {
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.phone.label")}
                           </label>
                           <div className="relative group">
-                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
                               type="tel"
                               required
@@ -947,17 +943,17 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.phone.placeholder")}
-                              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                             />
                           </div>
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.nicNumber.label")}
                           </label>
                           <div className="relative group">
-                            <Contact className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <Contact className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
                               type="text"
                               required
@@ -969,24 +965,24 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.nicNumber.placeholder")}
-                              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                             />
                           </div>
                         </div>
                       </div>
 
                       {/* Owner Photo and NIC Document */}
-                      <div className="border-t-2 border-gray-100 pt-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <div className="border-t-2 border-gray-100 pt-4">
+                        <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                           <Camera className="text-primary" />
                           {t("sections.identityVerification")}
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full ml-2">
                             {t("badges.required")}
                           </span>
                         </h3>
-                        <div className="grid md:grid-cols-2 gap-6">
+                        <div className="grid md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block font-semibold text-gray-800 mb-2">
+                            <label className="block font-semibold text-gray-800 mb-1.5">
                               {t("fields.ownerPhoto.label")}
                             </label>
                             <div
@@ -1002,7 +998,7 @@ export default function OwnerRegistrationPage() {
                                   <img
                                     src={ownerPhoto.preview}
                                     alt={t("fields.ownerPhoto.alt")}
-                                    className="w-32 h-32 object-cover rounded-full mx-auto"
+                                    className="w-24 h-24 object-cover rounded-full mx-auto"
                                   />
                                   <button
                                     type="button"
@@ -1017,7 +1013,7 @@ export default function OwnerRegistrationPage() {
                                 </div>
                               ) : (
                                 <label className="cursor-pointer">
-                                  <Camera className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                  <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                                   <p className="text-gray-600">
                                     {t("fields.ownerPhoto.uploadPrompt")}
                                   </p>
@@ -1072,22 +1068,22 @@ export default function OwnerRegistrationPage() {
 
                   {/* Step 2: Address & Base Location */}
                   {currentStep === 2 && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
                           {t("sections.addressInfo")}
                         </h2>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-sm text-gray-600 mb-3">
                           {t("sections.addressInfoDescription")}
                         </p>
                       </div>
 
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.address.label")}
                         </label>
                         <div className="relative group">
-                          <MapPin className="absolute left-4 top-4 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <textarea
                             required
                             value={addressInfo.address}
@@ -1099,14 +1095,14 @@ export default function OwnerRegistrationPage() {
                             }
                             rows={3}
                             placeholder={t("fields.address.placeholder")}
-                            className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white resize-none"
+                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white resize-none"
                           />
                         </div>
                       </div>
 
                       <div className="grid md:grid-cols-3 gap-6">
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.city.label")}
                           </label>
                           <input
@@ -1120,12 +1116,12 @@ export default function OwnerRegistrationPage() {
                               })
                             }
                             placeholder={t("fields.city.placeholder")}
-                            className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.district.label")}
                           </label>
                           <select
@@ -1154,7 +1150,7 @@ export default function OwnerRegistrationPage() {
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.postalCode.label")}
                           </label>
                           <input
@@ -1167,13 +1163,13 @@ export default function OwnerRegistrationPage() {
                               })
                             }
                             placeholder={t("fields.postalCode.placeholder")}
-                            className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.baseLocation.label")}
                         </label>
                         <input
@@ -1187,7 +1183,7 @@ export default function OwnerRegistrationPage() {
                             })
                           }
                           placeholder={t("fields.baseLocation.placeholder")}
-                          className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                         />
                         <p className="text-sm text-gray-500 mt-2">
                           {t("fields.baseLocation.helpText")}
@@ -1198,9 +1194,9 @@ export default function OwnerRegistrationPage() {
 
                   {/* Step 3: Vehicle Information & Documents */}
                   {currentStep === 3 && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
                           {t("sections.vehicleInfo")}
                         </h2>
                         <p className="text-gray-600 mb-2">
@@ -1214,10 +1210,10 @@ export default function OwnerRegistrationPage() {
                       {vehicles.map((vehicle, index) => (
                         <div
                           key={index}
-                          className="border-2 border-gray-200 rounded-2xl p-6 space-y-6"
+                          className="border-2 border-gray-200 rounded-2xl p-4 space-y-4"
                         >
                           <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                               <Bus className="text-primary" />
                               {t("vehicle.cardTitle", { index: index + 1 })}
                             </h3>
@@ -1235,7 +1231,7 @@ export default function OwnerRegistrationPage() {
                           {/* Vehicle Details */}
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.registrationNumber.label")}
                               </label>
                               <input
@@ -1257,7 +1253,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.vehicleType.label")}
                               </label>
                               <select
@@ -1284,7 +1280,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.make.label")}
                               </label>
                               <input
@@ -1300,7 +1296,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.model.label")}
                               </label>
                               <input
@@ -1316,7 +1312,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.year.label")}
                               </label>
                               <input
@@ -1334,7 +1330,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.seatingCapacity.label")}
                               </label>
                               <input
@@ -1358,7 +1354,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.acType.label")}
                               </label>
                               <select
@@ -1381,7 +1377,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.color.label")}
                               </label>
                               <input
@@ -1397,7 +1393,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.condition.label")}
                               </label>
                               <select
@@ -1427,7 +1423,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.pricePerKilometer.label")}
                               </label>
                               <input
@@ -1454,7 +1450,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.pricePerDay.label")}
                               </label>
                               <input
@@ -1481,7 +1477,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.driverAllowance.label")}
                               </label>
                               <input
@@ -1509,7 +1505,7 @@ export default function OwnerRegistrationPage() {
 
                           {/* Description */}
                           <div className="mt-4">
-                            <label className="block font-semibold text-gray-800 mb-2">
+                            <label className="block font-semibold text-gray-800 mb-1.5">
                               {t("fields.description.label")}
                             </label>
                             <textarea
@@ -1535,7 +1531,7 @@ export default function OwnerRegistrationPage() {
 
                           {/* Amenities Selection */}
                           <div className="pt-4 border-t border-gray-200">
-                            <h4 className="text-lg font-bold text-gray-900 mb-4">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3">
                               {t("vehicle.amenitiesTitle")}
                             </h4>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1584,7 +1580,7 @@ export default function OwnerRegistrationPage() {
 
                           {/* Vehicle Photos */}
                           <div className="pt-4 border-t border-gray-200">
-                            <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                               <ImageUp className="text-primary" />
                               {t("vehicle.photosTitle")}
                               <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full ml-2">
@@ -1648,13 +1644,51 @@ export default function OwnerRegistrationPage() {
 
                           {/* Document Uploads */}
                           <div className="pt-4 border-t border-gray-200">
-                            <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                               <FileText className="text-primary" />
                               {t("vehicle.documentsTitle")}
                               <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full ml-2">
                                 {t("badges.required")}
                               </span>
                             </h4>
+
+                            {/* Document Guidelines */}
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-5">
+                              <div className="flex gap-3">
+                                <FileText className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+                                <div>
+                                  <h3 className="font-bold text-gray-900 mb-2">
+                                    {t("vehicle.documentGuidelines.title")}
+                                  </h3>
+                                  <ul className="space-y-1 text-sm text-gray-700">
+                                    <li>
+                                      •{" "}
+                                      {t(
+                                        "vehicle.documentGuidelines.points.clear",
+                                      )}
+                                    </li>
+                                    <li>
+                                      •{" "}
+                                      {t(
+                                        "vehicle.documentGuidelines.points.valid",
+                                      )}
+                                    </li>
+                                    <li>
+                                      •{" "}
+                                      {t(
+                                        "vehicle.documentGuidelines.points.formats",
+                                      )}
+                                    </li>
+                                    <li>
+                                      •{" "}
+                                      {t(
+                                        "vehicle.documentGuidelines.points.verificationTime",
+                                      )}
+                                    </li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
 
                             <div className="grid md:grid-cols-3 gap-4">
                               <FileUpload
@@ -1716,63 +1750,33 @@ export default function OwnerRegistrationPage() {
                       <button
                         type="button"
                         onClick={addVehicle}
-                        className="w-full py-4 border-2 border-dashed border-primary text-primary rounded-xl hover:bg-primary/5 transition-all font-semibold flex items-center justify-center gap-2"
+                        className="w-full py-3 border-2 border-dashed border-primary text-primary rounded-xl hover:bg-primary/5 transition-all font-semibold text-sm flex items-center justify-center gap-2"
                       >
                         <Bus />
                         {t("vehicle.addAnother")}
                       </button>
-
-                      {/* Document Guidelines */}
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
-                        <div className="flex gap-3">
-                          <FileText className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-                          <div>
-                            <h3 className="font-bold text-gray-900 mb-2">
-                              {t("vehicle.documentGuidelines.title")}
-                            </h3>
-                            <ul className="space-y-1 text-sm text-gray-700">
-                              <li>
-                                • {t("vehicle.documentGuidelines.points.clear")}
-                              </li>
-                              <li>
-                                • {t("vehicle.documentGuidelines.points.valid")}
-                              </li>
-                              <li>
-                                •{" "}
-                                {t("vehicle.documentGuidelines.points.formats")}
-                              </li>
-                              <li>
-                                •{" "}
-                                {t(
-                                  "vehicle.documentGuidelines.points.verificationTime",
-                                )}
-                              </li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   )}
 
                   {/* Step 4: Create Password */}
                   {currentStep === 4 && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
                           {t("sections.password")}
                         </h2>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-sm text-gray-600 mb-3">
                           {t("sections.passwordDescription")}
                         </p>
                       </div>
 
-                      <div className="space-y-6">
+                      <div className="space-y-4">
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.password.label")}
                           </label>
                           <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
                               type={showPassword ? "text" : "password"}
                               required
@@ -1785,7 +1789,7 @@ export default function OwnerRegistrationPage() {
                                 calculatePasswordStrength(e.target.value);
                               }}
                               placeholder={t("fields.password.placeholder")}
-                              className="w-full pl-12 pr-12 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                             />
                             <button
                               type="button"
@@ -1828,11 +1832,11 @@ export default function OwnerRegistrationPage() {
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.confirmPassword.label")}
                           </label>
                           <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
                               type={showConfirmPassword ? "text" : "password"}
                               required
@@ -1846,7 +1850,7 @@ export default function OwnerRegistrationPage() {
                               placeholder={t(
                                 "fields.confirmPassword.placeholder",
                               )}
-                              className="w-full pl-12 pr-12 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                             />
                             <button
                               type="button"
@@ -1870,8 +1874,8 @@ export default function OwnerRegistrationPage() {
                         </div>
                       </div>
 
-                      <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6">
-                        <h3 className="font-bold text-gray-900 mb-3">
+                      <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4">
+                        <h3 className="font-bold text-sm text-gray-900 mb-2">
                           {t("passwordRequirements.title")}
                         </h3>
                         <ul className="space-y-2 text-gray-700">
@@ -1927,18 +1931,18 @@ export default function OwnerRegistrationPage() {
 
                   {/* Step 5: Terms and Conditions */}
                   {currentStep === 5 && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
                           {t("sections.terms")}
                         </h2>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-sm text-gray-600 mb-3">
                           {t("sections.termsDescription")}
                         </p>
                       </div>
 
-                      <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6 max-h-64 overflow-y-auto">
-                        <h3 className="font-bold text-gray-900 mb-3">
+                      <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 max-h-48 overflow-y-auto">
+                        <h3 className="font-bold text-sm text-gray-900 mb-2">
                           {t("terms.summaryTitle")}
                         </h3>
                         <div className="space-y-3 text-gray-700">
@@ -1965,7 +1969,7 @@ export default function OwnerRegistrationPage() {
                                 termsAccepted: e.target.checked,
                               })
                             }
-                            className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-1"
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
                           />
                           <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                             {t("terms.acceptPrefix")}{" "}
@@ -1989,7 +1993,7 @@ export default function OwnerRegistrationPage() {
                                 privacyAccepted: e.target.checked,
                               })
                             }
-                            className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-1"
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
                           />
                           <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                             {t("terms.privacyPrefix")}{" "}
@@ -2013,10 +2017,10 @@ export default function OwnerRegistrationPage() {
                                 dataProcessingAccepted: e.target.checked,
                               })
                             }
-                            className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-1"
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
                           />
                           <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
-                            {t("terms.dataProcessing")} *
+                            {t("terms.dataProcessing")}
                           </span>
                         </label>
                       </div>
@@ -2024,12 +2028,12 @@ export default function OwnerRegistrationPage() {
                   )}
 
                   {/* Navigation Buttons */}
-                  <div className="flex gap-4 mt-8 pt-6 border-t-2 border-gray-100">
+                  <div className="flex gap-3 mt-5 pt-4 border-t-2 border-gray-100">
                     {currentStep > 1 && (
                       <button
                         type="button"
                         onClick={prevStep}
-                        className="flex items-center gap-2 px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold"
+                        className="flex items-center gap-2 px-5 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold text-sm"
                       >
                         <ChevronLeft className="w-4 h-4" />
                         {t("actions.previous")}
@@ -2040,7 +2044,7 @@ export default function OwnerRegistrationPage() {
                       <button
                         type="button"
                         onClick={nextStep}
-                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/90 text-white py-4 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all font-bold text-lg"
+                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/90 text-white py-3 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all font-bold text-base"
                       >
                         {t("actions.continue")}
                         <ChevronRight className="w-4 h-4" />
@@ -2049,7 +2053,7 @@ export default function OwnerRegistrationPage() {
                       <button
                         type="submit"
                         disabled={isLoading || isSendingOtp}
-                        className="flex-1 bg-gradient-to-r from-primary to-primary/90 text-white py-4 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="flex-1 bg-gradient-to-r from-primary to-primary/90 text-white py-3 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isLoading || isSendingOtp ? (
                           <LoadingSpinner size="sm" className="text-white" />

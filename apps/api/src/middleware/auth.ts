@@ -76,7 +76,7 @@ export const authenticate = async (
         throw ApiError.unauthorized("User not found");
       }
 
-      if (user.status !== "ACTIVE") {
+      if (user.status !== "ACTIVE" && user.status !== "PENDING_VERIFICATION") {
         throw ApiError.forbidden("Account is not active");
       }
 

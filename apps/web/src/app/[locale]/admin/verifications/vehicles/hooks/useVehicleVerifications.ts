@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   adminService,
   type AdminVehicleVerificationDetails,
@@ -26,18 +27,30 @@ interface UseVehicleVerificationsResult {
   refetch: () => Promise<void>;
 }
 
-const DEFAULT_FILTERS: AdminVehicleVerificationQuery = {
-  page: 1,
-  limit: 20,
-  search: "",
-};
+const VALID_DOC_STATUSES: AdminVerificationDocumentStatus[] = [
+  "PENDING",
+  "VERIFIED",
+  "REJECTED",
+];
 
 export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
+  // Seed from URL params so dashboard deep-links arrive pre-filtered.
+  const searchParams = useSearchParams();
+  const rawDocStatus = searchParams.get("documentStatus");
+
+  const initialDocStatus = VALID_DOC_STATUSES.includes(rawDocStatus as AdminVerificationDocumentStatus)
+    ? (rawDocStatus as AdminVerificationDocumentStatus)
+    : undefined;
+
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilterState] =
-    useState<AdminVehicleVerificationQuery>(DEFAULT_FILTERS);
+  const [filters, setFilterState] = useState<AdminVehicleVerificationQuery>({
+    page: 1,
+    limit: 20,
+    search: "",
+    documentStatus: initialDocStatus,
+  });
   const [queueData, setQueueData] =
     useState<AdminVehicleVerificationResponse | null>(null);
   const [selectedVehicle, setSelectedVehicle] =

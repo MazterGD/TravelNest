@@ -20,6 +20,13 @@ import {
   Map,
   MessageSquare,
   FileText,
+  CheckCircle2,
+  CreditCard,
+  UserCheck,
+  PlayCircle,
+  Flag,
+  Ban,
+  Check,
 } from "lucide-react";
 import { bookingService, ApiError } from "@/lib/api";
 import dynamic from "next/dynamic";
@@ -218,6 +225,11 @@ export default function BookingDetailsPage({
                           ? new Date(trip.endDate || booking.endDate).toLocaleDateString()
                           : t("na")}
                       </div>
+                      {trip.startTime && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {t("startTimeLabel")}: {trip.startTime}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
@@ -326,6 +338,24 @@ export default function BookingDetailsPage({
                       {booking.vehicle?.capacity ?? booking.vehicle?.seats ?? t("na")}{" "}
                       {t("seats")}
                     </div>
+                    {Array.isArray(booking.vehicle?.amenities) && booking.vehicle.amenities.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <div className="mb-2 text-xs font-medium text-muted-foreground">
+                          {t("amenitiesTitle")}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {booking.vehicle.amenities.map((amenity: string) => (
+                            <span
+                              key={amenity}
+                              className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize"
+                            >
+                              <Check className="h-3 w-3" />
+                              {amenity.replace(/_/g, " ")}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="rounded-lg border border-border p-4">
@@ -433,36 +463,68 @@ export default function BookingDetailsPage({
               <div className="rounded-lg border border-border bg-card p-6">
                 <h3 className="mb-4 font-semibold text-foreground">{t("sectionTimeline")}</h3>
                 <div className="space-y-4">
-                  <div className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-                        <div className="h-2 w-2 rounded-full bg-primary-foreground" />
-                      </div>
-                      <div className="h-full w-0.5 bg-border" />
-                    </div>
-                    <div className="flex-1 pb-4">
-                      <div className="mb-1 font-medium text-foreground">{t("bookingCreated")}</div>
-                      <div className="mb-1 text-xs text-muted-foreground">
-                        {new Date(booking.createdAt).toLocaleDateString()} •{" "}
-                        {new Date(booking.createdAt).toLocaleTimeString()}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{t("bookingCreatedDesc")}</div>
-                    </div>
-                  </div>
-                  {booking.payment?.status === "completed" && (
+                  {Array.isArray(booking.timeline) && booking.timeline.length > 0 ? (
+                    booking.timeline.map((event: any, idx: number) => {
+                      const iconMap: Record<string, any> = {
+                        booking_created: Calendar,
+                        booking_confirmed: CheckCircle2,
+                        payment_received: CreditCard,
+                        driver_assigned: UserCheck,
+                        trip_started: PlayCircle,
+                        trip_completed: Flag,
+                        booking_cancelled: Ban,
+                      };
+                      const labelMap: Record<string, string> = {
+                        booking_created: t("bookingCreated"),
+                        booking_confirmed: t("bookingConfirmed"),
+                        payment_received: t("paymentReceived"),
+                        driver_assigned: t("driverAssigned"),
+                        trip_started: t("tripStarted"),
+                        trip_completed: t("tripCompleted"),
+                        booking_cancelled: t("bookingCancelled"),
+                      };
+                      const Icon = iconMap[event.event] || Calendar;
+                      const isLast = idx === booking.timeline.length - 1;
+                      const isCancelled = event.event === "booking_cancelled";
+                      return (
+                        <div key={`${event.event}-${idx}`} className="flex gap-3">
+                          <div className="flex flex-col items-center">
+                            <div
+                              className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                                isCancelled
+                                  ? "bg-[var(--color-error-bg)] text-error-foreground"
+                                  : "bg-primary/10 text-primary"
+                              }`}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            {!isLast && <div className="h-full w-0.5 bg-border mt-1" />}
+                          </div>
+                          <div className="flex-1 pb-1">
+                            <div className="mb-1 font-medium text-foreground">
+                              {labelMap[event.event] || event.event}
+                            </div>
+                            <div className="mb-1 text-xs text-muted-foreground">
+                              {new Date(event.timestamp).toLocaleString()}
+                            </div>
+                            {event.description && (
+                              <div className="text-sm text-muted-foreground">
+                                {event.description}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
                     <div className="flex gap-3">
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-                          <div className="h-2 w-2 rounded-full bg-primary-foreground" />
-                        </div>
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <Calendar className="h-4 w-4" />
                       </div>
-                      <div className="flex-1 pb-4">
-                        <div className="mb-1 font-medium text-foreground">{t("paymentReceived")}</div>
-                        <div className="mb-1 text-xs text-muted-foreground">
-                          {t("paymentReceivedDesc")}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {booking.payment.method}
+                      <div className="flex-1">
+                        <div className="mb-1 font-medium text-foreground">{t("bookingCreated")}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(booking.createdAt).toLocaleString()}
                         </div>
                       </div>
                     </div>

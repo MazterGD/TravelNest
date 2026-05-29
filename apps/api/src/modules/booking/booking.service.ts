@@ -222,6 +222,13 @@ export const getBookingById = async (
           model: true,
           seats: true,
           images: true,
+          amenities: true,
+          features: true,
+          fuelType: true,
+          transmission: true,
+          acType: true,
+          year: true,
+          color: true,
           ownerId: true,
           owner: {
             select: {
@@ -230,6 +237,8 @@ export const getBookingById = async (
               lastName: true,
               phone: true,
               email: true,
+              avatar: true,
+              createdAt: true,
             },
           },
         },
@@ -241,6 +250,7 @@ export const getBookingById = async (
           status: true,
           method: true,
           createdAt: true,
+          updatedAt: true,
           bankReceiptUrl: true,
         },
       },
@@ -272,53 +282,232 @@ export const getBookingById = async (
     basePrice: number;
     driverAllowance: number;
     additionalCharges: number;
+    subtotal: number;
+    tax: number;
+    customItems: Array<{ description: string; amount: number }>;
   } | null = null;
-  
+
   let itineraryStops: any[] | null = null;
   let itineraryRoute: any | null = null;
+  let startTime: string | null = null;
+  let tripEstimatedDistance: string | null = booking.estimatedDistance;
+  let tripEstimatedDuration: string | null = booking.estimatedDuration;
 
-  const quotationIdMatch = booking.notes?.match(/from quotation (QUO-[\w-]+)/);
+  const quotationIdMatch = booking.notes?.match(/(QUO-[\w-]+)/);
   if (quotationIdMatch) {
     const quotation = await prisma.quotation.findUnique({
       where: { quotationId: quotationIdMatch[1] },
       select: {
         id: true,
+        tripId: true,
+        startTime: true,
+        estimatedDistance: true,
+        estimatedDuration: true,
         vehicleRentalCost: true,
         driverCost: true,
         fuelCost: true,
         tollCharges: true,
         permitFees: true,
+        customItems: true,
+        subtotal: true,
+        tax: true,
       },
     });
     if (quotation) {
-      breakdown = {
-        basePrice: quotation.vehicleRentalCost ?? 0,
-        driverAllowance: quotation.driverCost ?? 0,
-        additionalCharges:
-          (quotation.fuelCost ?? 0) +
-          (quotation.tollCharges ?? 0) +
-          (quotation.permitFees ?? 0),
-      };
+      const additionalCharges =
+        (quotation.fuelCost ?? 0) +
+        (quotation.tollCharges ?? 0) +
+        (quotation.permitFees ?? 0);
+      const baseAndDriver =
+        (quotation.vehicleRentalCost ?? 0) + (quotation.driverCost ?? 0);
+      const hasAnyBreakdown =
+        (quotation.vehicleRentalCost ?? 0) > 0 ||
+        (quotation.driverCost ?? 0) > 0 ||
+        additionalCharges > 0;
+
+      if (hasAnyBreakdown) {
+        breakdown = {
+          basePrice: quotation.vehicleRentalCost ?? 0,
+          driverAllowance: quotation.driverCost ?? 0,
+          additionalCharges,
+          subtotal: quotation.subtotal ?? baseAndDriver + additionalCharges,
+          tax: quotation.tax ?? 0,
+          customItems: Array.isArray(quotation.customItems)
+            ? (quotation.customItems as any[])
+            : [],
+        };
+      }
+
+      startTime = quotation.startTime ?? null;
+      tripEstimatedDistance =
+        tripEstimatedDistance || quotation.estimatedDistance || null;
+      tripEstimatedDuration =
+        tripEstimatedDuration || quotation.estimatedDuration || null;
 
       const [stopsRaw, routeRaw] = await Promise.all([
-        (prisma as any).$queryRawUnsafe(`SELECT "id", "stopOrder", "locationName", ST_AsGeoJSON(coordinates) as coordinates FROM "itinerary_stops" WHERE "quotationId" = $1 ORDER BY "stopOrder" ASC`, quotation.id).catch(() => []),
-        (prisma as any).$queryRawUnsafe(`SELECT "id", ST_AsGeoJSON("routeGeometry") as "routeGeometry" FROM "itinerary_routes" WHERE "quotationId" = $1`, quotation.id).catch(() => [])
+        (prisma as any)
+          .$queryRawUnsafe(
+            `SELECT "id", "stopOrder", "locationName", ST_AsGeoJSON(coordinates) as coordinates FROM "itinerary_stops" WHERE "quotationId" = $1 ORDER BY "stopOrder" ASC`,
+            quotation.id,
+          )
+          .catch(() => []),
+        (prisma as any)
+          .$queryRawUnsafe(
+            `SELECT "id", ST_AsGeoJSON("routeGeometry") as "routeGeometry" FROM "itinerary_routes" WHERE "quotationId" = $1`,
+            quotation.id,
+          )
+          .catch(() => []),
       ]);
 
       if (stopsRaw && stopsRaw.length > 0) {
         itineraryStops = stopsRaw.map((s: any) => ({
           ...s,
-          coordinates: s.coordinates ? JSON.parse(s.coordinates).coordinates : null,
+          coordinates: s.coordinates
+            ? JSON.parse(s.coordinates).coordinates
+            : null,
         }));
       }
 
       if (routeRaw && routeRaw.length > 0) {
         itineraryRoute = {
           ...routeRaw[0],
-          coordinates: routeRaw[0].routeGeometry ? JSON.parse(routeRaw[0].routeGeometry).coordinates : null,
+          coordinates: routeRaw[0].routeGeometry
+            ? JSON.parse(routeRaw[0].routeGeometry).coordinates
+            : null,
         };
       }
+
+      // Fallback: trip-level itinerary JSON (used when ItineraryStop rows
+      // were not captured at quote time but the customer drew stops on the trip).
+      if (
+        (!itineraryStops || itineraryStops.length === 0) &&
+        quotation.tripId
+      ) {
+        const trip = await prisma.trip.findUnique({
+          where: { id: quotation.tripId },
+          select: {
+            startTime: true,
+            itineraryStops: true,
+            itineraryRoute: true,
+            estimatedDistance: true,
+            estimatedDuration: true,
+          },
+        });
+        if (trip) {
+          startTime = startTime || trip.startTime || null;
+          tripEstimatedDistance =
+            tripEstimatedDistance || trip.estimatedDistance || null;
+          tripEstimatedDuration =
+            tripEstimatedDuration || trip.estimatedDuration || null;
+          if (Array.isArray(trip.itineraryStops)) {
+            itineraryStops = (trip.itineraryStops as any[]).map((s: any) => ({
+              locationName: s.locationName ?? s.name ?? null,
+              stopOrder: s.order ?? s.stopOrder ?? null,
+              coordinates:
+                Array.isArray(s.coordinates) && s.coordinates.length === 2
+                  ? s.coordinates
+                  : s.lng != null && s.lat != null
+                    ? [s.lng, s.lat]
+                    : null,
+            }));
+          }
+          if (
+            !itineraryRoute &&
+            trip.itineraryRoute &&
+            typeof trip.itineraryRoute === "object"
+          ) {
+            itineraryRoute = trip.itineraryRoute as any;
+          }
+        }
+      }
     }
+  }
+
+  // Aggregate owner reputation and trip count for trust display.
+  const [ownerReviewAgg, ownerCompletedTrips] = await Promise.all([
+    prisma.review.aggregate({
+      where: { vehicle: { ownerId: booking.vehicle.ownerId } },
+      _avg: { rating: true },
+      _count: { _all: true },
+    }),
+    prisma.booking.count({
+      where: {
+        vehicle: { ownerId: booking.vehicle.ownerId },
+        status: "COMPLETED",
+      },
+    }),
+  ]);
+
+  // Derived timeline from existing state. A persisted state-transitions
+  // table is a roadmap item; until then, we surface the events we can
+  // confidently anchor to existing timestamps.
+  const timeline: Array<{
+    event: string;
+    timestamp: string;
+    description?: string;
+  }> = [];
+  timeline.push({
+    event: "booking_created",
+    timestamp: booking.createdAt.toISOString(),
+  });
+  if (booking.payment?.status === "COMPLETED") {
+    timeline.push({
+      event: "payment_received",
+      timestamp: (
+        booking.payment.updatedAt ?? booking.payment.createdAt
+      ).toISOString(),
+      description: booking.payment.method || undefined,
+    });
+  }
+  if (
+    booking.status === "CONFIRMED" ||
+    booking.status === "ONGOING" ||
+    booking.status === "COMPLETED"
+  ) {
+    timeline.push({
+      event: "booking_confirmed",
+      timestamp: booking.updatedAt.toISOString(),
+    });
+  }
+  if (booking.driverName) {
+    timeline.push({
+      event: "driver_assigned",
+      timestamp: booking.updatedAt.toISOString(),
+      description: booking.driverName,
+    });
+  }
+  const now = new Date();
+  if (
+    (booking.status === "ONGOING" || booking.status === "COMPLETED") &&
+    booking.startDate <= now
+  ) {
+    timeline.push({
+      event: "trip_started",
+      timestamp: booking.startDate.toISOString(),
+    });
+  }
+  if (booking.status === "COMPLETED" && booking.endDate <= now) {
+    timeline.push({
+      event: "trip_completed",
+      timestamp: booking.endDate.toISOString(),
+    });
+  }
+  if (booking.status === "CANCELLED") {
+    timeline.push({
+      event: "booking_cancelled",
+      timestamp: booking.updatedAt.toISOString(),
+      description: booking.cancelReason || undefined,
+    });
+  }
+  timeline.sort(
+    (a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
+
+  if (!startTime) {
+    const hh = String(booking.startDate.getUTCHours()).padStart(2, "0");
+    const mm = String(booking.startDate.getUTCMinutes()).padStart(2, "0");
+    startTime = `${hh}:${mm}`;
   }
 
   return {
@@ -337,24 +526,49 @@ export const getBookingById = async (
       type: booking.vehicle.type,
       brand: booking.vehicle.brand,
       model: booking.vehicle.model,
+      year: booking.vehicle.year,
+      color: booking.vehicle.color,
       capacity: booking.vehicle.seats,
       image: booking.vehicle.images[0] || null,
+      images: booking.vehicle.images || [],
+      amenities: booking.vehicle.amenities || [],
+      features: booking.vehicle.features || null,
+      fuelType: booking.vehicle.fuelType,
+      transmission: booking.vehicle.transmission,
+      acType: booking.vehicle.acType,
     },
     owner: {
       id: booking.vehicle.owner.id,
       name: `${booking.vehicle.owner.firstName} ${booking.vehicle.owner.lastName}`,
       phone: booking.vehicle.owner.phone || "",
       email: booking.vehicle.owner.email,
+      avatar: booking.vehicle.owner.avatar || null,
+      memberSince: booking.vehicle.owner.createdAt.toISOString(),
+      rating: ownerReviewAgg._avg.rating
+        ? Number(ownerReviewAgg._avg.rating.toFixed(2))
+        : 0,
+      reviewCount: ownerReviewAgg._count._all,
+      completedTrips: ownerCompletedTrips,
     },
     trip: {
       startDate: booking.startDate.toISOString(),
       endDate: booking.endDate.toISOString(),
+      startTime,
       pickupLocation: booking.pickupLocation,
       dropoffLocation: booking.dropoffLocation || booking.pickupLocation,
       passengers: booking.totalPassengers || 0,
+      estimatedDistance: tripEstimatedDistance,
+      estimatedDuration: tripEstimatedDuration,
       itineraryStops,
       itineraryRoute,
     },
+    driver: booking.driverName
+      ? {
+          name: booking.driverName,
+          phone: booking.driverPhone,
+          license: booking.driverLicense,
+        }
+      : null,
     payment: {
       id: booking.payment?.id || null,
       total: booking.totalAmount,
@@ -362,11 +576,13 @@ export const getBookingById = async (
       status: booking.payment?.status?.toLowerCase() || "pending",
       method: booking.payment?.method || "Pending",
       receiptUrl: booking.payment?.bankReceiptUrl || null,
+      paidAt: booking.payment?.updatedAt?.toISOString() || null,
       commissionRate: platformCommissionRate,
       platformCommission,
       netAmount,
       breakdown,
     },
+    timeline,
     status: booking.status.toLowerCase(),
     notes: booking.notes,
     cancelReason: booking.cancelReason,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   adminService,
   type AdminActivityEvent,
@@ -13,6 +13,7 @@ import {
 
 interface UseDashboardDataResult {
   isLoading: boolean;
+  isFetching: boolean;
   error: string | null;
   overview: AdminDashboardOverview | null;
   revenueChart: AdminRevenueChartPoint[];
@@ -25,6 +26,7 @@ interface UseDashboardDataResult {
 
 export const useDashboardData = (months = 6): UseDashboardDataResult => {
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [overview, setOverview] = useState<AdminDashboardOverview | null>(null);
   const [revenueChart, setRevenueChart] = useState<AdminRevenueChartPoint[]>([]);
@@ -33,8 +35,17 @@ export const useDashboardData = (months = 6): UseDashboardDataResult => {
   const [activityFeed, setActivityFeed] = useState<AdminActivityEvent[]>([]);
   const [pendingActions, setPendingActions] = useState<AdminPendingAction[]>([]);
 
+  const abortRef = useRef<AbortController | null>(null);
+  const hasFetchedOnce = useRef(false);
+
   const fetchDashboardData = useCallback(async () => {
-    setIsLoading(true);
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const isInitialLoad = !hasFetchedOnce.current;
+    if (isInitialLoad) setIsLoading(true);
+    setIsFetching(true);
     setError(null);
 
     try {
@@ -54,29 +65,40 @@ export const useDashboardData = (months = 6): UseDashboardDataResult => {
         adminService.getPendingActions(),
       ]);
 
+      if (controller.signal.aborted) return;
+
       setOverview(overviewData);
       setRevenueChart(revenueData);
       setUserGrowthChart(usersData);
       setBookingTrendsChart(bookingsData);
       setActivityFeed(activityData);
       setPendingActions(pendingData);
+      hasFetchedOnce.current = true;
     } catch (fetchError) {
-      const message =
+      if (controller.signal.aborted) return;
+      setError(
         fetchError instanceof Error
           ? fetchError.message
-          : "Failed to load dashboard data";
-      setError(message);
+          : "Failed to load dashboard data",
+      );
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+        setIsFetching(false);
+      }
     }
   }, [months]);
 
   useEffect(() => {
     void fetchDashboardData();
+    return () => {
+      abortRef.current?.abort();
+    };
   }, [fetchDashboardData]);
 
   return {
     isLoading,
+    isFetching,
     error,
     overview,
     revenueChart,

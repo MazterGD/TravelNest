@@ -553,6 +553,14 @@
     "bookingCreatedDesc": "ගනුදෙනුකරු වෙන්කිරීම ඉදිරිපත් කළේය",
     "paymentReceived": "ගෙවීම ලැබිණ",
     "paymentReceivedDesc": "ගනුදෙනුකරු ගෙවීම සම්පූර්ණ කළේය",
+    "bookingConfirmed": "වෙන්කිරීම තහවුරු කරන ලදී",
+    "driverAssigned": "රියදුරු පත් කරන ලදී",
+    "tripStarted": "ගමන ආරම්භ විය",
+    "tripCompleted": "ගමන සම්පූර්ණ විය",
+    "bookingCancelled": "වෙන්කිරීම අවලංගු කරන ලදී",
+    "amenitiesTitle": "වාහන පහසුකම්",
+    "noAmenities": "පහසුකම් ලැයිස්තුගත කර නැත",
+    "startTimeLabel": "ආරම්භක වේලාව",
     "sectionActions": "ඉක්මන් ක්‍රියා",
     "generateInvoice": "ඉන්වොයිසිය ජනනය කරන්න",
     "reportIssue": "ගැටළු වාර්තා කරන්න",
@@ -592,7 +600,8 @@
     "openMenu": "ප්‍රධාන මෙනුව විවෘත කරන්න",
     "dashboardFor": "{name}ගේ උපකරණ පුවරුව",
     "backToHome": "මුල් පිටුවට",
-    "settings": "සැකසීම්"
+    "settings": "සැකසීම්",
+    "disabledPending": "ඔබේ ගිණුම අනුමත වූ පසු ලබා ගත හැකිය"
   },
   "locations": {
     "colombo": "කොළඹ",
@@ -1314,7 +1323,7 @@
         },
         "cancellation": {
           "question": "අවලංගු කිරීමේ ප්‍රතිපත්තිය කුමක්ද?",
-          "answer": "අවලංගු ප්‍රතිපත්ති හිමිකරු අනුව වෙනස් වේ, නමුත් වෙන්කිරීමට පෙර පැහැදිලිව පෙන්වයි. සාමාන්‍යයෙන් දින 7+ කට පෙර අවලංගු කළහොත් සම්පූර්ණ මුදල් ආපසු ලැබේ (සැකසුම් ගාස්තු අඩු කර). පැය 48-72 තුළ අවලංගු කිරීම් සඳහා 50% ගාස්තුවක් ඇතිවිය හැක. පැය 24 ට අඩු අවලංගු කිරීම් සාමාන්‍යයෙන් ආපසු ගෙවීම් නොවේ, හදිසි අවස්ථා හැර."
+          "answer": "අවලංගු ප්‍රතිපත්ති හිමිකරු අනුව වෙනස් වේ, නමුත් වෙන්කිරීමට පෙර පැහැදිලිව පෙන්වයි. සාමාන්‍යයෙන් දින 14+ කට පෙර අවලංගු කළහොත් සම්පූර්ණ මුදල් ආපසු ලැබේ (සැකසුම් ගාස්තු අඩු කර). දින 7 - 14 තුළ අවලංගු කිරීම් සඳහා 50% ගාස්තුවක් ඇතිවිය හැක. දින 7 ට අඩු අවලංගු කිරීම් සාමාන්‍යයෙන් ආපසු ගෙවීම් නොවේ, හදිසි අවස්ථා හැර."
         },
         "contact": {
           "question": "මට බස් හිමිකරුට සෘජුව අමතන්න පුළුවන්ද?",
@@ -3010,5 +3019,356 @@
     "planningBannerBody": "දැන් බස් සොයන්න හෝ මිල ගණන් එකතු කිරීම ආරම්භ කිරීමට වාහන එකතු කරන්න.",
     "awaitingBannerTitle": "හිමියන්ගේ ප්‍රතිචාර බලාපොරොත්තුවෙන්",
     "awaitingBannerBody": "මේ දක්වා හිමියන් {total}න් {received}දෙනෙක් පිළිතුරු දී ඇත. තවත් මිල ගණන් ලැබුණු විට අපි ඔබට දන්වමු."
+  },
+  "customerBookingDetails": {
+    "title": "වෙන්කිරීම් විස්තර",
+    "reference": "ලිපිනය: {ref}",
+    "payNow": "දැන් ගෙවන්න",
+    "tripInfo": "සංචාර තොරතුරු",
+    "startDate": "ආරම්භ දිනය",
+    "endDate": "අවසාන දිනය",
+    "pickupLocation": "ගෙන යාමේ ස්ථානය",
+    "dropoffLocation": "බෙදා හැරීමේ ස්ථානය",
+    "passengersCount": "{count} මගීන්",
+    "vehicleDetails": "වාහන විස්තර",
+    "seats": "{count} ආසන",
+    "registrationNumber": "ලියාපදිංචි අංකය: {reg}",
+    "ownerDetails": "හිමිකරු විස්තර",
+    "contactOwner": "හිමිකරු සම්බන්ධ කරන්න",
+    "pricingDetails": "මිල ගණන් විස්තර",
+    "totalAmount": "මුළු මුදල",
+    "platformCommission": "වේදිකා කොමිෂන්",
+    "netAmount": "ශුද්ධ මුදල (හිමිකරු)",
+    "totalPayable": "ගෙවිය යුතු මුළු මුදල",
+    "amountPaid": "ගෙවන ලද මුදල",
+    "paymentStatus": "ගෙවීම් තත්ත්වය",
+    "paymentMethod": "ගෙවීම් ක්‍රමය",
+    "receipt": "රිසිට්පත",
+    "viewReceipt": "බලන්න",
+    "downloadInvoice": "ඉන්වොයිස් බාගන්න",
+    "downloadReceipt": "රිසිට්පත බාගන්න",
+    "actionsTitle": "ක්‍රියා",
+    "cancelBooking": "වෙන්කිරීම අවලංගු කරන්න",
+    "rateService": "සේවාව ශ්‍රේණිගත කරන්න",
+    "raiseDispute": "ආරවුලක් ඉදිරිපත් කරන්න",
+    "cancelDialog": {
+      "title": "වෙන්කිරීම අවලංගු කරන්න",
+      "description": "අවලංගු කිරීමට හේතුවක් ලබා දෙන්න. අවලංගු කිරීමේ ගාස්තු අදාළ විය හැකිය.",
+      "placeholder": "අවලංගු කිරීමේ හේතුව...",
+      "confirm": "අවලංගු කිරීම තහවුරු කරන්න",
+      "keep": "වෙන්කිරීම රඳවා ගන්න",
+      "reasonRequired": "කරුණාකර අවලංගු කිරීමට හේතුවක් ලබා දෙන්න",
+      "success": "වෙන්කිරීම සාර්ථකව අවලංගු කරන ලදී",
+      "error": "වෙන්කිරීම අවලංගු කිරීමට අසමත් විය"
+    },
+    "ratingDialog": {
+      "title": "ඔබේ අත්දැකීම ශ්‍රේණිගත කරන්න",
+      "ratingLabel": "ශ්‍රේණිය",
+      "placeholder": "ඔබේ අත්දැකීම බෙදාගන්න...",
+      "submit": "ශ්‍රේණිය ඉදිරිපත් කරන්න",
+      "cancel": "අවලංගු",
+      "success": "ශ්‍රේණිය සාර්ථකව ඉදිරිපත් කරන ලදී!",
+      "error": "ශ්‍රේණිය ඉදිරිපත් කිරීමට අසමත් විය"
+    },
+    "loadError": "වෙන්කිරීම් විස්තර පූරණය කිරීමට අසමත් විය",
+    "specialRequirements": "විශේෂ අවශ්‍යතා",
+    "breakdownBasePrice": "වාහන බදු",
+    "breakdownDriverAllowance": "රියදුරු දීමනාව",
+    "breakdownAdditionalCharges": "අමතර ගාස්තු",
+    "breakdownSubtotal": "උප එකතුව",
+    "breakdownTax": "බදු",
+    "stopLabel": "නතරවීම {index}",
+    "notFound": "වෙන්කිරීම හමු නොවීය",
+    "goToBookings": "වෙන්කිරීම් වෙත යන්න",
+    "startTime": "ආරම්භක වේලාව",
+    "duration": "කාලය",
+    "amenitiesTitle": "වාහන පහසුකම්",
+    "ownerCompletedTrips": "{count, plural, =0 {සම්පූර්ණ කළ ගමන් නැත} one {සම්පූර්ණ කළ ගමන් #} other {සම්පූර්ණ කළ ගමන් #}}",
+    "driverTitle": "රියදුරු",
+    "driverLicense": "බලපත්‍රය",
+    "timelineTitle": "වෙන්කිරීමේ කාලරේඛාව",
+    "timeline": {
+      "bookingCreated": "වෙන්කිරීම සාදන ලදී",
+      "bookingConfirmed": "වෙන්කිරීම තහවුරු කරන ලදී",
+      "paymentReceived": "ගෙවීම ලැබුණි",
+      "driverAssigned": "රියදුරු පත් කරන ලදී",
+      "tripStarted": "ගමන ආරම්භ විය",
+      "tripCompleted": "ගමන සම්පූර්ණ විය",
+      "bookingCancelled": "වෙන්කිරීම අවලංගු කරන ලදී"
+    },
+    "status": {
+      "pending": "පොරොත්තුවෙන්",
+      "confirmed": "තහවුරු කළ",
+      "ongoing": "සිදු වෙමින් ඇත",
+      "completed": "සම්පූර්ණ",
+      "cancelled": "අවලංගු",
+      "disputed": "ආරවුල්"
+    },
+    "paymentStatusLabels": {
+      "pending": "පොරොත්තුවෙන්",
+      "partial": "අර්ධ",
+      "paid": "ගෙවන ලදී",
+      "completed": "ගෙවන ලදී",
+      "refunded": "ආපසු ගෙවන ලදී",
+      "failed": "අසාර්ථක"
+    }
+  },
+  "ownerPendingApproval": {
+    "title": "ලියාපදිංචිය අනුමැතිය පොරොත්තුවෙන්",
+    "subtitle": "TraveNest හි ලියාපදිංචි වීම ගැන ස්තූතියි. ඔබේ අයදුම්පත අපගේ කණ්ඩායම විසින් සමාලෝචනය කරමින් පවතී — එය අනුමත වූ වහාම අපි ඔබට දන්වමු.",
+    "statusBadge": "තහවුරුකිරීම පොරොත්තුවෙන්",
+    "roleBadge": "බස් රථ හිමිකරු",
+    "timeline": {
+      "heading": "තහවුරුකිරීමේ ක්‍රියාවලිය",
+      "submittedTitle": "ලියාපදිංචිය ඉදිරිපත් කළා",
+      "submittedDesc": "ඔබේ ලියාපදිංචි පෝරමය සාර්ථකව ඉදිරිපත් කර ඇත.",
+      "reviewTitle": "සමාලෝචනය වෙමින් පවතී",
+      "reviewDesc": "අපගේ කණ්ඩායම ඔබේ තොරතුරු සහ ලේඛන තහවුරු කරමින් සිටී.",
+      "approvedTitle": "අනුමැතිය සම්පූර්ණයි",
+      "approvedDesc": "ඔබේ ගිණුම අනුමත වූ පසු ඔබට දැනුම් දෙනු ලැබේ."
+    },
+    "estimated": {
+      "heading": "ඇස්තමේන්තුගත සමාලෝචන කාලය",
+      "value": "ව්‍යාපාරික දින 2–3"
+    },
+    "details": {
+      "heading": "ඔබේ ලියාපදිංචි විස්තර",
+      "name": "නම",
+      "email": "ඊමේල්",
+      "status": "තත්වය",
+      "role": "භූමිකාව"
+    },
+    "restrictions": {
+      "heading": "ගිණුම් සීමා කිරීම්",
+      "intro": "ඔබේ ගිණුම අනුමත වන තෙක්, ඔබට පහත ක්‍රියා සිදු කළ නොහැක:",
+      "item1": "වෙන් කිරීම් සඳහා ඔබේ වාහන ලැයිස්තුගත කිරීම",
+      "item2": "පාරිභෝගිකයන්ගෙන් වෙන් කිරීමේ ඉල්ලීම් ලබා ගැනීම",
+      "item3": "ඔබේ වාහන සඳහා මිල නියම කිරීම",
+      "item4": "හිමිකරු උපකරණ පුවරුවට පිවිසීම",
+      "item5": "පාරිභෝගික මිල කැඳවීම් ඉල්ලීම්වලට ප්‍රතිචාර දැක්වීම"
+    },
+    "nextSteps": {
+      "heading": "ඊළඟට කුමක් වේද?",
+      "step1": "අපගේ කණ්ඩායම ඔබේ පුද්ගලික තොරතුරු සමාලෝචනය කර ඔබේ ජා.හැ.පත් විස්තර තහවුරු කරයි.",
+      "step2": "අපි ඔබේ වාහන ලියාපදිංචිය සහ ලේඛන තහවුරු කරන්නෙමු.",
+      "step3": "අනුමත වූ පසු, ඔබට ඊමේල් දැනුම් දීමක් ලැබේ.",
+      "step4": "ඉන්පසු ඔබට ඔබේ වාහන මිල සැකසීම සහ වෙන් කිරීම් ලබා ගැනීම ආරම්භ කළ හැකිය."
+    },
+    "support": {
+      "heading": "උදව් අවශ්‍යද?",
+      "description": "තහවුරුකිරීමේ ක්‍රියාවලිය පිළිබඳ ඔබට ප්‍රශ්න ඇත්නම් හෝ ඔබේ ලියාපදිංචි විස්තර යාවත්කාලීන කිරීමට අවශ්‍ය නම්, කරුණාකර අපගේ සහාය කණ්ඩායම අමතන්න.",
+      "emailSupport": "ඊමේල් සහාය",
+      "callSupport": "ඇමතුම් සහාය"
+    },
+    "footer": {
+      "backHome": "මුල් පිටුවට ආපසු",
+      "logout": "ඉවත් වන්න",
+      "submittedOn": "ඔබේ ලියාපදිංචිය {date} දින ඉදිරිපත් කරන ලදී"
+    }
+  },
+  "adminNav": {
+    "badge": "පරිපාලක",
+    "sidebarLabel": "පරිපාලක ද්වාරය යාත්‍රාව",
+    "primaryNavLabel": "පරිපාලක කොටස්",
+    "selectLanguage": "භාෂාව තෝරන්න",
+    "openMenu": "පරිපාලක මෙනුව විවෘත කරන්න",
+    "closeMenu": "මෙනුව වසන්න",
+    "expandSidebar": "පැති තීරුව විහිදන්න",
+    "collapseSidebar": "පැති තීරුව හකුළන්න",
+    "openAccountMenu": "ගිණුම් මෙනුව විවෘත කරන්න",
+    "groups": {
+      "overview": "දළ විශ්ලේෂණය",
+      "operations": "මෙහෙයුම්",
+      "trust": "විශ්වසනීයත්වය හා ගුණාත්මකභාවය",
+      "finance": "මූල්‍ය",
+      "insights": "තීක්ෂණයන්",
+      "catalog": "නාමාවලිය",
+      "system": "පද්ධතිය"
+    },
+    "items": {
+      "dashboard": "උපකරණ පුවරුව",
+      "users": "පරිශීලකයින්",
+      "bookings": "වෙන් කිරීම්",
+      "disputes": "ආරවුල්",
+      "ownerVerifications": "හිමිකරු තහවුරුකිරීම්",
+      "vehicleVerifications": "වාහන තහවුරුකිරීම්",
+      "reviewModeration": "සමාලෝචන මධ්‍යස්ථකරණය",
+      "financial": "මූල්‍ය",
+      "analytics": "විශ්ලේෂණ",
+      "reports": "වාර්තා",
+      "content": "අන්තර්ගතය",
+      "amenities": "පහසුකම්",
+      "settings": "සැකසුම්",
+      "notifications": "දැනුම්දීම්",
+      "auditLogs": "විගණන ලඝු සටහන්",
+      "profile": "පරිපාලක පැතිකඩ"
+    }
+  },
+  "adminShell": {
+    "breadcrumbRoot": "පරිපාලක"
+  },
+  "adminDashboard": {
+    "loadFailed": "උපකරණ පුවරුවේ සාරාංශය පූරණය කිරීමට නොහැකි විය.",
+    "retry": "නැවත උත්සාහ කරන්න",
+    "refresh": "නැවුම් කරන්න",
+    "refreshing": "Refreshing dashboard data…",
+    "ariaRefresh": "Refresh dashboard data",
+    "viewAllActivity": "View all activity",
+    "kpiLabel": "ප්‍රධාන වේදිකා මිනුම්",
+    "trendsLabel": "මාස හයක ප්‍රවණතා",
+    "kpi": {
+      "users": "මුළු පරිශීලකයින්",
+      "vehicles": "ලියාපදිංචි වාහන",
+      "bookings": "සියලුම වෙන් කිරීම්",
+      "revenue": "සම්පූර්ණ කළ ආදායම",
+      "subStat": {
+        "verifiedOwners": "{verified} of {total} owners verified",
+        "activeVehicles": "{count, plural, one {# active vehicle} other {# active vehicles}}",
+        "pendingBookings": "{count, plural, one {# booking pending} other {# bookings pending}}",
+        "payments": "{count, plural, one {# successful payment} other {# successful payments}}"
+      }
+    },
+    "alerts": {
+      "failedPayments": "{count, plural, one {# failed payment needs attention} other {# failed payments need attention}}",
+      "viewFinancial": "View financial"
+    },
+    "sections": {
+      "trends": "ප්‍රවණතා (පසුගිය මාස 6)",
+      "trendsHint": "සෑම නැවුම් කිරීමක් සමඟ යාවත්කාලීන වේ",
+      "activity": "මෑත ක්‍රියාකාරකම්",
+      "activityHint": "පරිශීලකයින් සහ වෙන් කිරීම් පුරා නවතම වේදිකා සිදුවීම්",
+      "activityEmpty": "මේ වන විට ක්‍රියාකාරකම් කිසිවක් නැත.",
+      "pending": "අපේක්ෂිත ක්‍රියා",
+      "pendingHint": "පරිපාලක තීරණයක් අවශ්‍ය පෝලිම්",
+      "pendingEmpty": "ඔබ බලාපොරොත්තු විය යුතු කිසිවක් නැත. හොඳ වැඩක්.",
+      "pendingCount": "{count, plural, one {අයිතම #} other {අයිතම #}}"
+    },
+    "charts": {
+      "revenue": "මාස අනුව ආදායම",
+      "userGrowth": "පරිශීලක වර්ධනය",
+      "bookingVolume": "වෙන් කිරීම් පරිමාව",
+      "empty": "තවම දත්ත නැත — ක්‍රියාකාරකම් ආරම්භ වූ විට අගයන් දිස් වේ."
+    }
+  },
+  "adminSettings": {
+    "title": "වේදිකා සැකසුම්",
+    "subtitle": "වෙන් කිරීම්, ගෙවීම්, දැනුම්දීම් සහ ආරක්ෂාව පුරා භාවිතා වන වේදිකා-පුළුල් පෙරනිමි ගැලපන්න.",
+    "lastUpdated": "අවසන් වරට {by} විසින් {at} දින යාවත්කාලීන කරන ලදී",
+    "lastUpdatedUnknown": "නොදන්නා පරිපාලක",
+    "badges": {
+      "unsaved": "සුරැකිය නොහැකි වෙනස්කම්",
+      "saved": "සුරකින ලදී"
+    },
+    "actions": {
+      "save": "වෙනස්කම් සුරකින්න",
+      "saving": "සුරකිමින්…",
+      "revert": "ආපසු හරවන්න",
+      "reload": "නැවත පූරණය කරන්න"
+    },
+    "tabs": {
+      "ariaLabel": "සැකසුම් කාණ්ඩ",
+      "general": "සාමාන්‍ය",
+      "notifications": "දැනුම්දීම්",
+      "payment": "ගෙවීම්",
+      "booking": "වෙන් කිරීම",
+      "security": "ආරක්ෂාව",
+      "map": "සිතියම"
+    },
+    "maintenance": {
+      "title": "නඩත්තු ආකාරය",
+      "description": "සක්‍රීය කළ විට, පාරිභෝගිකයන් සහ හිමිකරුවන්ට වෙළඳපොළ වෙනුවට බාධාවක් පෙන්වයි. යෙදවුම් හෝ සිද්ධීන් අතරතුර භාවිතා කරන්න.",
+      "toggleLabel": "නඩත්තු ආකාරය මාරු කරන්න",
+      "statusOn": "ක්‍රියාත්මකයි",
+      "statusOff": "අක්‍රියයි",
+      "activeWarning": "මෙය සක්‍රීය අතරතුර පාරිභෝගිකයන්ට වෙළඳපොළට ප්‍රවේශ විය නොහැක.",
+      "messageLabel": "නඩත්තු පණිවිඩය",
+      "messagePlaceholder": "TravelNest නියමිත නඩත්තුවකට යටත් වේ. අපි ඉක්මනින් ආපසු එමු.",
+      "messageHelp": "{count} / 1000 අක්ෂර"
+    },
+    "general": {
+      "platformName": {
+        "label": "වේදිකාවේ නම",
+        "help": "ශීර්ෂයේ, විද්‍යුත් තැපැල්වල සහ PWA ස්ථාපකයේ දර්ශනය වේ."
+      },
+      "supportEmail": {
+        "label": "සහාය විද්‍යුත් තැපෑල",
+        "help": "පාරිභෝගික සහාය ඉල්ලීම් සඳහා ලිපිනය."
+      },
+      "supportPhone": {
+        "label": "සහාය දුරකථන",
+        "help": "සම්බන්ධතා පිටුවල පෙන්වන දේශීය ශ්‍රී ලංකා අංකය."
+      },
+      "defaultLocale": {
+        "label": "පෙරනිමි භාෂාව",
+        "help": "නව අමුත්තෙකුට භාෂා මනාපයක් නොමැති විට භාවිතා වේ."
+      },
+      "defaultCurrency": {
+        "label": "පෙරනිමි මුදල්",
+        "help": "පෙන්වන මිල සහ පියවීම් වාර්තා සඳහා භාවිතා වේ."
+      }
+    },
+    "notifications": {
+      "email": {
+        "label": "විද්‍යුත් තැපැල් දැනුම්දීම්",
+        "help": "වෙන් කිරීම් තහවුරුකිරීම්, මිල ගණන් යාවත්කාලීන, පියවීම් දැනුම්දීම්."
+      },
+      "sms": {
+        "label": "SMS දැනුම්දීම්",
+        "help": "Twilio අයිතමය සක්‍රීය වූ පසු සක්‍රීය කරන්න."
+      },
+      "inApp": {
+        "label": "යෙදුම තුළ දැනුම්දීම්",
+        "help": "පාරිභෝගික සහ හිමිකරු ද්වාර තුළ දැනුම්දීම් මධ්‍යස්ථානය."
+      }
+    },
+    "payment": {
+      "provider": {
+        "label": "ප්‍රාථමික ගෙවීම් සපයන්නා",
+        "help": "v1.0 සඳහා පෙරනිමිය PayHere වේ. වෙනත් ද්වාර අයිතම අනාගතයේදී."
+      },
+      "settlementWindow": {
+        "label": "පියවීම් කවුළුව (දින)",
+        "help": "වෙන් කිරීම සම්පූර්ණ කිරීම සහ හිමිකරු පියවීම අතර දින (1-60)."
+      }
+    },
+    "booking": {
+      "autoCancel": {
+        "label": "ගෙවා නැති වෙන් කිරීම් ස්වයංක්‍රීයව අවලංගු කරන්න (පැය)",
+        "help": "ගෙවීම් නොකළ වෙන් කිරීම් මෙතරම් පැය ගණනකින් අවලංගු වේ (1-168)."
+      },
+      "refundWindow": {
+        "label": "පාරිභෝගික ආපසු ගෙවීම් කවුළුව (පැය)",
+        "help": "ආපසු ගෙවීම් අවසර දෙන සංචාරයේ ආරම්භයට පෙර පැය."
+      }
+    },
+    "security": {
+      "strongPasswords": {
+        "label": "ශක්තිමත් මුරපද අවශ්‍යයි",
+        "help": "ලියාපදිංචියේදී අවම දිග, විශාල අකුරු සහ සංකේත නීති ක්‍රියාත්මක කරන්න."
+      },
+      "sessionTimeout": {
+        "label": "සැසි කල් ඉකුත් වීම (මිනිත්තු)",
+        "help": "අක්‍රිය සැසි මෙතරම් මිනිත්තුවකින් කල් ඉකුත් වේ (5-1440)."
+      }
+    },
+    "map": {
+      "country": {
+        "label": "පෙරනිමි රටේ කේතය",
+        "help": "අකුරු දෙකේ ISO කේතය (උදා. LK)."
+      },
+      "city": {
+        "label": "පෙරනිමි නගරය",
+        "help": "නව සැසි සඳහා සෙවුම් ආරම්භක ලක්ෂ්‍යය ලෙස භාවිතා වේ."
+      }
+    },
+    "errors": {
+      "platformNameRequired": "වේදිකාවේ නම හිස් විය නොහැක.",
+      "supportEmailInvalid": "වලංගු සහාය විද්‍යුත් තැපැල් ලිපිනයක් ඇතුළත් කරන්න.",
+      "settlementWindowRange": "පියවීම් කවුළුව දින 1 සහ 60 අතර විය යුතුය.",
+      "bookingHoursInvalid": "වෙන් කිරීම් පැය ධන අගයන් විය යුතුය.",
+      "sessionTimeoutRange": "සැසි කල් ඉකුත් වීම මිනිත්තු 5 සහ 1440 අතර විය යුතුය.",
+      "maintenanceMessageTooLong": "නඩත්තු පණිවිඩය අක්ෂර 1000 ට අඩු විය යුතුය.",
+      "saveFailed": "සැකසුම් සුරැකීමට අසමත් විය."
+    }
   }
 }
