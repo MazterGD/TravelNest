@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
@@ -406,17 +405,14 @@ export default function SendQuotationPage({
 
   if (guardLoading || !isAuthorized || !user || loading) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   if (!request) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-foreground">
@@ -430,12 +426,10 @@ export default function SendQuotationPage({
             </Link>
           </div>
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         {/* Header */}
         <header className="border-b border-border bg-card">
@@ -1169,6 +1163,5 @@ export default function SendQuotationPage({
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }

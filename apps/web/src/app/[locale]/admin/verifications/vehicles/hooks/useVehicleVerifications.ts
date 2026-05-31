@@ -7,7 +7,6 @@ import {
   type AdminVehicleVerificationDetails,
   type AdminVehicleVerificationQuery,
   type AdminVehicleVerificationResponse,
-  type AdminVerificationDocumentStatus,
   type AdminVerificationHistoryResponse,
 } from "@/lib/api";
 import { useDebounce } from "@/hooks";
@@ -22,25 +21,23 @@ interface UseVehicleVerificationsResult {
   selectedHistory: AdminVerificationHistoryResponse | null;
   setFilters: (next: Partial<AdminVehicleVerificationQuery>) => void;
   loadVehicleDetails: (vehicleId: string) => Promise<void>;
-  approveVehicle: (vehicleId: string, note?: string) => Promise<void>;
-  rejectVehicle: (vehicleId: string, reason: string) => Promise<void>;
+  approveDocument: (documentId: string) => Promise<void>;
+  rejectDocument: (documentId: string, reason: string) => Promise<void>;
   refetch: () => Promise<void>;
 }
 
-const VALID_DOC_STATUSES: AdminVerificationDocumentStatus[] = [
-  "PENDING",
-  "VERIFIED",
-  "REJECTED",
-];
+const VALID_VERIFICATION_STATES = ["PENDING", "MISSING_DOCUMENTS"] as const;
 
 export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
   // Seed from URL params so dashboard deep-links arrive pre-filtered.
   const searchParams = useSearchParams();
-  const rawDocStatus = searchParams.get("documentStatus");
-
-  const initialDocStatus = VALID_DOC_STATUSES.includes(rawDocStatus as AdminVerificationDocumentStatus)
-    ? (rawDocStatus as AdminVerificationDocumentStatus)
+  const rawState = searchParams.get("verificationState");
+  const initialState = VALID_VERIFICATION_STATES.includes(
+    rawState as (typeof VALID_VERIFICATION_STATES)[number],
+  )
+    ? (rawState as "PENDING" | "MISSING_DOCUMENTS")
     : undefined;
+  const initialSearch = searchParams.get("search") ?? "";
 
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
@@ -48,8 +45,8 @@ export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
   const [filters, setFilterState] = useState<AdminVehicleVerificationQuery>({
     page: 1,
     limit: 20,
-    search: "",
-    documentStatus: initialDocStatus,
+    search: initialSearch,
+    verificationState: initialState,
   });
   const [queueData, setQueueData] =
     useState<AdminVehicleVerificationResponse | null>(null);
@@ -79,7 +76,7 @@ export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, filters.documentStatus, filters.limit, filters.page]);
+  }, [debouncedSearch, filters.limit, filters.page, filters.verificationState]);
 
   useEffect(() => {
     void fetchQueue();
@@ -92,7 +89,7 @@ export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
       page:
         next.page !== undefined
           ? next.page
-          : next.search !== undefined || next.documentStatus !== undefined
+          : next.search !== undefined || next.verificationState !== undefined
             ? 1
             : previous.page,
     }));
@@ -122,46 +119,50 @@ export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
   }, []);
 
   const withMutation = useCallback(
-    async (operation: () => Promise<void>, vehicleId?: string) => {
+    async (operation: () => Promise<void>) => {
       setIsMutating(true);
       setError(null);
 
       try {
         await operation();
+
+        // Refresh both the queue and the open detail panel
         await fetchQueue();
 
-        if (vehicleId && selectedVehicle?.id === vehicleId) {
-          await loadVehicleDetails(vehicleId);
+        if (selectedVehicle) {
+          await loadVehicleDetails(selectedVehicle.id);
         }
       } catch (mutationError) {
         const message =
           mutationError instanceof Error
             ? mutationError.message
-            : "Verification action failed";
+            : "Document action failed";
         setError(message);
       } finally {
         setIsMutating(false);
       }
     },
-    [fetchQueue, loadVehicleDetails, selectedVehicle?.id],
+    [fetchQueue, loadVehicleDetails, selectedVehicle],
   );
 
-  const approveVehicle = useCallback<UseVehicleVerificationsResult["approveVehicle"]>(
-    async (vehicleId, note) => {
-      await withMutation(async () => {
-        await adminService.approveVehicleVerification(vehicleId, note);
-      }, vehicleId);
+  const approveDocument = useCallback(
+    async (documentId: string) => {
+      if (!selectedVehicle) return;
+      await withMutation(() =>
+        adminService.approveVehicleDocument(selectedVehicle.id, documentId),
+      );
     },
-    [withMutation],
+    [withMutation, selectedVehicle],
   );
 
-  const rejectVehicle = useCallback<UseVehicleVerificationsResult["rejectVehicle"]>(
-    async (vehicleId, reason) => {
-      await withMutation(async () => {
-        await adminService.rejectVehicleVerification(vehicleId, reason);
-      }, vehicleId);
+  const rejectDocument = useCallback(
+    async (documentId: string, reason: string) => {
+      if (!selectedVehicle) return;
+      await withMutation(() =>
+        adminService.rejectVehicleDocument(selectedVehicle.id, documentId, reason),
+      );
     },
-    [withMutation],
+    [withMutation, selectedVehicle],
   );
 
   return {
@@ -174,8 +175,8 @@ export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
     selectedHistory,
     setFilters,
     loadVehicleDetails,
-    approveVehicle,
-    rejectVehicle,
+    approveDocument,
+    rejectDocument,
     refetch: fetchQueue,
   };
 };

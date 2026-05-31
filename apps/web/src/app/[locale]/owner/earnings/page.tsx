@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -19,7 +19,6 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
@@ -265,16 +264,13 @@ export default function OwnerEarningsPage() {
 
   if (guardLoading || !isAuthorized || !user) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         <header className="border-b border-border bg-card">
           <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
@@ -928,6 +924,5 @@ export default function OwnerEarningsPage() {
           )}
         </div>
       </div>
-    </MainLayout>
   );
 }

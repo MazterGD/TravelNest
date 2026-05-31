@@ -1,11 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { CTAButton, LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
@@ -136,27 +135,22 @@ export default function OwnerFleetVehicleDetailsPage() {
 
   if (guardLoading || !isAuthorized || !user) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   if (isLoading) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center bg-muted">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   if (error || !vehicle) {
     return (
-      <MainLayout>
         <div className="min-h-screen bg-muted">
           <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
             <div className="rounded-[20px] border border-error bg-[var(--color-error-bg)] p-6 text-center">
@@ -173,7 +167,6 @@ export default function OwnerFleetVehicleDetailsPage() {
             </div>
           </div>
         </div>
-      </MainLayout>
     );
   }
 
@@ -183,7 +176,6 @@ export default function OwnerFleetVehicleDetailsPage() {
     : [];
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         <header className="border-b border-border bg-card">
           <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
@@ -494,6 +486,5 @@ export default function OwnerFleetVehicleDetailsPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }

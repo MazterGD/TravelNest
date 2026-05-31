@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useOwnerGuard } from "@/hooks";
 import { vehicleService, tripPackageService, ApiError } from "@/lib/api";
@@ -77,16 +76,13 @@ export default function EditTripPackagePage() {
 
   if (guardLoading || !isAuthorized) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-gray-50">
         <header className="border-b border-gray-200 bg-white">
           <div className="mx-auto max-w-5xl px-6 py-4 lg:px-8">
@@ -128,6 +124,5 @@ export default function EditTripPackagePage() {
           )}
         </div>
       </div>
-    </MainLayout>
   );
 }

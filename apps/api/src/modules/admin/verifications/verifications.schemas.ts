@@ -27,7 +27,7 @@ export const listOwnerVerificationsSchema = z.object({
 export const listVehicleVerificationsSchema = z.object({
   query: paginationQuerySchema.extend({
     search: z.string().trim().min(1).max(150).optional(),
-    documentStatus: documentStatusSchema.optional(),
+    verificationState: z.enum(["PENDING", "MISSING_DOCUMENTS"]).optional(),
   }),
   body: z.object({}).optional(),
   params: z.object({}).optional(),
@@ -92,3 +92,43 @@ export const requestResubmissionSchema = z.object({
 export type ApproveVerificationInput = z.infer<typeof approveVerificationSchema>["body"];
 export type RejectVerificationInput = z.infer<typeof rejectVerificationSchema>["body"];
 export type RequestResubmissionInput = z.infer<typeof requestResubmissionSchema>["body"];
+
+export const vehicleDocumentParamsSchema = z.object({
+  params: z.object({
+    vehicleId: z.string().trim().min(1),
+    documentId: z.string().trim().min(1),
+  }),
+  query: z.object({}).optional(),
+  body: z.object({}).optional(),
+});
+
+export const ownerDocumentParamsSchema = z.object({
+  params: z.object({
+    ownerId: z.string().trim().min(1),
+    documentId: z.string().trim().min(1),
+  }),
+  query: z.object({}).optional(),
+  body: z.object({}).optional(),
+});
+
+export const approveDocumentSchema = z.object({
+  params: z.object({
+    vehicleId: z.string().trim().min(1).optional(),
+    ownerId: z.string().trim().min(1).optional(),
+    documentId: z.string().trim().min(1),
+  }),
+  body: z.object({}).optional(),
+  query: z.object({}).optional(),
+});
+
+export const rejectDocumentSchema = z.object({
+  params: z.object({
+    vehicleId: z.string().trim().min(1).optional(),
+    ownerId: z.string().trim().min(1).optional(),
+    documentId: z.string().trim().min(1),
+  }),
+  body: z.object({
+    reason: z.string().trim().min(3).max(300),
+  }),
+  query: z.object({}).optional(),
+});

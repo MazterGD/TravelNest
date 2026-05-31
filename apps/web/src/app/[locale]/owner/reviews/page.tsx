@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
@@ -15,7 +15,6 @@ import {
   ThumbsUp,
   ThumbsDown,
 } from "lucide-react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useOwnerGuard } from "@/hooks";
 import { ownerService, reviewService } from "@/lib/api/services";
@@ -225,11 +224,9 @@ export default function OwnerReviewsPage() {
 
   if (guardLoading || !isAuthorized) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
@@ -246,7 +243,6 @@ export default function OwnerReviewsPage() {
     Object.values(summary.dimensionAverages).some((v) => v !== null);
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-[var(--color-bg-surface)] px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl">
           {/* Header */}
@@ -652,6 +648,5 @@ export default function OwnerReviewsPage() {
           )}
         </div>
       </div>
-    </MainLayout>
   );
 }

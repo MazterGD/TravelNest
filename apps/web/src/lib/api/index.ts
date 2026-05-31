@@ -160,6 +160,7 @@ export {
   type AdminProfileActivityResponse,
   type AdminPermissionGrant,
   type AdminProfilePermissionsResponse,
+  type AdminVehicleDocument,
   type AdminVehicleVerificationDetails,
   type AdminVehicleVerificationItem,
   type AdminVehicleVerificationQuery,
@@ -167,6 +168,10 @@ export {
   type AdminVerificationDocumentStatus,
   type AdminVerificationHistoryLog,
   type AdminVerificationHistoryResponse,
+  type AdminVehiclesQuery,
+  type AdminVehicleRecord,
+  type AdminVehiclesResponse,
+  type AdminOwnerDocument,
 
   // Owner Registration
   ownerRegistrationService,

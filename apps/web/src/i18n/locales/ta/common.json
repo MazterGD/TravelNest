@@ -3187,6 +3187,7 @@
     "items": {
       "dashboard": "டாஷ்போர்டு",
       "users": "பயனர்கள்",
+      "vehicles": "Vehicles",
       "bookings": "பதிவுகள்",
       "disputes": "சர்ச்சைகள்",
       "ownerVerifications": "உரிமையாளர் சரிபார்ப்புகள்",
@@ -3369,5 +3370,39 @@
       "maintenanceMessageTooLong": "பராமரிப்பு செய்தி 1000 எழுத்துகள் அல்லது குறைவாக இருக்க வேண்டும்.",
       "saveFailed": "அமைப்புகளைச் சேமிக்க முடியவில்லை."
     }
+  },
+  "ownerNav": {
+    "badge": "உரிமையாளர் போர்ட்டல்",
+    "sidebarLabel": "உரிமையாளர் போர்ட்டல் வழிசெலுத்தல்",
+    "primaryNavLabel": "உரிமையாளர் பிரிவுகள்",
+    "openMenu": "உரிமையாளர் மெனுவைத் திற",
+    "closeMenu": "மெனுவை மூடு",
+    "expandSidebar": "பக்கப்பட்டியை விரிவாக்கு",
+    "collapseSidebar": "பக்கப்பட்டியை சுருக்கு",
+    "openAccountMenu": "கணக்கு மெனுவைத் திற",
+    "groups": {
+      "overview": "மேலோட்டம்",
+      "operations": "செயல்பாடுகள்",
+      "fleet": "வாகனங்கள்",
+      "insights": "நுண்ணறிவுகள்",
+      "communication": "தொடர்பு"
+    },
+    "items": {
+      "dashboard": "டாஷ்போர்டு",
+      "quotations": "மேற்கோள்கள்",
+      "sentQuotes": "அனுப்பிய மேற்கோள்கள்",
+      "bookings": "பதிவுகள்",
+      "fleet": "என் வாகனங்கள்",
+      "packages": "தொகுப்புகள்",
+      "analytics": "பகுப்பாய்வு",
+      "earnings": "வருவாய்",
+      "reviews": "மதிப்புரைகள்",
+      "messages": "செய்திகள்",
+      "notifications": "அறிவிப்புகள்",
+      "profile": "என் சுயவிவரம்"
+    }
+  },
+  "ownerShell": {
+    "breadcrumbRoot": "உரிமையாளர் போர்ட்டல்"
   }
 }

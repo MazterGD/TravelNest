@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback, Fragment } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import {
   LoadingSpinner,
   Input,
@@ -308,16 +307,13 @@ export default function AddVehiclePage() {
 
   if (guardLoading || !isAuthorized || !user) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         <header className="border-b border-border bg-card">
           <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
@@ -930,6 +926,5 @@ export default function AddVehiclePage() {
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }

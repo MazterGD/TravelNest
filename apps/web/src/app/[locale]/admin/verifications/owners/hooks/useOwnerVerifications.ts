@@ -8,7 +8,6 @@ import {
   type AdminOwnerVerificationQuery,
   type AdminOwnerVerificationResponse,
   type AdminOwnerVerificationStatus,
-  type AdminVerificationDocumentStatus,
   type AdminVerificationHistoryResponse,
 } from "@/lib/api";
 import { useDebounce } from "@/hooks";
@@ -23,9 +22,8 @@ interface UseOwnerVerificationsResult {
   selectedHistory: AdminVerificationHistoryResponse | null;
   setFilters: (next: Partial<AdminOwnerVerificationQuery>) => void;
   loadOwnerDetails: (ownerId: string) => Promise<void>;
-  approveOwner: (ownerId: string, note?: string) => Promise<void>;
-  rejectOwner: (ownerId: string, reason: string) => Promise<void>;
-  requestResubmission: (ownerId: string, reason: string) => Promise<void>;
+  approveDocument: (documentId: string) => Promise<void>;
+  rejectDocument: (documentId: string, reason: string) => Promise<void>;
   refetch: () => Promise<void>;
 }
 
@@ -35,24 +33,15 @@ const VALID_OWNER_STATUSES: AdminOwnerVerificationStatus[] = [
   "SUSPENDED",
   "PENDING_VERIFICATION",
 ];
-const VALID_DOC_STATUSES: AdminVerificationDocumentStatus[] = [
-  "PENDING",
-  "VERIFIED",
-  "REJECTED",
-];
 
 export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
   // Seed from URL params so dashboard deep-links arrive pre-filtered.
   const searchParams = useSearchParams();
   const rawStatus = searchParams.get("status");
-  const rawDocStatus = searchParams.get("documentStatus");
 
   const initialStatus = VALID_OWNER_STATUSES.includes(rawStatus as AdminOwnerVerificationStatus)
     ? (rawStatus as AdminOwnerVerificationStatus)
-    : undefined;
-  const initialDocStatus = VALID_DOC_STATUSES.includes(rawDocStatus as AdminVerificationDocumentStatus)
-    ? (rawDocStatus as AdminVerificationDocumentStatus)
-    : undefined;
+    : "PENDING_VERIFICATION";
 
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
@@ -62,7 +51,6 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
     limit: 20,
     search: "",
     status: initialStatus,
-    documentStatus: initialDocStatus,
   });
   const [queueData, setQueueData] =
     useState<AdminOwnerVerificationResponse | null>(null);
@@ -92,13 +80,7 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
     } finally {
       setIsLoading(false);
     }
-  }, [
-    debouncedSearch,
-    filters.documentStatus,
-    filters.limit,
-    filters.page,
-    filters.status,
-  ]);
+  }, [debouncedSearch, filters.limit, filters.page, filters.status]);
 
   useEffect(() => {
     void fetchQueue();
@@ -111,9 +93,7 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
       page:
         next.page !== undefined
           ? next.page
-          : next.search !== undefined ||
-              next.status !== undefined ||
-              next.documentStatus !== undefined
+          : next.search !== undefined || next.status !== undefined
             ? 1
             : previous.page,
     }));
@@ -143,57 +123,50 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
   }, []);
 
   const withMutation = useCallback(
-    async (operation: () => Promise<void>, ownerId?: string) => {
+    async (operation: () => Promise<void>) => {
       setIsMutating(true);
       setError(null);
 
       try {
         await operation();
+
+        // Refresh both the queue and the open detail panel
         await fetchQueue();
 
-        if (ownerId && selectedOwner?.id === ownerId) {
-          await loadOwnerDetails(ownerId);
+        if (selectedOwner) {
+          await loadOwnerDetails(selectedOwner.id);
         }
       } catch (mutationError) {
         const message =
           mutationError instanceof Error
             ? mutationError.message
-            : "Verification action failed";
+            : "Document action failed";
         setError(message);
       } finally {
         setIsMutating(false);
       }
     },
-    [fetchQueue, loadOwnerDetails, selectedOwner?.id],
+    [fetchQueue, loadOwnerDetails, selectedOwner],
   );
 
-  const approveOwner = useCallback<UseOwnerVerificationsResult["approveOwner"]>(
-    async (ownerId, note) => {
-      await withMutation(async () => {
-        await adminService.approveOwnerVerification(ownerId, note);
-      }, ownerId);
+  const approveDocument = useCallback(
+    async (documentId: string) => {
+      if (!selectedOwner) return;
+      await withMutation(() =>
+        adminService.approveOwnerDocument(selectedOwner.id, documentId),
+      );
     },
-    [withMutation],
+    [withMutation, selectedOwner],
   );
 
-  const rejectOwner = useCallback<UseOwnerVerificationsResult["rejectOwner"]>(
-    async (ownerId, reason) => {
-      await withMutation(async () => {
-        await adminService.rejectOwnerVerification(ownerId, reason);
-      }, ownerId);
+  const rejectDocument = useCallback(
+    async (documentId: string, reason: string) => {
+      if (!selectedOwner) return;
+      await withMutation(() =>
+        adminService.rejectOwnerDocument(selectedOwner.id, documentId, reason),
+      );
     },
-    [withMutation],
-  );
-
-  const requestResubmission = useCallback<
-    UseOwnerVerificationsResult["requestResubmission"]
-  >(
-    async (ownerId, reason) => {
-      await withMutation(async () => {
-        await adminService.requestOwnerResubmission(ownerId, reason);
-      }, ownerId);
-    },
-    [withMutation],
+    [withMutation, selectedOwner],
   );
 
   return {
@@ -206,9 +179,8 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
     selectedHistory,
     setFilters,
     loadOwnerDetails,
-    approveOwner,
-    rejectOwner,
-    requestResubmission,
+    approveDocument,
+    rejectDocument,
     refetch: fetchQueue,
   };
 };

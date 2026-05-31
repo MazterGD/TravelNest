@@ -725,6 +725,7 @@ export const toggleVehicleStatus = async (
   id: string,
   ownerId: string,
   isActive: boolean,
+  isAdmin = false,
 ) => {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id },
@@ -734,7 +735,7 @@ export const toggleVehicleStatus = async (
     throw ApiError.notFound("Vehicle not found");
   }
 
-  if (vehicle.ownerId !== ownerId) {
+  if (!isAdmin && vehicle.ownerId !== ownerId) {
     throw ApiError.forbidden("You can only update status of your own vehicles");
   }
 

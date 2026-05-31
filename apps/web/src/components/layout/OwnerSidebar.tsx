@@ -1,48 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Activity,
-  AlertTriangle,
   BarChart3,
   Bell,
+  Bus,
   Calendar,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  ClipboardList,
   Coins,
   FileText,
   Gauge,
+  Globe,
   LogOut,
   Menu,
+  MessageSquare,
   Package,
-  Settings,
-  Shield,
-  ShieldCheck,
+  Send,
   Star,
-  Truck,
   User,
-  Users,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/store";
 import { useNotificationStream } from "@/hooks";
-import { authService, api, notificationService } from "@/lib/api";
-import { APP_NAME } from "@/constants";
+import { authService, api, messageService, notificationService } from "@/lib/api";
+import { APP_NAME, LOCALE_LABELS } from "@/constants";
 
-interface AdminSidebarProps {
+interface OwnerSidebarProps {
   locale: string;
 }
 
 const ring =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2";
 
-type AdminNavItem = {
+type OwnerNavItem = {
   id: string;
   label: string;
   href: string;
@@ -51,35 +47,39 @@ type AdminNavItem = {
   badge?: number;
 };
 
-type AdminNavGroup = {
+type OwnerNavGroup = {
   id: string;
   label: string;
-  items: AdminNavItem[];
+  items: OwnerNavItem[];
 };
 
-export function AdminSidebar({ locale }: AdminSidebarProps) {
+export function OwnerSidebar({ locale }: OwnerSidebarProps) {
   const pathname = usePathname();
   const params = useParams();
-  const t = useTranslations("adminNav");
+  const router = useRouter();
+  const t = useTranslations("ownerNav");
   const tCommon = useTranslations("navigation");
   const { user, logout } = useAuthStore();
 
   const [notificationsUnread, setNotificationsUnread] = useState(0);
+  const [messagesUnread, setMessagesUnread] = useState(0);
+  const [langOpen, setLangOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const currentLocale = (params.locale as string) || locale;
+  const locales = ["en", "si", "ta"] as const;
 
-  // ── Unread notification polling ────────────────────────────────────────────
+  // ── Unread polling ─────────────────────────────────────────────────────────
 
   const refreshUnread = useCallback(async () => {
     try {
       const data = await notificationService.getUnreadCount();
       setNotificationsUnread(data?.unreadCount ?? 0);
     } catch {
-      // Failed poll just leaves the badge hidden.
+      // Failed poll leaves badge hidden.
     }
   }, []);
 
@@ -89,9 +89,13 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
       try {
         const n = await notificationService.getUnreadCount();
         if (!cancelled) setNotificationsUnread(n?.unreadCount ?? 0);
-      } catch {
-        // Failed poll just leaves the badge hidden.
-      }
+      } catch {}
+    })();
+    void (async () => {
+      try {
+        const m = await messageService.getUnreadCount();
+        if (!cancelled) setMessagesUnread(m?.unreadCount ?? 0);
+      } catch {}
     })();
     return () => {
       cancelled = true;
@@ -102,7 +106,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
     void refreshUnread();
   });
 
-  // ── Close user menu on outside click ───────────────────────────────────────
+  // ── Close menus on outside click ───────────────────────────────────────────
 
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
@@ -113,9 +117,6 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, []);
-
-  // Mobile drawer closes via onClick handlers on the nav links rather than
-  // a pathname effect, so we don't trigger a cascading render on every route.
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -128,9 +129,19 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
     window.location.replace(`/${currentLocale}`);
   };
 
+  const handleLocaleChange = (newLocale: string) => {
+    if (newLocale === currentLocale) {
+      setLangOpen(false);
+      return;
+    }
+    const newPathname = pathname.replace(`/${currentLocale}`, `/${newLocale}`);
+    router.push(newPathname);
+    setLangOpen(false);
+  };
+
   // ── Grouped navigation ─────────────────────────────────────────────────────
 
-  const groups: AdminNavGroup[] = [
+  const groups: OwnerNavGroup[] = [
     {
       id: "overview",
       label: t("groups.overview"),
@@ -138,7 +149,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
         {
           id: "dashboard",
           label: t("items.dashboard"),
-          href: `/${locale}/admin/dashboard`,
+          href: `/${locale}/owner/dashboard`,
           icon: Gauge,
           exact: true,
         },
@@ -149,64 +160,40 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
       label: t("groups.operations"),
       items: [
         {
-          id: "users",
-          label: t("items.users"),
-          href: `/${locale}/admin/users`,
-          icon: Users,
+          id: "quotations",
+          label: t("items.quotations"),
+          href: `/${locale}/owner/quotations`,
+          icon: FileText,
         },
         {
-          id: "vehicles",
-          label: t("items.vehicles"),
-          href: `/${locale}/admin/vehicles`,
-          icon: Truck,
+          id: "sent-quotes",
+          label: t("items.sentQuotes"),
+          href: `/${locale}/owner/quotations/sent`,
+          icon: Send,
         },
         {
           id: "bookings",
           label: t("items.bookings"),
-          href: `/${locale}/admin/bookings`,
+          href: `/${locale}/owner/bookings`,
           icon: Calendar,
         },
-        {
-          id: "disputes",
-          label: t("items.disputes"),
-          href: `/${locale}/admin/disputes`,
-          icon: AlertTriangle,
-        },
       ],
     },
     {
-      id: "trust",
-      label: t("groups.trust"),
+      id: "fleet",
+      label: t("groups.fleet"),
       items: [
         {
-          id: "owner-verifications",
-          label: t("items.ownerVerifications"),
-          href: `/${locale}/admin/verifications/owners`,
-          icon: ShieldCheck,
+          id: "fleet",
+          label: t("items.fleet"),
+          href: `/${locale}/owner/fleet`,
+          icon: Bus,
         },
         {
-          id: "vehicle-verifications",
-          label: t("items.vehicleVerifications"),
-          href: `/${locale}/admin/verifications/vehicles`,
-          icon: Truck,
-        },
-        {
-          id: "review-moderation",
-          label: t("items.reviewModeration"),
-          href: `/${locale}/admin/reviews/moderation`,
-          icon: Star,
-        },
-      ],
-    },
-    {
-      id: "finance",
-      label: t("groups.finance"),
-      items: [
-        {
-          id: "financial",
-          label: t("items.financial"),
-          href: `/${locale}/admin/financial`,
-          icon: Coins,
+          id: "packages",
+          label: t("items.packages"),
+          href: `/${locale}/owner/packages`,
+          icon: Package,
         },
       ],
     },
@@ -217,64 +204,56 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
         {
           id: "analytics",
           label: t("items.analytics"),
-          href: `/${locale}/admin/analytics`,
+          href: `/${locale}/owner/analytics`,
           icon: BarChart3,
         },
         {
-          id: "reports",
-          label: t("items.reports"),
-          href: `/${locale}/admin/reports`,
-          icon: FileText,
+          id: "earnings",
+          label: t("items.earnings"),
+          href: `/${locale}/owner/earnings`,
+          icon: Coins,
+        },
+        {
+          id: "reviews",
+          label: t("items.reviews"),
+          href: `/${locale}/owner/reviews`,
+          icon: Star,
         },
       ],
     },
     {
-      id: "catalog",
-      label: t("groups.catalog"),
+      id: "communication",
+      label: t("groups.communication"),
       items: [
         {
-          id: "content",
-          label: t("items.content"),
-          href: `/${locale}/admin/content`,
-          icon: ClipboardList,
-        },
-        {
-          id: "amenities",
-          label: t("items.amenities"),
-          href: `/${locale}/admin/amenities`,
-          icon: Package,
-        },
-      ],
-    },
-    {
-      id: "system",
-      label: t("groups.system"),
-      items: [
-        {
-          id: "settings",
-          label: t("items.settings"),
-          href: `/${locale}/admin/settings`,
-          icon: Settings,
+          id: "messages",
+          label: t("items.messages"),
+          href: `/${locale}/owner/messages`,
+          icon: MessageSquare,
+          badge: messagesUnread,
         },
         {
           id: "notifications",
           label: t("items.notifications"),
-          href: `/${locale}/admin/notifications`,
+          href: `/${locale}/owner/notifications`,
           icon: Bell,
           badge: notificationsUnread,
-        },
-        {
-          id: "audit-logs",
-          label: t("items.auditLogs"),
-          href: `/${locale}/admin/audit-logs`,
-          icon: Activity,
         },
       ],
     },
   ];
 
-  const isActive = (href: string, exact = false) =>
-    exact ? pathname === href : pathname.startsWith(href);
+  // "quotations" (incoming requests) must not stay active when on /sent sub-pages.
+  const isActive = (item: OwnerNavItem) => {
+    if (item.exact) return pathname === item.href;
+    if (item.id === "quotations") {
+      return (
+        pathname.startsWith(item.href) &&
+        !pathname.startsWith(`${item.href}/sent`)
+      );
+    }
+    return pathname.startsWith(item.href);
+  };
 
   const displayName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
   const initials = displayName
@@ -284,7 +263,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  // ── Shared inner content (used by both desktop rail and mobile drawer) ─────
+  // ── Shared inner content ───────────────────────────────────────────────────
 
   const renderBrand = (collapsed: boolean) => (
     <div
@@ -298,7 +277,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
       {collapsed ? (
         <>
           <Link
-            href={`/${locale}/admin/dashboard`}
+            href={`/${locale}/owner/dashboard`}
             aria-label={APP_NAME}
             className={cn(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--color-action-primary)] text-white font-bold text-sm select-none",
@@ -323,7 +302,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
       ) : (
         <>
           <Link
-            href={`/${locale}/admin/dashboard`}
+            href={`/${locale}/owner/dashboard`}
             className={cn("inline-flex items-center gap-2.5 rounded-lg", ring)}
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--color-action-primary)] text-white font-bold text-sm select-none">
@@ -371,7 +350,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
             <ul className="space-y-0.5" role="list">
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const active = isActive(item.href, item.exact);
+                const active = isActive(item);
                 const badge = item.badge ?? 0;
                 return (
                   <li key={item.id}>
@@ -429,67 +408,127 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
   );
 
   const renderFooter = (collapsed: boolean, onItemClick?: () => void) => (
-    <div
-      ref={userMenuRef}
-      className="relative px-2 pb-5 pt-3 border-t border-[var(--color-border-default)]"
-    >
-      {userMenuOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            aria-hidden="true"
-            onClick={() => setUserMenuOpen(false)}
-          />
-          <div
+    <div className="px-2 pb-5 pt-3 space-y-0.5 border-t border-[var(--color-border-default)]">
+      {/* Language switcher — hidden when collapsed */}
+      {!collapsed && (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setLangOpen(!langOpen)}
+            aria-expanded={langOpen}
+            aria-haspopup="listbox"
             className={cn(
-              "absolute z-50 mx-3 rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] shadow-lg overflow-hidden",
-              collapsed
-                ? "bottom-2 left-full ml-2 w-52"
-                : "bottom-full left-0 right-0 mb-2",
+              "flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors min-h-[44px]",
+              "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)]",
+              ring,
             )}
           >
-            <div className="p-1.5">
-              <Link
-                href={`/${locale}/admin/profile`}
-                onClick={() => {
-                  setUserMenuOpen(false);
-                  onItemClick?.();
-                }}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
-                  "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)]",
-                  ring,
-                )}
-              >
-                <User className="h-4 w-4 shrink-0" aria-hidden="true" />
-                {tCommon("profile")}
-              </Link>
+            <Globe className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="flex-1 text-left truncate">
+              {LOCALE_LABELS[currentLocale as keyof typeof LOCALE_LABELS]}
+            </span>
+            <ChevronUp
+              className={cn(
+                "h-4 w-4 shrink-0 transition-transform duration-200",
+                !langOpen && "rotate-180",
+              )}
+              aria-hidden="true"
+            />
+          </button>
 
-              <div className="my-1 h-px bg-[var(--color-border-default)]" />
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className={cn(
-                  "flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
-                  "text-[var(--color-text-secondary)] hover:bg-[var(--color-error-bg)] hover:text-[var(--color-error-text)]",
-                  ring,
-                )}
+          {langOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                aria-hidden="true"
+                onClick={() => setLangOpen(false)}
+              />
+              <ul
+                role="listbox"
+                aria-label={t("openMenu")}
+                className="absolute bottom-full left-0 right-0 z-50 mb-1 rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] shadow-lg overflow-hidden"
               >
-                <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
-                {tCommon("logout")}
-              </button>
-            </div>
-          </div>
-        </>
+                {locales.map((loc) => (
+                  <li key={loc} role="option" aria-selected={loc === currentLocale}>
+                    <button
+                      type="button"
+                      onClick={() => handleLocaleChange(loc)}
+                      className={cn(
+                        "flex w-full items-center px-4 py-3 text-sm font-medium transition-colors",
+                        loc === currentLocale
+                          ? "bg-[var(--color-action-primary)] text-white"
+                          : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)]",
+                      )}
+                    >
+                      {LOCALE_LABELS[loc]}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
       )}
+
+      {/* User pill + dropdown */}
+      <div ref={userMenuRef} className="relative">
+        {userMenuOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              aria-hidden="true"
+              onClick={() => setUserMenuOpen(false)}
+            />
+            <div
+              className={cn(
+                "absolute z-50 mx-3 rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] shadow-lg overflow-hidden",
+                collapsed
+                  ? "bottom-2 left-full ml-2 w-52"
+                  : "bottom-full left-0 right-0 mb-2",
+              )}
+            >
+              <div className="p-1.5">
+                <Link
+                  href={`/${locale}/owner/profile`}
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    onItemClick?.();
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                    "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)]",
+                    ring,
+                  )}
+                >
+                  <User className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {tCommon("profile")}
+                </Link>
+
+                <div className="my-1 h-px bg-[var(--color-border-default)]" />
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className={cn(
+                    "flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                    "text-[var(--color-text-secondary)] hover:bg-[var(--color-error-bg)] hover:text-[var(--color-error-text)]",
+                    ring,
+                  )}
+                >
+                  <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {tCommon("logout")}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         <button
           type="button"
           onClick={() => setUserMenuOpen(!userMenuOpen)}
           aria-expanded={userMenuOpen}
           aria-haspopup="menu"
-          aria-label={`${displayName || "Admin"} — ${t("openAccountMenu")}`}
+          aria-label={`${displayName || "Owner"} — ${t("openAccountMenu")}`}
           className={cn(
             "flex w-full items-center gap-3 rounded-[20px] border transition-colors",
             "bg-[var(--color-bg-surface)] border-[var(--color-border-default)]",
@@ -507,7 +546,13 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
                 className="h-9 w-9 object-cover"
               />
             ) : (
-              initials || "A"
+              initials || "O"
+            )}
+            {isCollapsed && (notificationsUnread > 0 || messagesUnread > 0) && (
+              <span
+                aria-hidden="true"
+                className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-bg-base)] bg-[var(--color-error-border)]"
+              />
             )}
           </div>
 
@@ -518,7 +563,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
                   {displayName || "—"}
                 </p>
                 <p className="text-[11px] text-[var(--color-text-tertiary)] truncate leading-tight mt-0.5 inline-flex items-center gap-1">
-                  <Shield className="h-3 w-3" aria-hidden="true" />
+                  <Bus className="h-3 w-3" aria-hidden="true" />
                   {user?.email ?? ""}
                 </p>
               </div>
@@ -532,6 +577,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
             </>
           )}
         </button>
+      </div>
     </div>
   );
 
@@ -552,7 +598,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
         {renderFooter(isCollapsed)}
       </aside>
 
-      {/* ── Mobile top bar (only menu trigger + brand, no global header) ─── */}
+      {/* ── Mobile top bar ────────────────────────────────────────────────── */}
       <div
         className={cn(
           "md:hidden sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3",
@@ -572,14 +618,17 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
           <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
         <Link
-          href={`/${locale}/admin/dashboard`}
+          href={`/${locale}/owner/dashboard`}
           className={cn("inline-flex items-center gap-2 rounded-lg", ring)}
         >
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[var(--color-action-primary)] text-white font-bold text-xs select-none">
             T
           </div>
           <span className="font-bold text-sm text-[var(--color-text-primary)]">
-            {APP_NAME} <span className="text-[var(--color-text-tertiary)] font-medium">· {t("badge")}</span>
+            {APP_NAME}{" "}
+            <span className="text-[var(--color-text-tertiary)] font-medium">
+              · {t("badge")}
+            </span>
           </span>
         </Link>
         <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-action-primary)] text-white text-xs font-semibold select-none">
@@ -591,7 +640,13 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
               className="h-9 w-9 rounded-full object-cover"
             />
           ) : (
-            initials || "A"
+            initials || "O"
+          )}
+          {(notificationsUnread > 0 || messagesUnread > 0) && (
+            <span
+              aria-hidden="true"
+              className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-bg-base)] bg-[var(--color-error-border)]"
+            />
           )}
         </div>
       </div>
@@ -613,7 +668,7 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
           >
             <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-4 py-[18px]">
               <Link
-                href={`/${locale}/admin/dashboard`}
+                href={`/${locale}/owner/dashboard`}
                 className={cn("inline-flex items-center gap-2.5 rounded-lg", ring)}
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--color-action-primary)] text-white font-bold text-sm select-none">

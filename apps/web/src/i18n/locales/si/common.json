@@ -3188,6 +3188,7 @@
     "items": {
       "dashboard": "උපකරණ පුවරුව",
       "users": "පරිශීලකයින්",
+      "vehicles": "Vehicles",
       "bookings": "වෙන් කිරීම්",
       "disputes": "ආරවුල්",
       "ownerVerifications": "හිමිකරු තහවුරුකිරීම්",
@@ -3370,5 +3371,39 @@
       "maintenanceMessageTooLong": "නඩත්තු පණිවිඩය අක්ෂර 1000 ට අඩු විය යුතුය.",
       "saveFailed": "සැකසුම් සුරැකීමට අසමත් විය."
     }
+  },
+  "ownerNav": {
+    "badge": "හිමිකරු ද්වාරය",
+    "sidebarLabel": "හිමිකරු ද්වාරය යාත්‍රාව",
+    "primaryNavLabel": "හිමිකරු කොටස්",
+    "openMenu": "හිමිකරු මෙනුව විවෘත කරන්න",
+    "closeMenu": "මෙනුව වසන්න",
+    "expandSidebar": "පැති තීරුව විහිදන්න",
+    "collapseSidebar": "පැති තීරුව හකුළන්න",
+    "openAccountMenu": "ගිණුම් මෙනුව විවෘත කරන්න",
+    "groups": {
+      "overview": "දළ විශ්ලේෂණය",
+      "operations": "මෙහෙයුම්",
+      "fleet": "යාත්‍රා",
+      "insights": "තීක්ෂණයන්",
+      "communication": "සන්නිවේදනය"
+    },
+    "items": {
+      "dashboard": "උපකරණ පුවරුව",
+      "quotations": "මිල ගණන්",
+      "sentQuotes": "යවන ලද මිල ගණන්",
+      "bookings": "වෙන් කිරීම්",
+      "fleet": "මගේ යාත්‍රා",
+      "packages": "ඇසුරුම්",
+      "analytics": "විශ්ලේෂණ",
+      "earnings": "ඉපැයීම්",
+      "reviews": "සමාලෝචන",
+      "messages": "පණිවිඩ",
+      "notifications": "දැනුම්දීම්",
+      "profile": "මගේ පැතිකඩ"
+    }
+  },
+  "ownerShell": {
+    "breadcrumbRoot": "හිමිකරු ද්වාරය"
   }
 }

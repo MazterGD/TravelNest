@@ -1,8 +1,7 @@
-"use client";
+﻿"use client";
 
 import { use } from "react";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { ChatLayout } from "@/components/chat";
 import { useOwnerGuard } from "@/hooks";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -22,16 +21,13 @@ export default function OwnerMessagesPage({
 
   if (guardLoading || !isAuthorized) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-[var(--color-bg-surface)] px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6">
@@ -49,6 +45,5 @@ export default function OwnerMessagesPage({
           />
         </div>
       </div>
-    </MainLayout>
   );
 }

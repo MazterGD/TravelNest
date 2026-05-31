@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
@@ -201,28 +200,23 @@ export default function VehicleAvailabilityPage() {
 
   if (guardLoading || !isAuthorized || !user || isLoadingData) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   if (pageError || !vehicle) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="rounded-md border border-error bg-[var(--color-error-bg)] p-6 text-sm text-error-foreground">
             {pageError || t("errorNotFound")}
           </div>
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         <header className="border-b border-border bg-card">
           <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
@@ -528,6 +522,5 @@ export default function VehicleAvailabilityPage() {
           </div>
         )}
       </div>
-    </MainLayout>
   );
 }

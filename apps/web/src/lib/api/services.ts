@@ -1873,7 +1873,7 @@ export interface AdminOwnerVerificationQuery extends PaginationParams {
 
 export interface AdminVehicleVerificationQuery extends PaginationParams {
   search?: string;
-  documentStatus?: AdminVerificationDocumentStatus;
+  verificationState?: "PENDING" | "MISSING_DOCUMENTS";
 }
 
 export interface AdminReviewModerationQuery extends PaginationParams {
@@ -2898,6 +2898,57 @@ export interface AdminProfilePermissionsResponse {
 const withAdminDateQuery = (params?: AdminAnalyticsDateQuery) =>
   params ? `?${buildQueryString(params)}` : "";
 
+// ── Admin Vehicles ────────────────────────────────────────────────────────────
+
+export interface AdminVehiclesQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  type?: string;
+  isActive?: boolean;
+  ownerId?: string;
+}
+
+export interface AdminVehicleRecord {
+  id: string;
+  name: string;
+  licensePlate: string;
+  type: string;
+  brand: string;
+  model: string;
+  year: number;
+  seats: number;
+  acType: string | null;
+  color: string | null;
+  condition: string | null;
+  location: string;
+  pricePerDay: number;
+  pricePerKm: number | null;
+  driverAllowance: number | null;
+  isActive: boolean;
+  isAvailable: boolean;
+  createdAt: string;
+  updatedAt: string;
+  owner: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  photos: { url: string }[];
+  _count: { bookings: number; reviews: number };
+}
+
+export interface AdminVehiclesResponse {
+  vehicles: AdminVehicleRecord[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export const adminService = {
   getDashboardOverview: () =>
     api.get<AdminDashboardOverview>("/admin/dashboard"),
@@ -3090,6 +3141,18 @@ export const adminService = {
 
   rejectVehicleVerification: (vehicleId: string, reason: string) =>
     api.post(`/admin/verifications/vehicles/${vehicleId}/reject`, { reason }),
+
+  approveVehicleDocument: (vehicleId: string, documentId: string) =>
+    api.post(`/admin/verifications/vehicles/${vehicleId}/documents/${documentId}/approve`, {}),
+
+  rejectVehicleDocument: (vehicleId: string, documentId: string, reason: string) =>
+    api.post(`/admin/verifications/vehicles/${vehicleId}/documents/${documentId}/reject`, { reason }),
+
+  approveOwnerDocument: (ownerId: string, documentId: string) =>
+    api.post(`/admin/verifications/owners/${ownerId}/documents/${documentId}/approve`, {}),
+
+  rejectOwnerDocument: (ownerId: string, documentId: string, reason: string) =>
+    api.post(`/admin/verifications/owners/${ownerId}/documents/${documentId}/reject`, { reason }),
 
   getVerificationHistory: (entityId: string, params?: PaginationParams) => {
     const query = params ? `?${buildQueryString(params)}` : "";
@@ -3417,6 +3480,17 @@ export const adminService = {
 
   getAdminProfilePermissions: () =>
     api.get<AdminProfilePermissionsResponse>(`/admin/profile/permissions`),
+
+  getAdminVehicles: (params?: AdminVehiclesQuery) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<AdminVehiclesResponse>(`/admin/vehicles${query}`);
+  },
+
+  suspendVehicle: (vehicleId: string) =>
+    api.patch(`/vehicles/${vehicleId}/status`, { isActive: false }),
+
+  activateVehicle: (vehicleId: string) =>
+    api.patch(`/vehicles/${vehicleId}/status`, { isActive: true }),
 };
 
 // ============================================

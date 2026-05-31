@@ -3203,6 +3203,7 @@
     "items": {
       "dashboard": "Dashboard",
       "users": "Users",
+      "vehicles": "Vehicles",
       "bookings": "Bookings",
       "disputes": "Disputes",
       "ownerVerifications": "Owner verifications",
@@ -3384,5 +3385,39 @@
       "maintenanceMessageTooLong": "Maintenance message must be 1000 characters or fewer.",
       "saveFailed": "Failed to save settings."
     }
+  },
+  "ownerNav": {
+    "badge": "OWNER PORTAL",
+    "sidebarLabel": "Owner portal navigation",
+    "primaryNavLabel": "Owner sections",
+    "openMenu": "Open owner menu",
+    "closeMenu": "Close menu",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "openAccountMenu": "open account menu",
+    "groups": {
+      "overview": "Overview",
+      "operations": "Operations",
+      "fleet": "Fleet",
+      "insights": "Insights",
+      "communication": "Communication"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "quotations": "Quotations",
+      "sentQuotes": "Sent Quotes",
+      "bookings": "Bookings",
+      "fleet": "My Fleet",
+      "packages": "Packages",
+      "analytics": "Analytics",
+      "earnings": "Earnings",
+      "reviews": "Reviews",
+      "messages": "Messages",
+      "notifications": "Notifications",
+      "profile": "My Profile"
+    }
+  },
+  "ownerShell": {
+    "breadcrumbRoot": "Owner Portal"
   }
 }

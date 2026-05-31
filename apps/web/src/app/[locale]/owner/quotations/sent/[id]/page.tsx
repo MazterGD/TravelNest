@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store";
@@ -206,17 +205,14 @@ export default function QuotationDetailPage({
 
   if (guardLoading || !isAuthorized || !user || loading) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   if (!quotation) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-foreground">
@@ -230,14 +226,12 @@ export default function QuotationDetailPage({
             </Link>
           </div>
         </div>
-      </MainLayout>
     );
   }
 
   const isExpiredOrUrgent = quotation.daysRemaining <= 2;
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         {/* Header */}
         <header className="border-b border-border bg-card">
@@ -632,6 +626,5 @@ export default function QuotationDetailPage({
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }

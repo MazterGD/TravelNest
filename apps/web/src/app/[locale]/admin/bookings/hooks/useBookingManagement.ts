@@ -109,7 +109,8 @@ export const useBookingManagement = (): UseBookingManagementResult => {
   }, []);
 
   const loadBookingDetails = useCallback(async (bookingId: string) => {
-    setIsMutating(true);
+    // Intentionally does not set isMutating — loading a detail record is a read
+    // operation and must not lock the table's write-action buttons.
     setError(null);
 
     try {
@@ -121,8 +122,6 @@ export const useBookingManagement = (): UseBookingManagementResult => {
           ? fetchError.message
           : "Failed to load booking details";
       setError(message);
-    } finally {
-      setIsMutating(false);
     }
   }, []);
 

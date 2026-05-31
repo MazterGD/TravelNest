@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MainLayout } from "@/components/layout/MainLayout";
 import {
   ArrowLeft,
   TrendingUp,
@@ -112,18 +111,15 @@ export default function OwnerAnalyticsPage() {
 
   if (guardLoading || (!isAuthorized && !error)) {
     return (
-      <MainLayout>
         <div className="flex min-h-screen items-center justify-center bg-muted">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   const hasRevenueData = revenueData.some((d) => d.revenue > 0);
 
   return (
-    <MainLayout>
     <div className="min-h-screen bg-muted">
       <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
 
@@ -520,6 +516,5 @@ export default function OwnerAnalyticsPage() {
         )}
       </div>
     </div>
-    </MainLayout>
   );
 }

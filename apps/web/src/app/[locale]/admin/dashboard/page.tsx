@@ -57,7 +57,7 @@ const activityVariant = (type: "booking" | "user" | "audit") => {
 // that pre-filters the destination page to show only the actionable subset.
 const PENDING_ACTION_QUERY: Record<string, string> = {
   "owner-approvals":     "status=PENDING_VERIFICATION",
-  "vehicle-approvals":   "documentStatus=PENDING",
+  "vehicle-approvals":   "verificationState=PENDING",
   "pending-bookings":    "status=PENDING",
   "failed-payments":     "status=FAILED",
   "open-disputes":       "status=OPEN",

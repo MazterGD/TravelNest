@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   adminService,
   type AdminReviewModerationDetails,
@@ -40,11 +41,19 @@ const DEFAULT_FILTERS: AdminReviewModerationQuery = {
 };
 
 export const useReviewModeration = (): UseReviewModerationResult => {
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("search") ?? "";
+  const rawFlaggedOnly = searchParams.get("flaggedOnly");
+  const initialFlaggedOnly = rawFlaggedOnly !== null ? rawFlaggedOnly !== "false" : DEFAULT_FILTERS.flaggedOnly;
+
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilterState] =
-    useState<AdminReviewModerationQuery>(DEFAULT_FILTERS);
+  const [filters, setFilterState] = useState<AdminReviewModerationQuery>({
+    ...DEFAULT_FILTERS,
+    search: initialSearch,
+    flaggedOnly: initialFlaggedOnly,
+  });
   const [queueData, setQueueData] =
     useState<AdminReviewModerationResponse | null>(null);
   const [selectedReview, setSelectedReview] =

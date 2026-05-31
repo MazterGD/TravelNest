@@ -15,6 +15,7 @@ import { useDebounce } from "@/hooks";
 
 interface UseFinancialManagementResult {
   isLoading: boolean;
+  isDetailLoading: boolean;
   isMutating: boolean;
   error: string | null;
   filters: AdminSettlementQuery;
@@ -25,6 +26,7 @@ interface UseFinancialManagementResult {
   includeInactiveRules: boolean;
   setFilters: (next: Partial<AdminSettlementQuery>) => void;
   setIncludeInactiveRules: (value: boolean) => void;
+  clearSelectedSettlement: () => void;
   loadSettlementDetails: (settlementId: string) => Promise<void>;
   processSettlement: (
     settlementId: string,
@@ -58,6 +60,7 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
     : undefined;
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,18 +70,18 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
     search: "",
     status: initialStatus,
   });
-  const [settlementsData, setSettlementsData] =
-    useState<AdminSettlementResponse | null>(null);
+  const [settlementsData, setSettlementsData] = useState<AdminSettlementResponse | null>(null);
   const [historyData, setHistoryData] = useState<AdminSettlementResponse | null>(null);
-  const [selectedSettlement, setSelectedSettlement] =
-    useState<AdminSettlementDetails | null>(null);
-
+  const [selectedSettlement, setSelectedSettlement] = useState<AdminSettlementDetails | null>(null);
   const [commissionRules, setCommissionRules] = useState<AdminCommissionRule[]>([]);
   const [includeInactiveRules, setIncludeInactiveRules] = useState(false);
+
   const debouncedSearch = useDebounce(filters.search?.trim() || "", 300);
 
-  const fetchFinancialData = useCallback(async () => {
-    setIsLoading(true);
+  // silent=true skips the isLoading flag so mutation-triggered refetches
+  // don't flash the skeleton table while the user is looking at the page.
+  const fetchFinancialData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     setError(null);
 
     try {
@@ -107,7 +110,7 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
           : "Failed to load financial management data";
       setError(message);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [
     debouncedSearch,
@@ -139,8 +142,14 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
     }));
   }, []);
 
+  const clearSelectedSettlement = useCallback(() => {
+    setSelectedSettlement(null);
+  }, []);
+
+  // Separate loading flag so that viewing a settlement detail does not
+  // disable all action buttons in the table via isMutating.
   const loadSettlementDetails = useCallback(async (settlementId: string) => {
-    setIsMutating(true);
+    setIsDetailLoading(true);
     setError(null);
 
     try {
@@ -153,7 +162,7 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
           : "Failed to load settlement details";
       setError(message);
     } finally {
-      setIsMutating(false);
+      setIsDetailLoading(false);
     }
   }, []);
 
@@ -164,7 +173,7 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
 
       try {
         await operation();
-        await fetchFinancialData();
+        await fetchFinancialData(true);
 
         if (settlementId && selectedSettlement?.id === settlementId) {
           await loadSettlementDetails(settlementId);
@@ -191,9 +200,7 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
     [withMutation],
   );
 
-  const createCommissionRule = useCallback<
-    UseFinancialManagementResult["createCommissionRule"]
-  >(
+  const createCommissionRule = useCallback<UseFinancialManagementResult["createCommissionRule"]>(
     async (payload) => {
       await withMutation(async () => {
         await adminService.createCommissionRule(payload);
@@ -202,9 +209,7 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
     [withMutation],
   );
 
-  const updateCommissionRule = useCallback<
-    UseFinancialManagementResult["updateCommissionRule"]
-  >(
+  const updateCommissionRule = useCallback<UseFinancialManagementResult["updateCommissionRule"]>(
     async (ruleId, payload) => {
       await withMutation(async () => {
         await adminService.updateCommissionRule(ruleId, payload);
@@ -213,9 +218,7 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
     [withMutation],
   );
 
-  const archiveCommissionRule = useCallback<
-    UseFinancialManagementResult["archiveCommissionRule"]
-  >(
+  const archiveCommissionRule = useCallback<UseFinancialManagementResult["archiveCommissionRule"]>(
     async (ruleId) => {
       await withMutation(async () => {
         await adminService.deleteCommissionRule(ruleId);
@@ -226,6 +229,7 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
 
   return {
     isLoading,
+    isDetailLoading,
     isMutating,
     error,
     filters,
@@ -236,6 +240,7 @@ export const useFinancialManagement = (): UseFinancialManagementResult => {
     includeInactiveRules,
     setFilters,
     setIncludeInactiveRules,
+    clearSelectedSettlement,
     loadSettlementDetails,
     processSettlement,
     createCommissionRule,

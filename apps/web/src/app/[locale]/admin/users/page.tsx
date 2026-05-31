@@ -11,6 +11,7 @@ import {
   Download,
   ExternalLink,
   Eye,
+  FileText,
   KeyRound,
   Loader2,
   Plus,
@@ -34,8 +35,7 @@ import {
   SkeletonTable,
   Tabs,
 } from "@/components/ui";
-import { adminService, vehicleService, type AdminBookingRecord } from "@/lib/api";
-import type { Vehicle } from "@/types";
+import { adminService, type AdminBookingRecord, type AdminOwnerDocument, type AdminVehicleRecord } from "@/lib/api";
 import { useDialogPrompts } from "@/hooks";
 import { useUserFilters } from "./hooks/useUserFilters";
 
@@ -142,8 +142,10 @@ export default function AdminUsersPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [userBookings, setUserBookings] = useState<AdminBookingRecord[] | null>(null);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
-  const [userVehicles, setUserVehicles] = useState<Vehicle[] | null>(null);
+  const [userVehicles, setUserVehicles] = useState<AdminVehicleRecord[] | null>(null);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
+  const [userDocuments, setUserDocuments] = useState<AdminOwnerDocument[] | null>(null);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
 
   // ── Derived state ────────────────────────────────────────────────────────────
 
@@ -164,6 +166,7 @@ export default function AdminUsersPage() {
     // Reset stale sub-section data when switching to a new user
     setUserBookings(null);
     setUserVehicles(null);
+    setUserDocuments(null);
     await loadUserDetails(userId);
     setIsDetailOpen(true);
   };
@@ -172,6 +175,7 @@ export default function AdminUsersPage() {
     setIsDetailOpen(false);
     setUserBookings(null);
     setUserVehicles(null);
+    setUserDocuments(null);
   };
 
   const loadUserBookings = async (email: string) => {
@@ -189,8 +193,8 @@ export default function AdminUsersPage() {
   const loadUserVehicles = async (userId: string) => {
     setIsLoadingVehicles(true);
     try {
-      const data = await vehicleService.getByOwner(userId);
-      setUserVehicles(data);
+      const data = await adminService.getAdminVehicles({ ownerId: userId, limit: 20 });
+      setUserVehicles(data.vehicles);
     } catch {
       setUserVehicles([]);
     } finally {
@@ -198,16 +202,29 @@ export default function AdminUsersPage() {
     }
   };
 
+  const loadUserDocuments = async (userId: string) => {
+    setIsLoadingDocuments(true);
+    try {
+      const data = await adminService.getOwnerVerificationById(userId);
+      setUserDocuments(data.documents);
+    } catch {
+      setUserDocuments([]);
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
+
   const handleSuspend = async (userId: string) => {
-    const approved = await confirm({
+    const reason = await prompt({
       title: "Suspend User Account",
-      message:
-        "This user will immediately lose access to the platform. You can reactivate them at any time.",
+      message: "A reason is required. This user will immediately lose access to the platform.",
+      placeholder: "e.g. Policy violation, suspicious activity",
       confirmText: "Suspend",
-      variant: "warning",
+      minLength: 1,
+      variant: "danger",
     });
-    if (approved) {
-      await updateUserStatus(userId, "SUSPENDED", "Suspended by admin");
+    if (reason) {
+      await updateUserStatus(userId, "SUSPENDED", reason);
     }
   };
 
@@ -258,11 +275,17 @@ export default function AdminUsersPage() {
     <div className="space-y-4">
       {/* Identity header */}
       <div className="flex items-center gap-4">
-        <div
-          aria-hidden="true"
-          className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-[var(--color-action-primary)]"
-        >
-          {userInitials(selectedUser.firstName, selectedUser.lastName)}
+        <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-[var(--color-action-primary)] overflow-hidden">
+          {selectedUser.avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={selectedUser.avatar}
+              alt={`${selectedUser.firstName} ${selectedUser.lastName}`}
+              className="h-14 w-14 object-cover"
+            />
+          ) : (
+            userInitials(selectedUser.firstName, selectedUser.lastName)
+          )}
         </div>
         <div>
           <p className="text-base font-semibold text-[var(--color-text-primary)]">
@@ -285,12 +308,22 @@ export default function AdminUsersPage() {
       {/* Quick stats */}
       <div className="grid grid-cols-3 gap-3 rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
         <div className="text-center">
-          <p className="text-xl font-bold text-[var(--color-text-primary)]">{selectedUser._count.bookings}</p>
+          <p className="text-xl font-bold text-[var(--color-text-primary)]">
+            {selectedUser.role === "VEHICLE_OWNER"
+              ? selectedUser.ownerBookingCount
+              : selectedUser._count.bookings}
+          </p>
           <p className="text-xs text-[var(--color-text-tertiary)]">Bookings</p>
         </div>
         <div className="text-center">
-          <p className="text-xl font-bold text-[var(--color-text-primary)]">{selectedUser._count.reviews}</p>
-          <p className="text-xs text-[var(--color-text-tertiary)]">Reviews</p>
+          <p className="text-xl font-bold text-[var(--color-text-primary)]">
+            {selectedUser.role === "VEHICLE_OWNER"
+              ? selectedUser._count.vehicles
+              : selectedUser._count.reviews}
+          </p>
+          <p className="text-xs text-[var(--color-text-tertiary)]">
+            {selectedUser.role === "VEHICLE_OWNER" ? "Vehicles" : "Reviews"}
+          </p>
         </div>
         <div className="text-center">
           <p className="text-xl font-bold text-[var(--color-text-primary)]">{selectedUser._count.notifications}</p>
@@ -378,7 +411,9 @@ export default function AdminUsersPage() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-[var(--color-text-secondary)]">
-          Showing bookings where this user is the customer.
+          {selectedUser.role === "VEHICLE_OWNER"
+            ? "Bookings where this owner's vehicles were chartered."
+            : "Bookings where this user is the customer."}
         </p>
         <Link
           href={`/${locale}/admin/bookings?search=${encodeURIComponent(selectedUser.email)}`}
@@ -394,7 +429,9 @@ export default function AdminUsersPage() {
         <div className="flex flex-col items-center gap-3 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] py-10">
           <BookOpen className="h-8 w-8 text-[var(--color-text-tertiary)]" />
           <p className="text-sm text-[var(--color-text-secondary)]">
-            Click below to fetch this user&apos;s bookings from the database.
+            {selectedUser.role === "VEHICLE_OWNER"
+              ? "Click below to fetch bookings made on this owner's vehicles."
+              : "Click below to fetch this user's bookings from the database."}
           </p>
           <Button
             size="sm"
@@ -475,12 +512,12 @@ export default function AdminUsersPage() {
           Vehicles registered under this owner&apos;s account.
         </p>
         <Link
-          href={`/${locale}/admin/verifications/vehicles`}
+          href={`/${locale}/admin/vehicles?search=${encodeURIComponent(selectedUser.email)}`}
           className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-action-primary)] hover:underline"
           target="_blank"
           rel="noopener noreferrer"
         >
-          View verifications <ExternalLink className="h-3.5 w-3.5" />
+          View all vehicles <ExternalLink className="h-3.5 w-3.5" />
         </Link>
       </div>
 
@@ -517,24 +554,36 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">Plate</th>
                 <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">Type</th>
                 <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">Status</th>
+                <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border-default)]">
               {userVehicles.map((v) => (
                 <tr key={v.id} className="hover:bg-[var(--color-bg-surface)]">
                   <td className="px-4 py-3 font-medium text-[var(--color-text-primary)]">
-                    {(v as any).name ?? "—"}
+                    {v.name}
                   </td>
                   <td className="px-4 py-3 font-mono text-[var(--color-text-secondary)]">
-                    {(v as any).licensePlate ?? "—"}
+                    {v.licensePlate}
                   </td>
                   <td className="px-4 py-3 text-[var(--color-text-secondary)]">
-                    {(v as any).vehicleType ?? (v as any).type ?? "—"}
+                    {v.type === "ORDINARY" ? "Ordinary" : v.type === "SEMI_LUXURY" ? "Semi Luxury" : v.type === "LUXURY_AC" ? "Luxury AC" : v.type}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={(v as any).isActive ? "success" : "secondary"} dot>
-                      {(v as any).isActive ? "Active" : "Inactive"}
+                    <Badge variant={v.isActive ? "success" : "secondary"} dot>
+                      {v.isActive ? "Active" : "Suspended"}
                     </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/${locale}/admin/vehicles?search=${encodeURIComponent(v.licensePlate)}`}
+                      className="inline-flex items-center text-[var(--color-action-primary)] hover:underline text-xs"
+                      aria-label={`Open ${v.name} in admin vehicles page`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Link>
                   </td>
                 </tr>
               ))}
@@ -596,7 +645,116 @@ export default function AdminUsersPage() {
     </div>
   );
 
-  // Build tabs array — conditionally include Vehicles tab for VEHICLE_OWNER role
+  // Documents panel — only rendered for VEHICLE_OWNER role users
+  const documentsPanel = selectedUser?.role === "VEHICLE_OWNER" && (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          Identity and ownership documents submitted by this owner.
+        </p>
+      </div>
+
+      {userDocuments === null ? (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] py-10">
+          <FileText className="h-8 w-8 text-[var(--color-text-tertiary)]" />
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Click below to fetch this owner&apos;s verification documents.
+          </p>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => void loadUserDocuments(selectedUser.id)}
+            disabled={isLoadingDocuments}
+          >
+            {isLoadingDocuments ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="h-4 w-4" />
+            )}
+            Load Documents
+          </Button>
+        </div>
+      ) : isLoadingDocuments ? (
+        <SkeletonTable rows={3} cols={4} />
+      ) : userDocuments.length === 0 ? (
+        <EmptyState
+          icon={<EmptySearchIcon />}
+          title="No documents found"
+          description="This owner has not submitted any verification documents yet."
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-[var(--color-border-default)]">
+          <table className="w-full min-w-[480px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-surface)]">
+                <th scope="col" className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">Document</th>
+                <th scope="col" className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">Status</th>
+                <th scope="col" className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">Uploaded</th>
+                <th scope="col" className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">File</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--color-border-default)]">
+              {userDocuments.map((doc) => (
+                <tr key={doc.id} className="hover:bg-[var(--color-bg-surface)]">
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-[var(--color-text-primary)]">{doc.type}</p>
+                    <p className="mt-0.5 max-w-[180px] truncate text-xs text-[var(--color-text-tertiary)]">
+                      {doc.fileName}
+                    </p>
+                    {doc.rejectionReason && (
+                      <p className="mt-1 text-xs text-[var(--color-error-text)]">
+                        {doc.rejectionReason}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge
+                      size="sm"
+                      variant={
+                        doc.status === "VERIFIED"
+                          ? "success"
+                          : doc.status === "REJECTED"
+                            ? "danger"
+                            : "warning"
+                      }
+                      dot
+                    >
+                      {doc.status}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-[var(--color-text-secondary)]">
+                    {new Date(doc.createdAt).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </td>
+                  <td className="px-4 py-3">
+                    {doc.url ? (
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${doc.fileName} in a new tab`}
+                        className="inline-flex items-center gap-1.5 rounded text-xs font-medium text-[var(--color-action-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-primary)] focus-visible:ring-offset-2"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                        Open
+                      </a>
+                    ) : (
+                      <span className="text-xs text-[var(--color-text-tertiary)]">Unavailable</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+
+  // Build tabs array — conditionally include Vehicles and Documents tabs for VEHICLE_OWNER role
   const detailTabs = [
     {
       id: "overview",
@@ -608,7 +766,9 @@ export default function AdminUsersPage() {
       id: "bookings",
       label: "Bookings",
       icon: <BookOpen className="h-4 w-4" />,
-      badge: selectedUser?._count.bookings ?? undefined,
+      badge: selectedUser?.role === "VEHICLE_OWNER"
+        ? (selectedUser?.ownerBookingCount ?? undefined)
+        : (selectedUser?._count.bookings ?? undefined),
       content: bookingsPanel,
     },
     ...(selectedUser?.role === "VEHICLE_OWNER"
@@ -617,7 +777,14 @@ export default function AdminUsersPage() {
             id: "vehicles",
             label: "Vehicles",
             icon: <Car className="h-4 w-4" />,
+            badge: selectedUser?._count.vehicles ?? undefined,
             content: vehiclesPanel,
+          },
+          {
+            id: "documents",
+            label: "Documents",
+            icon: <FileText className="h-4 w-4" />,
+            content: documentsPanel,
           },
         ]
       : []),

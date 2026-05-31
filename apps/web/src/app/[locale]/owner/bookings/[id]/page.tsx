@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
@@ -73,41 +72,33 @@ export default function BookingDetailsPage({
 
   if (guardLoading || !isAuthorized || !user) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   if (isLoading) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   if (error) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center text-error-foreground">{error}</div>
         </div>
-      </MainLayout>
     );
   }
 
   if (!booking) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center text-muted-foreground">{t("notFound")}</div>
         </div>
-      </MainLayout>
     );
   }
 
@@ -123,7 +114,6 @@ export default function BookingDetailsPage({
       : null;
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         <header className="border-b border-border bg-card">
           <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
@@ -589,6 +579,5 @@ export default function BookingDetailsPage({
           </div>
         )}
       </div>
-    </MainLayout>
   );
 }

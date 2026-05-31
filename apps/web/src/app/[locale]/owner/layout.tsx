@@ -4,39 +4,36 @@ import { useMemo } from "react";
 import { useParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LoadingSpinner } from "@/components/ui";
-import { AdminSidebar } from "@/components/layout/AdminSidebar";
-import { useAdminGuard } from "@/hooks";
+import { OwnerSidebar } from "@/components/layout/OwnerSidebar";
+import { useOwnerGuard } from "@/hooks";
+import { Footer } from "@/components/layout/Footer";
 
-interface AdminLayoutProps {
+interface OwnerLayoutProps {
   children: React.ReactNode;
 }
 
 const ROUTE_KEYS: Array<{ match: RegExp; key: string }> = [
-  { match: /\/admin\/dashboard(?:\/|$)/, key: "dashboard" },
-  { match: /\/admin\/users(?:\/|$)/, key: "users" },
-  { match: /\/admin\/bookings(?:\/|$)/, key: "bookings" },
-  { match: /\/admin\/analytics(?:\/|$)/, key: "analytics" },
-  { match: /\/admin\/disputes(?:\/|$)/, key: "disputes" },
-  { match: /\/admin\/financial(?:\/|$)/, key: "financial" },
-  { match: /\/admin\/settings(?:\/|$)/, key: "settings" },
-  { match: /\/admin\/content(?:\/|$)/, key: "content" },
-  { match: /\/admin\/amenities(?:\/|$)/, key: "amenities" },
-  { match: /\/admin\/notifications(?:\/|$)/, key: "notifications" },
-  { match: /\/admin\/audit-logs(?:\/|$)/, key: "auditLogs" },
-  { match: /\/admin\/reports(?:\/|$)/, key: "reports" },
-  { match: /\/admin\/profile(?:\/|$)/, key: "profile" },
-  { match: /\/admin\/verifications\/owners(?:\/|$)/, key: "ownerVerifications" },
-  { match: /\/admin\/verifications\/vehicles(?:\/|$)/, key: "vehicleVerifications" },
-  { match: /\/admin\/reviews\/moderation(?:\/|$)/, key: "reviewModeration" },
+  { match: /\/owner\/dashboard(?:\/|$)/, key: "dashboard" },
+  { match: /\/owner\/quotations\/sent(?:\/|$)/, key: "sentQuotes" },
+  { match: /\/owner\/quotations(?:\/|$)/, key: "quotations" },
+  { match: /\/owner\/bookings(?:\/|$)/, key: "bookings" },
+  { match: /\/owner\/fleet(?:\/|$)/, key: "fleet" },
+  { match: /\/owner\/packages(?:\/|$)/, key: "packages" },
+  { match: /\/owner\/analytics(?:\/|$)/, key: "analytics" },
+  { match: /\/owner\/earnings(?:\/|$)/, key: "earnings" },
+  { match: /\/owner\/reviews(?:\/|$)/, key: "reviews" },
+  { match: /\/owner\/messages(?:\/|$)/, key: "messages" },
+  { match: /\/owner\/notifications(?:\/|$)/, key: "notifications" },
+  { match: /\/owner\/profile(?:\/|$)/, key: "profile" },
 ];
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+export default function OwnerLayout({ children }: OwnerLayoutProps) {
   const pathname = usePathname();
   const params = useParams();
   const locale = (params.locale as string) || "en";
-  const t = useTranslations("adminNav");
-  const tShell = useTranslations("adminShell");
-  const { isLoading, isAuthorized } = useAdminGuard();
+  const t = useTranslations("ownerNav");
+  const tShell = useTranslations("ownerShell");
+  const { isLoading, isAuthorized } = useOwnerGuard();
 
   const pageKey = useMemo(() => {
     const match = ROUTE_KEYS.find((entry) => entry.match.test(pathname));
@@ -53,10 +50,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-[var(--color-bg-surface)]">
-      <AdminSidebar locale={locale} />
+      <OwnerSidebar locale={locale} />
 
       <div className="flex flex-1 min-w-0 flex-col">
-
         <main className="flex-1 mt-6 px-4 pb-12 pt-4 sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-[1280px]">
             <div className="md:hidden mb-4">
@@ -71,6 +67,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             {children}
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   );

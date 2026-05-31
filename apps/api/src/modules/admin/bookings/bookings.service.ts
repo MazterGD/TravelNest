@@ -59,6 +59,18 @@ const buildBookingWhere = (filters: BookingFilters) => {
           ],
         },
       },
+      // Allows searching by vehicle owner name/email (e.g. from the admin users page)
+      {
+        vehicle: {
+          owner: {
+            OR: [
+              { firstName: { contains: filters.search, mode: "insensitive" } },
+              { lastName: { contains: filters.search, mode: "insensitive" } },
+              { email: { contains: filters.search, mode: "insensitive" } },
+            ],
+          },
+        },
+      },
     ];
   }
 

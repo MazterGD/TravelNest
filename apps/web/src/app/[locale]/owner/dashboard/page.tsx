@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner, Skeleton } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
@@ -448,16 +447,13 @@ export default function OwnerDashboardPage() {
 
   if (guardLoading || !isAuthorized || !user) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         {/* Header */}
         <header className="border-b border-[--color-border-default] bg-card">
@@ -1144,6 +1140,5 @@ export default function OwnerDashboardPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }

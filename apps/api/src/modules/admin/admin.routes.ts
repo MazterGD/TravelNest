@@ -23,6 +23,7 @@ import amenitiesRoutes from "./amenities/amenities.routes.js";
 import notificationsRoutes from "./notifications/notifications.routes.js";
 import { adminReportsRouter } from "./reports/reports.routes.js";
 import profileRoutes from "./profile/profile.routes.js";
+import vehiclesRoutes from "./vehicles/vehicles.routes.js";
 import { postCreateAdmin } from "./users/users.controller.js";
 import { createAdminSchema } from "./users/users.schemas.js";
 
@@ -57,5 +58,6 @@ router.use("/amenities", amenitiesRoutes);
 router.use("/notifications", notificationsRoutes);
 router.use("/reports", adminReportsRouter);
 router.use("/profile", profileRoutes);
+router.use("/vehicles", vehiclesRoutes);
 
 export default router;

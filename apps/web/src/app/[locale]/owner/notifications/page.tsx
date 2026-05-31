@@ -1,7 +1,6 @@
-"use client";
+﻿"use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { NotificationList } from "@/components/dashboard/NotificationList";
 import { useOwnerGuard } from "@/hooks";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -33,16 +32,13 @@ export default function OwnerNotificationsPage() {
 
   if (guardLoading || !isAuthorized) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-[var(--color-bg-surface)] py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
@@ -60,6 +56,5 @@ export default function OwnerNotificationsPage() {
           />
         </div>
       </div>
-    </MainLayout>
   );
 }

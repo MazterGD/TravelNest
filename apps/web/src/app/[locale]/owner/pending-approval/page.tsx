@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -16,7 +16,6 @@ import {
   AlertTriangle,
   ArrowLeft,
 } from "lucide-react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner, Badge, CTAButton } from "@/components/ui";
 import { useAuthStore } from "@/store";
 
@@ -55,11 +54,9 @@ export default function PendingApprovalPage() {
 
   if (isLoading || !user) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
@@ -107,7 +104,6 @@ export default function PendingApprovalPage() {
   ];
 
   return (
-    <MainLayout>
       <div className="bg-bg-surface min-h-screen px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-[1024px]">
           <article className="overflow-hidden rounded-[20px] border border-border bg-background shadow-sm">
@@ -387,7 +383,6 @@ export default function PendingApprovalPage() {
           </p>
         </div>
       </div>
-    </MainLayout>
   );
 }
 

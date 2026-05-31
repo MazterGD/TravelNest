@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Button, CTAButton, Input, LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
@@ -262,16 +261,13 @@ export default function QuotationRequestsPage() {
   // Show loading while checking auth state
   if (guardLoading || !isAuthorized || !user) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-background">
         <header className="border-b border-border bg-background">
           <div className="mx-auto max-w-[1280px] px-4 py-4 sm:px-6 lg:px-8">
@@ -618,6 +614,5 @@ export default function QuotationRequestsPage() {
           )}
         </div>
       </div>
-    </MainLayout>
   );
 }

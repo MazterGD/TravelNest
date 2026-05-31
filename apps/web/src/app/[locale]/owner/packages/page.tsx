@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner, ConfirmDialog, Badge } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
@@ -60,16 +59,13 @@ export default function OwnerPackagesPage() {
 
   if (guardLoading || !isAuthorized || !user) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-gray-50">
         <header className="border-b border-gray-200 bg-white">
           <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
@@ -204,6 +200,5 @@ export default function OwnerPackagesPage() {
         variant="danger"
         isLoading={isDeleting}
       />
-    </MainLayout>
   );
 }

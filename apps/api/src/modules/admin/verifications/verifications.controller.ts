@@ -1,14 +1,18 @@
 import { type NextFunction, type Request, type Response } from "express";
 import { ResponseHelper } from "../../../utils/response.js";
 import {
+  approveOwnerDocument,
   approveOwnerVerification,
+  approveVehicleDocument,
   approveVehicleVerification,
   getOwnerVerificationDetails,
   getVehicleVerificationDetails,
   getVerificationHistory,
   listOwnerVerifications,
   listVehicleVerifications,
+  rejectOwnerDocument,
   rejectOwnerVerification,
+  rejectVehicleDocument,
   rejectVehicleVerification,
   requestOwnerResubmission,
 } from "./verifications.service.js";
@@ -149,10 +153,9 @@ export const getVehicleVerificationQueue = async (
     const data = await listVehicleVerifications(
       {
         search: req.query.search as string | undefined,
-        documentStatus: req.query.documentStatus as
+        verificationState: req.query.verificationState as
           | "PENDING"
-          | "VERIFIED"
-          | "REJECTED"
+          | "MISSING_DOCUMENTS"
           | undefined,
       },
       req.query.page ? Number(req.query.page) : undefined,
@@ -252,6 +255,84 @@ export const getVerificationHistoryByEntityId = async (
       history,
       "Verification history fetched successfully",
     );
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const postApproveVehicleDocument = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const adminId = req.user?.id as string;
+    await approveVehicleDocument(
+      adminId,
+      normalizeParam(req.params.vehicleId),
+      normalizeParam(req.params.documentId),
+    );
+
+    return ResponseHelper.success(res, null, "Vehicle document approved successfully");
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const postRejectVehicleDocument = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const adminId = req.user?.id as string;
+    await rejectVehicleDocument(
+      adminId,
+      normalizeParam(req.params.vehicleId),
+      normalizeParam(req.params.documentId),
+      req.body.reason,
+    );
+
+    return ResponseHelper.success(res, null, "Vehicle document rejected successfully");
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const postApproveOwnerDocument = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const adminId = req.user?.id as string;
+    await approveOwnerDocument(
+      adminId,
+      normalizeParam(req.params.ownerId),
+      normalizeParam(req.params.documentId),
+    );
+
+    return ResponseHelper.success(res, null, "Owner document approved successfully");
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const postRejectOwnerDocument = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const adminId = req.user?.id as string;
+    await rejectOwnerDocument(
+      adminId,
+      normalizeParam(req.params.ownerId),
+      normalizeParam(req.params.documentId),
+      req.body.reason,
+    );
+
+    return ResponseHelper.success(res, null, "Owner document rejected successfully");
   } catch (error) {
     return next(error);
   }
