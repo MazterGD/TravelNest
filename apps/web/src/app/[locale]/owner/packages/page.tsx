@@ -66,6 +66,7 @@ export default function OwnerPackagesPage() {
   }
 
   return (
+    <>
       <div className="min-h-screen bg-gray-50">
         <header className="border-b border-gray-200 bg-white">
           <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
@@ -200,5 +201,6 @@ export default function OwnerPackagesPage() {
         variant="danger"
         isLoading={isDeleting}
       />
+    </>
   );
 }
