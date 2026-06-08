@@ -134,6 +134,7 @@ const iconBadge =
 
 export function DashboardContent({ locale }: DashboardPageProps) {
   const t = useTranslations("dashboard");
+  const tNav = useTranslations("navigation");
   const { user } = useAuthStore();
   const params = useParams();
   const currentLocale = (params.locale as string) || locale;
@@ -413,6 +414,33 @@ export function DashboardContent({ locale }: DashboardPageProps) {
         </p>
       </div>
 
+      {/* ── Quick actions — only shown on mobile where the bottom nav renders,
+           since the desktop sidebar already exposes these nav items ── */}
+      <div className="grid grid-cols-2 gap-4 md:hidden">
+        <Link
+          href={`/${currentLocale}/dashboard/search`}
+          className={`${cardSurface} flex min-h-[44px] items-center gap-3 p-4 transition-colors hover:bg-[var(--color-bg-surface)] ${focusRing}`}
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-bg-surface)] text-[var(--color-action-primary)]">
+            <Search className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 text-sm font-semibold text-[var(--color-text-primary)]">
+            {tNav("searchBuses")}
+          </span>
+        </Link>
+        <Link
+          href={`/${currentLocale}/dashboard/packages`}
+          className={`${cardSurface} flex min-h-[44px] items-center gap-3 p-4 transition-colors hover:bg-[var(--color-bg-surface)] ${focusRing}`}
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-bg-surface)] text-[var(--color-action-primary)]">
+            <MapPin className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 truncate text-sm font-semibold text-[var(--color-text-primary)]">
+            {tNav("packages")}
+          </span>
+        </Link>
+      </div>
+
       {/* ── Next Journey hero ─────────────────────────────────────────────── */}
       {isLoadingData ? (
         <div className="rounded-[20px] overflow-hidden">
@@ -630,7 +658,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
       <div className="grid gap-6 lg:grid-cols-3">
 
         {/* Left column: upcoming bookings + recent quotations */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
 
           {/* Upcoming bookings */}
           <section className={cardSurface} aria-labelledby="upcoming-heading">
@@ -676,24 +704,26 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                       key={booking.id}
                       className={`${innerCard} p-4 transition-colors hover:bg-[var(--color-bg-surface)]`}
                     >
-                      <div className="mb-3 flex items-start justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-medium text-[var(--color-text-primary)]">
                             {booking.bookingReference}
                           </h3>
-                          <p className="text-xs text-[var(--color-text-secondary)]">
+                          <p className="truncate text-xs text-[var(--color-text-secondary)]">
                             {booking.vehicleName} · {booking.vehicleType}
                           </p>
                         </div>
-                        <Badge variant={getStatusBadgeVariant(booking.status)}>
-                          {formatStatusLabel(booking.status)}
-                        </Badge>
+                        <span className="shrink-0">
+                          <Badge variant={getStatusBadgeVariant(booking.status)}>
+                            {formatStatusLabel(booking.status)}
+                          </Badge>
+                        </span>
                       </div>
 
-                      <div className="mb-4 flex flex-wrap gap-4 text-xs text-[var(--color-text-secondary)]">
-                        <span className="flex items-center gap-1.5">
+                      <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[var(--color-text-secondary)]">
+                        <span className="flex shrink-0 items-center gap-1.5">
                           <Calendar
-                            className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]"
+                            className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-tertiary)]"
                             aria-hidden="true"
                           />
                           {booking.startDate
@@ -702,12 +732,12 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                               )
                             : "—"}
                         </span>
-                        <span className="flex items-center gap-1.5">
+                        <span className="flex min-w-0 items-center gap-1.5">
                           <MapPin
-                            className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]"
+                            className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-tertiary)]"
                             aria-hidden="true"
                           />
-                          {booking.route}
+                          <span className="truncate">{booking.route}</span>
                         </span>
                       </div>
 
@@ -801,8 +831,8 @@ export function DashboardContent({ locale }: DashboardPageProps) {
                       className={`flex items-center justify-between ${innerCard} p-4 transition-colors hover:bg-[var(--color-bg-surface)] ${focusRing}`}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-sm font-medium text-[var(--color-text-primary)] truncate">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <h3 className="min-w-0 max-w-full truncate text-sm font-medium text-[var(--color-text-primary)]">
                             {quotation.route}
                           </h3>
                           {quotation.quotesCount > 0 ? (
@@ -845,7 +875,7 @@ export function DashboardContent({ locale }: DashboardPageProps) {
         </div>
 
         {/* Right column: notifications */}
-        <aside>
+        <aside className="min-w-0">
           <section className={cardSurface} aria-labelledby="notifications-heading">
             <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-6 py-4">
               <h2
@@ -950,7 +980,7 @@ function MetricCard({ label, value, icon, loading }: MetricCardProps) {
           {loading ? (
             <Skeleton className="mt-2 h-7 w-20" />
           ) : (
-            <p className="mt-1.5 text-2xl font-bold text-[var(--color-text-primary)] truncate">
+            <p className="mt-1.5 text-md font-bold text-[var(--color-text-primary)] break-words sm:text-2xl">
               {value}
             </p>
           )}

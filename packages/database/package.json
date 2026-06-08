@@ -11,6 +11,7 @@
         "migrate:deploy": "prisma migrate deploy",
         "seed": "tsx src/seed.ts",
         "backfill:settlement-bank-encryption": "tsx src/backfillSettlementBankEncryption.ts",
+        "backfill:content": "tsx src/backfillContent.ts",
         "studio": "prisma studio"
     },
     "dependencies": {
