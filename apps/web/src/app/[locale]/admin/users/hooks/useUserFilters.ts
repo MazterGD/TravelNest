@@ -24,12 +24,13 @@ interface UseUserFiltersResult {
     postalCode: string | null;
     baseLocation: string | null;
     avatar: string | null;
-    ownerBookingCount: number;
+    // Present on list rows; the detail endpoint omits these.
+    ownerBookingCount?: number;
     _count: {
       bookings: number;
       reviews: number;
       notifications: number;
-      vehicles: number;
+      vehicles?: number;
     };
   }) | null;
   selectedUserActivity: AdminUserActivityResponse | null;

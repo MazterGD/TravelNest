@@ -117,8 +117,47 @@ const ENTITY_LABELS: Record<string, string> = {
   NOTIFICATION: "Notification",
 };
 
-function adminInitials(log: AdminAuditLog) {
-  return `${log.admin.firstName?.[0] ?? ""}${log.admin.lastName?.[0] ?? ""}`.toUpperCase();
+const ROLE_LABELS: Record<string, string> = {
+  CUSTOMER: "Customer",
+  VEHICLE_OWNER: "Owner",
+  ADMIN: "Admin",
+  SUPER_ADMIN: "Super Admin",
+  MODERATOR: "Moderator",
+  FINANCE_ADMIN: "Finance Admin",
+  SUPPORT_ADMIN: "Support Admin",
+};
+
+const ROLE_OPTIONS = [
+  { value: "", label: "All roles" },
+  { value: "CUSTOMER", label: "Customer" },
+  { value: "VEHICLE_OWNER", label: "Owner" },
+  { value: "ADMIN", label: "Admin" },
+];
+
+function actorOf(log: AdminAuditLog) {
+  return log.actor ?? log.admin ?? null;
+}
+
+function actorInitials(log: AdminAuditLog) {
+  const a = actorOf(log);
+  return (
+    `${a?.firstName?.[0] ?? ""}${a?.lastName?.[0] ?? ""}`.toUpperCase() || "?"
+  );
+}
+
+function actorName(log: AdminAuditLog) {
+  const a = actorOf(log);
+  return a ? `${a.firstName} ${a.lastName}`.trim() : "System";
+}
+
+function actorRoleLabel(log: AdminAuditLog) {
+  const raw =
+    log.actor?.adminRole ??
+    log.admin?.adminRole ??
+    log.actorRole ??
+    log.actor?.role ??
+    "";
+  return ROLE_LABELS[raw] ?? (raw || "—");
 }
 
 // ── Log detail modal ─────────────────────────────────────────────────────────
@@ -199,21 +238,21 @@ function LogDetailModal({ log, onClose }: LogDetailModalProps) {
           </dl>
         </div>
 
-        {/* Admin */}
+        {/* Actor */}
         <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
           <div
             aria-hidden="true"
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-[var(--color-action-primary)]"
           >
-            {adminInitials(log)}
+            {actorInitials(log)}
           </div>
           <div>
             <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-              {log.admin.firstName} {log.admin.lastName}
+              {actorName(log)}
             </p>
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              {log.admin.email}
-              {log.admin.adminRole ? ` · ${log.admin.adminRole}` : ""}
+              {actorOf(log)?.email ?? "—"}
+              {` · ${actorRoleLabel(log)}`}
             </p>
           </div>
         </div>
@@ -310,6 +349,7 @@ export default function AdminAuditLogsPage() {
       action: undefined,
       entityType: undefined,
       entityId: undefined,
+      actorRole: undefined,
       dateFrom: undefined,
       dateTo: undefined,
       status: undefined,
@@ -318,7 +358,7 @@ export default function AdminAuditLogsPage() {
   };
 
   const hasActiveFilters =
-    filters.action ?? filters.entityType ?? filters.entityId ?? filters.dateFrom ?? filters.dateTo ?? filters.status;
+    filters.action ?? filters.entityType ?? filters.entityId ?? filters.actorRole ?? filters.dateFrom ?? filters.dateTo ?? filters.status;
 
   return (
     <div className="space-y-6">
@@ -433,6 +473,14 @@ export default function AdminAuditLogsPage() {
         </div>
 
         <div className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="w-full sm:w-[170px]">
+            <Select
+              label="Actor role"
+              options={ROLE_OPTIONS}
+              value={filters.actorRole ?? ""}
+              onChange={(v) => setFilters({ actorRole: v || undefined })}
+            />
+          </div>
           <div className="w-full sm:w-[200px]">
             <Input
               label="Entity ID"
@@ -536,7 +584,7 @@ export default function AdminAuditLogsPage() {
                     scope="col"
                     className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]"
                   >
-                    Admin
+                    Actor
                   </th>
                   <th
                     scope="col"
@@ -593,21 +641,21 @@ export default function AdminAuditLogsPage() {
                       </p>
                     </td>
 
-                    {/* Admin */}
+                    {/* Actor */}
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <div
                           aria-hidden="true"
                           className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-[var(--color-action-primary)]"
                         >
-                          {adminInitials(log)}
+                          {actorInitials(log)}
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">
-                            {log.admin.firstName} {log.admin.lastName}
+                            {actorName(log)}
                           </p>
                           <p className="truncate text-xs text-[var(--color-text-tertiary)]">
-                            {log.admin.adminRole ?? "Admin"}
+                            {actorRoleLabel(log)}
                           </p>
                         </div>
                       </div>

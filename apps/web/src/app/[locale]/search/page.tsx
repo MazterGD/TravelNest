@@ -2,40 +2,35 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
-import { Filter, Star, Users, Snowflake, MapPin } from "lucide-react";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { useState, useEffect, useRef } from "react";
 import {
-  PageHeader,
-  Button,
-  Card,
-  Input,
-  Select,
-  Skeleton,
-} from "@/components/ui";
+  Bus,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  MapPin,
+  Snowflake,
+  Star,
+  Users,
+  X,
+} from "lucide-react";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { Button, Input, Select, Skeleton } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
-import { vehicleService, landingContentService, ApiError } from "@/lib/api";
+import {
+  vehicleService,
+  landingContentService,
+  ApiError,
+  type VehicleSearchParams,
+} from "@/lib/api";
 import { localizePlaceName } from "@/lib/i18n/placeName";
+import type { Vehicle } from "@/types";
 
-interface Vehicle {
-  id: string;
-  name: string;
-  type: string;
-  brand: string;
-  model: string;
-  seats: number;
-  acType: string;
-  pricePerDay: number;
-  pricePerKm?: number;
-  location: string;
-  amenities: string[];
-  images: string[];
-  owner: {
-    firstName: string;
-    lastName: string;
-  };
-}
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+type SortOption = "" | "price_asc" | "price_desc" | "rating" | "newest";
 
 interface SearchFilters {
   vehicleType: string;
@@ -50,6 +45,22 @@ interface SearchFilters {
   tripPassengers: string;
 }
 
+interface PaginationState {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+interface PublicOptions {
+  vehicleTypes: Array<{ value: string; label: string }>;
+  acTypes: Array<{ value: string; label: string }>;
+  amenities: Array<{ id: string; label: string }>;
+  districts: string[];
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 const createDefaultFilters = (): SearchFilters => ({
   vehicleType: "",
   minCapacity: "",
@@ -63,6 +74,89 @@ const createDefaultFilters = (): SearchFilters => ({
   tripPassengers: "",
 });
 
+const readFiltersFromParams = (params: URLSearchParams): SearchFilters => {
+  const normalizeCount = (raw: string | null): string => {
+    if (!raw) return "";
+    const n = Number.parseInt(raw, 10);
+    return Number.isNaN(n) || n <= 0 ? "" : String(n);
+  };
+
+  return {
+    vehicleType: params.get("vehicleType")?.trim() ?? "",
+    minCapacity: normalizeCount(params.get("minCapacity")),
+    maxCapacity: normalizeCount(params.get("maxCapacity")),
+    acType: params.get("acType")?.trim() ?? "",
+    district: params.get("district")?.trim() ?? "",
+    amenities:
+      params
+        .get("amenities")
+        ?.split(",")
+        .map((s) => s.trim())
+        .filter(Boolean) ?? [],
+    routeFrom: params.get("from")?.trim() ?? "",
+    routeTo: params.get("to")?.trim() ?? "",
+    travelDate: params.get("date")?.trim() ?? "",
+    tripPassengers: normalizeCount(params.get("passengers")),
+  };
+};
+
+const buildSearchParams = (
+  filters: SearchFilters,
+  sort: SortOption,
+  page: number,
+): VehicleSearchParams => {
+  const minSeatsCap = filters.minCapacity ? parseInt(filters.minCapacity) : 0;
+  const minSeatsPax = filters.tripPassengers
+    ? parseInt(filters.tripPassengers)
+    : 0;
+  const minSeats = Math.max(minSeatsCap, minSeatsPax) || undefined;
+
+  const sortMap: Record<
+    SortOption,
+    {
+      sortBy?: VehicleSearchParams["sortBy"];
+      sortOrder?: VehicleSearchParams["sortOrder"];
+    }
+  > = {
+    "": {},
+    price_asc: { sortBy: "price", sortOrder: "asc" },
+    price_desc: { sortBy: "price", sortOrder: "desc" },
+    rating: { sortBy: "rating", sortOrder: "desc" },
+    newest: { sortBy: "newest", sortOrder: "desc" },
+  };
+
+  const locationQuery = filters.routeFrom || filters.routeTo || undefined;
+
+  return {
+    ...(filters.vehicleType ? { type: filters.vehicleType } : {}),
+    ...(filters.district ? { district: filters.district } : {}),
+    ...(filters.acType ? { acType: filters.acType } : {}),
+    ...(locationQuery ? { location: locationQuery } : {}),
+    ...(minSeats ? { minSeats } : {}),
+    ...(filters.maxCapacity
+      ? { maxSeats: parseInt(filters.maxCapacity) }
+      : {}),
+    ...(filters.amenities.length
+      ? { amenities: filters.amenities.join(",") }
+      : {}),
+    ...(filters.travelDate ? { startDate: filters.travelDate } : {}),
+    ...sortMap[sort],
+    page,
+    limit: 12,
+  };
+};
+
+const getVehicleImageUrl = (vehicle: Vehicle): string | null => {
+  const photos = vehicle.photos as Array<{
+    url: string;
+    isPrimary?: boolean;
+  }> | undefined;
+  const primary = photos?.find((p) => p.isPrimary);
+  return primary?.url ?? photos?.[0]?.url ?? vehicle.images?.[0] ?? null;
+};
+
+// ─── Page Component ───────────────────────────────────────────────────────────
+
 export default function SearchPage() {
   const t = useTranslations("search");
   const tCommon = useTranslations("common");
@@ -70,31 +164,37 @@ export default function SearchPage() {
   const tLandingSearch = useTranslations("landing.searchSection.form");
   const locale = useLocale();
   const searchParams = useSearchParams();
-  const searchParamsKey = searchParams.toString();
+  const searchParamsStr = searchParams.toString();
 
+  // Initialise filters eagerly from URL params so the first fetch uses them
+  const [filters, setFilters] = useState<SearchFilters>(() =>
+    readFiltersFromParams(new URLSearchParams(searchParamsStr)),
+  );
+  const [sort, setSort] = useState<SortOption>("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]); // Store unfiltered list
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    limit: 12,
+    total: 0,
+    totalPages: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [publicOptions, setPublicOptions] = useState<{
-    vehicleTypes: Array<{ value: string; label: string }>;
-    acTypes: Array<{ value: string; label: string }>;
-    amenities: Array<{ id: string; label: string }>;
-    districts: string[];
-  }>({
+  const [publicOptions, setPublicOptions] = useState<PublicOptions>({
     vehicleTypes: [],
     acTypes: [],
     amenities: [],
     districts: [],
   });
-  const [filters, setFilters] = useState<SearchFilters>(createDefaultFilters);
 
-  const normalizeEnumValue = (value: string) =>
-    value.toUpperCase().replace(/[- ]/g, "_");
+  // ── Localisation helpers ──────────────────────────────────────────────────
 
-  const localizeVehicleTypeLabel = (value: string, fallbackLabel: string) => {
-    switch (normalizeEnumValue(value)) {
+  const normalizeEnum = (v: string) => v.toUpperCase().replace(/[- ]/g, "_");
+
+  const localizeVehicleType = (value: string, fallback: string) => {
+    switch (normalizeEnum(value)) {
       case "ORDINARY":
         return t("filters.vehicleTypes.ordinary");
       case "SEMI_LUXURY":
@@ -102,12 +202,12 @@ export default function SearchPage() {
       case "LUXURY_AC":
         return t("filters.vehicleTypes.luxuryAc");
       default:
-        return fallbackLabel;
+        return fallback;
     }
   };
 
-  const localizeAcTypeLabel = (value: string, fallbackLabel: string) => {
-    switch (normalizeEnumValue(value)) {
+  const localizeAcType = (value: string, fallback: string) => {
+    switch (normalizeEnum(value)) {
       case "FULL_AC":
         return t("filters.acTypes.fullAc");
       case "AC":
@@ -115,427 +215,355 @@ export default function SearchPage() {
       case "NON_AC":
         return t("filters.acTypes.nonAc");
       default:
-        return fallbackLabel;
+        return fallback;
     }
   };
 
-  const localizeAmenityLabel = (id: string, fallbackLabel: string) => {
-    switch (id.toLowerCase()) {
-      case "wifi":
-        return t("filters.amenityOptions.wifi");
-      case "ac":
-        return t("filters.amenityOptions.ac");
-      case "music":
-        return t("filters.amenityOptions.music");
-      case "usb":
-        return t("filters.amenityOptions.usb");
-      case "tv":
-        return t("filters.amenityOptions.tv");
-      case "reclining":
-        return t("filters.amenityOptions.reclining");
-      case "reading":
-        return t("filters.amenityOptions.reading");
-      case "gps":
-        return t("filters.amenityOptions.gps");
-      default:
-        return fallbackLabel;
-    }
+  const localizeAmenity = (id: string, fallback: string) => {
+    const map: Record<string, string> = {
+      wifi: t("filters.amenityOptions.wifi"),
+      ac: t("filters.amenityOptions.ac"),
+      music: t("filters.amenityOptions.music"),
+      usb: t("filters.amenityOptions.usb"),
+      tv: t("filters.amenityOptions.tv"),
+      reclining: t("filters.amenityOptions.reclining"),
+      reading: t("filters.amenityOptions.reading"),
+      gps: t("filters.amenityOptions.gps"),
+    };
+    return map[id.toLowerCase()] ?? fallback;
   };
 
-  const localizePlace = (placeName: string) =>
-    localizePlaceName(placeName, (key) => tLocations(key));
+  const localizePlace = (name: string) =>
+    localizePlaceName(name, (key) => tLocations(key));
 
-  // Fetch vehicles on mount
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: "LKR",
+      minimumFractionDigits: 0,
+    }).format(amount);
+
+  // ── URL-param sync (only when navigated to from an external link) ──────────
+
+  const prevSearchParamsStr = useRef(searchParamsStr);
   useEffect(() => {
-    fetchVehicles();
-    fetchPublicOptions();
+    if (prevSearchParamsStr.current === searchParamsStr) return;
+    prevSearchParamsStr.current = searchParamsStr;
+    setFilters(readFiltersFromParams(new URLSearchParams(searchParamsStr)));
+    setCurrentPage(1);
+  }, [searchParamsStr]);
+
+  // ── Fetch filter options once ─────────────────────────────────────────────
+
+  useEffect(() => {
+    landingContentService
+      .getPublicConfig()
+      .then((response) => {
+        setPublicOptions({
+          vehicleTypes: response.options.vehicleTypes.map((type) => ({
+            value: type.value,
+            label: localizeVehicleType(type.value, type.label),
+          })),
+          acTypes: response.options.acTypes.map((type) => ({
+            value: type.value,
+            label: localizeAcType(type.value, type.label),
+          })),
+          amenities: response.options.amenities.map((amenity) => ({
+            id: amenity.id,
+            label: localizeAmenity(amenity.id, amenity.label),
+          })),
+          districts: response.options.districts,
+        });
+      })
+      .catch(() => {
+        // Filter options are non-critical — silently degrade
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Prefill filters from URL query params (landing search and popular routes)
+  // ── Debounced server-side fetch ───────────────────────────────────────────
+
   useEffect(() => {
-    const params = new URLSearchParams(searchParamsKey);
-    const normalizeCount = (value: string | null) => {
-      if (!value) {
-        return "";
-      }
+    let cancelled = false;
 
-      const parsed = Number.parseInt(value, 10);
-      return Number.isNaN(parsed) || parsed <= 0 ? "" : String(parsed);
-    };
-
-    const normalizeAmenities = (value: string | null) => {
-      if (!value) {
-        return [];
-      }
-
-      return value
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-    };
-
-    const routeFrom = params.get("from")?.trim() ?? "";
-    const routeTo = params.get("to")?.trim() ?? "";
-
-    const nextFilters: SearchFilters = {
-      ...createDefaultFilters(),
-      vehicleType: params.get("vehicleType")?.trim() ?? "",
-      minCapacity: normalizeCount(params.get("minCapacity")),
-      maxCapacity: normalizeCount(params.get("maxCapacity")),
-      acType: params.get("acType")?.trim() ?? "",
-      district: params.get("district")?.trim() ?? "",
-      amenities: normalizeAmenities(params.get("amenities")),
-      routeFrom,
-      routeTo,
-      travelDate: params.get("date")?.trim() ?? "",
-      tripPassengers: normalizeCount(params.get("passengers")),
-    };
-
-    setFilters(nextFilters);
-  }, [searchParamsKey]);
-
-  // Apply filters whenever they change
-  useEffect(() => {
-    applyFilters();
-  }, [filters, allVehicles]);
-
-  const fetchVehicles = async () => {
-    try {
+    const doFetch = async () => {
       setIsLoading(true);
       setError(null);
-      const response = await vehicleService.getAll();
-      const data = response as any;
-      const vehiclesList = data.data?.vehicles || data.vehicles || [];
-      setAllVehicles(vehiclesList);
-      setVehicles(vehiclesList);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError(t("errors.fetchVehicles"));
-      }
-      console.error("Error fetching vehicles:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchPublicOptions = async () => {
-    try {
-      const response = await landingContentService.getPublicConfig();
-      setPublicOptions({
-        vehicleTypes: response.options.vehicleTypes.map((type) => ({
-          ...type,
-          label: localizeVehicleTypeLabel(type.value, type.label),
-        })),
-        acTypes: response.options.acTypes.map((type) => ({
-          ...type,
-          label: localizeAcTypeLabel(type.value, type.label),
-        })),
-        amenities: response.options.amenities.map((amenity) => ({
-          ...amenity,
-          label: localizeAmenityLabel(amenity.id, amenity.label),
-        })),
-        districts: response.options.districts,
-      });
-    } catch (error) {
-      console.error("Failed to fetch public filter options:", error);
-    }
-  };
-
-  const applyFilters = () => {
-    let filtered = [...allVehicles];
-
-    // Filter by vehicle type
-    if (filters.vehicleType) {
-      filtered = filtered.filter((v) => v.type === filters.vehicleType);
-    }
-
-    // Filter by minimum capacity
-    if (filters.minCapacity) {
-      const minSeats = parseInt(filters.minCapacity, 10);
-      filtered = filtered.filter((v) => v.seats >= minSeats);
-    }
-
-    // Filter by maximum capacity
-    if (filters.maxCapacity) {
-      const maxSeats = parseInt(filters.maxCapacity, 10);
-      filtered = filtered.filter((v) => v.seats <= maxSeats);
-    }
-
-    // Filter by AC type
-    if (filters.acType) {
-      filtered = filtered.filter((v) => {
-        const vehicleAcType = v.acType?.toUpperCase().replace(/[- ]/g, "_");
-        return vehicleAcType === filters.acType;
-      });
-    }
-
-    // Filter by route details from landing search/popular routes
-    if (filters.routeFrom || filters.routeTo) {
-      const routeFrom = filters.routeFrom.toLowerCase();
-      const routeTo = filters.routeTo.toLowerCase();
-
-      filtered = filtered.filter((v) => {
-        const location = v.location?.toLowerCase() || "";
-
-        if (routeFrom && routeTo) {
-          return location.includes(routeFrom) || location.includes(routeTo);
+      try {
+        const params = buildSearchParams(filters, sort, currentPage);
+        const response = await vehicleService.getAll(params);
+        if (!cancelled) {
+          setVehicles(response.vehicles ?? []);
+          if (response.pagination) setPagination(response.pagination);
         }
-
-        return routeFrom
-          ? location.includes(routeFrom)
-          : location.includes(routeTo);
-      });
-    }
-
-    // Filter by district/location
-    if (filters.district) {
-      filtered = filtered.filter((v) =>
-        v.location?.toLowerCase().includes(filters.district.toLowerCase()),
-      );
-    }
-
-    // Filter by requested passenger count from landing search
-    if (filters.tripPassengers) {
-      const requestedPassengers = Number.parseInt(filters.tripPassengers, 10);
-      if (!Number.isNaN(requestedPassengers) && requestedPassengers > 0) {
-        filtered = filtered.filter((v) => v.seats >= requestedPassengers);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError ? err.message : t("errors.fetchVehicles"),
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-    }
+    };
 
-    // Filter by amenities
-    if (filters.amenities.length > 0) {
-      filtered = filtered.filter((v) =>
-        filters.amenities.every((amenity) => v.amenities?.includes(amenity)),
-      );
-    }
+    const timer = setTimeout(doFetch, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sort, currentPage]);
 
-    setVehicles(filtered);
-  };
+  // ── Filter helpers ────────────────────────────────────────────────────────
 
-  const toggleAmenity = (amenityId: string) => {
+  const toggleAmenity = (id: string) => {
     setFilters((prev) => ({
       ...prev,
-      amenities: prev.amenities.includes(amenityId)
-        ? prev.amenities.filter((a) => a !== amenityId)
-        : [...prev.amenities, amenityId],
+      amenities: prev.amenities.includes(id)
+        ? prev.amenities.filter((a) => a !== id)
+        : [...prev.amenities, id],
     }));
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
     setFilters(createDefaultFilters());
+    setSort("");
+    setCurrentPage(1);
   };
+
+  const activeFilterCount =
+    [
+      filters.vehicleType,
+      filters.acType,
+      filters.district,
+      filters.routeFrom,
+      filters.routeTo,
+      filters.travelDate,
+      filters.tripPassengers,
+      filters.minCapacity,
+      filters.maxCapacity,
+    ].filter(Boolean).length + filters.amenities.length;
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <MainLayout>
-      <PageHeader title={t("title")} subtitle={t("subtitle")} />
+      {/* Page header */}
+      <section className="bg-muted border-b border-border py-8">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+            {t("title")}
+          </h1>
+          <p className="mt-1 text-muted-foreground">{t("subtitle")}</p>
+        </div>
+      </section>
 
-      <section className="py-8 sm:py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="py-8">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
           <div className="lg:grid lg:grid-cols-4 lg:gap-6">
-            {/* Mobile Filter Toggle */}
-            <div className="mb-6 lg:hidden">
+            {/* ── Mobile filter toggle ─────────────────────────────────── */}
+            <div className="mb-4 lg:hidden">
               <Button
                 variant="outline"
-                onClick={() => setShowFilters(!showFilters)}
-                className="w-full"
+                onClick={() => setShowFilters((v) => !v)}
+                className="w-full gap-2"
+                aria-expanded={showFilters}
+                aria-controls="filter-sidebar"
               >
-                <Filter className="mr-2 h-4 w-4" />
+                <Filter className="h-4 w-4" />
                 {t("filters.title")}
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {activeFilterCount}
+                  </span>
+                )}
               </Button>
             </div>
 
-            {/* Filters Sidebar */}
+            {/* ── Filter sidebar ───────────────────────────────────────── */}
             <aside
+              id="filter-sidebar"
               className={cn(
                 "lg:col-span-1",
                 showFilters ? "block" : "hidden lg:block",
               )}
             >
-              <Card className="sticky top-24">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-foreground">
+              <div className="sticky top-24 rounded-[20px] border border-border bg-card p-5 space-y-5">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-semibold text-foreground">
                     {t("filters.title")}
-                  </h3>
-                  <button
-                    onClick={clearFilters}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    {t("filters.clearAll")}
-                  </button>
+                  </h2>
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={clearFilters}
+                      className="flex items-center gap-1 rounded text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <X className="h-3 w-3" />
+                      {t("filters.clearAll")}
+                    </button>
+                  )}
                 </div>
 
-                <div className="space-y-6">
-                  {/* Route Details */}
-                  <div>
-                    <Input
-                      label={tLandingSearch("fromLabel")}
-                      value={filters.routeFrom}
-                      placeholder={tLandingSearch("fromPlaceholder")}
-                      onChange={(event) =>
-                        setFilters({
-                          ...filters,
-                          routeFrom: event.target.value,
-                        })
-                      }
-                    />
-                  </div>
+                {/* Route + trip inputs */}
+                <div className="space-y-3">
+                  <Input
+                    label={tLandingSearch("fromLabel")}
+                    value={filters.routeFrom}
+                    placeholder={tLandingSearch("fromPlaceholder")}
+                    onChange={(e) =>
+                      setFilters({ ...filters, routeFrom: e.target.value })
+                    }
+                  />
+                  <Input
+                    label={tLandingSearch("toLabel")}
+                    value={filters.routeTo}
+                    placeholder={tLandingSearch("toPlaceholder")}
+                    onChange={(e) =>
+                      setFilters({ ...filters, routeTo: e.target.value })
+                    }
+                  />
+                  <Input
+                    label={tLandingSearch("dateLabel")}
+                    type="date"
+                    value={filters.travelDate}
+                    onChange={(e) => {
+                      setFilters({ ...filters, travelDate: e.target.value });
+                      setCurrentPage(1);
+                    }}
+                  />
+                  <Input
+                    label={tLandingSearch("passengersLabel")}
+                    type="number"
+                    min={1}
+                    placeholder={tLandingSearch("passengersPlaceholder")}
+                    value={filters.tripPassengers}
+                    onChange={(e) => {
+                      setFilters({
+                        ...filters,
+                        tripPassengers: e.target.value,
+                      });
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
 
-                  <div>
-                    <Input
-                      label={tLandingSearch("toLabel")}
-                      value={filters.routeTo}
-                      placeholder={tLandingSearch("toPlaceholder")}
-                      onChange={(event) =>
-                        setFilters({ ...filters, routeTo: event.target.value })
-                      }
-                    />
-                  </div>
+                <div className="h-px w-full bg-border" />
 
-                  <div>
-                    <Input
-                      label={tLandingSearch("dateLabel")}
-                      type="date"
-                      value={filters.travelDate}
-                      onChange={(event) =>
-                        setFilters({
-                          ...filters,
-                          travelDate: event.target.value,
-                        })
-                      }
-                    />
-                  </div>
+                {/* Vehicle type */}
+                <Select
+                  label={t("filters.vehicleType")}
+                  value={filters.vehicleType}
+                  onChange={(value) => {
+                    setFilters({ ...filters, vehicleType: value });
+                    setCurrentPage(1);
+                  }}
+                  options={[
+                    { value: "", label: t("filters.allTypes") },
+                    ...publicOptions.vehicleTypes,
+                  ]}
+                />
 
-                  <div>
+                {/* Capacity range */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    {t("filters.capacity")}
+                  </label>
+                  <div className="flex gap-2">
                     <Input
-                      label={tLandingSearch("passengersLabel")}
                       type="number"
-                      min={1}
-                      placeholder={tLandingSearch("passengersPlaceholder")}
-                      value={filters.tripPassengers}
-                      onChange={(event) =>
+                      placeholder={t("filters.min")}
+                      value={filters.minCapacity}
+                      onChange={(e) => {
                         setFilters({
                           ...filters,
-                          tripPassengers: event.target.value,
-                        })
-                      }
+                          minCapacity: e.target.value,
+                        });
+                        setCurrentPage(1);
+                      }}
+                      className="w-1/2"
+                    />
+                    <Input
+                      type="number"
+                      placeholder={t("filters.max")}
+                      value={filters.maxCapacity}
+                      onChange={(e) => {
+                        setFilters({
+                          ...filters,
+                          maxCapacity: e.target.value,
+                        });
+                        setCurrentPage(1);
+                      }}
+                      className="w-1/2"
                     />
                   </div>
+                </div>
 
-                  {/* Vehicle Type */}
-                  <div>
-                    <Select
-                      label={t("filters.vehicleType")}
-                      value={filters.vehicleType}
-                      onChange={(value) =>
-                        setFilters({ ...filters, vehicleType: value })
-                      }
-                      options={[
-                        { value: "", label: t("filters.allTypes") },
-                        ...publicOptions.vehicleTypes.map((type) => ({
-                          value: type.value,
-                          label: type.label,
-                        })),
-                      ]}
-                    />
-                  </div>
-
-                  {/* Capacity */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      {t("filters.capacity")}
-                    </label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        placeholder={t("filters.min")}
-                        value={filters.minCapacity}
-                        onChange={(e) =>
+                {/* AC type */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    {t("filters.acType")}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {publicOptions.acTypes.map((type) => (
+                      <button
+                        key={type.value}
+                        onClick={() => {
                           setFilters({
                             ...filters,
-                            minCapacity: e.target.value,
-                          })
-                        }
-                        className="w-1/2"
-                      />
-                      <Input
-                        type="number"
-                        placeholder={t("filters.max")}
-                        value={filters.maxCapacity}
-                        onChange={(e) =>
-                          setFilters({
-                            ...filters,
-                            maxCapacity: e.target.value,
-                          })
-                        }
-                        className="w-1/2"
-                      />
-                    </div>
+                            acType:
+                              filters.acType === type.value ? "" : type.value,
+                          });
+                          setCurrentPage(1);
+                        }}
+                        className={cn(
+                          "flex-1 min-h-[44px] rounded-xl border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          filters.acType === type.value
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary",
+                        )}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
                   </div>
+                </div>
 
-                  {/* AC Type */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      {t("filters.acType")}
-                    </label>
-                    <div className="flex gap-2">
-                      {publicOptions.acTypes.map((type) => (
-                        <button
-                          key={type.value}
-                          onClick={() =>
-                            setFilters({
-                              ...filters,
-                              acType:
-                                filters.acType === type.value ? "" : type.value,
-                            })
-                          }
-                          className={cn(
-                            "flex-1 px-3 py-2 text-sm rounded-xl border transition-colors",
-                            filters.acType === type.value
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border hover:border-muted-foreground",
-                          )}
-                        >
-                          {type.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                {/* District */}
+                <Select
+                  label={t("filters.district")}
+                  value={filters.district}
+                  onChange={(value) => {
+                    setFilters({ ...filters, district: value });
+                    setCurrentPage(1);
+                  }}
+                  options={[
+                    { value: "", label: t("filters.allDistricts") },
+                    ...publicOptions.districts.map((d) => ({
+                      value: d,
+                      label: localizePlace(d),
+                    })),
+                  ]}
+                />
 
-                  {/* District */}
+                {/* Amenities */}
+                {publicOptions.amenities.length > 0 && (
                   <div>
-                    <Select
-                      label={t("filters.district")}
-                      value={filters.district}
-                      onChange={(value) =>
-                        setFilters({ ...filters, district: value })
-                      }
-                      options={[
-                        { value: "", label: t("filters.allDistricts") },
-                        ...publicOptions.districts.map((district) => ({
-                          value: district,
-                          label: localizePlace(district),
-                        })),
-                      ]}
-                    />
-                  </div>
-
-                  {/* Amenities */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <label className="mb-2 block text-sm font-medium text-foreground">
                       {t("filters.amenities")}
                     </label>
-                    <div className="flex flex-wrap gap-2">
-                      {publicOptions.amenities.slice(0, 6).map((amenity) => (
+                    <div className="flex flex-wrap gap-1.5">
+                      {publicOptions.amenities.map((amenity) => (
                         <button
                           key={amenity.id}
                           onClick={() => toggleAmenity(amenity.id)}
                           className={cn(
-                            "px-3 py-1.5 text-xs rounded-lg border transition-colors",
+                            "min-h-[36px] rounded-lg border px-3 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                             filters.amenities.includes(amenity.id)
                               ? "border-primary bg-primary/10 text-primary"
-                              : "border-border hover:border-muted-foreground",
+                              : "border-border text-muted-foreground hover:border-primary",
                           )}
                         >
                           {amenity.label}
@@ -543,22 +571,27 @@ export default function SearchPage() {
                       ))}
                     </div>
                   </div>
-                </div>
-              </Card>
+                )}
+              </div>
             </aside>
 
-            {/* Results */}
+            {/* ── Results ──────────────────────────────────────────────── */}
             <div className="lg:col-span-3">
-              {/* Results Header */}
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-muted-foreground">
+              {/* Results header */}
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
                   <span className="font-semibold text-foreground">
-                    {vehicles.length}
+                    {pagination.total}
                   </span>{" "}
                   {t("results")}
                 </p>
-                <div className="w-48">
+                <div className="w-44">
                   <Select
+                    value={sort}
+                    onChange={(value) => {
+                      setSort(value as SortOption);
+                      setCurrentPage(1);
+                    }}
                     options={[
                       { value: "", label: t("sort.label") },
                       { value: "price_asc", label: t("sort.priceAsc") },
@@ -570,159 +603,242 @@ export default function SearchPage() {
                 </div>
               </div>
 
-              {/* Loading State */}
+              {/* Loading skeletons */}
               {isLoading && (
-                <div className="space-y-4">
+                <div className="space-y-4" aria-busy="true" aria-label={tCommon("loading")}>
                   {[1, 2, 3].map((i) => (
-                    <Card key={i} className="p-0 overflow-hidden">
-                      <div className="flex flex-col sm:flex-row">
-                        <Skeleton
-                          className="sm:w-64 h-48 rounded-none"
-                          variant="rectangular"
-                        />
-                        <div className="flex-1 p-6 space-y-4">
-                          <Skeleton className="h-6 w-3/4 rounded-lg" />
-                          <Skeleton className="h-4 w-1/2 rounded-lg" />
-                          <Skeleton className="h-4 w-2/3 rounded-lg" />
+                    <div
+                      key={i}
+                      className="flex overflow-hidden rounded-[20px] border border-border bg-card"
+                    >
+                      <Skeleton
+                        variant="rectangular"
+                        className="h-44 w-full sm:h-auto sm:w-56 rounded-none"
+                      />
+                      <div className="flex-1 space-y-3 p-5">
+                        <Skeleton className="h-5 w-3/4 rounded-lg" />
+                        <Skeleton className="h-4 w-1/2 rounded-lg" />
+                        <Skeleton className="h-4 w-2/3 rounded-lg" />
+                        <div className="flex gap-2 pt-1">
+                          <Skeleton className="h-6 w-16 rounded-lg" />
+                          <Skeleton className="h-6 w-16 rounded-lg" />
                         </div>
                       </div>
-                    </Card>
+                    </div>
                   ))}
                 </div>
               )}
 
-              {/* Error State */}
+              {/* Error state */}
               {error && !isLoading && (
-                <Card className="text-center py-12">
-                  <p className="text-destructive mb-4">{error}</p>
-                  <Button onClick={fetchVehicles}>{tCommon("retry")}</Button>
-                </Card>
+                <div className="rounded-[20px] border border-error bg-error/10 p-8 text-center">
+                  <p className="text-error-foreground mb-4">{error}</p>
+                  <Button
+                    onClick={() => setFilters({ ...filters })}
+                    variant="outline"
+                  >
+                    {tCommon("retry")}
+                  </Button>
+                </div>
               )}
 
-              {/* Bus Cards */}
+              {/* Vehicle cards */}
               {!isLoading && !error && vehicles.length > 0 && (
-                <div className="space-y-4">
-                  {vehicles.map((bus) => (
-                    <Card key={bus.id} hover className="p-0 overflow-hidden">
-                      <div className="flex flex-col sm:flex-row">
-                        {/* Image */}
-                        <div className="sm:w-64 h-48 sm:h-auto bg-muted flex items-center justify-center overflow-hidden">
-                          {bus.images && bus.images.length > 0 ? (
-                            <img
-                              src={bus.images[0]}
-                              alt={bus.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <MapPin className="h-12 w-12 text-muted-foreground/30" />
-                          )}
-                        </div>
+                <>
+                  <div className="space-y-4">
+                    {vehicles.map((bus) => {
+                      const imageUrl = getVehicleImageUrl(bus);
+                      const ownerName = bus.owner
+                        ? `${bus.owner.firstName ?? ""} ${bus.owner.lastName ?? ""}`.trim()
+                        : "";
 
-                        {/* Content */}
-                        <div className="flex-1 p-6">
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                            <div>
-                              <h3 className="text-lg font-semibold text-foreground">
-                                {bus.name}
-                              </h3>
-                              <p className="text-sm text-muted-foreground">
-                                {`${bus.owner.firstName} ${bus.owner.lastName}`}
-                              </p>
-
-                              {/* Features */}
-                              <div className="flex flex-wrap gap-3 mt-3">
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                  <Users className="mr-1.5 h-4 w-4" />
-                                  {t("seatsCount", { count: bus.seats })}
+                      return (
+                        <article
+                          key={bus.id}
+                          className="group overflow-hidden rounded-[20px] border border-border bg-card transition-shadow hover:shadow-lg"
+                        >
+                          <div className="flex flex-col sm:flex-row">
+                            {/* Image */}
+                            <div className="relative h-48 w-full flex-shrink-0 overflow-hidden bg-muted sm:h-auto sm:w-56 md:w-64">
+                              {imageUrl ? (
+                                <Image
+                                  src={imageUrl}
+                                  alt={bus.name}
+                                  fill
+                                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                  sizes="(max-width: 640px) 100vw, 256px"
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <Bus className="h-12 w-12 text-muted-foreground/30" />
                                 </div>
+                              )}
+                              {/* Vehicle type chip */}
+                              <div className="absolute left-3 top-3">
+                                <span className="rounded-lg bg-card/90 px-2 py-1 text-xs font-medium text-foreground backdrop-blur-sm">
+                                  {localizeVehicleType(bus.type, bus.type)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Card content */}
+                            <div className="flex min-w-0 flex-1 flex-col justify-between p-5">
+                              {/* Name + rating */}
+                              <div className="mb-3 flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <h3 className="truncate text-base font-semibold text-foreground">
+                                    {bus.name}
+                                  </h3>
+                                  {ownerName && (
+                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                      {ownerName}
+                                    </p>
+                                  )}
+                                </div>
+                                {bus.averageRating && bus.averageRating > 0 ? (
+                                  <div className="mt-0.5 flex flex-shrink-0 items-center gap-1">
+                                    <Star className="h-4 w-4 fill-primary text-primary" />
+                                    <span className="text-sm font-semibold text-foreground">
+                                      {bus.averageRating.toFixed(1)}
+                                    </span>
+                                    {bus.reviewCount ? (
+                                      <span className="text-xs text-muted-foreground">
+                                        ({bus.reviewCount})
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                              </div>
+
+                              {/* Key features */}
+                              <div className="mb-3 flex flex-wrap gap-3">
+                                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                  <Users className="h-4 w-4" />
+                                  {t("seatsCount", { count: bus.seats })}
+                                </span>
                                 {bus.acType && (
-                                  <div className="flex items-center text-sm text-muted-foreground">
-                                    <Snowflake className="mr-1.5 h-4 w-4" />
-                                    {localizeAcTypeLabel(
+                                  <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <Snowflake className="h-4 w-4" />
+                                    {localizeAcType(
                                       bus.acType,
                                       bus.acType.replace(/_/g, " "),
                                     )}
-                                  </div>
+                                  </span>
                                 )}
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                  <MapPin className="mr-1.5 h-4 w-4" />
+                                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                  <MapPin className="h-4 w-4" />
                                   {localizePlace(bus.location)}
-                                </div>
+                                </span>
                               </div>
 
-                              {/* Amenities */}
+                              {/* Amenity chips */}
                               {bus.amenities && bus.amenities.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mt-3">
-                                  {bus.amenities.slice(0, 4).map((amenity) => {
-                                    const amenityInfo =
-                                      publicOptions.amenities.find(
-                                        (a) => a.id === amenity,
-                                      );
-                                    return amenityInfo ? (
+                                <div className="mb-4 flex flex-wrap gap-1.5">
+                                  {bus.amenities.slice(0, 4).map((id) => {
+                                    const info = publicOptions.amenities.find(
+                                      (a) => a.id === id,
+                                    );
+                                    return info ? (
                                       <span
-                                        key={amenity}
-                                        className="px-2 py-1 text-xs rounded-lg bg-muted text-muted-foreground"
+                                        key={id}
+                                        className="rounded-lg border border-border px-2 py-0.5 text-xs text-muted-foreground"
                                       >
-                                        {amenityInfo.label}
+                                        {info.label}
                                       </span>
                                     ) : null;
                                   })}
+                                  {bus.amenities.length > 4 && (
+                                    <span className="rounded-lg border border-border px-2 py-0.5 text-xs text-muted-foreground/60">
+                                      +{bus.amenities.length - 4}
+                                    </span>
+                                  )}
                                 </div>
                               )}
-                            </div>
 
-                            {/* Price & Action */}
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-primary">
-                                {new Intl.NumberFormat(locale, {
-                                  style: "currency",
-                                  currency: "LKR",
-                                  minimumFractionDigits: 0,
-                                }).format(bus.pricePerDay)}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {tCommon("perDay")}
-                              </p>
-                              {bus.pricePerKm && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {new Intl.NumberFormat(locale, {
-                                    style: "currency",
-                                    currency: "LKR",
-                                    minimumFractionDigits: 0,
-                                  }).format(bus.pricePerKm)}{" "}
-                                  {tCommon("perKm")}
-                                </p>
-                              )}
-                              <Link href={`/${locale}/vehicles/${bus.id}`}>
-                                <Button className="mt-4" size="sm">
-                                  {t("viewDetails")}
-                                </Button>
-                              </Link>
+                              {/* Price + CTA */}
+                              <div className="mt-auto flex items-end justify-between gap-4 border-t border-border pt-3">
+                                <div>
+                                  <p className="text-xl font-bold text-primary">
+                                    {formatCurrency(bus.pricePerDay)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {tCommon("perDay")}
+                                  </p>
+                                </div>
+                                <Link
+                                  href={`/${locale}/vehicles/${bus.id}`}
+                                  className="flex-shrink-0"
+                                >
+                                  <Button size="sm">{t("viewDetails")}</Button>
+                                </Link>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination */}
+                  {pagination.totalPages > 1 && (
+                    <nav
+                      aria-label="Search results pages"
+                      className="mt-8 flex items-center justify-center gap-2"
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCurrentPage((p) => Math.max(1, p - 1))
+                        }
+                        disabled={currentPage === 1}
+                        aria-label={tCommon("previous")}
+                        className="gap-1"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        {tCommon("previous")}
+                      </Button>
+
+                      <span className="px-4 text-sm text-muted-foreground">
+                        {currentPage} / {pagination.totalPages}
+                      </span>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCurrentPage((p) =>
+                            Math.min(pagination.totalPages, p + 1),
+                          )
+                        }
+                        disabled={currentPage === pagination.totalPages}
+                        aria-label={tCommon("next")}
+                        className="gap-1"
+                      >
+                        {tCommon("next")}
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </nav>
+                  )}
+                </>
               )}
 
-              {/* Empty State */}
+              {/* Empty state */}
               {!isLoading && !error && vehicles.length === 0 && (
-                <Card className="text-center py-16 px-4 flex flex-col items-center justify-center">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-muted mb-6">
-                    <MapPin className="h-10 w-10 text-muted-foreground" />
+                <div className="flex flex-col items-center justify-center rounded-[20px] border border-border bg-card py-16 px-4 text-center">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                    <Bus className="h-8 w-8 text-muted-foreground/50" />
                   </div>
-                  <h3 className="mt-4 text-xl font-bold text-foreground mb-2">
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">
                     {t("noResults")}
                   </h3>
-                  <p className="mt-2 text-muted-foreground mb-6 max-w-md">
+                  <p className="mb-6 max-w-sm text-sm text-muted-foreground">
                     {t("adjustFilters")}
                   </p>
-                  <Button onClick={clearFilters}>
+                  <Button onClick={clearFilters} variant="outline">
                     {t("filters.clearAll")}
                   </Button>
-                </Card>
+                </div>
               )}
             </div>
           </div>

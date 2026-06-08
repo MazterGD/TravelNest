@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Eye,
   Shield,
@@ -12,6 +13,11 @@ import {
   Bus,
   UsersRound,
   MapPinned,
+  Mail,
+  HelpCircle,
+  FileText,
+  Receipt,
+  ChevronRight,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { PageHeader, Card } from "@/components/ui";
@@ -35,6 +41,9 @@ const statIconMap: Record<string, typeof Sparkles> = {
 
 export default function AboutPage() {
   const t = useTranslations("about");
+  const tNav = useTranslations("navigation");
+  const tFooter = useTranslations("footer");
+  const locale = useLocale();
   const [aboutStats, setAboutStats] = useState<AboutStatItem[]>([]);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
 
@@ -312,6 +321,53 @@ export default function AboutPage() {
           <p className="text-muted-foreground max-w-[720px] mx-auto">
             {t("team.description")}
           </p>
+        </div>
+      </section>
+
+      {/* Help & information — mobile only (desktop surfaces these in the footer) */}
+      <section className="bg-background pb-16 md:hidden">
+        <div className="mx-auto max-w-7xl px-4">
+          <h2 className="mb-4 text-lg font-semibold text-foreground">
+            {tFooter("support")}
+          </h2>
+          <div className="divide-y divide-border overflow-hidden rounded-[20px] border border-border">
+            {[
+              { label: tNav("contact"), href: `/${locale}/contact`, Icon: Mail },
+              { label: tFooter("faq"), href: `/${locale}/faq`, Icon: HelpCircle },
+              {
+                label: tFooter("privacyPolicy"),
+                href: `/${locale}/privacy`,
+                Icon: Shield,
+              },
+              {
+                label: tFooter("termsOfService"),
+                href: `/${locale}/terms`,
+                Icon: FileText,
+              },
+              {
+                label: tFooter("refundPolicy"),
+                href: `/${locale}/refund-policy`,
+                Icon: Receipt,
+              },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex min-h-[44px] items-center justify-between gap-3 bg-background px-4 py-3.5 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <span className="flex items-center gap-3">
+                  <item.Icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                  <span className="text-sm font-medium text-foreground">
+                    {item.label}
+                  </span>
+                </span>
+                <ChevronRight
+                  className="h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
     </MainLayout>

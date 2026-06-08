@@ -150,6 +150,11 @@ export const getAllTripPackages = async (filters: TripPackageFilters) => {
             images: true,
             pricePerDay: true,
             location: true,
+            photos: {
+              where: { isPrimary: true },
+              take: 1,
+              select: { url: true, isPrimary: true },
+            },
           },
         },
         owner: {
@@ -191,6 +196,11 @@ export const getTripPackageById = async (id: string) => {
           images: true,
           pricePerDay: true,
           location: true,
+          photos: {
+            where: { isPrimary: true },
+            take: 1,
+            select: { url: true, isPrimary: true },
+          },
         },
       },
       owner: {
@@ -225,6 +235,11 @@ export const getOwnerTripPackages = async (ownerId: string) => {
           images: true,
           pricePerDay: true,
           location: true,
+          photos: {
+            where: { isPrimary: true },
+            take: 1,
+            select: { url: true, isPrimary: true },
+          },
         },
       },
     },

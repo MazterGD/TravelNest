@@ -12,6 +12,7 @@ import { authService, ApiError } from "@/lib/api";
 import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 import { useAuthStore } from "@/store";
 import { useGuestGuard } from "@/hooks";
+import { cn } from "@/lib/utils/cn";
 
 export default function CustomerRegistrationPage() {
   const t = useTranslations("auth.customerRegister");
@@ -99,15 +100,40 @@ export default function CustomerRegistrationPage() {
     return t("passwordStrength.strong");
   };
 
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      const firstError = document.querySelector<HTMLElement>('[data-field-error="true"]');
+      if (firstError) firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     setFieldErrors({});
 
-    // Client-side validation
+    // Client-side required-field validation
+    const errs: Record<string, string> = {};
+    if (!formData.firstName) errs.firstName = t("errors.requiredField");
+    if (!formData.lastName) errs.lastName = t("errors.requiredField");
+    if (!formData.email) errs.email = t("errors.requiredField");
+    if (!formData.phone) errs.phone = t("errors.requiredField");
+    if (!formData.address) errs.address = t("errors.requiredField");
+    if (!formData.city) errs.city = t("errors.requiredField");
+    if (!formData.password) errs.password = t("errors.requiredField");
+    if (!formData.confirmPassword) errs.confirmPassword = t("errors.requiredField");
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      setError(t("errors.requiredFields"));
+      setIsLoading(false);
+      scrollToFirstError();
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setFieldErrors({ confirmPassword: t("errors.passwordMismatch") });
+      scrollToFirstError();
       setIsLoading(false);
       return;
     }
@@ -295,13 +321,20 @@ export default function CustomerRegistrationPage() {
                         <div className="relative group">
                           <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
+                            id="cust-firstName"
                             type="text"
                             name="firstName"
                             required
                             value={formData.firstName}
                             onChange={handleChange}
                             placeholder={t("fields.firstName.placeholder")}
-                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            data-field-error={fieldErrors.firstName ? "true" : undefined}
+                            className={cn(
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              fieldErrors.firstName
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                            )}
                           />
                         </div>
                         {fieldErrors.firstName && (
@@ -318,13 +351,20 @@ export default function CustomerRegistrationPage() {
                         <div className="relative group">
                           <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
+                            id="cust-lastName"
                             type="text"
                             name="lastName"
                             required
                             value={formData.lastName}
                             onChange={handleChange}
                             placeholder={t("fields.lastName.placeholder")}
-                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            data-field-error={fieldErrors.lastName ? "true" : undefined}
+                            className={cn(
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              fieldErrors.lastName
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                            )}
                           />
                         </div>
                         {fieldErrors.lastName && (
@@ -341,13 +381,20 @@ export default function CustomerRegistrationPage() {
                         <div className="relative group">
                           <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
+                            id="cust-email"
                             type="email"
                             name="email"
                             required
                             value={formData.email}
                             onChange={handleChange}
                             placeholder={t("fields.email.placeholder")}
-                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            data-field-error={fieldErrors.email ? "true" : undefined}
+                            className={cn(
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              fieldErrors.email
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                            )}
                           />
                         </div>
                         {fieldErrors.email && (
@@ -364,13 +411,20 @@ export default function CustomerRegistrationPage() {
                         <div className="relative group">
                           <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
+                            id="cust-phone"
                             type="tel"
                             name="phone"
                             required
                             value={formData.phone}
                             onChange={handleChange}
                             placeholder={t("fields.phone.placeholder")}
-                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            data-field-error={fieldErrors.phone ? "true" : undefined}
+                            className={cn(
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              fieldErrors.phone
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                            )}
                           />
                         </div>
                         {fieldErrors.phone && (
@@ -441,15 +495,25 @@ export default function CustomerRegistrationPage() {
                         <div className="relative group">
                           <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <textarea
+                            id="cust-address"
                             name="address"
                             required
                             value={formData.address}
                             onChange={handleChange}
                             rows={3}
                             placeholder={t("fields.address.placeholder")}
-                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white resize-none"
+                            data-field-error={fieldErrors.address ? "true" : undefined}
+                            className={cn(
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all resize-none",
+                              fieldErrors.address
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                            )}
                           />
                         </div>
+                        {fieldErrors.address && (
+                          <p className="mt-1 text-sm text-red-600">{fieldErrors.address}</p>
+                        )}
                       </div>
 
                       <div className="grid md:grid-cols-2 gap-4">
@@ -458,14 +522,24 @@ export default function CustomerRegistrationPage() {
                             {t("fields.city.label")}
                           </label>
                           <input
+                            id="cust-city"
                             type="text"
                             name="city"
                             required
                             value={formData.city}
                             onChange={handleChange}
                             placeholder={t("fields.city.placeholder")}
-                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            data-field-error={fieldErrors.city ? "true" : undefined}
+                            className={cn(
+                              "w-full px-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              fieldErrors.city
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                            )}
                           />
+                          {fieldErrors.city && (
+                            <p className="mt-1 text-sm text-red-600">{fieldErrors.city}</p>
+                          )}
                         </div>
 
                         <div>
@@ -498,13 +572,20 @@ export default function CustomerRegistrationPage() {
                         <div className="relative group">
                           <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
+                            id="cust-password"
                             type={showPassword ? "text" : "password"}
                             name="password"
                             required
                             value={formData.password}
                             onChange={handleChange}
                             placeholder={t("fields.password.placeholder")}
-                            className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            data-field-error={fieldErrors.password ? "true" : undefined}
+                            className={cn(
+                              "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              fieldErrors.password
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                            )}
                           />
                           <button
                             type="button"
@@ -558,6 +639,7 @@ export default function CustomerRegistrationPage() {
                         <div className="relative group">
                           <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <input
+                            id="cust-confirmPassword"
                             type={showConfirmPassword ? "text" : "password"}
                             name="confirmPassword"
                             required
@@ -566,7 +648,13 @@ export default function CustomerRegistrationPage() {
                             placeholder={t(
                               "fields.confirmPassword.placeholder",
                             )}
-                            className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            data-field-error={fieldErrors.confirmPassword ? "true" : undefined}
+                            className={cn(
+                              "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              fieldErrors.confirmPassword
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                            )}
                           />
                           <button
                             type="button"

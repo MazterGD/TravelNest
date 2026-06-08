@@ -51,7 +51,8 @@ const getConfiguredCommissionRate = async (): Promise<number> => {
     return configuredRate;
   }
 
-  return 0;
+  // Default platform commission is 10% when no rule or setting has been configured.
+  return 0.1;
 };
 
 /**
@@ -292,6 +293,10 @@ export const getBookingById = async (
   let startTime: string | null = null;
   let tripEstimatedDistance: string | null = booking.estimatedDistance;
   let tripEstimatedDuration: string | null = booking.estimatedDuration;
+  let pickupLatitude: number | null = null;
+  let pickupLongitude: number | null = null;
+  let dropoffLatitude: number | null = null;
+  let dropoffLongitude: number | null = null;
 
   const quotationIdMatch = booking.notes?.match(/(QUO-[\w-]+)/);
   if (quotationIdMatch) {
@@ -311,6 +316,14 @@ export const getBookingById = async (
         customItems: true,
         subtotal: true,
         tax: true,
+        trip: {
+          select: {
+            pickupLatitude: true,
+            pickupLongitude: true,
+            dropoffLatitude: true,
+            dropoffLongitude: true,
+          },
+        },
       },
     });
     if (quotation) {
@@ -343,6 +356,15 @@ export const getBookingById = async (
         tripEstimatedDistance || quotation.estimatedDistance || null;
       tripEstimatedDuration =
         tripEstimatedDuration || quotation.estimatedDuration || null;
+
+      // Pull pickup/dropoff coordinates from the linked Trip record so the
+      // booking detail map can render the full route with correct start/end pins.
+      if (quotation.trip) {
+        pickupLatitude = quotation.trip.pickupLatitude ?? null;
+        pickupLongitude = quotation.trip.pickupLongitude ?? null;
+        dropoffLatitude = quotation.trip.dropoffLatitude ?? null;
+        dropoffLongitude = quotation.trip.dropoffLongitude ?? null;
+      }
 
       const [stopsRaw, routeRaw] = await Promise.all([
         (prisma as any)
@@ -391,6 +413,10 @@ export const getBookingById = async (
             itineraryRoute: true,
             estimatedDistance: true,
             estimatedDuration: true,
+            pickupLatitude: true,
+            pickupLongitude: true,
+            dropoffLatitude: true,
+            dropoffLongitude: true,
           },
         });
         if (trip) {
@@ -418,6 +444,10 @@ export const getBookingById = async (
           ) {
             itineraryRoute = trip.itineraryRoute as any;
           }
+          if (pickupLatitude == null && trip.pickupLatitude != null) pickupLatitude = trip.pickupLatitude;
+          if (pickupLongitude == null && trip.pickupLongitude != null) pickupLongitude = trip.pickupLongitude;
+          if (dropoffLatitude == null && trip.dropoffLatitude != null) dropoffLatitude = trip.dropoffLatitude;
+          if (dropoffLongitude == null && trip.dropoffLongitude != null) dropoffLongitude = trip.dropoffLongitude;
         }
       }
     }
@@ -555,7 +585,11 @@ export const getBookingById = async (
       endDate: booking.endDate.toISOString(),
       startTime,
       pickupLocation: booking.pickupLocation,
+      pickupLatitude,
+      pickupLongitude,
       dropoffLocation: booking.dropoffLocation || booking.pickupLocation,
+      dropoffLatitude,
+      dropoffLongitude,
       passengers: booking.totalPassengers || 0,
       estimatedDistance: tripEstimatedDistance,
       estimatedDuration: tripEstimatedDuration,

@@ -111,6 +111,8 @@ export interface Vehicle {
   longitude?: number;
   averageRating?: number;
   totalBookings?: number;
+  quotationCount?: number;
+  reviewCount?: number;
   isAvailable: boolean;
   isActive: boolean;
   createdAt: Date | string;

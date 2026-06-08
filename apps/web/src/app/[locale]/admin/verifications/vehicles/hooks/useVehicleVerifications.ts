@@ -23,6 +23,8 @@ interface UseVehicleVerificationsResult {
   loadVehicleDetails: (vehicleId: string) => Promise<void>;
   approveDocument: (documentId: string) => Promise<void>;
   rejectDocument: (documentId: string, reason: string) => Promise<void>;
+  approveVehicle: (vehicleId: string, note?: string) => Promise<void>;
+  rejectVehicle: (vehicleId: string, reason: string) => Promise<void>;
   refetch: () => Promise<void>;
 }
 
@@ -44,7 +46,7 @@ export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilterState] = useState<AdminVehicleVerificationQuery>({
     page: 1,
-    limit: 20,
+    limit: 10,
     search: initialSearch,
     verificationState: initialState,
   });
@@ -119,7 +121,7 @@ export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
   }, []);
 
   const withMutation = useCallback(
-    async (operation: () => Promise<void>) => {
+    async (operation: () => Promise<unknown>) => {
       setIsMutating(true);
       setError(null);
 
@@ -165,6 +167,26 @@ export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
     [withMutation, selectedVehicle],
   );
 
+  // Approve a vehicle's activation request or initial verification
+  const approveVehicle = useCallback(
+    async (vehicleId: string, note?: string) => {
+      await withMutation(() =>
+        adminService.approveVehicleVerification(vehicleId, note) as Promise<void>,
+      );
+    },
+    [withMutation],
+  );
+
+  // Reject a vehicle's activation request or initial verification
+  const rejectVehicle = useCallback(
+    async (vehicleId: string, reason: string) => {
+      await withMutation(() =>
+        adminService.rejectVehicleVerification(vehicleId, reason) as Promise<void>,
+      );
+    },
+    [withMutation],
+  );
+
   return {
     isLoading,
     isMutating,
@@ -177,6 +199,8 @@ export const useVehicleVerifications = (): UseVehicleVerificationsResult => {
     loadVehicleDetails,
     approveDocument,
     rejectDocument,
+    approveVehicle,
+    rejectVehicle,
     refetch: fetchQueue,
   };
 };

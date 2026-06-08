@@ -299,12 +299,8 @@ export const getActivityFeed = async (limit = 20) => {
       take: Math.max(limit, 10),
       orderBy: { createdAt: "desc" },
       include: {
-        admin: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
+        admin: { select: { firstName: true, lastName: true } },
+        actor: { select: { firstName: true, lastName: true } },
       },
     }),
   ]);
@@ -324,14 +320,18 @@ export const getActivityFeed = async (limit = 20) => {
       description: `${user.firstName} ${user.lastName} joined as ${user.role}`,
       timestamp: user.createdAt.toISOString(),
     })),
-    ...recentAudits.map((audit) => ({
-      id: `audit-${audit.id}`,
-      type: "audit",
-      title: audit.action,
-      description: `${audit.admin.firstName} ${audit.admin.lastName} performed ${audit.action}`,
-      timestamp: audit.createdAt.toISOString(),
-      status: audit.status,
-    })),
+    ...recentAudits.map((audit) => {
+      const who = audit.actor ?? audit.admin;
+      const name = who ? `${who.firstName} ${who.lastName}`.trim() : "A user";
+      return {
+        id: `audit-${audit.id}`,
+        type: "audit",
+        title: audit.action,
+        description: `${name} performed ${audit.action}`,
+        timestamp: audit.createdAt.toISOString(),
+        status: audit.status,
+      };
+    }),
   ]
     .sort(
       (left, right) =>

@@ -27,7 +27,7 @@ export const listOwnerVerificationsSchema = z.object({
 export const listVehicleVerificationsSchema = z.object({
   query: paginationQuerySchema.extend({
     search: z.string().trim().min(1).max(150).optional(),
-    verificationState: z.enum(["PENDING", "MISSING_DOCUMENTS"]).optional(),
+    verificationState: z.enum(["PENDING", "MISSING_DOCUMENTS", "ACTIVATION_REQUEST"]).optional(),
   }),
   body: z.object({}).optional(),
   params: z.object({}).optional(),

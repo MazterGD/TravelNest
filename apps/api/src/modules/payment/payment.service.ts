@@ -333,6 +333,47 @@ export const getMyPayments = async (
   };
 };
 
+/**
+ * Issue a refund through PayHere's merchant refund API. Throws if PayHere
+ * rejects the request, so callers can abort before mutating any DB state.
+ * Used by both the customer-initiated refund and the admin cancel-with-refund flow.
+ */
+export const executePayHereRefund = async (
+  payherePaymentId: string,
+  amount: number,
+  reason: string,
+): Promise<void> => {
+  const accessToken = await getPayHereAccessToken();
+  const baseUrl =
+    config.payhere.mode === "live"
+      ? PAYHERE_API_URLS.live
+      : PAYHERE_API_URLS.sandbox;
+
+  const refundResponse = await fetch(`${baseUrl}/payment/refund`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      payment_id: payherePaymentId,
+      description: reason,
+      amount,
+    }),
+  });
+
+  if (!refundResponse.ok) {
+    const errorBody = await refundResponse.text();
+    throw ApiError.internal(`PayHere refund failed: ${errorBody}`);
+  }
+
+  // PayHere returns status 1 on success.
+  const refundData = (await refundResponse.json()) as { status: number; msg: string };
+  if (refundData.status !== 1) {
+    throw ApiError.internal(`PayHere refund rejected: ${refundData.msg}`);
+  }
+};
+
 export const refundPayment = async (
   userId: string,
   paymentId: string,
@@ -363,36 +404,7 @@ export const refundPayment = async (
   }
 
   if (payment.method === "CARD" && payment.payherePaymentId) {
-    const accessToken = await getPayHereAccessToken();
-    const baseUrl =
-      config.payhere.mode === "live"
-        ? PAYHERE_API_URLS.live
-        : PAYHERE_API_URLS.sandbox;
-
-    const refundResponse = await fetch(`${baseUrl}/payment/refund`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        payment_id: payment.payherePaymentId,
-        description: reason,
-        amount: refundAmount,
-      }),
-    });
-
-    if (!refundResponse.ok) {
-      const errorBody = await refundResponse.text();
-      throw ApiError.internal(`PayHere refund failed: ${errorBody}`);
-    }
-
-    const refundData = (await refundResponse.json()) as { status: number; msg: string };
-    
-    // Status 1 means success in PayHere API
-    if (refundData.status !== 1) {
-      throw ApiError.internal(`PayHere refund rejected: ${refundData.msg}`);
-    }
+    await executePayHereRefund(payment.payherePaymentId, refundAmount, reason);
   }
 
   const updated = await prisma.payment.update({

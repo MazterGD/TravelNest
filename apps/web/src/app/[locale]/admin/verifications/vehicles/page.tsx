@@ -36,6 +36,7 @@ const VERIFICATION_BADGE_VARIANT = {
   REJECTED: "danger",
   PENDING: "warning",
   MISSING_DOCUMENTS: "secondary",
+  ACTIVATION_REQUEST: "info",
 } as const;
 
 const VERIFICATION_LABEL: Record<string, string> = {
@@ -43,6 +44,7 @@ const VERIFICATION_LABEL: Record<string, string> = {
   REJECTED: "Rejected",
   PENDING: "Pending",
   MISSING_DOCUMENTS: "No Documents",
+  ACTIVATION_REQUEST: "Activation Request",
 };
 
 const DOC_BADGE_VARIANT = {
@@ -107,6 +109,8 @@ export default function AdminVehicleVerificationsPage() {
     loadVehicleDetails,
     approveDocument,
     rejectDocument,
+    approveVehicle,
+    rejectVehicle,
     refetch,
   } = useVehicleVerifications();
 
@@ -137,6 +141,24 @@ export default function AdminVehicleVerificationsPage() {
     });
     if (!reason || reason.trim().length < 3) return;
     await rejectDocument(documentId, reason.trim());
+  };
+
+  const handleApproveVehicle = async (vehicleId: string) => {
+    await approveVehicle(vehicleId);
+    closeDetailModal();
+  };
+
+  const handleRejectVehicle = async (vehicleId: string) => {
+    const reason = await prompt({
+      title: "Reject Activation Request",
+      message: "Reason for rejection (minimum 3 characters)",
+      defaultValue: "Please ensure your documents are up to date and resubmit.",
+      minLength: 3,
+      confirmText: "Reject",
+    });
+    if (!reason || reason.trim().length < 3) return;
+    await rejectVehicle(vehicleId, reason.trim());
+    closeDetailModal();
   };
 
   // ── Detail modal tab panels ──────────────────────────────────────────────────
@@ -235,6 +257,30 @@ export default function AdminVehicleVerificationsPage() {
           <p className="text-center text-sm text-[var(--color-text-tertiary)]">
             No documents submitted. Go to the Documents tab to review once uploaded.
           </p>
+        )}
+
+        {/* Quick approve/reject for activation requests */}
+        {state === "ACTIVATION_REQUEST" && (
+          <div className="mt-2 flex gap-2 border-t border-[var(--color-border-default)] pt-4">
+            <Button
+              variant="secondary"
+              className="flex-1 text-[var(--color-success-text)] hover:bg-[var(--color-success-bg)]"
+              onClick={() => void handleApproveVehicle(selectedVehicle.id)}
+              disabled={isMutating}
+            >
+              <CheckCircle2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+              Approve Activation
+            </Button>
+            <Button
+              variant="secondary"
+              className="flex-1 text-[var(--color-error-text)] hover:bg-[var(--color-error-bg)]"
+              onClick={() => void handleRejectVehicle(selectedVehicle.id)}
+              disabled={isMutating}
+            >
+              <XCircle className="mr-1.5 h-4 w-4" aria-hidden="true" />
+              Reject
+            </Button>
+          </div>
         )}
       </div>
     );
@@ -465,6 +511,7 @@ export default function AdminVehicleVerificationsPage() {
               label="State"
               options={[
                 { value: "", label: "All pending" },
+                { value: "ACTIVATION_REQUEST", label: "Activation requests" },
                 { value: "PENDING", label: "Has pending docs" },
                 { value: "MISSING_DOCUMENTS", label: "No documents" },
               ]}
@@ -474,9 +521,23 @@ export default function AdminVehicleVerificationsPage() {
                   verificationState: (value || undefined) as
                     | "PENDING"
                     | "MISSING_DOCUMENTS"
+                    | "ACTIVATION_REQUEST"
                     | undefined,
                 })
               }
+            />
+          </div>
+          <div className="w-full sm:w-[130px]">
+            <Select
+              label="Per page"
+              options={[
+                { value: "10", label: "10 rows" },
+                { value: "20", label: "20 rows" },
+                { value: "50", label: "50 rows" },
+                { value: "100", label: "100 rows" },
+              ]}
+              value={String(filters.limit ?? 20)}
+              onChange={(value) => setFilters({ limit: Number(value), page: 1 })}
             />
           </div>
         </div>
@@ -618,15 +679,39 @@ export default function AdminVehicleVerificationsPage() {
                       </div>
                     </td>
 
-                    {/* View action only */}
+                    {/* Actions: view detail always; approve/reject for activation requests */}
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end">
+                      <div className="flex items-center justify-end gap-1">
+                        {vehicle.verificationState === "ACTIVATION_REQUEST" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => void handleApproveVehicle(vehicle.id)}
+                              disabled={isMutating}
+                              aria-label={`Approve activation for ${vehicle.name}`}
+                              className="text-[var(--color-success-text)] hover:bg-[var(--color-success-bg)]"
+                            >
+                              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => void handleRejectVehicle(vehicle.id)}
+                              disabled={isMutating}
+                              aria-label={`Reject activation for ${vehicle.name}`}
+                              className="text-[var(--color-error-text)] hover:bg-[var(--color-error-bg)]"
+                            >
+                              <XCircle className="h-4 w-4" aria-hidden="true" />
+                            </Button>
+                          </>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => void handleViewVehicle(vehicle.id)}
                           disabled={isMutating}
-                          aria-label={`Review documents for ${vehicle.name}`}
+                          aria-label={`Review details for ${vehicle.name}`}
                         >
                           <Eye className="h-4 w-4" aria-hidden="true" />
                         </Button>
@@ -639,8 +724,8 @@ export default function AdminVehicleVerificationsPage() {
           </div>
         )}
 
-        {/* Pagination — only shown when there is more than one page */}
-        {queueData && queueData.totalPages > 1 && (
+        {/* Pagination */}
+        {queueData && (
           <div className="flex items-center justify-between border-t border-[var(--color-border-default)] px-6 py-4">
             <Button
               variant="secondary"

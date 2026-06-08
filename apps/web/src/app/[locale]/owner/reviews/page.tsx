@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
@@ -119,6 +119,8 @@ export default function OwnerReviewsPage() {
   const tReview = useTranslations("review");
   const params = useParams();
   const locale = params.locale as string;
+  const searchParams = useSearchParams();
+  const vehicleIdFilter = searchParams?.get("vehicleId") ?? null;
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
   const [activeTab,     setActiveTab]     = useState<TabId>("all");
@@ -237,6 +239,14 @@ export default function OwnerReviewsPage() {
       }))
     : [];
   const maxDist = Math.max(...distEntries.map((e) => e.count), 1);
+
+  // Filter by vehicleId when navigating from the fleet detail page
+  const displayedReviews = vehicleIdFilter
+    ? reviews.filter((r) => r.vehicleId === vehicleIdFilter)
+    : reviews;
+  const vehicleNameFilter = vehicleIdFilter
+    ? (displayedReviews[0]?.vehicleName ?? null)
+    : null;
 
   const hasDimAvg =
     summary?.dimensionAverages &&
@@ -421,6 +431,24 @@ export default function OwnerReviewsPage() {
             </div>
           )}
 
+          {/* Vehicle filter banner */}
+          {vehicleIdFilter && (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
+              <p className="text-caption text-[var(--color-text-primary)]">
+                Showing reviews for{" "}
+                <strong className="font-semibold">
+                  {vehicleNameFilter ?? "this vehicle"}
+                </strong>
+              </p>
+              <Link
+                href={`/${locale}/owner/reviews`}
+                className="text-caption font-medium text-primary hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                View all
+              </Link>
+            </div>
+          )}
+
           {/* Filter tabs */}
           <div className="mb-4 flex flex-wrap gap-1.5">
             {TABS.map((tab) => (
@@ -453,9 +481,9 @@ export default function OwnerReviewsPage() {
           )}
 
           {/* Reviews list */}
-          {!isLoading && !loadError && reviews.length > 0 && (
+          {!isLoading && !loadError && displayedReviews.length > 0 && (
             <div className="space-y-4">
-              {reviews.map((review) => {
+              {displayedReviews.map((review) => {
                 const dims = review.dimensions;
                 const hasDims =
                   dims &&

@@ -17,7 +17,11 @@ export default async function DashboardLayout({
       <CustomerSidebar locale={locale} />
       <main className="flex-1 min-w-0 pb-20 md:pb-0">
         {children}
-        <Footer />
+        {/* Footer is desktop-only on the customer portal; mobile uses the
+            bottom nav + the account menu's About page for these links. */}
+        <div className="hidden md:block">
+          <Footer />
+        </div>
       </main>
     </div>
   );

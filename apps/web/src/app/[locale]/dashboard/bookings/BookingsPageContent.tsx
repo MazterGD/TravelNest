@@ -307,6 +307,17 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
       <PageHeader
         title={t("myBookings")}
         description={t("bookingsDescription")}
+        action={
+          <CTAButton
+            variant="secondary"
+            size="sm"
+            onClick={handleExportCSV}
+            disabled={isExporting || total === 0}
+            leftIcon={<Download size={16} />}
+          >
+            {t("exportCSV")}
+          </CTAButton>
+        }
       />
 
       {/* Status tabs */}
@@ -394,22 +405,11 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
         </div>
       )}
 
-      {/* Results bar */}
+      {/* Results count */}
       {!isLoading && total > 0 && (
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {t("pagination.showing", { from: pageFrom, to: pageTo, total })}
-          </p>
-          <CTAButton
-            variant="secondary"
-            size="sm"
-            onClick={handleExportCSV}
-            disabled={isExporting}
-            leftIcon={<Download size={16} />}
-          >
-            {t("exportCSV")}
-          </CTAButton>
-        </div>
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          {t("pagination.showing", { from: pageFrom, to: pageTo, total })}
+        </p>
       )}
 
       {/* Booking grid */}

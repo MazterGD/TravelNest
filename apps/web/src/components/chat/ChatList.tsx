@@ -17,6 +17,8 @@ interface ChatListProps {
   loadingMore: boolean;
   isConnected: boolean;
   emptyDescKey: "emptyListDesc" | "emptyListDescOwner";
+  unreadOnly: boolean;
+  onToggleUnread: () => void;
   onSelect: (id: string) => void;
   onRetry: () => void;
   onLoadMore: () => void;
@@ -34,6 +36,8 @@ export function ChatList({
   loadingMore,
   isConnected,
   emptyDescKey,
+  unreadOnly,
+  onToggleUnread,
   onSelect,
   onRetry,
   onLoadMore,
@@ -64,10 +68,22 @@ export function ChatList({
             {t("conversationsListLabel", { defaultValue: "Conversations" })}
           </h2>
           <span
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-secondary)]"
+            className="inline-flex items-center gap-4 text-xs font-medium text-[var(--color-text-secondary)]"
             aria-live="polite"
             title={isConnected ? t("connected") : t("offline")}
           >
+            <button
+            type="button"
+            onClick={onToggleUnread}
+            aria-pressed={unreadOnly}
+            className={`min-h-[44px] rounded-lg px-3 text-xs font-medium transition-colors ${focusRing} ${
+              unreadOnly
+                ? "bg-[var(--color-action-primary)] text-white"
+                : "border border-[var(--color-border-default)] bg-[var(--color-bg-base)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)]"
+            }`}
+          >
+            {t("filterUnread")}
+          </button>
             <span
               className={`inline-block h-2 w-2 rounded-full ${
                 isConnected
@@ -125,10 +141,18 @@ export function ChatList({
               />
             </div>
             <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-              {search.trim() ? t("noSearchResults") : t("emptyListTitle")}
+              {search.trim()
+                ? t("noSearchResults")
+                : unreadOnly
+                  ? t("noUnreadTitle")
+                  : t("emptyListTitle")}
             </p>
             <p className="max-w-xs text-xs text-[var(--color-text-secondary)]">
-              {search.trim() ? t("noSearchResultsDesc") : t(emptyDescKey)}
+              {search.trim()
+                ? t("noSearchResultsDesc")
+                : unreadOnly
+                  ? t("noUnreadDesc")
+                  : t(emptyDescKey)}
             </p>
           </div>
         ) : (

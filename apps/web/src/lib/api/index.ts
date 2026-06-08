@@ -39,6 +39,23 @@ export {
   // Review
   reviewService,
 
+  // Public content
+  publicContentService,
+  type PublicContentPage,
+  type PublicLocaleContent,
+
+  // Dispute
+  disputeService,
+  type DisputeStatus,
+  type DisputeType,
+  type DisputeParty,
+  type DisputeBookingSummary,
+  type DisputeListItem,
+  type DisputeMessageItem,
+  type DisputeDetail,
+  type CreateDisputeInput,
+  type DisputeListResponse,
+
   // Payment
   paymentService,
   type PaymentIntent,

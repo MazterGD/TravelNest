@@ -268,7 +268,7 @@ export default function QuotationRequestsPage() {
   }
 
   return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-muted">
         <header className="border-b border-border bg-background">
           <div className="mx-auto max-w-[1280px] px-4 py-4 sm:px-6 lg:px-8">
             <Link
@@ -311,7 +311,7 @@ export default function QuotationRequestsPage() {
         </header>
 
         <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mb-8 rounded-[20px] border border-border bg-muted p-6">
+          <div className="mb-8 rounded-[20px] border border-border bg-background p-4 sm:p-6">
             <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap gap-4">
                 <button
@@ -497,7 +497,7 @@ export default function QuotationRequestsPage() {
                 return (
                   <div
                     key={request.id}
-                    className="rounded-[20px] border border-border bg-card p-6"
+                    className="rounded-[20px] border border-border bg-card p-4 sm:p-6"
                   >
                     <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div>

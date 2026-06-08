@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ChevronLeft } from "lucide-react";
 import { ChatList } from "./ChatList";
 import { MessageThread } from "./MessageThread";
@@ -13,13 +13,17 @@ interface ChatLayoutProps {
   // When provided, a conversation for this booking is opened and selected on
   // mount — used by the "Message owner" entry point on the booking pages.
   initialBookingId?: string;
+  // When provided, a "View booking" link appears in the thread header pointing
+  // to `/${locale}${bookingBasePath}/${bookingId}`.
+  bookingBasePath?: string;
 }
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2";
 
-export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) {
+export function ChatLayout({ emptyDescKey, initialBookingId, bookingBasePath }: ChatLayoutProps) {
   const t = useTranslations("messages");
+  const locale = useLocale();
   const {
     conversations,
     conversationsLoading,
@@ -27,6 +31,8 @@ export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) 
     conversationsHasMore,
     conversationsLoadingMore,
     loadMoreConversations,
+    unreadOnly,
+    setUnreadOnly,
     activeConversationId,
     activeMessages,
     messagesLoading,
@@ -45,6 +51,11 @@ export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) 
     () => conversations.find((c) => c.id === activeConversationId) ?? null,
     [conversations, activeConversationId],
   );
+
+  const bookingHref = useMemo(() => {
+    if (!bookingBasePath || !activeConversation) return undefined;
+    return `/${locale}${bookingBasePath}/${activeConversation.bookingId}`;
+  }, [bookingBasePath, locale, activeConversation]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] shadow-sm">
@@ -72,6 +83,8 @@ export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) 
             loadingMore={conversationsLoadingMore}
             emptyDescKey={emptyDescKey}
             isConnected={isConnected}
+            unreadOnly={unreadOnly}
+            onToggleUnread={() => setUnreadOnly(!unreadOnly)}
             onSelect={selectConversation}
             onRetry={() => void refresh()}
             onLoadMore={loadMoreConversations}
@@ -107,6 +120,7 @@ export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) 
               hasMoreMessages={messagesHasMore}
               loadingOlder={messagesLoadingOlder}
               isConnected={isConnected}
+              bookingHref={bookingHref}
               onRetry={() =>
                 activeConversationId &&
                 selectConversation(activeConversationId)

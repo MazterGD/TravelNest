@@ -41,7 +41,7 @@ export function Tabs({
   const activeContent = tabs.find((tab) => tab.id === activeTab)?.content;
 
   const baseTabClasses =
-    "inline-flex min-h-11 items-center justify-center gap-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
+    "inline-flex shrink-0 whitespace-nowrap min-h-11 items-center justify-center gap-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
 
   const variantClasses = {
     default: {
@@ -77,7 +77,11 @@ export function Tabs({
     <div className={className}>
       {/* Tab buttons */}
       <div
-        className={cn("flex", variantClasses[variant].container, tabsClassName)}
+        className={cn(
+          "flex overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          variantClasses[variant].container,
+          tabsClassName,
+        )}
         role="tablist"
       >
         {tabs.map((tab) => (
@@ -151,7 +155,7 @@ export function TabsList({
   className,
 }: ControlledTabsProps) {
   const baseTabClasses =
-    "inline-flex min-h-11 items-center justify-center gap-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
+    "inline-flex shrink-0 whitespace-nowrap min-h-11 items-center justify-center gap-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50";
 
   const variantClasses = {
     default: {

@@ -438,7 +438,7 @@ export default function OwnerProfilePage() {
       <div className="min-h-screen bg-muted">
         {/* Header */}
         <header className="border-b border-border bg-card">
-          <div className="mx-auto max-w-[1280px] px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-[1280px] px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/dashboard`}
               className="mb-3 flex items-center gap-2 text-caption font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
@@ -452,7 +452,7 @@ export default function OwnerProfilePage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-[1280px] px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
           {/* Success message */}
           {successMessage && (
             <div className="mb-6 rounded-lg border border-success bg-[var(--color-success-bg)] p-4 flex items-center gap-3">
@@ -481,7 +481,7 @@ export default function OwnerProfilePage() {
           {/* Tab card */}
           <div className="rounded-lg border border-border bg-card">
             {/* Tab navigation */}
-            <div className="border-b border-border px-6 overflow-x-auto">
+            <div className="border-b border-border px-4 overflow-x-auto sm:px-6">
               <nav className="flex gap-1 min-w-max">
                 {tabs.map((tab) => (
                   <button
@@ -500,7 +500,7 @@ export default function OwnerProfilePage() {
               </nav>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* ── Personal Information Tab ── */}
               {activeTab === "personal" && (
                 <div className="max-w-3xl">

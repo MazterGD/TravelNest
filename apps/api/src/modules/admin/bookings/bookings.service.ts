@@ -1,6 +1,7 @@
 import { prisma } from "@travenest/database";
 import { ApiError } from "../../../middleware/errorHandler.js";
 import { recordAuditLog } from "../audit/audit.service.js";
+import { executePayHereRefund } from "../../payment/payment.service.js";
 import { buildCsv, parsePagination } from "../types.js";
 import type {
   BookingStatusUpdateInput,
@@ -282,6 +283,8 @@ export const cancelBookingWithRefund = async (
           id: true,
           amount: true,
           status: true,
+          method: true,
+          payherePaymentId: true,
           refundAmount: true,
         },
       },
@@ -301,6 +304,23 @@ export const cancelBookingWithRefund = async (
 
   if (paidAmount > 0 && refundAmount > paidAmount) {
     throw new ApiError(400, "Refund amount cannot exceed paid amount");
+  }
+
+  // For completed card payments, return the funds through PayHere BEFORE
+  // mutating any DB state. If PayHere rejects, we abort with nothing changed.
+  // Bank-transfer/cash refunds are settled offline and only recorded here.
+  const refundedViaPayHere =
+    refundAmount > 0 &&
+    booking.payment?.method === "CARD" &&
+    booking.payment.status === "COMPLETED" &&
+    Boolean(booking.payment.payherePaymentId);
+
+  if (refundedViaPayHere) {
+    await executePayHereRefund(
+      booking.payment!.payherePaymentId!,
+      refundAmount,
+      payload.refundReason,
+    );
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -342,6 +362,23 @@ export const cancelBookingWithRefund = async (
           updatedAt: true,
         },
       });
+
+      await tx.notification.create({
+        data: {
+          userId: booking.customerId,
+          type: "booking_refund",
+          category: "Payments",
+          title: "Booking cancelled and refunded",
+          message: `Your booking was cancelled and a refund of LKR ${refundAmount.toLocaleString()} has been ${
+            refundedViaPayHere ? "processed to your card" : "scheduled"
+          }.`,
+          data: {
+            bookingId,
+            refundAmount,
+            refundedViaPayHere,
+          },
+        },
+      });
     }
 
     return {
@@ -362,8 +399,11 @@ export const cancelBookingWithRefund = async (
       refundReason: payload.refundReason,
       previousPaymentStatus: booking.payment?.status,
       newPaymentStatus: booking.payment ? "REFUNDED" : undefined,
+      refundedViaPayHere,
     },
-    `Booking cancelled with refund processing${booking.payment ? "" : " (no payment record)"}`,
+    `Booking cancelled with refund ${
+      refundedViaPayHere ? "processed via PayHere" : "recorded"
+    }${booking.payment ? "" : " (no payment record)"}`,
   );
 
   return result;

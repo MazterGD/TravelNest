@@ -496,6 +496,15 @@ const buildAuditReport = async (
           adminRole: true,
         },
       },
+      actor: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: true,
+          adminRole: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
     take: MAX_REPORT_ROWS,
@@ -515,18 +524,21 @@ const buildAuditReport = async (
       "status",
       "errorMessage",
     ],
-    rows: logs.map((log) => [
-      log.id,
-      log.createdAt.toISOString(),
-      `${log.admin.firstName} ${log.admin.lastName}`.trim(),
-      log.admin.email,
-      log.admin.adminRole,
-      log.action,
-      log.entityType,
-      log.entityId,
-      log.status,
-      log.errorMessage ?? "",
-    ]),
+    rows: logs.map((log) => {
+      const who = log.actor ?? log.admin;
+      return [
+        log.id,
+        log.createdAt.toISOString(),
+        who ? `${who.firstName} ${who.lastName}`.trim() : "",
+        who?.email ?? "",
+        log.actor?.adminRole ?? log.admin?.adminRole ?? log.actorRole ?? "",
+        log.action,
+        log.entityType,
+        log.entityId,
+        log.status,
+        log.errorMessage ?? "",
+      ];
+    }),
   };
 };
 

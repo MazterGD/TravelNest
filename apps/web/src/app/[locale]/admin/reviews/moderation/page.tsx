@@ -219,6 +219,33 @@ export default function AdminReviewModerationPage() {
         )}
       </div>
 
+      {selectedReview.isFlagged && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-3 py-2 text-xs text-[var(--color-text-secondary)]">
+          <Flag
+            className="h-3.5 w-3.5 flex-shrink-0 text-[var(--color-text-tertiary)]"
+            aria-hidden="true"
+          />
+          <span className="font-semibold text-[var(--color-text-primary)]">
+            Flag reasons:
+          </span>
+          {selectedReview.rating <= 2 && (
+            <span className="rounded-lg bg-[var(--color-bg-base)] px-2 py-0.5">
+              Low rating ({selectedReview.rating}★)
+            </span>
+          )}
+          {selectedReview.flaggedByKeyword && (
+            <span className="rounded-lg bg-[var(--color-bg-base)] px-2 py-0.5">
+              Sensitive keyword
+            </span>
+          )}
+          {selectedReview.moderationStatus !== "ACTIVE" && (
+            <span className="rounded-lg bg-[var(--color-bg-base)] px-2 py-0.5">
+              Status: {selectedReview.moderationStatus}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">
           Comment

@@ -13,6 +13,7 @@ import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 import { useAuthStore } from "@/store";
 import { useGuestGuard } from "@/hooks";
 import { cn } from "@/lib/utils/cn";
+import { setRemembered } from "@/lib/auth-storage";
 import { MARKETING_STATS, OTP_LENGTH, OTP_RESEND_COOLDOWN_SECONDS } from "@/constants";
 
 type LoginMethod = "password" | "otp";
@@ -32,7 +33,7 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({
     emailOrPhone: "",
     password: "",
-    rememberMe: false,
+    rememberMe: true,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -144,14 +145,19 @@ export default function LoginPage() {
           throw new ApiError(401, "Unable to complete OTP login");
         }
 
+        setRemembered(true);
         login(verificationResult.user, verificationResult.accessToken);
         router.push(getDashboardUrl(verificationResult.user, locale));
         return;
       }
 
+      // Persist the remember-me choice BEFORE the store writes the session.
+      setRemembered(formData.rememberMe);
+
       const response = await authService.login({
         email: formData.emailOrPhone,
         password: formData.password,
+        rememberMe: formData.rememberMe,
       });
 
       // Store user and token in auth store

@@ -37,20 +37,12 @@ export const getPendingReviews = async (req: Request, res: Response) => {
  */
 export const createReview = async (req: Request, res: Response) => {
   const customerId = req.user!.id;
-  const {
-    bookingId,
-    vehicleId,
-    rating,
-    title,
-    comment,
-    isRecommended,
-    dimensions,
-  } = req.body;
+  const { bookingId, vehicleId, title, comment, isRecommended, dimensions } =
+    req.body;
 
   const review = await reviewService.createReview(customerId, {
     bookingId,
     vehicleId,
-    rating,
     title,
     comment,
     isRecommended,
@@ -66,10 +58,9 @@ export const createReview = async (req: Request, res: Response) => {
 export const updateReview = async (req: Request, res: Response) => {
   const id = req.params.id as string;
   const customerId = req.user!.id;
-  const { rating, title, comment, isRecommended, dimensions } = req.body;
+  const { title, comment, isRecommended, dimensions } = req.body;
 
   const review = await reviewService.updateReview(id, customerId, {
-    rating,
     title,
     comment,
     isRecommended,

@@ -1,29 +1,24 @@
 "use client";
 
+import { use } from "react";
 import { useTranslations } from "next-intl";
 import { DashboardLayoutClient } from "../DashboardLayoutClient";
 import { ChatLayout } from "@/components/chat";
 
-interface CustomerMessagesPageProps {
-  params: {
-    locale: string;
-  };
-  searchParams?: {
-    booking?: string | string[];
-  };
-}
-
 export default function CustomerMessagesPage({
-  params: { locale },
+  params,
   searchParams,
-}: CustomerMessagesPageProps) {
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ booking?: string | string[] }>;
+}) {
   const t = useTranslations("messages");
+  const { locale } = use(params);
 
   // `?booking=<id>` arrives from the "Message owner" entry point — open (or
   // create) that booking's conversation and select it on load.
-  const bookingParam = searchParams?.booking;
-  const initialBookingId =
-    typeof bookingParam === "string" ? bookingParam : undefined;
+  const { booking } = use(searchParams);
+  const initialBookingId = typeof booking === "string" ? booking : undefined;
 
   return (
     <DashboardLayoutClient locale={locale}>
@@ -41,6 +36,7 @@ export default function CustomerMessagesPage({
           <ChatLayout
             emptyDescKey="emptyListDesc"
             initialBookingId={initialBookingId}
+            bookingBasePath="/dashboard/bookings"
           />
         </div>
       </div>

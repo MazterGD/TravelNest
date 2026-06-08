@@ -21,6 +21,7 @@ import {
   Contact,
   Camera,
   ImageUp,
+  Info,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import {
@@ -54,7 +55,6 @@ interface VehicleData {
   acType: string;
   condition: string;
   description: string;
-  pricePerKm: string;
   pricePerDay: string;
   driverAllowance: string;
   amenities: string[];
@@ -122,7 +122,6 @@ export default function OwnerRegistrationPage() {
       acType: "",
       condition: "",
       description: "",
-      pricePerKm: "",
       pricePerDay: "",
       driverAllowance: "",
       amenities: [],
@@ -300,14 +299,15 @@ export default function OwnerRegistrationPage() {
     setFieldErrors({});
 
     switch (step) {
-      case 1: // Personal Information (including NIC)
-        if (
-          !personalInfo.firstName ||
-          !personalInfo.lastName ||
-          !personalInfo.email ||
-          !personalInfo.phone ||
-          !personalInfo.nicNumber
-        ) {
+      case 1: {
+        const errs: Record<string, string> = {};
+        if (!personalInfo.firstName) errs.firstName = t("errors.requiredFields");
+        if (!personalInfo.lastName) errs.lastName = t("errors.requiredFields");
+        if (!personalInfo.email) errs.email = t("errors.requiredFields");
+        if (!personalInfo.phone) errs.phone = t("errors.requiredFields");
+        if (!personalInfo.nicNumber) errs.nicNumber = t("errors.requiredFields");
+        if (Object.keys(errs).length > 0) {
+          setFieldErrors(errs);
           setError(t("errors.requiredFields"));
           return false;
         }
@@ -316,55 +316,61 @@ export default function OwnerRegistrationPage() {
           return false;
         }
         if (!ownerPhoto || !nicDocument) {
-          setFieldErrors({
-            ownerPhoto: !ownerPhoto ? t("errors.profilePhotoRequired") : "",
-            nicDocument: !nicDocument ? t("errors.nicDocumentRequired") : "",
-          });
+          const photoErrs: Record<string, string> = {};
+          if (!ownerPhoto) photoErrs.ownerPhoto = t("errors.profilePhotoRequired");
+          if (!nicDocument) photoErrs.nicDocument = t("errors.nicDocumentRequired");
+          setFieldErrors(photoErrs);
           setError(t("errors.identityDocsRequired"));
           return false;
         }
         return true;
+      }
 
-      case 2: // Address
-        if (
-          !addressInfo.address ||
-          !addressInfo.city ||
-          !addressInfo.district ||
-          !addressInfo.baseLocation
-        ) {
+      case 2: {
+        const errs: Record<string, string> = {};
+        if (!addressInfo.address) errs.address = t("errors.requiredAddressFields");
+        if (!addressInfo.city) errs.city = t("errors.requiredAddressFields");
+        if (!addressInfo.district) errs.district = t("errors.requiredAddressFields");
+        if (!addressInfo.baseLocation) errs.baseLocation = t("errors.requiredAddressFields");
+        if (Object.keys(errs).length > 0) {
+          setFieldErrors(errs);
           setError(t("errors.requiredAddressFields"));
           return false;
         }
         return true;
+      }
 
-      case 3: // Vehicle Information
+      case 3: {
+        const errs: Record<string, string> = {};
         for (let i = 0; i < vehicles.length; i++) {
-          const vehicle = vehicles[i];
-          if (
-            !vehicle.registrationNumber ||
-            !vehicle.vehicleType ||
-            !vehicle.make ||
-            !vehicle.model ||
-            !vehicle.year ||
-            !vehicle.seatingCapacity ||
-            !vehicle.acType
-          ) {
-            setError(t("errors.requiredVehicleFields", { index: i + 1 }));
-            return false;
-          }
-          if (
-            !vehicle.documents.license ||
-            !vehicle.documents.insurance ||
-            !vehicle.documents.registrationCertificate
-          ) {
-            setError(t("errors.requiredVehicleDocs", { index: i + 1 }));
-            return false;
+          const v = vehicles[i];
+          const msg = t("errors.requiredVehicleFields", { index: i + 1 });
+          if (!v.registrationNumber) errs[`vehicle_${i}_registrationNumber`] = msg;
+          if (!v.vehicleType) errs[`vehicle_${i}_vehicleType`] = msg;
+          if (!v.make) errs[`vehicle_${i}_make`] = msg;
+          if (!v.model) errs[`vehicle_${i}_model`] = msg;
+          if (!v.year) errs[`vehicle_${i}_year`] = msg;
+          if (!v.seatingCapacity) errs[`vehicle_${i}_seatingCapacity`] = msg;
+          if (!v.acType) errs[`vehicle_${i}_acType`] = msg;
+          if (!v.color) errs[`vehicle_${i}_color`] = msg;
+          if (!v.documents.license || !v.documents.insurance || !v.documents.registrationCertificate) {
+            errs[`vehicle_${i}_docs`] = t("errors.requiredVehicleDocs", { index: i + 1 });
           }
         }
+        if (Object.keys(errs).length > 0) {
+          setFieldErrors(errs);
+          setError(t("errors.requiredVehicleFields", { index: 1 }));
+          return false;
+        }
         return true;
+      }
 
-      case 4: // Password
+      case 4: {
         if (!passwordData.password || !passwordData.confirmPassword) {
+          const errs: Record<string, string> = {};
+          if (!passwordData.password) errs.password = t("errors.passwordRequired");
+          if (!passwordData.confirmPassword) errs.confirmPassword = t("errors.passwordRequired");
+          setFieldErrors(errs);
           setError(t("errors.passwordRequired"));
           return false;
         }
@@ -373,10 +379,12 @@ export default function OwnerRegistrationPage() {
           return false;
         }
         if (passwordStrength < 50) {
+          setFieldErrors({ password: t("errors.weakPassword") });
           setError(t("errors.weakPassword"));
           return false;
         }
         return true;
+      }
 
       case 5: // Terms
         if (!termsData.termsAccepted || !termsData.privacyAccepted) {
@@ -391,9 +399,16 @@ export default function OwnerRegistrationPage() {
   };
 
   const nextStep = () => {
-    if (validateStep(currentStep) && currentStep < TOTAL_STEPS) {
-      setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    if (validateStep(currentStep)) {
+      if (currentStep < TOTAL_STEPS) {
+        setCurrentStep(currentStep + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } else {
+      setTimeout(() => {
+        const firstError = document.querySelector<HTMLElement>('[data-field-error="true"]');
+        if (firstError) firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
     }
   };
 
@@ -418,7 +433,6 @@ export default function OwnerRegistrationPage() {
         acType: "",
         condition: "",
         description: "",
-        pricePerKm: "",
         pricePerDay: "",
         driverAllowance: "",
         amenities: [],
@@ -862,6 +876,7 @@ export default function OwnerRegistrationPage() {
                           <div className="relative group">
                             <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-firstName"
                               type="text"
                               required
                               value={personalInfo.firstName}
@@ -872,9 +887,20 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.firstName.placeholder")}
-                              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.firstName ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.firstName
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                           </div>
+                          {fieldErrors.firstName && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.firstName}
+                            </p>
+                          )}
                         </div>
 
                         <div>
@@ -884,6 +910,7 @@ export default function OwnerRegistrationPage() {
                           <div className="relative group">
                             <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-lastName"
                               type="text"
                               required
                               value={personalInfo.lastName}
@@ -894,9 +921,20 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.lastName.placeholder")}
-                              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.lastName ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.lastName
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                           </div>
+                          {fieldErrors.lastName && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.lastName}
+                            </p>
+                          )}
                         </div>
 
                         <div>
@@ -906,6 +944,7 @@ export default function OwnerRegistrationPage() {
                           <div className="relative group">
                             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-email"
                               type="email"
                               required
                               value={personalInfo.email}
@@ -916,7 +955,13 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.email.placeholder")}
-                              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.email ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.email
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                           </div>
                           {fieldErrors.email && (
@@ -933,6 +978,7 @@ export default function OwnerRegistrationPage() {
                           <div className="relative group">
                             <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-phone"
                               type="tel"
                               required
                               value={personalInfo.phone}
@@ -943,9 +989,20 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.phone.placeholder")}
-                              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.phone ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.phone
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                           </div>
+                          {fieldErrors.phone && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.phone}
+                            </p>
+                          )}
                         </div>
 
                         <div className="md:col-span-2">
@@ -955,6 +1012,7 @@ export default function OwnerRegistrationPage() {
                           <div className="relative group">
                             <Contact className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-nicNumber"
                               type="text"
                               required
                               value={personalInfo.nicNumber}
@@ -965,9 +1023,20 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.nicNumber.placeholder")}
-                              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.nicNumber ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.nicNumber
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                           </div>
+                          {fieldErrors.nicNumber && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.nicNumber}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -1085,6 +1154,7 @@ export default function OwnerRegistrationPage() {
                         <div className="relative group">
                           <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <textarea
+                            id="owner-address"
                             required
                             value={addressInfo.address}
                             onChange={(e) =>
@@ -1095,9 +1165,20 @@ export default function OwnerRegistrationPage() {
                             }
                             rows={3}
                             placeholder={t("fields.address.placeholder")}
-                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white resize-none"
+                            data-field-error={fieldErrors.address ? "true" : undefined}
+                            className={cn(
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all resize-none",
+                              fieldErrors.address
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                            )}
                           />
                         </div>
+                        {fieldErrors.address && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {fieldErrors.address}
+                          </p>
+                        )}
                       </div>
 
                       <div className="grid md:grid-cols-3 gap-6">
@@ -1106,6 +1187,7 @@ export default function OwnerRegistrationPage() {
                             {t("fields.city.label")}
                           </label>
                           <input
+                            id="owner-city"
                             type="text"
                             required
                             value={addressInfo.city}
@@ -1116,8 +1198,19 @@ export default function OwnerRegistrationPage() {
                               })
                             }
                             placeholder={t("fields.city.placeholder")}
-                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            data-field-error={fieldErrors.city ? "true" : undefined}
+                            className={cn(
+                              "w-full px-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              fieldErrors.city
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                            )}
                           />
+                          {fieldErrors.city && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.city}
+                            </p>
+                          )}
                         </div>
 
                         <div>
@@ -1125,7 +1218,14 @@ export default function OwnerRegistrationPage() {
                             {t("fields.district.label")}
                           </label>
                           <select
-                            className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer appearance-none"
+                            id="owner-district"
+                            data-field-error={fieldErrors.district ? "true" : undefined}
+                            className={cn(
+                              "w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors appearance-none cursor-pointer",
+                              fieldErrors.district
+                                ? "bg-red-50 border border-red-400 focus:border-red-400 focus:ring-red-100"
+                                : "bg-background border border-border focus:ring-primary focus:border-primary",
+                            )}
                             required
                             value={addressInfo.district}
                             onChange={(e) =>
@@ -1147,6 +1247,11 @@ export default function OwnerRegistrationPage() {
                               </option>
                             ))}
                           </select>
+                          {fieldErrors.district && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.district}
+                            </p>
+                          )}
                         </div>
 
                         <div>
@@ -1173,6 +1278,7 @@ export default function OwnerRegistrationPage() {
                           {t("fields.baseLocation.label")}
                         </label>
                         <input
+                          id="owner-baseLocation"
                           type="text"
                           required
                           value={addressInfo.baseLocation}
@@ -1183,8 +1289,19 @@ export default function OwnerRegistrationPage() {
                             })
                           }
                           placeholder={t("fields.baseLocation.placeholder")}
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                          data-field-error={fieldErrors.baseLocation ? "true" : undefined}
+                          className={cn(
+                            "w-full px-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                            fieldErrors.baseLocation
+                              ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                              : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                          )}
                         />
+                        {fieldErrors.baseLocation && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {fieldErrors.baseLocation}
+                          </p>
+                        )}
                         <p className="text-sm text-gray-500 mt-2">
                           {t("fields.baseLocation.helpText")}
                         </p>
@@ -1235,6 +1352,7 @@ export default function OwnerRegistrationPage() {
                                 {t("fields.registrationNumber.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-registrationNumber`}
                                 type="text"
                                 required
                                 value={vehicle.registrationNumber}
@@ -1248,16 +1366,69 @@ export default function OwnerRegistrationPage() {
                                 placeholder={t(
                                   "fields.registrationNumber.placeholder",
                                 )}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_registrationNumber`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_registrationNumber`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_registrationNumber`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_registrationNumber`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-1.5">
-                                {t("fields.vehicleType.label")}
-                              </label>
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <label className="block font-semibold text-gray-800">
+                                  {t("fields.vehicleType.label")}
+                                </label>
+                                {/* Tooltip explaining each vehicle type */}
+                                <div className="relative group/tooltip">
+                                  <button
+                                    type="button"
+                                    aria-label={t("fields.vehicleType.tooltipTitle")}
+                                    className="text-gray-400 hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full"
+                                  >
+                                    <Info className="w-4 h-4" />
+                                  </button>
+                                  <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-20 w-72 opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150">
+                                    <div className="bg-gray-900 text-white text-xs rounded-xl p-3 shadow-xl space-y-2">
+                                      <p className="font-semibold text-white/90 border-b border-white/10 pb-1.5">
+                                        {t("fields.vehicleType.tooltipTitle")}
+                                      </p>
+                                      <div>
+                                        <p className="font-medium text-[var(--color-action-primary)]">Ordinary</p>
+                                        <p className="text-white/70 mt-0.5">{t("fields.vehicleType.tooltipOrdinary")}</p>
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-[var(--color-action-primary)]">Semi-Luxury</p>
+                                        <p className="text-white/70 mt-0.5">{t("fields.vehicleType.tooltipSemiLuxury")}</p>
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-[var(--color-action-primary)]">Luxury AC</p>
+                                        <p className="text-white/70 mt-0.5">{t("fields.vehicleType.tooltipLuxuryAc")}</p>
+                                      </div>
+                                    </div>
+                                    {/* Arrow */}
+                                    <div className="flex justify-center">
+                                      <div className="w-2 h-2 bg-gray-900 rotate-45 -mt-1" />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
                               <select
-                                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors appearance-none cursor-pointer"
+                                id={`vehicle-${index}-vehicleType`}
+                                data-field-error={fieldErrors[`vehicle_${index}_vehicleType`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors appearance-none cursor-pointer",
+                                  fieldErrors[`vehicle_${index}_vehicleType`]
+                                    ? "bg-red-50 border border-red-400 focus:border-red-400 focus:ring-red-100"
+                                    : "bg-background border border-border focus:ring-primary focus:border-primary",
+                                )}
                                 required
                                 value={vehicle.vehicleType}
                                 onChange={(e) =>
@@ -1277,6 +1448,11 @@ export default function OwnerRegistrationPage() {
                                   </option>
                                 ))}
                               </select>
+                              {fieldErrors[`vehicle_${index}_vehicleType`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_vehicleType`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
@@ -1284,6 +1460,7 @@ export default function OwnerRegistrationPage() {
                                 {t("fields.make.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-make`}
                                 type="text"
                                 required
                                 value={vehicle.make}
@@ -1291,8 +1468,19 @@ export default function OwnerRegistrationPage() {
                                   updateVehicle(index, "make", e.target.value)
                                 }
                                 placeholder={t("fields.make.placeholder")}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_make`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_make`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_make`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_make`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
@@ -1300,6 +1488,7 @@ export default function OwnerRegistrationPage() {
                                 {t("fields.model.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-model`}
                                 type="text"
                                 required
                                 value={vehicle.model}
@@ -1307,8 +1496,19 @@ export default function OwnerRegistrationPage() {
                                   updateVehicle(index, "model", e.target.value)
                                 }
                                 placeholder={t("fields.model.placeholder")}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_model`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_model`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_model`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_model`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
@@ -1316,6 +1516,7 @@ export default function OwnerRegistrationPage() {
                                 {t("fields.year.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-year`}
                                 type="number"
                                 required
                                 value={vehicle.year}
@@ -1325,8 +1526,19 @@ export default function OwnerRegistrationPage() {
                                 placeholder={t("fields.year.placeholder")}
                                 min="1990"
                                 max={new Date().getFullYear()}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_year`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_year`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_year`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_year`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
@@ -1334,6 +1546,7 @@ export default function OwnerRegistrationPage() {
                                 {t("fields.seatingCapacity.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-seatingCapacity`}
                                 type="number"
                                 required
                                 value={vehicle.seatingCapacity}
@@ -1349,8 +1562,19 @@ export default function OwnerRegistrationPage() {
                                 )}
                                 min="1"
                                 max="100"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_seatingCapacity`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_seatingCapacity`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_seatingCapacity`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_seatingCapacity`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
@@ -1358,7 +1582,14 @@ export default function OwnerRegistrationPage() {
                                 {t("fields.acType.label")}
                               </label>
                               <select
-                                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer appearance-none"
+                                id={`vehicle-${index}-acType`}
+                                data-field-error={fieldErrors[`vehicle_${index}_acType`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors cursor-pointer appearance-none",
+                                  fieldErrors[`vehicle_${index}_acType`]
+                                    ? "bg-red-50 border border-red-400 focus:border-red-400 focus:ring-red-100"
+                                    : "bg-background border border-border focus:ring-primary focus:border-primary",
+                                )}
                                 required
                                 value={vehicle.acType}
                                 onChange={(e) =>
@@ -1374,6 +1605,11 @@ export default function OwnerRegistrationPage() {
                                   </option>
                                 ))}
                               </select>
+                              {fieldErrors[`vehicle_${index}_acType`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_acType`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
@@ -1381,6 +1617,7 @@ export default function OwnerRegistrationPage() {
                                 {t("fields.color.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-color`}
                                 type="text"
                                 required
                                 value={vehicle.color}
@@ -1388,8 +1625,19 @@ export default function OwnerRegistrationPage() {
                                   updateVehicle(index, "color", e.target.value)
                                 }
                                 placeholder={t("fields.color.placeholder")}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_color`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_color`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_color`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_color`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
@@ -1420,33 +1668,6 @@ export default function OwnerRegistrationPage() {
                                   </option>
                                 ))}
                               </select>
-                            </div>
-
-                            <div>
-                              <label className="block font-semibold text-gray-800 mb-1.5">
-                                {t("fields.pricePerKilometer.label")}
-                              </label>
-                              <input
-                                type="number"
-                                required
-                                value={vehicle.pricePerKm}
-                                onChange={(e) =>
-                                  updateVehicle(
-                                    index,
-                                    "pricePerKm",
-                                    e.target.value,
-                                  )
-                                }
-                                placeholder={t(
-                                  "fields.pricePerKilometer.placeholder",
-                                )}
-                                min="0"
-                                step="0.01"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                {t("fields.pricePerKilometer.helpText")}
-                              </p>
                             </div>
 
                             <div>
@@ -1690,7 +1911,10 @@ export default function OwnerRegistrationPage() {
                               </div>
                             </div>
 
-                            <div className="grid md:grid-cols-3 gap-4">
+                            <div
+                              data-field-error={fieldErrors[`vehicle_${index}_docs`] ? "true" : undefined}
+                              className="grid md:grid-cols-3 gap-4"
+                            >
                               <FileUpload
                                 label={t(
                                   "fields.documents.drivingLicense.label",
@@ -1743,6 +1967,11 @@ export default function OwnerRegistrationPage() {
                                 )}
                               />
                             </div>
+                            {fieldErrors[`vehicle_${index}_docs`] && (
+                              <p className="mt-2 text-sm text-red-600">
+                                {fieldErrors[`vehicle_${index}_docs`]}
+                              </p>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -1778,6 +2007,7 @@ export default function OwnerRegistrationPage() {
                           <div className="relative group">
                             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-password"
                               type={showPassword ? "text" : "password"}
                               required
                               value={passwordData.password}
@@ -1789,7 +2019,13 @@ export default function OwnerRegistrationPage() {
                                 calculatePasswordStrength(e.target.value);
                               }}
                               placeholder={t("fields.password.placeholder")}
-                              className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.password ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.password
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                             <button
                               type="button"
@@ -1829,6 +2065,11 @@ export default function OwnerRegistrationPage() {
                               </div>
                             </div>
                           )}
+                          {fieldErrors.password && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.password}
+                            </p>
+                          )}
                         </div>
 
                         <div>
@@ -1838,6 +2079,7 @@ export default function OwnerRegistrationPage() {
                           <div className="relative group">
                             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-confirmPassword"
                               type={showConfirmPassword ? "text" : "password"}
                               required
                               value={passwordData.confirmPassword}
@@ -1850,7 +2092,13 @@ export default function OwnerRegistrationPage() {
                               placeholder={t(
                                 "fields.confirmPassword.placeholder",
                               )}
-                              className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.confirmPassword ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.confirmPassword
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                             <button
                               type="button"

@@ -175,7 +175,7 @@ export function QuotationDetailPageContent({
 
   if (error || !quotation) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
         <EmptyState
           icon={<EmptyBoxIcon />}
           title={t("errorLoadingQuotations")}
@@ -245,10 +245,16 @@ export function QuotationDetailPageContent({
     ? `/${locale}/dashboard/trips/${quotation.tripId}`
     : `/${locale}/dashboard/trips`;
 
+  const stopNames: string[] = Array.isArray(quotation.trip?.intermediateStops)
+    ? (quotation.trip.intermediateStops as any[])
+        .map((s) => s?.location?.city || s?.location?.address || "")
+        .filter((n: string) => Boolean(n))
+    : [];
+
   return (
     <>
       <header className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-base)]">
-        <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href={tripBackHref}
             className={`mb-3 inline-flex items-center gap-2 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] ${focusRing}`}
@@ -296,7 +302,7 @@ export function QuotationDetailPageContent({
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8 space-y-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
         {actionError ? (
           <div
             role="alert"
@@ -405,6 +411,27 @@ export function QuotationDetailPageContent({
                   />
                 ) : null}
               </dl>
+              {stopNames.length > 0 ? (
+                <div className="mt-6">
+                  <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                    <MapPin className="h-4 w-4" aria-hidden="true" />
+                    {t("intermediateStops")}
+                  </p>
+                  <ol className="mt-2 space-y-1.5">
+                    {stopNames.map((name, i) => (
+                      <li
+                        key={i}
+                        className="flex items-center gap-2 text-sm font-medium text-[var(--color-text-primary)]"
+                      >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-surface)] text-xs font-medium text-[var(--color-action-primary)]">
+                          {i + 1}
+                        </span>
+                        {name}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
               {quotation.specialRequests ? (
                 <div className="mt-6 rounded-xl bg-[var(--color-bg-surface)] p-4">
                   <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
@@ -545,6 +572,11 @@ export function QuotationDetailPageContent({
               <InteractiveMap
                 readOnly={true}
                 initialWaypoints={buildWaypoints(quotation)}
+                initialRouteGeometry={
+                  quotation.itineraryRoute?.coordinates?.map(
+                    ([lng, lat]: [number, number]) => [lat, lng],
+                  ) ?? []
+                }
               />
             </section>
 

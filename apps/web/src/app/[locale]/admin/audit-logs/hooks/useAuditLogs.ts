@@ -81,6 +81,7 @@ export const useAuditLogs = (): UseAuditLogsResult => {
               next.entityType !== undefined ||
               next.entityId !== undefined ||
               next.status !== undefined ||
+              next.actorRole !== undefined ||
               next.dateFrom !== undefined ||
               next.dateTo !== undefined
             ? 1
@@ -100,6 +101,7 @@ export const useAuditLogs = (): UseAuditLogsResult => {
     try {
       await adminService.exportAuditLogsCsv({
         adminId: filters.adminId,
+        actorRole: filters.actorRole,
         action: filters.action,
         entityType: filters.entityType,
         entityId: filters.entityId,

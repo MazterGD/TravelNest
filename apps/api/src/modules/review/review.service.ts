@@ -18,12 +18,20 @@ export interface DimensionRatings {
 export interface CreateReviewInput {
   bookingId: string;
   vehicleId: string;
-  rating: number;
+  // The 5 sub-ratings are mandatory; the overall rating is derived from them.
+  dimensions: DimensionRatings;
   title?: string;
   comment?: string;
   isRecommended?: boolean;
-  dimensions?: DimensionRatings;
 }
+
+const DIMENSION_FIELDS = [
+  "ratingVehicleCondition",
+  "ratingDriverBehavior",
+  "ratingPunctuality",
+  "ratingCleanliness",
+  "ratingValueForMoney",
+] as const;
 
 // Shared select shape reused across queries
 const reviewDimensionSelect = {
@@ -47,10 +55,26 @@ function sanitizeText(value: string | undefined | null): string | null {
   return xss(value.trim(), { whiteList: {}, stripIgnoreTag: true }) || null;
 }
 
-function validateDimensionRating(value: number | undefined, name: string): void {
-  if (value !== undefined && (value < 1 || value > 5)) {
+function validateDimensionRating(value: number | undefined | null, name: string): void {
+  if (value !== undefined && value !== null && (value < 1 || value > 5)) {
     throw ApiError.badRequest(`${name} must be between 1 and 5`);
   }
+}
+
+/**
+ * Derive the overall rating as the rounded average of the five sub-ratings.
+ * Throws if any of the five dimensions is missing.
+ */
+function computeOverallRating(dimensions: DimensionRatings): number {
+  const values = DIMENSION_FIELDS.map((field) => dimensions[field]);
+
+  if (values.some((value) => value === undefined || value === null)) {
+    throw ApiError.badRequest("All five category ratings are required");
+  }
+
+  const numbers = values as number[];
+  const total = numbers.reduce((sum, value) => sum + value, 0);
+  return Math.round(total / DIMENSION_FIELDS.length);
 }
 
 /**
@@ -215,28 +239,26 @@ export const createReview = async (
   if (data.vehicleId !== booking.vehicleId)
     throw ApiError.badRequest("Vehicle ID does not match the booking's vehicle");
 
-  if (data.rating < 1 || data.rating > 5)
-    throw ApiError.badRequest("Rating must be between 1 and 5");
+  validateDimensionRating(data.dimensions.ratingVehicleCondition, "Vehicle condition rating");
+  validateDimensionRating(data.dimensions.ratingDriverBehavior, "Driver behavior rating");
+  validateDimensionRating(data.dimensions.ratingPunctuality, "Punctuality rating");
+  validateDimensionRating(data.dimensions.ratingCleanliness, "Cleanliness rating");
+  validateDimensionRating(data.dimensions.ratingValueForMoney, "Value for money rating");
 
-  if (data.dimensions) {
-    validateDimensionRating(data.dimensions.ratingVehicleCondition, "Vehicle condition rating");
-    validateDimensionRating(data.dimensions.ratingDriverBehavior, "Driver behavior rating");
-    validateDimensionRating(data.dimensions.ratingPunctuality, "Punctuality rating");
-    validateDimensionRating(data.dimensions.ratingCleanliness, "Cleanliness rating");
-    validateDimensionRating(data.dimensions.ratingValueForMoney, "Value for money rating");
-  }
+  // Overall rating is the average of the five sub-ratings, not a separate input.
+  const rating = computeOverallRating(data.dimensions);
 
   const review = await prisma.review.create({
     data: {
       customerId,
       vehicleId: data.vehicleId,
       bookingId: data.bookingId,
-      rating: data.rating,
-      ratingVehicleCondition: data.dimensions?.ratingVehicleCondition ?? null,
-      ratingDriverBehavior: data.dimensions?.ratingDriverBehavior ?? null,
-      ratingPunctuality: data.dimensions?.ratingPunctuality ?? null,
-      ratingCleanliness: data.dimensions?.ratingCleanliness ?? null,
-      ratingValueForMoney: data.dimensions?.ratingValueForMoney ?? null,
+      rating,
+      ratingVehicleCondition: data.dimensions.ratingVehicleCondition ?? null,
+      ratingDriverBehavior: data.dimensions.ratingDriverBehavior ?? null,
+      ratingPunctuality: data.dimensions.ratingPunctuality ?? null,
+      ratingCleanliness: data.dimensions.ratingCleanliness ?? null,
+      ratingValueForMoney: data.dimensions.ratingValueForMoney ?? null,
       title: sanitizeText(data.title),
       comment: sanitizeText(data.comment),
       isRecommended: data.isRecommended ?? null,
@@ -277,7 +299,6 @@ export const updateReview = async (
   reviewId: string,
   customerId: string,
   data: {
-    rating?: number;
     title?: string;
     comment?: string;
     isRecommended?: boolean;
@@ -289,8 +310,10 @@ export const updateReview = async (
   if (review.customerId !== customerId)
     throw ApiError.forbidden("Not authorized to update this review");
 
-  if (data.rating !== undefined && (data.rating < 1 || data.rating > 5))
-    throw ApiError.badRequest("Rating must be between 1 and 5");
+  const updateData: Record<string, unknown> = {};
+  if (data.title !== undefined) updateData.title = sanitizeText(data.title);
+  if (data.comment !== undefined) updateData.comment = sanitizeText(data.comment);
+  if (data.isRecommended !== undefined) updateData.isRecommended = data.isRecommended;
 
   if (data.dimensions) {
     validateDimensionRating(data.dimensions.ratingVehicleCondition, "Vehicle condition rating");
@@ -298,25 +321,15 @@ export const updateReview = async (
     validateDimensionRating(data.dimensions.ratingPunctuality, "Punctuality rating");
     validateDimensionRating(data.dimensions.ratingCleanliness, "Cleanliness rating");
     validateDimensionRating(data.dimensions.ratingValueForMoney, "Value for money rating");
-  }
 
-  const updateData: Record<string, unknown> = {};
-  if (data.rating !== undefined) updateData.rating = data.rating;
-  if (data.title !== undefined) updateData.title = sanitizeText(data.title);
-  if (data.comment !== undefined) updateData.comment = sanitizeText(data.comment);
-  if (data.isRecommended !== undefined) updateData.isRecommended = data.isRecommended;
+    updateData.ratingVehicleCondition = data.dimensions.ratingVehicleCondition;
+    updateData.ratingDriverBehavior = data.dimensions.ratingDriverBehavior;
+    updateData.ratingPunctuality = data.dimensions.ratingPunctuality;
+    updateData.ratingCleanliness = data.dimensions.ratingCleanliness;
+    updateData.ratingValueForMoney = data.dimensions.ratingValueForMoney;
 
-  if (data.dimensions) {
-    if (data.dimensions.ratingVehicleCondition !== undefined)
-      updateData.ratingVehicleCondition = data.dimensions.ratingVehicleCondition;
-    if (data.dimensions.ratingDriverBehavior !== undefined)
-      updateData.ratingDriverBehavior = data.dimensions.ratingDriverBehavior;
-    if (data.dimensions.ratingPunctuality !== undefined)
-      updateData.ratingPunctuality = data.dimensions.ratingPunctuality;
-    if (data.dimensions.ratingCleanliness !== undefined)
-      updateData.ratingCleanliness = data.dimensions.ratingCleanliness;
-    if (data.dimensions.ratingValueForMoney !== undefined)
-      updateData.ratingValueForMoney = data.dimensions.ratingValueForMoney;
+    // Keep the overall rating in sync with the edited sub-ratings.
+    updateData.rating = computeOverallRating(data.dimensions);
   }
 
   const updatedReview = await prisma.review.update({

@@ -4,6 +4,7 @@ export const listConversationsSchema = z.object({
   query: z.object({
     page: z.coerce.number().int().min(1).optional().default(1),
     limit: z.coerce.number().int().min(1).max(50).optional().default(20),
+    unreadOnly: z.coerce.boolean().optional().default(false),
   }),
 });
 
@@ -42,7 +43,7 @@ export const openConversationSchema = z.object({
   }),
 });
 
-export type ListConversationsInput = z.infer<typeof listConversationsSchema>["query"];
+export type ListConversationsQuery = z.infer<typeof listConversationsSchema>["query"];
 export type GetMessagesInput = z.infer<typeof getMessagesSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 export type OpenConversationInput = z.infer<typeof openConversationSchema>["body"];

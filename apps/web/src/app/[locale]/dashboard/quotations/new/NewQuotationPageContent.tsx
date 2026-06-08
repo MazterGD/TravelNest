@@ -548,7 +548,7 @@ export function NewQuotationPageContent({
 
       {/* Page header */}
       <header className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-base)]">
-        <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href={`/${locale}/dashboard`}
             className="mb-3 inline-flex items-center gap-2 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
@@ -556,7 +556,7 @@ export function NewQuotationPageContent({
             <ArrowLeft className="h-4 w-4" />
             {t("backToDashboard")}
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-[var(--color-text-primary)]">
                 {t("requestQuotation")}
@@ -578,7 +578,7 @@ export function NewQuotationPageContent({
 
         {/* Recent Searches Dropdown */}
         {showRecentSearches && recentSearches.length > 0 && (
-          <div className="mx-auto max-w-7xl px-6 pb-4 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 pb-4 sm:px-6 lg:px-8">
             <div className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] p-4">
               <h3 className="mb-3 text-sm font-medium text-[var(--color-text-primary)]">
                 {t("recentSearchesTitle")}
@@ -611,7 +611,7 @@ export function NewQuotationPageContent({
         )}
       </header>
 
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Validation / submit error */}
         {submitError && (
           <div

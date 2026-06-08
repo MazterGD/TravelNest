@@ -210,6 +210,7 @@ export const listConversations = async (
   userId: string,
   page: number,
   limit: number,
+  unreadOnly: boolean = false,
 ) => {
   const skip = (page - 1) * limit;
 
@@ -217,6 +218,13 @@ export const listConversations = async (
     booking: {
       OR: [{ customerId: userId }, { vehicle: { ownerId: userId } }],
     },
+    ...(unreadOnly
+      ? {
+          messages: {
+            some: { readAt: null, senderId: { not: userId } },
+          },
+        }
+      : {}),
   };
 
   const [conversations, total] = await Promise.all([

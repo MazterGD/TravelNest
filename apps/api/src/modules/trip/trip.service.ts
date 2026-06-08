@@ -34,7 +34,7 @@ export interface CreateTripData {
   itineraryRoute?: any;
 }
 
-export interface UpdateTripData extends Partial<CreateTripData> {}
+export type UpdateTripData = Partial<CreateTripData>;
 
 export interface ListTripsQuery {
   status?: TripStatus;

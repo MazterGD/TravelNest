@@ -160,7 +160,7 @@ export function TripDetailPageContent({
 
   if (error || !trip) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12">
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
         <div
           role="alert"
           className="rounded-xl border border-[var(--color-error-border)] bg-[var(--color-error-bg)] p-4 text-sm text-[var(--color-error-text)]"
@@ -227,6 +227,18 @@ export function TripDetailPageContent({
     });
   }
 
+  const stopNames: string[] = Array.isArray(trip.intermediateStops)
+    ? (trip.intermediateStops as any[])
+        .map((s) => s?.location?.city || s?.location?.address || "")
+        .filter((n: string) => Boolean(n))
+    : [];
+
+  // Stored route geometry (GeoJSON [lng, lat]) → Leaflet [lat, lng].
+  const routeGeometry: [number, number][] =
+    (trip as any).itineraryRoute?.coordinates?.map(
+      ([lng, lat]: [number, number]) => [lat, lng],
+    ) ?? [];
+
   const quotations = trip.quotations ?? [];
   const ownerResponses = quotations.filter(
     (q) => (q.status as string)?.toUpperCase() !== "PENDING" || q.vehicleId,
@@ -248,7 +260,7 @@ export function TripDetailPageContent({
   return (
     <>
       <header className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-base)]">
-        <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href={`/${locale}/dashboard/trips`}
             className={`mb-3 inline-flex items-center gap-2 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] ${focusRing}`}
@@ -301,7 +313,7 @@ export function TripDetailPageContent({
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8 space-y-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
         {/* Status banner */}
         {trip.status === "PLANNING" ? (
           <div
@@ -425,6 +437,28 @@ export function TripDetailPageContent({
                 ) : null}
               </dl>
 
+              {stopNames.length > 0 ? (
+                <div className="mt-6">
+                  <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                    <RouteIcon className="h-4 w-4" aria-hidden="true" />
+                    {tQuotation("intermediateStops")}
+                  </p>
+                  <ol className="mt-2 space-y-1.5">
+                    {stopNames.map((name, i) => (
+                      <li
+                        key={i}
+                        className="flex items-center gap-2 text-sm font-medium text-[var(--color-text-primary)]"
+                      >
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-bg-surface)] text-xs font-medium text-[var(--color-action-primary)]">
+                          {i + 1}
+                        </span>
+                        {name}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
+
               {trip.specialRequests ? (
                 <div className="mt-6 rounded-xl bg-[var(--color-bg-surface)] p-4">
                   <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
@@ -439,7 +473,7 @@ export function TripDetailPageContent({
 
             {/* Quotation responses */}
             <section className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)]">
-              <header className="flex items-center justify-between border-b border-[var(--color-border-default)] px-6 py-4">
+              <header className="flex flex-col gap-3 border-b border-[var(--color-border-default)] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
                     {t("quotationsHeading")}
@@ -575,6 +609,7 @@ export function TripDetailPageContent({
               <DynamicInteractiveMap
                 readOnly={true}
                 initialWaypoints={mapWaypoints}
+                initialRouteGeometry={routeGeometry}
               />
             </section>
 

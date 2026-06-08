@@ -24,6 +24,9 @@ interface UseOwnerVerificationsResult {
   loadOwnerDetails: (ownerId: string) => Promise<void>;
   approveDocument: (documentId: string) => Promise<void>;
   rejectDocument: (documentId: string, reason: string) => Promise<void>;
+  approveOwner: (ownerId: string, note?: string) => Promise<void>;
+  rejectOwner: (ownerId: string, reason: string) => Promise<void>;
+  requestResubmission: (ownerId: string, reason: string) => Promise<void>;
   refetch: () => Promise<void>;
 }
 
@@ -123,7 +126,7 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
   }, []);
 
   const withMutation = useCallback(
-    async (operation: () => Promise<void>) => {
+    async (operation: () => Promise<unknown>) => {
       setIsMutating(true);
       setError(null);
 
@@ -169,6 +172,35 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
     [withMutation, selectedOwner],
   );
 
+  // Owner-level verification decisions (the document-level actions above gate
+  // these; exposed for callers that approve/reject the owner as a whole).
+  const approveOwner = useCallback(
+    async (ownerId: string, note?: string) => {
+      await withMutation(() =>
+        adminService.approveOwnerVerification(ownerId, note),
+      );
+    },
+    [withMutation],
+  );
+
+  const rejectOwner = useCallback(
+    async (ownerId: string, reason: string) => {
+      await withMutation(() =>
+        adminService.rejectOwnerVerification(ownerId, reason),
+      );
+    },
+    [withMutation],
+  );
+
+  const requestResubmission = useCallback(
+    async (ownerId: string, reason: string) => {
+      await withMutation(() =>
+        adminService.requestOwnerResubmission(ownerId, reason),
+      );
+    },
+    [withMutation],
+  );
+
   return {
     isLoading,
     isMutating,
@@ -181,6 +213,9 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
     loadOwnerDetails,
     approveDocument,
     rejectDocument,
+    approveOwner,
+    rejectOwner,
+    requestResubmission,
     refetch: fetchQueue,
   };
 };

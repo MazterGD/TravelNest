@@ -147,7 +147,7 @@ export default function SentQuotationsPage() {
       <div className="min-h-screen bg-muted">
         {/* Header */}
         <header className="border-b border-border bg-card">
-          <div className="mx-auto max-w-[1280px] px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-[1280px] px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/dashboard`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -168,9 +168,9 @@ export default function SentQuotationsPage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-[1280px] px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
           {/* Filters & Tabs */}
-          <div className="mb-8 rounded-lg border border-border bg-card p-6">
+          <div className="mb-8 rounded-lg border border-border bg-card p-4 sm:p-6">
             <div className="mb-4 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
               <div className="flex flex-wrap gap-2">
                 {(
@@ -295,7 +295,7 @@ export default function SentQuotationsPage() {
                 return (
                   <div
                     key={quotation.id}
-                    className="rounded-lg border border-border bg-card p-6 transition-colors hover:border-primary/30"
+                    className="rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/30 sm:p-6"
                   >
                     <div className="mb-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                       <div className="flex-1">

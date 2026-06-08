@@ -433,7 +433,7 @@ export default function SendQuotationPage({
       <div className="min-h-screen bg-muted">
         {/* Header */}
         <header className="border-b border-border bg-card">
-          <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/quotations`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -450,7 +450,7 @@ export default function SendQuotationPage({
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Inline error banner */}
           {errorMessage && (
             <div
@@ -469,7 +469,7 @@ export default function SendQuotationPage({
             {/* Left Column — Form */}
             <div className="space-y-6 lg:col-span-2">
               {/* Request Details Summary */}
-              <div className="rounded-lg border border-border bg-card p-6">
+              <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                 <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
                   <FileText
                     className="h-5 w-5 text-primary"
@@ -615,7 +615,7 @@ export default function SendQuotationPage({
               </div>
 
               {/* Vehicle Selection */}
-              <div className="rounded-lg border border-border bg-card p-6">
+              <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   {isSpecificVehicleRequest
                     ? t("vehicleSelection.requested")
@@ -821,7 +821,7 @@ export default function SendQuotationPage({
 
               {/* Pricing Breakdown */}
               {selectedVehicle && (
-                <div className="rounded-lg border border-border bg-card p-6">
+                <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                   <h2 className="mb-4 text-lg font-semibold text-foreground">
                     {t("pricing.title")}
                   </h2>
@@ -853,7 +853,7 @@ export default function SendQuotationPage({
                       />
                     </div>
 
-                    <div>
+                    {/* <div>
                       <label className="mb-2 block text-sm font-medium text-foreground">
                         {t("pricing.fuelPricePerKm", { defaultValue: "Fuel Price per Km" })}
                       </label>
@@ -863,7 +863,7 @@ export default function SendQuotationPage({
                         onChange={(e) => setFuelPricePerKm(Number(e.target.value))}
                         className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
-                    </div>
+                    </div> */}
 
                     <div>
                       <label className="mb-2 block text-sm font-medium text-foreground">
@@ -970,7 +970,7 @@ export default function SendQuotationPage({
 
               {/* Quotation Settings */}
               {selectedVehicle && (
-                <div className="rounded-lg border border-border bg-card p-6">
+                <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                   <h2 className="mb-4 text-lg font-semibold text-foreground">
                     {t("settings.title")}
                   </h2>
@@ -1015,7 +1015,7 @@ export default function SendQuotationPage({
             {/* Right Column — Preview */}
             <div className="lg:col-span-1">
               <div className="sticky top-8 space-y-6">
-                <div className="rounded-lg border border-border bg-card p-6">
+                <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                   <h2 className="mb-4 text-lg font-semibold text-foreground">
                     {t("preview.title")}
                   </h2>

@@ -219,7 +219,7 @@ export default function VehicleAvailabilityPage() {
   return (
       <div className="min-h-screen bg-muted">
         <header className="border-b border-border bg-card">
-          <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/fleet`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -227,7 +227,7 @@ export default function VehicleAvailabilityPage() {
               <ArrowLeft className="h-4 w-4" />
               {t("backToFleet")}
             </Link>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-heading-md font-semibold text-foreground">
                   {t("pageTitle")}
@@ -249,11 +249,11 @@ export default function VehicleAvailabilityPage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Calendar */}
             <div className="lg:col-span-2">
-              <div className="rounded-lg border border-border bg-card p-6">
+              <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                 {/* Month Navigation */}
                 <div className="mb-6 flex items-center justify-between">
                   <button
@@ -293,7 +293,7 @@ export default function VehicleAvailabilityPage() {
                 </div>
 
                 {/* Weekday Headers */}
-                <div className="mb-2 grid grid-cols-7 gap-2">
+                <div className="mb-2 grid grid-cols-7 gap-1 sm:gap-2">
                   {WEEK_DAYS.map((day) => (
                     <div
                       key={day}
@@ -305,7 +305,7 @@ export default function VehicleAvailabilityPage() {
                 </div>
 
                 {/* Calendar Days */}
-                <div className="grid grid-cols-7 gap-2">
+                <div className="grid grid-cols-7 gap-1 sm:gap-2">
                   {Array.from({ length: startingDayOfWeek }).map((_, i) => (
                     <div key={`empty-${i}`} />
                   ))}

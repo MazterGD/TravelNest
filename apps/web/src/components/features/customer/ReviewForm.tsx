@@ -114,22 +114,88 @@ function DimensionSection({
   t: ReturnType<typeof useTranslations>;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4 space-y-4">
-      <p className="text-sm font-medium text-[var(--color-text-primary)]">
-        {t("dimensionsTitle")}
-      </p>
-      {DIMENSION_KEYS.map(({ field, labelKey }) => (
-        <div key={field} className="flex items-center justify-between gap-4">
-          <span className="text-sm text-[var(--color-text-secondary)] min-w-0 flex-1">
-            {t(labelKey)}
-          </span>
-          <StarRow
-            value={dimensions[field] ?? 0}
-            onChange={(v) => onChange(field, v)}
-            ariaLabel={t(labelKey)}
-          />
+    <div className="space-y-3 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
+      <div>
+        <p className="text-sm font-medium text-[var(--color-text-primary)]">
+          {t("dimensionsTitle")}
+          <span className="ml-0.5 text-[var(--color-error-text)]">*</span>
+        </p>
+        <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">
+          {t("dimensionsSubtitle")}
+        </p>
+      </div>
+      <div className="-mx-2 space-y-0.5">
+        {DIMENSION_KEYS.map(({ field, labelKey }) => {
+          const value = dimensions[field] ?? 0;
+          return (
+            <div
+              key={field}
+              className="flex items-center justify-between gap-4 rounded-lg px-2 py-2 transition-colors hover:bg-[var(--color-bg-base)]"
+            >
+              <span className="min-w-0 flex-1 text-sm text-[var(--color-text-secondary)]">
+                {t(labelKey)}
+              </span>
+              <div className="flex items-center gap-3">
+                <StarRow
+                  value={value}
+                  onChange={(v) => onChange(field, v)}
+                  ariaLabel={t(labelKey)}
+                />
+                <span className="w-3 text-right text-xs tabular-nums text-[var(--color-text-tertiary)]">
+                  {value > 0 ? value : "–"}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function OverallSummary({
+  overall,
+  label,
+  t,
+}: {
+  overall: number;
+  label: string;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const rated = overall > 0;
+  return (
+    <div className="flex items-center gap-4 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
+      <div className="flex h-14 w-14 flex-shrink-0 flex-col items-center justify-center rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-base)]">
+        <span className="text-heading-md font-bold tabular-nums text-[var(--color-text-primary)]">
+          {rated ? overall : "–"}
+        </span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-[var(--color-text-primary)]">
+          {t("overallRating")}
+        </p>
+        <div className="mt-1 flex items-center gap-2">
+          <div className="flex gap-0.5" aria-hidden="true">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                size={16}
+                className={
+                  star <= overall
+                    ? "fill-[var(--color-action-primary)] text-[var(--color-action-primary)]"
+                    : "fill-none text-[var(--color-border-default)]"
+                }
+              />
+            ))}
+          </div>
+          {rated && (
+            <span className="text-xs text-[var(--color-text-secondary)]">{label}</span>
+          )}
         </div>
-      ))}
+        <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">
+          {rated ? t("overallRatingHint") : t("notRatedYet")}
+        </p>
+      </div>
     </div>
   );
 }
@@ -158,33 +224,43 @@ export function ReviewForm({
 }: ReviewFormProps) {
   const t = useTranslations("review");
 
-  const [rating, setRating]               = useState(0);
   const [dimensions, setDimensions]       = useState<DimensionRatings>({});
   const [title, setTitle]                 = useState("");
   const [comment, setComment]             = useState("");
   const [isRecommended, setIsRecommended] = useState<boolean | null>(null);
   const [error, setError]                 = useState("");
 
+  // The overall rating is derived from the five sub-ratings — never entered directly.
+  const ratedValues = DIMENSION_KEYS.map(({ field }) => dimensions[field]);
+  const allRated = ratedValues.every((v) => typeof v === "number" && v > 0);
+  const overall = allRated
+    ? Math.round(
+        (ratedValues as number[]).reduce((sum, v) => sum + v, 0) /
+          DIMENSION_KEYS.length,
+      )
+    : 0;
+
   const handleDimensionChange = (field: keyof DimensionRatings, value: number) => {
     setDimensions((prev) => ({ ...prev, [field]: value }));
+    setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (rating === 0) {
-      setError(t("ratingRequired"));
+    if (!allRated) {
+      setError(t("allCategoriesRequired"));
       return;
     }
 
     const result = await onSubmit({
       bookingId,
       vehicleId,
-      rating,
+      rating: overall,
       title: title.trim() || undefined,
       comment: comment.trim() || undefined,
       isRecommended: isRecommended ?? undefined,
-      dimensions: Object.keys(dimensions).length > 0 ? dimensions : undefined,
+      dimensions,
     });
 
     if (!result.success && result.error) {
@@ -210,37 +286,22 @@ export function ReviewForm({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Overall star rating */}
+        {/* Derived overall rating (average of the five categories) */}
+        <OverallSummary overall={overall} label={ratingLabels[overall]} t={t} />
+
+        {/* Five required sub-ratings */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-[var(--color-text-primary)]">
-            {t("yourRating")}
-            <span className="text-[var(--color-error-text)] ml-0.5">*</span>
-          </label>
-          <div className="flex items-center gap-3">
-            <StarRow
-              value={rating}
-              onChange={(v) => { setRating(v); setError(""); }}
-              ariaLabel={t("yourRating")}
-            />
-            {rating > 0 && (
-              <span className="text-sm text-[var(--color-text-secondary)]">
-                {ratingLabels[rating]}
-              </span>
-            )}
-          </div>
+          <DimensionSection
+            dimensions={dimensions}
+            onChange={handleDimensionChange}
+            t={t}
+          />
           {error && (
             <p role="alert" className="text-sm text-[var(--color-error-text)]">
               {error}
             </p>
           )}
         </div>
-
-        {/* 6-dimension sub-ratings */}
-        <DimensionSection
-          dimensions={dimensions}
-          onChange={handleDimensionChange}
-          t={t}
-        />
 
         {/* Review title */}
         <div className="space-y-1.5">

@@ -79,7 +79,7 @@ export default function NewTripPackagePage() {
   return (
       <div className="min-h-screen bg-gray-50">
         <header className="border-b border-gray-200 bg-white">
-          <div className="mx-auto max-w-5xl px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/packages`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
@@ -93,7 +93,7 @@ export default function NewTripPackagePage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-5xl px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           {error && (
             <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               {error}

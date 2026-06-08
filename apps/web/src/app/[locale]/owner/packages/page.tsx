@@ -8,7 +8,13 @@ import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { tripPackageService, ApiError } from "@/lib/api";
 import type { TripPackage } from "@/types";
-import { ArrowLeft, Plus, MapPin, Users, Clock, Edit, Trash } from 'lucide-react';
+import Image from "next/image";
+import { ArrowLeft, Plus, MapPin, Users, Clock, Edit, Trash, Bus } from 'lucide-react';
+
+const getPackageImageUrl = (vehicle?: { images?: string[]; photos?: Array<{ url: string; isPrimary: boolean }> } | null): string | null => {
+  const primary = vehicle?.photos?.find((p) => p.isPrimary);
+  return primary?.url ?? vehicle?.photos?.[0]?.url ?? vehicle?.images?.[0] ?? null;
+};
 
 export default function OwnerPackagesPage() {
   const params = useParams();
@@ -69,7 +75,7 @@ export default function OwnerPackagesPage() {
     <>
       <div className="min-h-screen bg-gray-50">
         <header className="border-b border-gray-200 bg-white">
-          <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/dashboard`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
@@ -77,7 +83,7 @@ export default function OwnerPackagesPage() {
               <ArrowLeft className="h-4 w-4" />
               Back to Dashboard
             </Link>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">
                   Trip Packages
@@ -97,7 +103,7 @@ export default function OwnerPackagesPage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {error && (
             <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               {error}
@@ -110,51 +116,73 @@ export default function OwnerPackagesPage() {
             </div>
           ) : packages.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2">
-              {packages.map((item) => (
+              {packages.map((item) => {
+                const imageUrl = getPackageImageUrl(item.vehicle as any);
+                return (
                 <div
                   key={item.id}
-                  className="rounded-lg border border-gray-200 bg-white p-6"
+                  className="overflow-hidden rounded-[20px] border border-[--color-border-default] bg-white"
                 >
+                  {/* Vehicle photo */}
+                  <div className="relative aspect-video bg-[--color-bg-surface]">
+                    {imageUrl ? (
+                      <Image
+                        src={imageUrl}
+                        alt={item.vehicle?.name || "Vehicle"}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Bus className="h-12 w-12 text-[--color-text-tertiary]" />
+                      </div>
+                    )}
+                    <div className="absolute right-3 top-3">
+                      <Badge variant={item.isActive ? "success" : "secondary"}>
+                        {item.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
                   <div className="mb-4 flex items-start justify-between">
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-900">
+                      <h2 className="text-lg font-semibold text-[--color-text-primary]">
                         {item.title}
                       </h2>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-[--color-text-secondary]">
                         {item.vehicle?.name || "Vehicle"}
                       </p>
                     </div>
-                    <Badge variant={item.isActive ? "success" : "secondary"}>
-                      {item.isActive ? "Active" : "Inactive"}
-                    </Badge>
                   </div>
 
-                  <div className="space-y-2 text-sm text-gray-600">
+                  <div className="space-y-2 text-sm text-[--color-text-secondary]">
                     <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gray-400" />
+                      <MapPin className="h-4 w-4 text-[--color-text-tertiary]" />
                       {item.startLocation} → {item.endLocation}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gray-400" />
+                      <Clock className="h-4 w-4 text-[--color-text-tertiary]" />
                       {item.durationDays} day(s)
                     </div>
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-gray-400" />
+                      <Users className="h-4 w-4 text-[--color-text-tertiary]" />
                       {item.minPassengers} - {item.maxPassengers} passengers
                     </div>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between">
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-xs text-gray-500">Package Price</p>
-                      <p className="text-lg font-semibold text-gray-900">
+                      <p className="text-xs text-[--color-text-secondary]">Package Price</p>
+                      <p className="text-lg font-semibold text-[--color-text-primary]">
                         LKR {item.price.toLocaleString()}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/${locale}/owner/packages/${item.id}/edit`}
-                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[--color-border-default] px-3 py-2 text-sm font-medium text-[--color-text-primary] hover:bg-[--color-bg-surface] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-action-focus]"
                       >
                         <Edit className="h-4 w-4" />
                         Edit
@@ -162,15 +190,17 @@ export default function OwnerPackagesPage() {
                       <button
                         type="button"
                         onClick={() => setDeleteId(item.id)}
-                        className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[--color-error-border] px-3 py-2 text-sm font-medium text-[--color-error-text] hover:bg-[--color-error-bg] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-action-focus]"
                       >
                         <Trash className="h-4 w-4" />
                         Delete
                       </button>
                     </div>
                   </div>
+                  </div>{/* end p-6 */}
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-lg border border-gray-200 bg-white p-10 text-center">

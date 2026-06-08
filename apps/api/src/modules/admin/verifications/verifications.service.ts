@@ -11,7 +11,7 @@ type OwnerVerificationFilters = {
 
 type VehicleVerificationFilters = {
   search?: string;
-  verificationState?: "PENDING" | "MISSING_DOCUMENTS";
+  verificationState?: "PENDING" | "MISSING_DOCUMENTS" | "ACTIVATION_REQUEST";
 };
 
 const buildOwnerWhere = (filters: OwnerVerificationFilters): Prisma.UserWhereInput => {
@@ -55,11 +55,16 @@ const buildVehicleWhere = (
     stateFilter = { documents: { some: { status: "PENDING" } } };
   } else if (filters.verificationState === "MISSING_DOCUMENTS") {
     stateFilter = { documents: { none: {} } };
+  } else if (filters.verificationState === "ACTIVATION_REQUEST") {
+    // Owner submitted an activation request: isActive=false, isAvailable=true
+    stateFilter = { isActive: false, isAvailable: true };
   } else {
+    // All vehicles needing admin attention: pending/missing docs OR activation requests
     stateFilter = {
       OR: [
         { documents: { none: {} } },
         { documents: { some: { status: "PENDING" } } },
+        { isActive: false, isAvailable: true },
       ],
     };
   }
@@ -573,17 +578,22 @@ export const listVehicleVerifications = async (
   const items = vehicles.map((vehicle) => {
     const documentSummary = summarizeDocumentStatuses(vehicle.documents);
 
-    return {
-      ...vehicle,
-      documentSummary,
-      verificationState:
-        documentSummary.pending > 0
+    // Activation request takes precedence — owner is waiting for admin to approve isActive
+    const verificationState =
+      !vehicle.isActive && vehicle.isAvailable
+        ? "ACTIVATION_REQUEST"
+        : documentSummary.pending > 0
           ? "PENDING"
           : documentSummary.rejected > 0
             ? "REJECTED"
             : documentSummary.verified > 0
               ? "VERIFIED"
-              : "MISSING_DOCUMENTS",
+              : "MISSING_DOCUMENTS";
+
+    return {
+      ...vehicle,
+      documentSummary,
+      verificationState,
     };
   });
 
@@ -669,12 +679,14 @@ export const approveVehicleVerification = async (
       where: { id: vehicleId },
       data: {
         isActive: true,
+        isAvailable: true,
       },
       select: {
         id: true,
         name: true,
         licensePlate: true,
         isActive: true,
+        isAvailable: true,
         updatedAt: true,
       },
     });
@@ -751,12 +763,14 @@ export const rejectVehicleVerification = async (
       where: { id: vehicleId },
       data: {
         isActive: false,
+        isAvailable: false,
       },
       select: {
         id: true,
         name: true,
         licensePlate: true,
         isActive: true,
+        isAvailable: true,
         updatedAt: true,
       },
     });
@@ -882,7 +896,7 @@ export const approveVehicleDocument = async (
     });
 
     if (remaining === 0) {
-      await tx.vehicle.update({ where: { id: vehicleId }, data: { isActive: true } });
+      await tx.vehicle.update({ where: { id: vehicleId }, data: { isActive: true, isAvailable: true } });
 
       await tx.notification.create({
         data: {

@@ -93,15 +93,92 @@ const maskIdentifier = (identifier: string) => {
 // Token Generation
 // ============================================
 
+// ============================================
+// Token lifetime configuration (DB-overridable)
+// ============================================
+
+const TTL_CACHE_MS = 60_000;
+let cachedTokenTtls: { accessTtl: string; refreshTtl: string; at: number } | null =
+  null;
+
 /**
- * Generate JWT access and refresh tokens
+ * Access/refresh token validity periods. Read from PlatformConfig
+ * (`auth.accessTokenTtl` / `auth.refreshTokenTtl`) so they are configurable at
+ * runtime through the database, falling back to env-configured defaults.
+ * Cached briefly to avoid a DB round-trip on every token issuance.
  */
-export const generateTokens = (user: {
-  id: string;
-  email: string;
-  role: string;
-  tokenVersion?: number;
-}) => {
+export const getTokenTtls = async (): Promise<{
+  accessTtl: string;
+  refreshTtl: string;
+}> => {
+  if (cachedTokenTtls && Date.now() - cachedTokenTtls.at < TTL_CACHE_MS) {
+    return { accessTtl: cachedTokenTtls.accessTtl, refreshTtl: cachedTokenTtls.refreshTtl };
+  }
+
+  let accessTtl = config.jwt.expiresIn;
+  let refreshTtl = config.jwt.refreshExpiresIn;
+
+  try {
+    const rows = await prisma.platformConfig.findMany({
+      where: {
+        key: { in: ["auth.accessTokenTtl", "auth.refreshTokenTtl"] },
+        isActive: true,
+      },
+      select: { key: true, value: true },
+    });
+    for (const row of rows) {
+      const value = typeof row.value === "string" ? row.value.trim() : "";
+      if (!value) continue;
+      if (row.key === "auth.accessTokenTtl") accessTtl = value;
+      if (row.key === "auth.refreshTokenTtl") refreshTtl = value;
+    }
+  } catch {
+    // DB unavailable — keep env-configured defaults.
+  }
+
+  cachedTokenTtls = { accessTtl, refreshTtl, at: Date.now() };
+  return { accessTtl, refreshTtl };
+};
+
+const TTL_UNIT_MS: Record<string, number> = {
+  s: 1_000,
+  m: 60_000,
+  h: 3_600_000,
+  d: 86_400_000,
+  w: 604_800_000,
+};
+
+/** Convert a TTL string ("15m", "1h", "30d") or bare seconds to milliseconds. */
+export const ttlToMs = (ttl: string): number => {
+  const match = /^(\d+)\s*([smhdw])$/i.exec(ttl.trim());
+  if (match) {
+    return Number(match[1]) * TTL_UNIT_MS[match[2].toLowerCase()];
+  }
+  const seconds = Number(ttl);
+  return Number.isFinite(seconds) ? seconds * 1000 : 30 * TTL_UNIT_MS.d;
+};
+
+/** Persistent ("remember me") refresh-cookie maxAge, derived from the refresh TTL. */
+export const getRefreshCookieMaxAgeMs = async (): Promise<number> =>
+  ttlToMs((await getTokenTtls()).refreshTtl);
+
+/**
+ * Generate JWT access and refresh tokens. The `remember` preference is embedded
+ * in the refresh token so it survives token rotation (refresh keeps the session
+ * persistent-or-not without any server-side state).
+ */
+export const generateTokens = async (
+  user: {
+    id: string;
+    email: string;
+    role: string;
+    tokenVersion?: number;
+  },
+  options: { remember?: boolean } = {},
+) => {
+  const { accessTtl, refreshTtl } = await getTokenTtls();
+  const remember = options.remember ?? true;
+
   const payload: TokenPayload = {
     id: user.id,
     email: user.email,
@@ -114,17 +191,17 @@ export const generateTokens = (user: {
   }
 
   const accessToken = jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn,
+    expiresIn: accessTtl,
   } as SignOptions);
   const refreshToken = jwt.sign(
-    { id: user.id, tokenVersion: user.tokenVersion },
+    { id: user.id, tokenVersion: user.tokenVersion, remember },
     config.jwt.refreshSecret,
     {
-      expiresIn: config.jwt.refreshExpiresIn,
+      expiresIn: refreshTtl,
     } as SignOptions,
   );
 
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, remember };
 };
 
 // ============================================
@@ -239,7 +316,7 @@ export const registerUser = async (data: RegisterInput) => {
   });
 
   // Generate tokens with tokenVersion
-  const tokens = generateTokens({
+  const tokens = await generateTokens({
     id: user.id,
     email: user.email,
     role: user.role,
@@ -345,13 +422,17 @@ export const loginUser = async (data: LoginInput) => {
     },
   });
 
-  // Generate tokens with tokenVersion for invalidation on password change
-  const tokens = generateTokens({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-    tokenVersion: user.tokenVersion,
-  });
+  // Generate tokens with tokenVersion for invalidation on password change.
+  // The "remember me" preference (default on) controls session persistence.
+  const tokens = await generateTokens(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      tokenVersion: user.tokenVersion,
+    },
+    { remember: data.rememberMe ?? true },
+  );
 
   // Return user without password
   return {
@@ -505,7 +586,7 @@ export const verifyOtpCode = async (data: VerifyOtpInput) => {
     },
   });
 
-  const tokens = generateTokens({
+  const tokens = await generateTokens({
     id: user.id,
     email: user.email,
     role: user.role,
@@ -532,6 +613,7 @@ export const refreshUserTokens = async (refreshToken: string) => {
     const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret) as {
       id: string;
       tokenVersion?: number;
+      remember?: boolean;
     };
 
     // Find user in database
@@ -563,12 +645,15 @@ export const refreshUserTokens = async (refreshToken: string) => {
 
     // Generate NEW tokens (token rotation)
     // Old refresh token is now invalid, client must use new one
-    const newTokens = generateTokens({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      tokenVersion: user.tokenVersion,
-    });
+    const newTokens = await generateTokens(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        tokenVersion: user.tokenVersion,
+      },
+      { remember: decoded.remember ?? true },
+    );
 
     return newTokens;
   } catch (error) {
@@ -923,7 +1008,7 @@ export const loginWithOAuthProfile = async (profile: OAuthProfile) => {
     });
   }
 
-  const tokens = generateTokens({
+  const tokens = await generateTokens({
     id: user.id,
     email: user.email,
     role: user.role,

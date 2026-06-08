@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
-import { Check, CheckCheck, MessageCirclePlus } from "lucide-react";
+import Link from "next/link";
+import { Check, CheckCheck, ExternalLink, MessageCirclePlus } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Badge } from "@/components/ui";
 import type { ChatMessage, ConversationSummary } from "@/lib/api";
@@ -18,6 +19,7 @@ interface MessageThreadProps {
   hasMoreMessages: boolean;
   loadingOlder: boolean;
   isConnected: boolean;
+  bookingHref?: string;
   onRetry: () => void;
   onLoadOlder: () => void;
 }
@@ -99,6 +101,7 @@ export function MessageThread({
   error,
   hasMoreMessages,
   loadingOlder,
+  bookingHref,
   onRetry,
   onLoadOlder,
 }: MessageThreadProps) {
@@ -198,6 +201,15 @@ export function MessageThread({
         <Badge variant={bookingStatusVariant(conversation.booking.status)}>
           {t(`status.${conversation.booking.status as "PENDING"}`)}
         </Badge>
+        {bookingHref ? (
+          <Link
+            href={bookingHref}
+            className={`shrink-0 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-action-primary)] ${focusRing}`}
+            aria-label={t("viewBooking")}
+          >
+            <ExternalLink className="h-5 w-5" aria-hidden="true" />
+          </Link>
+        ) : null}
       </header>
 
       {/* Scrollable message area */}

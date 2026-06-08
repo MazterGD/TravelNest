@@ -49,13 +49,13 @@ export default function OwnerLayout({ children }: OwnerLayoutProps) {
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg-surface)]">
+    <div className="flex min-h-screen flex-col md:flex-row bg-[var(--color-bg-surface)]">
       <OwnerSidebar locale={locale} />
 
       <div className="flex flex-1 min-w-0 flex-col">
-        <main className="flex-1 mt-6 px-4 pb-12 pt-4 sm:px-6 lg:px-8">
+        <main className="flex-1 pb-12">
           <div className="mx-auto w-full max-w-[1280px]">
-            <div className="md:hidden mb-4">
+            <div className="md:hidden mb-4 px-4 pt-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">
                 {tShell("breadcrumbRoot")}
               </p>
@@ -67,7 +67,10 @@ export default function OwnerLayout({ children }: OwnerLayoutProps) {
             {children}
           </div>
         </main>
-        <Footer />
+        {/* Footer is desktop-only on the owner portal. */}
+        <div className="hidden md:block">
+          <Footer />
+        </div>
       </div>
     </div>
   );

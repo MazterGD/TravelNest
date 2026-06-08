@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
@@ -88,9 +88,11 @@ export default function BookingsManagementPage() {
   const { user } = useAuthStore();
   const params = useParams();
   const locale = params.locale as string;
+  const searchParamsHook = useSearchParams();
+  const vehicleRegParam = searchParamsHook?.get("vehicleReg") ?? "";
   const [activeTab, setActiveTab] = useState<BookingStatus>("upcoming");
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(vehicleRegParam);
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -148,7 +150,7 @@ export default function BookingsManagementPage() {
   return (
       <div className="min-h-screen bg-muted">
         <header className="border-b border-border bg-card">
-          <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/dashboard`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -156,7 +158,7 @@ export default function BookingsManagementPage() {
               <ArrowLeft className="h-4 w-4" />
               {t("backToDashboard")}
             </Link>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-xl font-semibold text-foreground">{t("title")}</h1>
                 <p className="mt-0.5 text-sm text-muted-foreground">
@@ -166,7 +168,7 @@ export default function BookingsManagementPage() {
               </div>
               <button
                 aria-label={t("exportBtn")}
-                className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                className="flex min-h-[44px] items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
               >
                 <Upload className="h-4 w-4" />
                 {t("exportBtn")}
@@ -175,8 +177,8 @@ export default function BookingsManagementPage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-          <div className="mb-8 rounded-lg border border-border bg-card p-6">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-8 rounded-lg border border-border bg-card p-4 sm:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-2">
                 {tabs.map((tab) => (
@@ -240,7 +242,7 @@ export default function BookingsManagementPage() {
                   {filteredBookings.map((booking) => (
                     <div
                       key={booking.id}
-                      className="rounded-lg border border-border bg-card p-6 transition-colors hover:bg-muted/30"
+                      className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/30 sm:p-6"
                     >
                       <div className="mb-4 flex items-start justify-between">
                         <div>
@@ -327,28 +329,28 @@ export default function BookingsManagementPage() {
                       <div className="flex flex-wrap gap-2">
                         <Link
                           href={`/${locale}/owner/bookings/${booking.id}`}
-                          className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                          className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                         >
                           <Eye className="h-4 w-4" />
                           {t("viewDetails")}
                         </Link>
                         <Link
                           href={`/${locale}/owner/messages?booking=${booking.id}`}
-                          className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="flex min-h-[44px] items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <MessageSquare className="h-4 w-4" />
                           {tMsg("messageCustomer")}
                         </Link>
                         <a
                           href={`tel:${booking.customer.phone}`}
-                          className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                          className="flex min-h-[44px] items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
                         >
                           <Phone className="h-4 w-4" />
                           {t("call")}
                         </a>
                         <a
                           href={`mailto:${booking.customer.email}`}
-                          className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                          className="flex min-h-[44px] items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
                         >
                           <Mail className="h-4 w-4" />
                           {t("emailBtn")}

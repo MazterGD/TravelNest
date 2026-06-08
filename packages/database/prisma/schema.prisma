@@ -253,7 +253,8 @@ model User {
   otpTokens     OtpToken[]
   tripPackages  TripPackage[]
   adminPermissions AdminPermission[]
-  auditLogs     AuditLog[]
+  auditLogs     AuditLog[]            @relation("AuditLogAdmin")
+  actorAuditLogs AuditLog[]           @relation("AuditLogActor")
   disputesRaised Dispute[]            @relation("DisputesRaisedBy")
   disputesAgainst Dispute[]           @relation("DisputesAgainst")
   disputesAssigned Dispute[]          @relation("DisputesAssignedTo")
@@ -294,7 +295,11 @@ model AdminPermission {
 
 model AuditLog {
   id           String   @id @default(cuid())
-  adminId      String
+  // adminId is retained for back-compat with admin-only audit queries; actorId
+  // identifies the acting user for ANY role (customer, owner, admin).
+  adminId      String?
+  actorId      String?
+  actorRole    String?  // CUSTOMER | VEHICLE_OWNER | ADMIN
   action       String
   entityType   String
   entityId     String
@@ -305,9 +310,12 @@ model AuditLog {
   errorMessage String?
   createdAt    DateTime @default(now())
 
-  admin        User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  admin        User?    @relation("AuditLogAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  actor        User?    @relation("AuditLogActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([adminId])
+  @@index([actorId])
+  @@index([actorRole])
   @@index([entityType, entityId])
   @@index([action, createdAt])
   @@index([createdAt])

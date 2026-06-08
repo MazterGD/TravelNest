@@ -458,7 +458,7 @@ export default function OwnerDashboardPage() {
         {/* Header */}
         <header className="border-b border-[--color-border-default] bg-card">
           <div className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-2xl font-semibold text-foreground">
                   {t("ownerDashboard.title", {
@@ -474,7 +474,7 @@ export default function OwnerDashboardPage() {
               </div>
               <Link
                 href={`/${locale}/owner/fleet/add`}
-                className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[--color-action-primary-hover] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-action-focus]"
+                className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[--color-action-primary-hover] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-action-focus]"
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 {t("ownerDashboard.addVehicle", { defaultValue: "Add Vehicle" })}
@@ -533,7 +533,7 @@ export default function OwnerDashboardPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="mb-8">
+          {/* <div className="mb-8">
             <h2 className="mb-4 text-base font-semibold text-foreground">
               {t("ownerDashboard.quickActions", {
                 defaultValue: "Quick Actions",
@@ -697,7 +697,7 @@ export default function OwnerDashboardPage() {
                 </div>
               </Link>
             </div>
-          </div>
+          </div> */}
 
           {/* Revenue Chart + Recent Reviews */}
           <div className="mb-8 grid gap-6 lg:grid-cols-3">

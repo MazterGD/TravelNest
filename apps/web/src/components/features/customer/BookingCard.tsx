@@ -46,7 +46,12 @@ export function BookingCard({
   const router = useRouter();
 
   const isUpcoming = new Date(booking.startDate) > new Date();
-  const canCancel = booking.status === BookingStatus.CONFIRMED && isUpcoming;
+  // A booking can be cancelled before it starts whether or not it has been paid
+  // yet, so PENDING (unpaid) bookings are cancellable too — not just CONFIRMED.
+  const canCancel =
+    (booking.status === BookingStatus.PENDING ||
+      booking.status === BookingStatus.CONFIRMED) &&
+    isUpcoming;
   const canReview =
     booking.status === BookingStatus.COMPLETED && !booking.hasReview;
 

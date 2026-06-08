@@ -8,10 +8,17 @@ import {
   LoadingSpinner,
   Button,
   Badge,
+  Input,
+  Select,
   TextArea
 } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
-import { bookingService, reviewService } from "@/lib/api/services";
+import {
+  bookingService,
+  reviewService,
+  disputeService,
+  type DisputeType,
+} from "@/lib/api/services";
 import { ArrowLeft, MapPin, Calendar, Users, Star, Phone, XCircle, Download, ReceiptText, Map, MessageSquare, Check, Clock, CheckCircle2, CreditCard, UserCheck, PlayCircle, Flag, Ban } from 'lucide-react';
 import dynamic from "next/dynamic";
 
@@ -19,6 +26,16 @@ const InteractiveMap = dynamic(
   () => import("@/components/ui/InteractiveMap"),
   { ssr: false, loading: () => <div className="h-[300px] w-full bg-muted animate-pulse rounded-lg flex items-center justify-center"><Map className="h-8 w-8 text-muted-foreground" /></div> }
 );
+
+const DISPUTE_TYPES = [
+  "BOOKING_QUALITY_ISSUE",
+  "CANCELLATION_DISPUTE",
+  "PAYMENT_ISSUE",
+  "VEHICLE_CONDITION",
+  "BEHAVIOR_COMPLAINT",
+  "SERVICE_NOT_PROVIDED",
+  "OTHER",
+] as const;
 
 interface TimelineEvent {
   event:
@@ -76,7 +93,11 @@ interface BookingDetails {
     endDate: string;
     startTime?: string | null;
     pickupLocation: string;
+    pickupLatitude?: number | null;
+    pickupLongitude?: number | null;
     dropoffLocation: string;
+    dropoffLatitude?: number | null;
+    dropoffLongitude?: number | null;
     estimatedDistance?: string | null;
     estimatedDuration?: string | null;
     passengers: number;
@@ -135,6 +156,7 @@ export default function BookingDetailsContent({
   const { isLoading: guardLoading } = useProtectedRoute();
   const tMsg = useTranslations("messages");
   const t = useTranslations("customerBookingDetails");
+  const tDispute = useTranslations("dispute");
   const bookingStatusMap: Record<string, string> = {
     pending: t("status.pending"),
     confirmed: t("status.confirmed"),
@@ -181,6 +203,12 @@ export default function BookingDetailsContent({
   const [rating, setRating] = useState(5);
   const [review, setReview] = useState("");
   const [ratingLoading, setRatingLoading] = useState(false);
+  const [showDisputeDialog, setShowDisputeDialog] = useState(false);
+  const [disputeType, setDisputeType] =
+    useState<DisputeType>("BOOKING_QUALITY_ISSUE");
+  const [disputeSubject, setDisputeSubject] = useState("");
+  const [disputeDescription, setDisputeDescription] = useState("");
+  const [disputeLoading, setDisputeLoading] = useState(false);
 
   useEffect(() => {
     if (!guardLoading) {
@@ -263,6 +291,33 @@ export default function BookingDetailsContent({
     }
   };
 
+  const handleRaiseDispute = async () => {
+    if (
+      disputeSubject.trim().length < 3 ||
+      disputeDescription.trim().length < 10
+    ) {
+      return;
+    }
+    try {
+      setDisputeLoading(true);
+      await disputeService.create({
+        bookingId,
+        type: disputeType,
+        subject: disputeSubject.trim(),
+        description: disputeDescription.trim(),
+      });
+      setShowDisputeDialog(false);
+      setDisputeSubject("");
+      setDisputeDescription("");
+      router.push(`/${locale}/dashboard/disputes`);
+    } catch (err: any) {
+      console.error("Error raising dispute:", err);
+      alert(err.message || tDispute("createError"));
+    } finally {
+      setDisputeLoading(false);
+    }
+  };
+
   const handleSubmitRating = async () => {
     if (!booking) return;
 
@@ -328,11 +383,65 @@ export default function BookingDetailsContent({
     booking.payment?.status?.toLowerCase() || "",
   );
 
+  // ── Route map waypoints ───────────────────────────────────────────────────
+  // The persisted itinerary_stops include the pickup as the first stop and the
+  // dropoff as the last, while the map colours markers purely by position
+  // (index 0 = green pickup, last = red dropoff). Rendering the raw stop list
+  // would therefore drop the real pickup/dropoff pins and label them as
+  // intermediate stops. We derive endpoints from the trip's coordinates (with a
+  // fallback to the first/last stop) and keep only the genuine in-between stops.
+  const rawStops = booking.trip.itineraryStops ?? [];
+  const stopLatLng = (s: { coordinates?: [number, number]; lat?: number; lng?: number }) => ({
+    lat: s.coordinates?.[1] ?? s.lat ?? null,
+    lng: s.coordinates?.[0] ?? s.lng ?? null,
+  });
+  const pickupPt =
+    booking.trip.pickupLatitude != null && booking.trip.pickupLongitude != null
+      ? { lat: booking.trip.pickupLatitude, lng: booking.trip.pickupLongitude }
+      : rawStops.length
+        ? stopLatLng(rawStops[0])
+        : null;
+  const dropoffPt =
+    booking.trip.dropoffLatitude != null && booking.trip.dropoffLongitude != null
+      ? { lat: booking.trip.dropoffLatitude, lng: booking.trip.dropoffLongitude }
+      : rawStops.length
+        ? stopLatLng(rawStops[rawStops.length - 1])
+        : null;
+  const samePoint = (
+    a: { lat: number | null; lng: number | null } | null,
+    b: { lat: number | null; lng: number | null } | null,
+  ) =>
+    !!a &&
+    !!b &&
+    a.lat != null &&
+    a.lng != null &&
+    b.lat != null &&
+    b.lng != null &&
+    Math.abs(a.lat - b.lat) < 1e-4 &&
+    Math.abs(a.lng - b.lng) < 1e-4;
+  const intermediateStops = rawStops.filter((s) => {
+    const p = stopLatLng(s);
+    return !samePoint(p, pickupPt) && !samePoint(p, dropoffPt);
+  });
+  const mapWaypoints: { lat: number; lng: number; name: string }[] = [];
+  if (pickupPt?.lat != null && pickupPt.lng != null) {
+    mapWaypoints.push({ lat: pickupPt.lat, lng: pickupPt.lng, name: booking.trip.pickupLocation });
+  }
+  intermediateStops.forEach((s) => {
+    const p = stopLatLng(s);
+    if (p.lat != null && p.lng != null) {
+      mapWaypoints.push({ lat: p.lat, lng: p.lng, name: s.locationName });
+    }
+  });
+  if (dropoffPt?.lat != null && dropoffPt.lng != null) {
+    mapWaypoints.push({ lat: dropoffPt.lat, lng: dropoffPt.lng, name: booking.trip.dropoffLocation });
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <Link
                 href={`/${locale}/dashboard/bookings`}
@@ -349,7 +458,7 @@ export default function BookingDetailsContent({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Badge className={getStatusColor(booking.status)}>
                 {bookingStatusMap[booking.status?.toLowerCase()] ?? booking.status}
               </Badge>
@@ -384,7 +493,7 @@ export default function BookingDetailsContent({
               </h2>
 
               {/* Dates */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div className="flex items-start gap-3">
                   <Calendar className="text-[#20B0E9] mt-1" />
                   <div>
@@ -421,11 +530,7 @@ export default function BookingDetailsContent({
                 <div className="rounded-lg mb-4 overflow-hidden h-[300px]">
                   <InteractiveMap
                     readOnly={true}
-                    initialWaypoints={booking.trip?.itineraryStops?.map((stop) => ({
-                      lat: stop.coordinates?.[1] ?? stop.lat ?? 0,
-                      lng: stop.coordinates?.[0] ?? stop.lng ?? 0,
-                      name: stop.locationName,
-                    })) || []}
+                    initialWaypoints={mapWaypoints}
                     initialRouteGeometry={booking.trip?.itineraryRoute?.coordinates?.map(
                       ([lng, lat]: [number, number]) => [lat, lng]
                     ) || []}
@@ -446,7 +551,7 @@ export default function BookingDetailsContent({
                     </div>
                   </div>
 
-                  {booking.trip.itineraryStops?.map((stop, index) => (
+                  {intermediateStops.map((stop, index) => (
                     <div key={index}>
                       <div className="flex items-start gap-3 ml-4 mb-2">
                         <div className="w-0.5 h-6 bg-gray-300 ml-3.5" />
@@ -518,12 +623,12 @@ export default function BookingDetailsContent({
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 {t("vehicleDetails")}
               </h2>
-              <div className="flex gap-4 mb-4">
+              <div className="flex flex-col sm:flex-row gap-4 mb-4">
                 {booking.vehicle.image && (
                   <img
                     src={booking.vehicle.image}
                     alt={booking.vehicle.name}
-                    className="w-48 h-32 object-cover rounded-lg"
+                    className="w-full sm:w-48 h-40 sm:h-32 object-cover rounded-lg"
                   />
                 )}
                 <div className="flex-1">
@@ -907,6 +1012,14 @@ export default function BookingDetailsContent({
                     {t("rateService")}
                   </Button>
                 )}
+                <Button
+                  onClick={() => setShowDisputeDialog(true)}
+                  variant="outline"
+                  className="w-full border-[#20B0E9] text-[#20B0E9] hover:bg-[#20B0E9]/5"
+                >
+                  <Flag className="mr-2" />
+                  {tDispute("raiseButton")}
+                </Button>
               </div>
             </div>
           </div>
@@ -945,6 +1058,64 @@ export default function BookingDetailsContent({
                 className="flex-1"
               >
                 {t("cancelDialog.keep")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Raise Dispute Dialog */}
+      {showDisputeDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              {tDispute("raiseTitle")}
+            </h3>
+            <div className="space-y-3">
+              <Select
+                label={tDispute("fieldType")}
+                options={DISPUTE_TYPES.map((type) => ({
+                  value: type,
+                  label: tDispute(`type${type}`),
+                }))}
+                value={disputeType}
+                onChange={(v) => setDisputeType(v as DisputeType)}
+              />
+              <Input
+                label={tDispute("fieldSubject")}
+                value={disputeSubject}
+                onChange={(e) => setDisputeSubject(e.target.value)}
+                placeholder={tDispute("subjectPlaceholder")}
+                maxLength={200}
+              />
+              <TextArea
+                label={tDispute("fieldDescription")}
+                value={disputeDescription}
+                onChange={(e) => setDisputeDescription(e.target.value)}
+                placeholder={tDispute("descriptionPlaceholder")}
+                rows={5}
+                maxLength={3000}
+              />
+            </div>
+            <div className="mt-5 flex gap-3">
+              <Button
+                onClick={handleRaiseDispute}
+                disabled={
+                  disputeLoading ||
+                  disputeSubject.trim().length < 3 ||
+                  disputeDescription.trim().length < 10
+                }
+                className="flex-1 bg-[#20B0E9] hover:bg-[#0B5F7F] text-white"
+              >
+                {disputeLoading ? tDispute("submitting") : tDispute("submit")}
+              </Button>
+              <Button
+                onClick={() => setShowDisputeDialog(false)}
+                disabled={disputeLoading}
+                variant="outline"
+                className="flex-1"
+              >
+                {tDispute("cancel")}
               </Button>
             </div>
           </div>

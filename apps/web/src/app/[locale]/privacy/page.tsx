@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { PageHeader, Card } from "@/components/ui";
+import { PolicyContent } from "@/components/features/content/PolicyContent";
 
 export default function PrivacyPolicyPage() {
   const t = useTranslations("legal.privacy");
@@ -54,18 +55,23 @@ export default function PrivacyPolicyPage() {
               {t("lastUpdated")}: {t("lastUpdatedDate")}
             </p>
 
-            <div className="space-y-8">
-              {sections.map((section, index) => (
-                <div key={section.key}>
-                  <h2 className="text-xl font-semibold text-foreground mb-3">
-                    {index + 1}. {section.title}
-                  </h2>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {section.content}
-                  </p>
+            <PolicyContent
+              slug="privacy-policy"
+              fallback={
+                <div className="space-y-8">
+                  {sections.map((section, index) => (
+                    <div key={section.key}>
+                      <h2 className="text-xl font-semibold text-foreground mb-3">
+                        {index + 1}. {section.title}
+                      </h2>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {section.content}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              }
+            />
           </Card>
         </div>
       </section>
