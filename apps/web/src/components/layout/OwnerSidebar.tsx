@@ -17,14 +17,13 @@ import {
   Gauge,
   Globe,
   LogOut,
-  Menu,
   MessageSquare,
   Package,
   Send,
+  Settings,
   ShieldAlert,
   Star,
   User,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/store";
@@ -67,7 +66,7 @@ export function OwnerSidebar({ locale }: OwnerSidebarProps) {
   const [langOpen, setLangOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const currentLocale = (params.locale as string) || locale;
@@ -106,6 +105,12 @@ export function OwnerSidebar({ locale }: OwnerSidebarProps) {
   useNotificationStream(() => {
     void refreshUnread();
   });
+
+  // ── Close the mobile account menu when navigating ──────────────────────────
+
+  useEffect(() => {
+    setMobileProfileOpen(false);
+  }, [pathname]);
 
   // ── Close menus on outside click ───────────────────────────────────────────
 
@@ -269,6 +274,42 @@ export function OwnerSidebar({ locale }: OwnerSidebarProps) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  // ── Mobile bottom-bar + account-menu sets (mirrors the customer portal) ─────
+  const allItems = groups.flatMap((group) => group.items);
+  const findItem = (id: string) => allItems.find((item) => item.id === id);
+
+  const mobileBarItems = [
+    findItem("dashboard"),
+    findItem("quotations"),
+    findItem("bookings"),
+    findItem("fleet"),
+  ].filter(Boolean) as OwnerNavItem[];
+
+  const mobileAccountItems: OwnerNavItem[] = [
+    ...([
+      findItem("messages"),
+      findItem("notifications"),
+      findItem("sent-quotes"),
+      findItem("packages"),
+      findItem("analytics"),
+      findItem("earnings"),
+      findItem("reviews"),
+      findItem("disputes"),
+    ].filter(Boolean) as OwnerNavItem[]),
+    {
+      id: "profile",
+      label: t("items.profile"),
+      href: `/${locale}/owner/profile`,
+      icon: User,
+    },
+    {
+      id: "settings",
+      label: t("items.settings"),
+      href: `/${locale}/owner/settings`,
+      icon: Settings,
+    },
+  ];
 
   // ── Shared inner content ───────────────────────────────────────────────────
 
@@ -511,6 +552,22 @@ export function OwnerSidebar({ locale }: OwnerSidebarProps) {
                   {tCommon("profile")}
                 </Link>
 
+                <Link
+                  href={`/${locale}/owner/settings`}
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    onItemClick?.();
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                    "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)]",
+                    ring,
+                  )}
+                >
+                  <Settings className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {t("items.settings")}
+                </Link>
+
                 <div className="my-1 h-px bg-[var(--color-border-default)]" />
 
                 <button
@@ -605,109 +662,151 @@ export function OwnerSidebar({ locale }: OwnerSidebarProps) {
         {renderFooter(isCollapsed)}
       </aside>
 
-      {/* ── Mobile top bar ────────────────────────────────────────────────── */}
-      <div
-        className={cn(
-          "md:hidden sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3",
-          "bg-[var(--color-bg-base)] border-b border-[var(--color-border-default)]",
-        )}
+      {/* ── Mobile bottom navigation ─────────────────────────────────────── */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--color-bg-base)] border-t border-[var(--color-border-default)]"
+        aria-label={t("primaryNavLabel")}
       >
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          aria-label={t("openMenu")}
-          className={cn(
-            "flex h-11 w-11 items-center justify-center rounded-xl",
-            "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)] transition-colors",
-            ring,
-          )}
-        >
-          <Menu className="h-5 w-5" aria-hidden="true" />
-        </button>
-        <Link
-          href={`/${locale}/owner/dashboard`}
-          className={cn("inline-flex items-center gap-2 rounded-lg", ring)}
-        >
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[var(--color-action-primary)] text-white font-bold text-xs select-none">
-            T
-          </div>
-          <span className="font-bold text-sm text-[var(--color-text-primary)]">
-            {APP_NAME}{" "}
-            <span className="text-[var(--color-text-tertiary)] font-medium">
-              · {t("badge")}
-            </span>
-          </span>
-        </Link>
-        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-action-primary)] text-white text-xs font-semibold select-none">
-          {user?.avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={user.avatar}
-              alt={displayName}
-              className="h-9 w-9 rounded-full object-cover"
-            />
-          ) : (
-            initials || "O"
-          )}
-          {(notificationsUnread > 0 || messagesUnread > 0) && (
-            <span
+        {/* Account menu — opens above the bar; secondary links + logout */}
+        {mobileProfileOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
               aria-hidden="true"
-              className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-bg-base)] bg-[var(--color-error-border)]"
+              onClick={() => setMobileProfileOpen(false)}
             />
-          )}
-        </div>
-      </div>
+            <div
+              role="menu"
+              aria-label={tCommon("profile")}
+              className="absolute bottom-full right-2 z-50 mb-2 max-h-[70vh] w-60 overflow-y-auto rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] shadow-lg"
+            >
+              <div className="border-b border-[var(--color-border-default)] px-4 py-3">
+                <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
+                  {displayName || "—"}
+                </p>
+                <p className="truncate text-xs text-[var(--color-text-tertiary)]">
+                  {user?.email ?? ""}
+                </p>
+              </div>
+              <div className="p-1.5">
+                {mobileAccountItems.map((item) => {
+                  const Icon = item.icon;
+                  const badge = item.badge ?? 0;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      role="menuitem"
+                      onClick={() => setMobileProfileOpen(false)}
+                      className={cn(
+                        "flex min-h-[44px] items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                        "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)]",
+                        ring,
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                        {item.label}
+                      </span>
+                      {badge > 0 && (
+                        <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-error-border)] px-1.5 text-xs font-semibold text-white">
+                          {badge > 99 ? "99+" : badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
 
-      {/* ── Mobile drawer ──────────────────────────────────────────────── */}
-      {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          <div
-            className="absolute inset-0 bg-[var(--color-text-primary)]/40"
-            aria-hidden="true"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside
-            className={cn(
-              "relative flex h-full w-72 max-w-[85%] flex-col",
-              "bg-[var(--color-bg-base)] border-r border-[var(--color-border-default)] shadow-xl",
-            )}
-            aria-label={t("sidebarLabel")}
-          >
-            <div className="flex items-center justify-between border-b border-[var(--color-border-default)] px-4 py-[18px]">
+                <div className="my-1 h-px bg-[var(--color-border-default)]" />
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleLogout}
+                  className={cn(
+                    "flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                    "text-[var(--color-text-secondary)] hover:bg-[var(--color-error-bg)] hover:text-[var(--color-error-text)]",
+                    ring,
+                  )}
+                >
+                  <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {tCommon("logout")}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="flex items-stretch justify-around px-1 py-1">
+          {mobileBarItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item);
+            const badge = item.badge ?? 0;
+            return (
               <Link
-                href={`/${locale}/owner/dashboard`}
-                className={cn("inline-flex items-center gap-2.5 rounded-lg", ring)}
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--color-action-primary)] text-white font-bold text-sm select-none">
-                  T
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="font-bold text-[15px] text-[var(--color-text-primary)] whitespace-nowrap">
-                    {APP_NAME}
-                  </span>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-tertiary)]">
-                    {t("badge")}
-                  </span>
-                </div>
-              </Link>
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                aria-label={t("closeMenu")}
+                key={item.id}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-xl",
-                  "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)] transition-colors",
+                  "flex min-w-[44px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 min-h-[44px] transition-colors",
                   ring,
+                  active
+                    ? "text-[var(--color-action-primary)]"
+                    : "text-[var(--color-text-tertiary)]",
                 )}
               >
-                <X className="h-5 w-5" aria-hidden="true" />
-              </button>
-            </div>
-            {renderNav(false, () => setMobileOpen(false))}
-            {renderFooter(false, () => setMobileOpen(false))}
-          </aside>
+                <span className="relative">
+                  <Icon className="h-6 w-6" aria-hidden="true" />
+                  {badge > 0 && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[var(--color-error-border)]"
+                    />
+                  )}
+                </span>
+                <span className="whitespace-nowrap text-[10px] font-medium leading-none">
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+
+          {/* Account / profile menu trigger */}
+          <button
+            type="button"
+            onClick={() => setMobileProfileOpen((v) => !v)}
+            aria-expanded={mobileProfileOpen}
+            aria-haspopup="menu"
+            aria-label={`${displayName || "Owner"} — ${t("openAccountMenu")}`}
+            className={cn(
+              "flex min-w-[44px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 min-h-[44px] transition-colors",
+              ring,
+              mobileProfileOpen
+                ? "text-[var(--color-action-primary)]"
+                : "text-[var(--color-text-tertiary)]",
+            )}
+          >
+            <span className="relative flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-[var(--color-action-primary)] text-[9px] font-semibold text-white">
+              {user?.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.avatar} alt="" className="h-6 w-6 object-cover" />
+              ) : (
+                initials || <User className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+              {(notificationsUnread > 0 || messagesUnread > 0) && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-bg-base)] bg-[var(--color-error-border)]"
+                />
+              )}
+            </span>
+            <span className="whitespace-nowrap text-[10px] font-medium leading-none">
+              {tCommon("profile")}
+            </span>
+          </button>
         </div>
-      )}
+      </nav>
+
     </>
   );
 }

@@ -25,6 +25,7 @@ const ROUTE_KEYS: Array<{ match: RegExp; key: string }> = [
   { match: /\/owner\/messages(?:\/|$)/, key: "messages" },
   { match: /\/owner\/notifications(?:\/|$)/, key: "notifications" },
   { match: /\/owner\/profile(?:\/|$)/, key: "profile" },
+  { match: /\/owner\/settings(?:\/|$)/, key: "settings" },
 ];
 
 export default function OwnerLayout({ children }: OwnerLayoutProps) {
@@ -53,7 +54,7 @@ export default function OwnerLayout({ children }: OwnerLayoutProps) {
       <OwnerSidebar locale={locale} />
 
       <div className="flex flex-1 min-w-0 flex-col">
-        <main className="flex-1 pb-12">
+        <main className="flex-1 pb-20 md:pb-12">
           <div className="mx-auto w-full max-w-[1280px]">
             <div className="md:hidden mb-4 px-4 pt-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]">

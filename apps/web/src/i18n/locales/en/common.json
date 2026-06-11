@@ -3554,7 +3554,8 @@
       "messages": "Messages",
       "notifications": "Notifications",
       "disputes": "Disputes",
-      "profile": "My Profile"
+      "profile": "My Profile",
+      "settings": "Settings"
     }
   },
   "ownerShell": {

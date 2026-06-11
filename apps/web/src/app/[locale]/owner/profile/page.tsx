@@ -10,7 +10,6 @@ import { useOwnerGuard } from "@/hooks";
 import {
   vehicleService,
   ownerService,
-  authService,
   landingContentService,
   storageService,
   ApiError,
@@ -21,7 +20,6 @@ import {
   Phone,
   User,
   ArrowLeft,
-  Lock,
   Camera,
   Bus,
   Edit,
@@ -38,12 +36,7 @@ import {
   LoaderCircle,
 } from "lucide-react";
 
-type ProfileTab =
-  | "personal"
-  | "address"
-  | "vehicles"
-  | "security"
-  | "documents";
+type ProfileTab = "personal" | "address" | "vehicles" | "documents";
 
 interface Vehicle {
   id: string;
@@ -114,12 +107,6 @@ export default function OwnerProfilePage() {
     district: user?.district || "",
     postalCode: user?.postalCode || "",
     baseLocation: user?.baseLocation || "",
-  });
-
-  const [securityInfo, setSecurityInfo] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
   });
 
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
@@ -304,36 +291,6 @@ export default function OwnerProfilePage() {
     }
   };
 
-  const handleSecuritySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (securityInfo.newPassword !== securityInfo.confirmPassword) {
-      setError("New passwords do not match");
-      return;
-    }
-    if (securityInfo.newPassword.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-    setIsSaving(true);
-    try {
-      await authService.changePassword(
-        securityInfo.currentPassword,
-        securityInfo.newPassword,
-      );
-      setSecurityInfo({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-      showSuccess(t("successPassword"));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : t("uploadError"));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleDocumentUpload = async (
     type: "NIC" | "PROFILE_PHOTO",
     file: File,
@@ -431,7 +388,6 @@ export default function OwnerProfilePage() {
     { id: "address", labelKey: "tabAddress", icon: MapPin },
     { id: "vehicles", labelKey: "tabVehicles", icon: Bus },
     { id: "documents", labelKey: "tabDocuments", icon: FileText },
-    { id: "security", labelKey: "tabSecurity", icon: Lock },
   ];
 
   return (
@@ -852,76 +808,6 @@ export default function OwnerProfilePage() {
                       ))}
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* ── Security Tab ── */}
-              {activeTab === "security" && (
-                <div className="max-w-3xl">
-                  <div className="mb-6">
-                    <h3 className="mb-1 text-body-lg font-semibold text-foreground">
-                      {t("securitySettings")}
-                    </h3>
-                    <p className="text-body text-muted-foreground">
-                      {t("securitySettingsDesc")}
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleSecuritySubmit} className="space-y-5">
-                    <Input
-                      label={t("currentPassword")}
-                      name="currentPassword"
-                      type="password"
-                      required
-                      value={securityInfo.currentPassword}
-                      onChange={(e) =>
-                        setSecurityInfo({
-                          ...securityInfo,
-                          currentPassword: e.target.value,
-                        })
-                      }
-                      icon={<Lock />}
-                    />
-                    <Input
-                      label={t("newPassword")}
-                      name="newPassword"
-                      type="password"
-                      required
-                      value={securityInfo.newPassword}
-                      onChange={(e) =>
-                        setSecurityInfo({
-                          ...securityInfo,
-                          newPassword: e.target.value,
-                        })
-                      }
-                      icon={<Lock />}
-                      helperText={t("passwordMinLength")}
-                    />
-                    <Input
-                      label={t("confirmPassword")}
-                      name="confirmPassword"
-                      type="password"
-                      required
-                      value={securityInfo.confirmPassword}
-                      onChange={(e) =>
-                        setSecurityInfo({
-                          ...securityInfo,
-                          confirmPassword: e.target.value,
-                        })
-                      }
-                      icon={<Lock />}
-                    />
-                    <div className="pt-4">
-                      <button
-                        type="submit"
-                        disabled={isSaving}
-                        className="inline-flex items-center gap-2 rounded-md bg-foreground px-6 py-3 text-body font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        {isSaving && <LoadingSpinner size="sm" />}
-                        {isSaving ? t("updating") : t("updatePassword")}
-                      </button>
-                    </div>
-                  </form>
                 </div>
               )}
 
