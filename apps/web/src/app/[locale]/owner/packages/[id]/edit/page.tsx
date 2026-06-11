@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import { useOwnerGuard } from "@/hooks";
 import { vehicleService, tripPackageService, ApiError } from "@/lib/api";
@@ -77,19 +76,16 @@ export default function EditTripPackagePage() {
 
   if (guardLoading || !isAuthorized) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-gray-50">
         <header className="border-b border-gray-200 bg-white">
-          <div className="mx-auto max-w-5xl px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/packages`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
@@ -103,7 +99,7 @@ export default function EditTripPackagePage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-5xl px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           {error && (
             <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               {error}
@@ -128,6 +124,5 @@ export default function EditTripPackagePage() {
           )}
         </div>
       </div>
-    </MainLayout>
   );
 }

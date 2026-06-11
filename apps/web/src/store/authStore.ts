@@ -1,6 +1,7 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { UserRole, type User } from "@/types";
+import { readAuthRaw, writeAuthRaw, clearAuthRaw } from "@/lib/auth-storage";
 
 interface AuthState {
   user: User | null;
@@ -69,6 +70,13 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "travenest-auth",
+      // Storage follows the remember-me preference: localStorage when remembered,
+      // sessionStorage (cleared on browser close) when not.
+      storage: createJSONStorage(() => ({
+        getItem: () => readAuthRaw(),
+        setItem: (_name, value) => writeAuthRaw(value),
+        removeItem: () => clearAuthRaw(),
+      })),
       partialize: (state) => ({
         user: state.user,
         token: state.token,

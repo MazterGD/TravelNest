@@ -1,22 +1,13 @@
-import { getTranslations } from "next-intl/server";
-import { QuotationsPageContent } from "./QuotationsPageContent";
+import { redirect } from "next/navigation";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps) {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "quotation" });
-
-  return {
-    title: t("pageTitle"),
-    description: t("pageDescription"),
-  };
-}
-
+// The old Quotations list page has been replaced by the Trip-grouped Trips
+// list. Per-quotation detail (/dashboard/quotations/[id]) still exists and is
+// linked from the trip detail view; only the flat list is redirected.
 export default async function QuotationsPage({ params }: PageProps) {
   const { locale } = await params;
-
-  return <QuotationsPageContent locale={locale} />;
+  redirect(`/${locale}/dashboard/trips`);
 }

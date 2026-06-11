@@ -13,6 +13,7 @@ import path from "path";
 
 import { config } from "./config/index.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { auditLogger } from "./middleware/auditLogger.js";
 
 // Import route modules
 import authRoutes from "./modules/auth/auth.routes.js";
@@ -20,7 +21,9 @@ import userRoutes from "./modules/user/user.routes.js";
 import vehicleRoutes from "./modules/vehicle/vehicle.routes.js";
 import bookingRoutes from "./modules/booking/booking.routes.js";
 import quotationRoutes from "./modules/quotation/quotation.routes.js";
+import tripRoutes from "./modules/trip/trip.routes.js";
 import reviewRoutes from "./modules/review/review.routes.js";
+import disputeRoutes from "./modules/dispute/dispute.routes.js";
 import paymentRoutes from "./modules/payment/payment.routes.js";
 import notificationRoutes from "./modules/notification/notification.routes.js";
 import messageRoutes from "./modules/message/message.routes.js";
@@ -29,6 +32,7 @@ import tripPackageRoutes from "./modules/trip-package/trip-package.routes.js";
 import uploadsRoutes from "./modules/uploads/uploads.routes.js";
 import adminRoutes from "./modules/admin/admin.routes.js";
 import landingRoutes from "./modules/landing/landing.routes.js";
+import contentRoutes from "./modules/content/content.routes.js";
 import routingRoutes from "./modules/routing/routing.routes.js";
 
 const app: Express = express();
@@ -125,12 +129,17 @@ app.get("/health", (_req: Request, res: Response) => {
 // API Routes
 const apiBase = `/api/${config.apiVersion}`;
 
+// Audit every authenticated mutation (records on response finish, after auth has run)
+app.use(apiBase, auditLogger);
+
 app.use(`${apiBase}/auth`, authRoutes);
 app.use(`${apiBase}/users`, userRoutes);
 app.use(`${apiBase}/vehicles`, vehicleRoutes);
 app.use(`${apiBase}/bookings`, bookingRoutes);
 app.use(`${apiBase}/quotations`, quotationRoutes);
+app.use(`${apiBase}/trips`, tripRoutes);
 app.use(`${apiBase}/reviews`, reviewRoutes);
+app.use(`${apiBase}/disputes`, disputeRoutes);
 app.use(`${apiBase}/payments`, paymentRoutes);
 app.use(`${apiBase}/notifications`, notificationRoutes);
 app.use(`${apiBase}/messages`, messageRoutes);
@@ -139,6 +148,7 @@ app.use(`${apiBase}/packages`, tripPackageRoutes);
 app.use(`${apiBase}/uploads`, uploadsRoutes);
 app.use(`${apiBase}/admin`, adminRoutes);
 app.use(`${apiBase}/landing`, landingRoutes);
+app.use(`${apiBase}/content`, contentRoutes);
 app.use(`${apiBase}/routing`, routingRoutes);
 
 // API documentation endpoint
@@ -153,6 +163,7 @@ app.get(`${apiBase}`, (_req: Request, res: Response) => {
       vehicles: `${apiBase}/vehicles`,
       bookings: `${apiBase}/bookings`,
       quotations: `${apiBase}/quotations`,
+      trips: `${apiBase}/trips`,
       reviews: `${apiBase}/reviews`,
       payments: `${apiBase}/payments`,
       notifications: `${apiBase}/notifications`,

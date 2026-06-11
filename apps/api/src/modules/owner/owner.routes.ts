@@ -212,6 +212,18 @@ router.get(
 );
 
 /**
+ * @route   GET /api/v1/owner/analytics/vehicles/:vehicleId/bookings
+ * @desc    Get booking history for a specific vehicle (ownership-guarded)
+ * @access  Private (Owner only)
+ */
+router.get(
+  "/analytics/vehicles/:vehicleId/bookings",
+  authenticate,
+  authorize("owner"),
+  asyncHandler(ownerController.getAnalyticsVehicleBookings),
+);
+
+/**
  * @route   GET /api/v1/owner/earnings/summary
  * @desc    Get lifetime/month/year earnings and pending settlement balance
  * @access  Private (Owner only)

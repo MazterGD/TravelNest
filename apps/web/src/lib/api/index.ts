@@ -25,12 +25,36 @@ export {
   // Quotation
   quotationService,
 
+  // Trip
+  tripService,
+  type CreateTripInput,
+  type UpdateTripInput,
+  type TripDTO,
+  type TripLocation,
+
   // Booking
   bookingService,
   type BookingSearchParams,
 
   // Review
   reviewService,
+
+  // Public content
+  publicContentService,
+  type PublicContentPage,
+  type PublicLocaleContent,
+
+  // Dispute
+  disputeService,
+  type DisputeStatus,
+  type DisputeType,
+  type DisputeParty,
+  type DisputeBookingSummary,
+  type DisputeListItem,
+  type DisputeMessageItem,
+  type DisputeDetail,
+  type CreateDisputeInput,
+  type DisputeListResponse,
 
   // Payment
   paymentService,
@@ -153,6 +177,7 @@ export {
   type AdminProfileActivityResponse,
   type AdminPermissionGrant,
   type AdminProfilePermissionsResponse,
+  type AdminVehicleDocument,
   type AdminVehicleVerificationDetails,
   type AdminVehicleVerificationItem,
   type AdminVehicleVerificationQuery,
@@ -160,6 +185,10 @@ export {
   type AdminVerificationDocumentStatus,
   type AdminVerificationHistoryLog,
   type AdminVerificationHistoryResponse,
+  type AdminVehiclesQuery,
+  type AdminVehicleRecord,
+  type AdminVehiclesResponse,
+  type AdminOwnerDocument,
 
   // Owner Registration
   ownerRegistrationService,

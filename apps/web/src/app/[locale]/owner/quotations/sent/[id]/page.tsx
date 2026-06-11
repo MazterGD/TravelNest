@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui";
 import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store";
@@ -206,17 +205,14 @@ export default function QuotationDetailPage({
 
   if (guardLoading || !isAuthorized || !user || loading) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   if (!quotation) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-foreground">
@@ -230,18 +226,16 @@ export default function QuotationDetailPage({
             </Link>
           </div>
         </div>
-      </MainLayout>
     );
   }
 
   const isExpiredOrUrgent = quotation.daysRemaining <= 2;
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         {/* Header */}
         <header className="border-b border-border bg-card">
-          <div className="mx-auto max-w-[1280px] px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-[1280px] px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/quotations/sent`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -265,12 +259,12 @@ export default function QuotationDetailPage({
           </div>
         </header>
 
-        <div className="mx-auto max-w-[1280px] px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Left Column */}
             <div className="space-y-6 lg:col-span-2">
               {/* Status Timeline */}
-              <div className="rounded-lg border border-border bg-card p-6">
+              <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   {t("detail.timeline.title")}
                 </h2>
@@ -352,7 +346,7 @@ export default function QuotationDetailPage({
               </div>
 
               {/* Customer Information */}
-              <div className="rounded-lg border border-border bg-card p-6">
+              <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   {t("detail.customer.title")}
                 </h2>
@@ -389,7 +383,7 @@ export default function QuotationDetailPage({
               </div>
 
               {/* Trip Details */}
-              <div className="rounded-lg border border-border bg-card p-6">
+              <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   {t("detail.trip.title")}
                 </h2>
@@ -484,7 +478,7 @@ export default function QuotationDetailPage({
               </div>
 
               {/* Pricing Breakdown */}
-              <div className="rounded-lg border border-border bg-card p-6">
+              <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                 <h2 className="mb-4 text-lg font-semibold text-foreground">
                   {t("detail.pricing.title")}
                 </h2>
@@ -563,7 +557,7 @@ export default function QuotationDetailPage({
             <div className="lg:col-span-1">
               <div className="sticky top-8 space-y-6">
                 {/* Validity Card */}
-                <div className="rounded-lg border border-border bg-card p-6">
+                <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                   <h2 className="mb-4 text-lg font-semibold text-foreground">
                     {t("detail.validity.title")}
                   </h2>
@@ -632,6 +626,5 @@ export default function QuotationDetailPage({
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }

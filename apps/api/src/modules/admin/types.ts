@@ -44,7 +44,7 @@ export const sendCsv = (
 ): Response => {
   const filename = `${filenamePrefix}-${Date.now()}.csv`;
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", `attachment; filename=\"${filename}\"`);
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   return res.status(200).send(csv);
 };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   adminService,
   type AdminDisputeDetails,
@@ -45,17 +46,32 @@ interface UseDisputeManagementResult {
   refetch: () => Promise<void>;
 }
 
-const DEFAULT_FILTERS: AdminDisputeQuery = {
-  page: 1,
-  limit: 20,
-  search: "",
-};
+const VALID_DISPUTE_STATUSES: AdminDisputeStatus[] = [
+  "OPEN",
+  "INVESTIGATING",
+  "RESOLVED",
+  "CLOSED",
+  "ESCALATED",
+];
 
 export const useDisputeManagement = (): UseDisputeManagementResult => {
+  // Seed from URL params so dashboard deep-links arrive pre-filtered.
+  const searchParams = useSearchParams();
+  const rawStatus = searchParams.get("status");
+
+  const initialStatus = VALID_DISPUTE_STATUSES.includes(rawStatus as AdminDisputeStatus)
+    ? (rawStatus as AdminDisputeStatus)
+    : undefined;
+
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilterState] = useState<AdminDisputeQuery>(DEFAULT_FILTERS);
+  const [filters, setFilterState] = useState<AdminDisputeQuery>({
+    page: 1,
+    limit: 20,
+    search: "",
+    status: initialStatus,
+  });
   const [queueData, setQueueData] = useState<AdminDisputeQueueResponse | null>(null);
   const [selectedDispute, setSelectedDispute] = useState<AdminDisputeDetails | null>(null);
   const debouncedSearch = useDebounce(filters.search?.trim() || "", 300);

@@ -98,6 +98,8 @@ export const config = {
   payhere: {
     merchantId: process.env.PAYHERE_MERCHANT_ID || "",
     merchantSecret: process.env.PAYHERE_MERCHANT_SECRET || "",
+    appId: process.env.PAYHERE_APP_ID || "",
+    appSecret: process.env.PAYHERE_APP_SECRET || "",
     mode: process.env.PAYHERE_MODE || "sandbox", // 'sandbox' or 'live'
     notifyUrl: process.env.PAYHERE_NOTIFY_URL || "",
     returnUrl: process.env.PAYHERE_RETURN_URL || "",

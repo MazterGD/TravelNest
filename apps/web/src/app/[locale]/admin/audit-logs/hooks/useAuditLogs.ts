@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   adminService,
   type AdminAuditLog,
@@ -34,6 +34,11 @@ export const useAuditLogs = (): UseAuditLogsResult => {
   const [logsData, setLogsData] = useState<AdminAuditLogListResponse | null>(null);
   const [selectedLog, setSelectedLog] = useState<AdminAuditLog | null>(null);
 
+  // Ref avoids including selectedLog in fetchAuditLogs deps, which caused an
+  // infinite refetch loop: selecting a log changed the callback identity,
+  // which triggered the effect, which fetched and re-set selectedLog, repeat.
+  const selectedLogIdRef = useRef<string | null>(null);
+
   const fetchAuditLogs = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -48,9 +53,9 @@ export const useAuditLogs = (): UseAuditLogsResult => {
 
       setLogsData(data);
 
-      if (selectedLog) {
-        const freshSelection = data.logs.find((log) => log.id === selectedLog.id) || null;
-        setSelectedLog(freshSelection);
+      if (selectedLogIdRef.current) {
+        const fresh = data.logs.find((log) => log.id === selectedLogIdRef.current) ?? null;
+        setSelectedLog(fresh);
       }
     } catch (fetchError) {
       const message =
@@ -59,7 +64,7 @@ export const useAuditLogs = (): UseAuditLogsResult => {
     } finally {
       setIsLoading(false);
     }
-  }, [filters, selectedLog]);
+  }, [filters]);
 
   useEffect(() => {
     void fetchAuditLogs();
@@ -75,10 +80,18 @@ export const useAuditLogs = (): UseAuditLogsResult => {
           : next.action !== undefined ||
               next.entityType !== undefined ||
               next.entityId !== undefined ||
-              next.status !== undefined
+              next.status !== undefined ||
+              next.actorRole !== undefined ||
+              next.dateFrom !== undefined ||
+              next.dateTo !== undefined
             ? 1
             : previous.page,
     }));
+  }, []);
+
+  const selectLog = useCallback((log: AdminAuditLog | null) => {
+    selectedLogIdRef.current = log?.id ?? null;
+    setSelectedLog(log);
   }, []);
 
   const exportCsv = useCallback(async () => {
@@ -88,6 +101,7 @@ export const useAuditLogs = (): UseAuditLogsResult => {
     try {
       await adminService.exportAuditLogsCsv({
         adminId: filters.adminId,
+        actorRole: filters.actorRole,
         action: filters.action,
         entityType: filters.entityType,
         entityId: filters.entityId,
@@ -112,7 +126,7 @@ export const useAuditLogs = (): UseAuditLogsResult => {
     logsData,
     selectedLog,
     setFilters,
-    selectLog: setSelectedLog,
+    selectLog,
     exportCsv,
     refetch: fetchAuditLogs,
   };

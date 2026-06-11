@@ -216,6 +216,17 @@ export const getAnalyticsVehicles = async (req: Request, res: Response) => {
 };
 
 /**
+ * Get booking history for a specific vehicle (ownership-guarded)
+ * GET /api/v1/owner/analytics/vehicles/:vehicleId/bookings
+ */
+export const getAnalyticsVehicleBookings = async (req: Request, res: Response) => {
+  const ownerId = req.user!.id;
+  const vehicleId = req.params.vehicleId as string;
+  const data = await ownerService.getAnalyticsVehicleBookings(ownerId, vehicleId);
+  return ResponseHelper.success(res, data);
+};
+
+/**
  * Get earnings summary (lifetime / month / year earnings + pending balance)
  * GET /api/v1/owner/earnings/summary
  */

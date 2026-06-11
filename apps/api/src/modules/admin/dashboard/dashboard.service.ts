@@ -299,12 +299,8 @@ export const getActivityFeed = async (limit = 20) => {
       take: Math.max(limit, 10),
       orderBy: { createdAt: "desc" },
       include: {
-        admin: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
+        admin: { select: { firstName: true, lastName: true } },
+        actor: { select: { firstName: true, lastName: true } },
       },
     }),
   ]);
@@ -324,14 +320,18 @@ export const getActivityFeed = async (limit = 20) => {
       description: `${user.firstName} ${user.lastName} joined as ${user.role}`,
       timestamp: user.createdAt.toISOString(),
     })),
-    ...recentAudits.map((audit) => ({
-      id: `audit-${audit.id}`,
-      type: "audit",
-      title: audit.action,
-      description: `${audit.admin.firstName} ${audit.admin.lastName} performed ${audit.action}`,
-      timestamp: audit.createdAt.toISOString(),
-      status: audit.status,
-    })),
+    ...recentAudits.map((audit) => {
+      const who = audit.actor ?? audit.admin;
+      const name = who ? `${who.firstName} ${who.lastName}`.trim() : "A user";
+      return {
+        id: `audit-${audit.id}`,
+        type: "audit",
+        title: audit.action,
+        description: `${name} performed ${audit.action}`,
+        timestamp: audit.createdAt.toISOString(),
+        status: audit.status,
+      };
+    }),
   ]
     .sort(
       (left, right) =>
@@ -345,9 +345,7 @@ export const getActivityFeed = async (limit = 20) => {
 export const getPendingActions = async () => {
   const [
     pendingOwnerApprovals,
-    pendingOwnerDocuments,
-    pendingVehicleDocuments,
-    pendingQuotations,
+    pendingVehicleApprovals,
     pendingBookings,
     failedPayments,
     pendingDisputes,
@@ -359,9 +357,14 @@ export const getPendingActions = async () => {
         status: "PENDING_VERIFICATION",
       },
     }),
-    prisma.ownerDocument.count({ where: { status: "PENDING" } }),
-    prisma.vehicleDocument.count({ where: { status: "PENDING" } }),
-    prisma.quotation.count({ where: { status: "PENDING" } }),
+    // Count distinct vehicles with at least one pending document, not document rows.
+    prisma.vehicle.count({
+      where: {
+        documents: {
+          some: { status: "PENDING" },
+        },
+      },
+    }),
     prisma.booking.count({ where: { status: "PENDING" } }),
     prisma.payment.count({ where: { status: "FAILED" } }),
     prisma.dispute.count({
@@ -382,22 +385,10 @@ export const getPendingActions = async () => {
       href: "/admin/verifications/owners",
     },
     {
-      id: "owner-documents",
-      title: "Owner documents to review",
-      count: pendingOwnerDocuments,
-      href: "/admin/verifications/owners",
-    },
-    {
-      id: "vehicle-documents",
-      title: "Vehicle documents to review",
-      count: pendingVehicleDocuments,
+      id: "vehicle-approvals",
+      title: "Vehicle verification approvals",
+      count: pendingVehicleApprovals,
       href: "/admin/verifications/vehicles",
-    },
-    {
-      id: "pending-quotations",
-      title: "Pending quotation requests",
-      count: pendingQuotations,
-      href: "/admin/bookings",
     },
     {
       id: "pending-bookings",

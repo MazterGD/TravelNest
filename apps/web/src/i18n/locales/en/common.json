@@ -406,6 +406,26 @@
       "noVehicles": "No vehicles in your fleet yet.",
       "noVehiclesDesc": "Add your first vehicle to start tracking performance."
     },
+    "vehicleModal": {
+      "title": "Vehicle Analytics",
+      "viewFleetProfile": "View Fleet Profile",
+      "completionRate": "Completion Rate",
+      "close": "Close",
+      "totalRevenue": "Total Revenue",
+      "totalBookings": "Total Bookings",
+      "completedBookings": "Completed",
+      "averageRating": "Avg. Rating",
+      "reviews": "Reviews",
+      "noReviews": "No reviews yet",
+      "clickRow": "Click a vehicle row to view its full analytics",
+      "bookingHistory": "Booking History",
+      "colBookingId": "Booking ID",
+      "colDate": "Date",
+      "colAmount": "Amount",
+      "colStatus": "Status",
+      "noBookings": "No bookings recorded for this vehicle yet.",
+      "loadingBookings": "Loading bookings…"
+    },
     "error": {
       "loadFailed": "Could not load analytics. Please check your connection and try again.",
       "tryAgain": "Try again"
@@ -557,6 +577,14 @@
     "bookingCreatedDesc": "Customer submitted booking request",
     "paymentReceived": "Payment Received",
     "paymentReceivedDesc": "Customer completed payment via",
+    "bookingConfirmed": "Booking Confirmed",
+    "driverAssigned": "Driver Assigned",
+    "tripStarted": "Trip Started",
+    "tripCompleted": "Trip Completed",
+    "bookingCancelled": "Booking Cancelled",
+    "amenitiesTitle": "Vehicle Amenities",
+    "noAmenities": "No amenities listed",
+    "startTimeLabel": "Start time",
     "sectionActions": "Quick Actions",
     "generateInvoice": "Generate Invoice",
     "reportIssue": "Report Issue",
@@ -584,18 +612,21 @@
     "register": "Register",
     "dashboard": "Dashboard",
     "quotations": "Quotations",
+    "trips": "Trips",
     "searchBuses": "Search Buses",
     "packages": "Packages",
     "bookings": "Bookings",
     "messages": "Messages",
     "reviews": "Reviews",
+    "disputes": "Disputes",
     "notifications": "Notifications",
     "settings": "Settings",
     "profile": "Profile",
     "logout": "Logout",
     "openMenu": "Open main menu",
     "dashboardFor": "{name}'s Dashboard",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "disabledPending": "Available after your account is approved"
   },
   "locations": {
     "colombo": "Colombo",
@@ -1094,6 +1125,8 @@
       },
       "submit": "Create Account",
       "errors": {
+        "requiredField": "This field is required",
+        "requiredFields": "Please fill in all required fields",
         "passwordMismatch": "Passwords do not match",
         "acceptTerms": "Please accept the Terms and Conditions and Privacy Policy",
         "unexpected": "An unexpected error occurred. Please try again."
@@ -1209,7 +1242,11 @@
         },
         "vehicleType": {
           "label": "Vehicle Type *",
-          "select": "Select type"
+          "select": "Select type",
+          "tooltipTitle": "Vehicle Types Guide",
+          "tooltipOrdinary": "Standard bus for daily routes. Example: TATA Starbus, Ashok Leyland Viking",
+          "tooltipSemiLuxury": "Comfortable mid-range bus with better seating. Example: Mitsubishi Rosa",
+          "tooltipLuxuryAc": "Premium fully air-conditioned coach for long trips. Example: NCG, Ashok Leyland Boss"
         },
         "make": {
           "label": "Make *",
@@ -1376,6 +1413,17 @@
         "finalizeFailed": "Failed to finalize OAuth login. Please try again.",
         "default": "OAuth login failed. Please try again."
       }
+    },
+    "forgotPassword": {
+      "backToLogin": "Back to Login",
+      "title": "Password Reset",
+      "subtitle": "We'll send you an email with instructions to reset your password.",
+      "emailLabel": "Email Address",
+      "emailPlaceholder": "Enter your email address",
+      "submitButton": "Send Reset Link",
+      "successTitle": "Password Reset Link Sent",
+      "successMessage": "If an account with that email exists, a password reset link has been sent.",
+      "error": "Failed to send reset link. Please try again."
     }
   },
   "faq": {
@@ -1402,7 +1450,7 @@
       },
       "cancellation": {
         "question": "What is the cancellation policy?",
-        "answer": "Cancellation policies vary by bus owner. Generally, cancellations made 7+ days before the trip receive a full refund, 3-7 days receive 50%, and less than 3 days may not be eligible for refund."
+        "answer": "Cancellation policies vary by bus owner. Generally, cancellations made 14+ days before the trip receive a full refund, 7-14 days receive 50%, and less than 7 days may not be eligible for refund."
       },
       "verification": {
         "question": "How are bus owners verified?",
@@ -1614,6 +1662,21 @@
       "emptyTitle": "No Upcoming Bookings",
       "emptySubtitle": "Start planning your next trip"
     },
+    "nextJourney": {
+      "label": "Next Journey"
+    },
+    "activeTrip": {
+      "label": "Trip in progress",
+      "passengers": "{count, plural, one {# passenger} other {# passengers}}",
+      "quotesAttached": "{count, plural, one {# quote attached} other {# quotes attached}}",
+      "addVehicles": "Browse more buses",
+      "viewTrip": "Continue this trip"
+    },
+    "planTrip": {
+      "emptyTitle": "Plan your first trip",
+      "emptySubtitle": "Set the route, dates, and passengers once — then collect quotes from multiple bus owners side-by-side.",
+      "cta": "Plan a trip"
+    },
     "recentQuotations": {
       "title": "Recent Quotations",
       "subtitle": "Your latest quotation requests",
@@ -1726,8 +1789,13 @@
       "passwordChanged": "Your password has been changed successfully.",
       "updatePassword": "Update Password",
       "regional": "Regional Preferences",
+      "language": "Language",
+      "languageDescription": "Select your preferred language.",
+      "currency": "Currency",
+      "currencyDescription": "Select your preferred currency.",
       "notifications": "Notifications",
-      "emailNotifications": "Email Notifications"
+      "emailNotifications": "Email Notifications",
+      "emailNotificationsDesc": "Receive updates and booking confirmations via email."
     },
     "vehicleFallback": "Bus",
     "ownerFallback": "Owner",
@@ -1819,6 +1887,7 @@
     "saveDraft": "Save as Draft",
     "requestQuotations": "Request Quotations",
     "routeSummary": "Route Summary",
+    "intermediateStops": "Stops Along the Way",
     "tripEstimates": "Trip Estimates",
     "estimatedDistance": "Distance",
     "estimatedDuration": "Duration",
@@ -1840,7 +1909,67 @@
       "passengers": "At least 1 passenger is required"
     },
     "submitFailed": "Failed to submit quotation request. Please try again.",
+    "statusBadge": {
+      "pending": "Awaiting owner",
+      "sent": "Quote received",
+      "viewed": "Quote received",
+      "accepted": "Accepted",
+      "rejected": "Declined",
+      "expired": "Expired"
+    },
+    "statusBanner": {
+      "pendingTitle": "Waiting for the owner",
+      "pendingBody": "The owner hasn't sent a price yet. We'll notify you the moment they respond.",
+      "expiredBody": "This quotation's validity window has passed. Request a new quote if you'd still like this vehicle.",
+      "rejectedBody": "You declined this quotation.",
+      "acceptedBody": "You accepted this quotation. The booking is in your bookings list."
+    },
+    "rejectionReason": "Reason",
+    "vehicleDetails": "Vehicle",
+    "ownerContact": "Owner contact",
+    "chatWithOwner": "Chat with owner",
+    "openMessages": "Open messages",
+    "chatPreBookingHint": "Chat opens once the booking is confirmed.",
+    "confirm": {
+      "acceptTitle": "Accept this quotation?",
+      "acceptBody": "Accepting creates a confirmed booking immediately. You'll be redirected to your bookings list to complete payment.",
+      "rejectTitle": "Decline this quotation?",
+      "rejectBody": "Let the owner know why so they can adjust future quotes. Your other quotations for this trip remain active.",
+      "rejectReasonPlaceholder": "Optional — what didn't work for you?",
+      "cancelAction": "Cancel"
+    },
+    "tripPrompt": {
+      "title": "Add this vehicle to an existing trip?",
+      "body": "We noticed you already have a trip in progress. Attaching this quote to an existing trip lets you compare bus options side-by-side.",
+      "attach": "Use this trip",
+      "startNew": "Start a different trip",
+      "noDestination": "Destination TBD"
+    },
     "pickupFallback": "Pickup location",
+    "back": "Back to Quotations",
+    "quotationDetails": "Quotation Details",
+    "viewQuotationsDescription": "View all quotations received for your trip",
+    "tripDetails": "Trip Details",
+    "active": "Active",
+    "accepted": "Accepted",
+    "from": "From",
+    "to": "To",
+    "compareSelected": "Compare Selected",
+    "noQuotationsYet": "No Quotations Yet",
+    "waitingForOwnerResponses": "Waiting for owner responses. You'll be notified when quotations arrive.",
+    "priceBreakdown": "Price Breakdown",
+    "vehicleRental": "Vehicle Rental",
+    "driverCost": "Driver Cost",
+    "fuelCost": "Fuel Cost",
+    "tollCharges": "Toll Charges",
+    "permitFees": "Permit Fees",
+    "tax": "Tax",
+    "total": "Total",
+    "additionalNotes": "Additional Notes",
+    "contact": "Contact Owner",
+    "acceptQuotation": "Accept Quotation",
+    "errorLoadingQuotations": "Error Loading Quotations",
+    "quotationNotFound": "Quotation not found",
     "comparison": {
       "title": "Compare Quotations",
       "subtitle": "Compare up to 4 quotations side-by-side",
@@ -1937,6 +2066,7 @@
     "driver": "Driver",
     "contact": "Contact",
     "leaveReview": "Leave Review",
+    "cancel": "Cancel Booking",
     "vehicleFallback": "Vehicle",
     "ownerFallback": "Owner",
     "retry": "Retry",
@@ -1950,6 +2080,61 @@
       "confirm": "Yes, Cancel Booking",
       "cancel": "Keep Booking"
     }
+  },
+  "dispute": {
+    "pageTitle": "Disputes",
+    "title": "Disputes",
+    "description": "Raise and track issues with your bookings.",
+    "raiseButton": "Raise a dispute",
+    "noDisputes": "No disputes yet",
+    "noDisputesDescription": "If something goes wrong with a booking, you can raise a dispute here.",
+    "loadError": "Could not load your disputes. Please try again.",
+    "createError": "Could not submit your dispute. Please try again.",
+    "replyError": "Could not post your reply. Please try again.",
+    "retry": "Retry",
+    "you": "You",
+    "raisedByYou": "Raised by you",
+    "raisedAgainstYou": "Raised against you",
+    "against": "Against",
+    "raisedOn": "Raised on",
+    "code": "Reference",
+    "vehicle": "Vehicle",
+    "viewBooking": "View booking",
+    "thread": "Conversation",
+    "reply": "Reply",
+    "replyPlaceholder": "Write a reply…",
+    "send": "Send",
+    "sending": "Sending…",
+    "closedNotice": "This dispute is closed. No further replies can be added.",
+    "noMessages": "No replies yet. Start the conversation below.",
+    "raiseTitle": "Raise a dispute",
+    "fieldBooking": "Booking",
+    "selectBooking": "Select a booking",
+    "noBookings": "You have no bookings to dispute yet.",
+    "fieldType": "Issue type",
+    "fieldSubject": "Subject",
+    "subjectPlaceholder": "Briefly summarise the issue",
+    "fieldDescription": "Description",
+    "descriptionPlaceholder": "Describe what happened in detail…",
+    "submit": "Submit dispute",
+    "submitting": "Submitting…",
+    "cancel": "Cancel",
+    "statusOPEN": "Open",
+    "statusINVESTIGATING": "Investigating",
+    "statusRESOLVED": "Resolved",
+    "statusCLOSED": "Closed",
+    "statusESCALATED": "Escalated",
+    "typeBOOKING_QUALITY_ISSUE": "Booking quality issue",
+    "typeCANCELLATION_DISPUTE": "Cancellation dispute",
+    "typePAYMENT_ISSUE": "Payment issue",
+    "typeVEHICLE_CONDITION": "Vehicle condition",
+    "typeBEHAVIOR_COMPLAINT": "Behaviour complaint",
+    "typeSERVICE_NOT_PROVIDED": "Service not provided",
+    "typeOTHER": "Other",
+    "resolution": "Resolution",
+    "filterAll": "All",
+    "filterRaised": "Raised by me",
+    "filterAgainst": "Against me"
   },
   "review": {
     "pageTitle": "My Reviews - TravelNest",
@@ -1985,7 +2170,12 @@
     "ratingExcellent": "Excellent",
     "ratingRequired": "Please select an overall rating",
     "ownerResponse": "Owner Response",
-    "dimensionsTitle": "Rate Each Dimension",
+    "dimensionsTitle": "Rate Each Category",
+    "dimensionsSubtitle": "Rate all five — your overall rating is their average.",
+    "overallRating": "Overall Rating",
+    "overallRatingHint": "Calculated automatically from your category ratings",
+    "notRatedYet": "Rate the categories below to see your overall score",
+    "allCategoriesRequired": "Please rate all five categories",
     "dimVehicleCondition": "Vehicle Condition",
     "dimDriverBehavior": "Driver Behavior",
     "dimPunctuality": "Punctuality",
@@ -2176,7 +2366,7 @@
         },
         "cancellation": {
           "question": "What is the cancellation policy?",
-          "answer": "Cancellation policies vary by owner, but are clearly displayed before booking. Generally, cancellations made 7+ days in advance receive a full refund minus processing fees. Cancellations within 48-72 hours may incur a 50% fee. Last-minute cancellations (< 24 hours) are typically non-refundable unless due to emergencies."
+          "answer": "Cancellation policies vary by owner, but are clearly displayed before booking. Generally, cancellations made 14+ days in advance receive a full refund minus processing fees. Cancellations within 7-14 days may incur a 50% fee. Last-minute cancellations (< 7 days) are typically non-refundable unless due to emergencies."
         },
         "contact": {
           "question": "Can I contact the bus owner directly?",
@@ -2650,7 +2840,8 @@
     "colActions": "Actions",
     "statusActive": "Active",
     "statusInactive": "Inactive",
-    "statusPending": "Pending",
+    "statusPending": "Pending Approval",
+    "statusUnavailable": "Paused",
     "emptyTitle": "No Vehicles Found",
     "emptyDescAll": "You haven't added any vehicles yet. Start by adding your first vehicle.",
     "emptyDescFiltered": "No {status} vehicles found.",
@@ -2673,7 +2864,44 @@
     "detailsNoAmenities": "No amenities listed yet.",
     "detailsErrorLoad": "Oops, we couldn't load these vehicle details. Check your connection and try again.",
     "detailsNotFound": "We can't find this vehicle. It may have been removed. Go back to your fleet and pick another one.",
-    "close": "Close"
+    "close": "Close",
+    "confirmDeleteTitle": "Delete Vehicle",
+    "pendingAlert": "awaiting admin approval.",
+    "detailsNoPhotos": "No photos uploaded yet.",
+    "detailsStatusOverview": "Status & Performance",
+    "detailsQuickNav": "Vehicle Activity",
+    "detailsRecentReviews": "Recent Reviews",
+    "detailsNoRecentReviews": "No reviews yet for this vehicle.",
+    "detailsViewAllBookings": "View All Bookings",
+    "detailsViewAllQuotations": "View All Quotations",
+    "detailsViewAllReviews": "View All Reviews",
+    "detailsViewAnalytics": "View Analytics",
+    "detailsViewEarnings": "View Earnings",
+    "detailsSetAvailability": "Manage Availability",
+    "detailsQuotations": "Quotations",
+    "confirmDeactivateTitle": "Deactivate Vehicle",
+    "confirmDeactivateMsg": "This will hide your vehicle from customer search results. Existing confirmed bookings are not affected.",
+    "confirmActivateTitle": "Activate Vehicle",
+    "confirmActivateMsg": "This will make your vehicle visible to customers in search results.",
+    "actionPause": "Pause Listing",
+    "actionResume": "Resume Listing",
+    "actionRequestActivation": "Request Activation",
+    "actionCancelRequest": "Cancel Request",
+    "confirmPauseTitle": "Pause Vehicle Listing",
+    "confirmPauseMsg": "Your vehicle will be hidden from customer search results. This won't affect confirmed bookings.",
+    "confirmResumeTitle": "Resume Vehicle Listing",
+    "confirmResumeMsg": "Your vehicle will be visible to customers in search results again.",
+    "confirmRequestActivationTitle": "Request Vehicle Activation",
+    "confirmRequestActivationMsg": "Your request will be reviewed by our admin team. You will be notified once approved.",
+    "confirmCancelRequestTitle": "Cancel Activation Request",
+    "confirmCancelRequestMsg": "Your activation request will be withdrawn. Your vehicle will remain inactive until you submit a new request.",
+    "hasActiveBookingsTitle": "Cannot Pause — Active Bookings Exist",
+    "hasActiveBookingsMsg": "This vehicle has active bookings. Cancel all active bookings before pausing the listing.",
+    "pendingActivationAlert": "Your activation request is pending admin review.",
+    "activationRequestSent": "Activation request submitted. You'll be notified once approved.",
+    "activationRequestCancelled": "Activation request cancelled.",
+    "pauseSuccess": "Vehicle listing paused.",
+    "resumeSuccess": "Vehicle listing resumed."
   },
   "vehicleForm": {
     "backToFleet": "Back to Fleet",
@@ -2821,6 +3049,9 @@
     "noSelectionDesc": "Choose a booking from the list to view its messages.",
     "noSearchResults": "No matches found",
     "noSearchResultsDesc": "No conversations match your search.",
+    "filterUnread": "Unread",
+    "noUnreadTitle": "All caught up",
+    "noUnreadDesc": "You have no unread messages right now.",
     "loadError": "We couldn't load your messages. Please try again in a moment.",
     "retry": "Retry",
     "loadMore": "Load more conversations",
@@ -2829,15 +3060,24 @@
     "loadingOlder": "Loading…",
     "inputPlaceholder": "Type a message…",
     "send": "Send",
+    "sendHint": "Press Enter to send · Shift+Enter for a new line",
+    "composerLabel": "Send a message",
     "connected": "Connected",
     "offline": "Reconnecting…",
     "unreadBadge": "{count, plural, one {# unread} other {# unread}}",
+    "viewBooking": "View booking",
     "messageOwner": "Message owner",
     "messageCustomer": "Message customer",
     "messageReadByYou": "Read",
     "messageDelivered": "Sent",
+    "messagePending": "Sending",
     "searchPlaceholder": "Search by name or trip…",
     "yesterdayLabel": "Yesterday",
+    "today": "Today",
+    "backToList": "Back to chats",
+    "conversationsListLabel": "Conversations",
+    "threadLabel": "Message thread",
+    "unknownUser": "Unknown user",
     "validation": {
       "empty": "Message can't be empty.",
       "tooLong": "Message can't exceed 2000 characters.",
@@ -2850,5 +3090,475 @@
       "COMPLETED": "Completed",
       "CANCELLED": "Cancelled"
     }
+  },
+  "trip": {
+    "listPageTitle": "My Trips - TravelNest",
+    "listPageDescription": "Plan trips and compare bus quotes for each one in a single place.",
+    "newPageTitle": "Plan a Trip - TravelNest",
+    "newPageDescription": "Set the route, dates, and passenger count for your trip.",
+    "detailPageTitle": "Trip Details - TravelNest",
+    "detailPageDescription": "Review your trip plan and the quotes you've received.",
+    "listTitle": "My Trips",
+    "listDescription": "Each trip groups the bus quotes you've requested. Start by planning a trip, then add as many vehicles as you want to compare.",
+    "planNewTrip": "Plan a Trip",
+    "planFirstTrip": "Plan your first trip",
+    "emptyTitle": "No trips yet",
+    "emptyDescription": "Plan a trip to start collecting quotes from bus owners.",
+    "fetchError": "We couldn't load your trips. Please try again.",
+    "retry": "Retry",
+    "tabs": {
+      "all": "All",
+      "active": "Active",
+      "confirmed": "Confirmed",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "status": {
+      "planning": "Planning",
+      "awaiting_quotes": "Awaiting Quotes",
+      "confirmed": "Confirmed",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "passengerCount": "{count, plural, one {# passenger} other {# passengers}}",
+    "quotesAttached": "{count, plural, one {# quote} other {# quotes}} attached",
+    "noDestination": "Destination TBD",
+    "viewTrip": "View trip",
+    "newTitle": "Plan a new trip",
+    "newSubtitle": "Save your trip details once, then request quotes from as many vehicles as you'd like.",
+    "backToTrips": "Back to trips",
+    "titleSectionHeading": "Name this trip (optional)",
+    "titleLabel": "Trip name",
+    "titlePlaceholder": "e.g. School excursion to Sigiriya",
+    "titleHint": "A short label makes the trip easier to find later. Skip if you'd rather rely on the route.",
+    "dateDetails": "Date & passengers",
+    "passengersLabel": "Passenger count",
+    "vehiclePreferences": "Vehicle preferences",
+    "createTrip": "Save trip",
+    "createAndQuote": "Save trip & continue",
+    "draftSaved": "Draft saved.",
+    "submitFailed": "We couldn't save your trip. Please try again.",
+    "moveStopUp": "Move stop up",
+    "moveStopDown": "Move stop down",
+    "proTipTitle": "Why save a trip first?",
+    "proTipBody": "Once your trip is saved, every quote you request for it stays grouped together — making side-by-side comparison painless.",
+    "validation": {
+      "pickup": "Please enter pickup location details",
+      "pickupDate": "Please select a pickup date",
+      "pickupTime": "Please select a pickup time",
+      "returnDate": "Please select a return date for round trip",
+      "passengers": "At least 1 passenger is required"
+    },
+    "tripInfoHeading": "Trip details",
+    "quotationsHeading": "Quotes received",
+    "quotationsSubtitle": "{received} of {total} owners have responded",
+    "noQuotesTitle": "No quotes yet",
+    "noQuotesBody": "Add vehicles to this trip to start receiving quotes from owners.",
+    "addMoreVehicles": "Add more vehicles",
+    "cancelTrip": "Cancel trip",
+    "cancelConfirmTitle": "Cancel this trip?",
+    "cancelConfirmBody": "You'll lose any pending quotes attached to this trip. Owners who have already responded will not receive a refund — but no booking has been created, so no payment was taken.",
+    "keepTrip": "Keep trip",
+    "confirmCancel": "Cancel trip",
+    "cancelFailed": "We couldn't cancel this trip. Please try again.",
+    "notFound": "Trip not found.",
+    "vehicleUnassigned": "Vehicle pending assignment",
+    "ownerFallback": "Owner",
+    "yes": "Yes",
+    "no": "No",
+    "dateRange": "{start} – {end}",
+    "planningBannerTitle": "Your trip plan is saved",
+    "planningBannerBody": "Now browse buses or add vehicles to start collecting quotes.",
+    "awaitingBannerTitle": "Waiting for owner responses",
+    "awaitingBannerBody": "{received} of {total} owners have replied so far. We'll notify you when more quotes come in."
+  },
+  "customerBookingDetails": {
+    "title": "Booking Details",
+    "reference": "Reference: {ref}",
+    "payNow": "Pay Now",
+    "tripInfo": "Trip Information",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "pickupLocation": "Pickup Location",
+    "dropoffLocation": "Drop-off Location",
+    "passengersCount": "{count} Passengers",
+    "vehicleDetails": "Vehicle Details",
+    "seats": "{count} Seats",
+    "registrationNumber": "Registration Number: {reg}",
+    "ownerDetails": "Owner Details",
+    "contactOwner": "Contact Owner",
+    "pricingDetails": "Pricing Details",
+    "totalAmount": "Total Amount",
+    "platformCommission": "Platform Commission",
+    "netAmount": "Net Amount (Owner)",
+    "totalPayable": "Total Payable",
+    "amountPaid": "Amount Paid",
+    "paymentStatus": "Payment Status",
+    "paymentMethod": "Payment Method",
+    "receipt": "Receipt",
+    "viewReceipt": "View",
+    "downloadInvoice": "Download Invoice",
+    "downloadReceipt": "Download Receipt",
+    "actionsTitle": "Actions",
+    "cancelBooking": "Cancel Booking",
+    "rateService": "Rate Service",
+    "raiseDispute": "Raise Dispute",
+    "cancelDialog": {
+      "title": "Cancel Booking",
+      "description": "Please provide a reason for cancellation. Cancellation fees may apply.",
+      "placeholder": "Reason for cancellation...",
+      "confirm": "Confirm Cancellation",
+      "keep": "Keep Booking",
+      "reasonRequired": "Please provide a reason for cancellation",
+      "success": "Booking cancelled successfully",
+      "error": "Failed to cancel booking"
+    },
+    "ratingDialog": {
+      "title": "Rate Your Experience",
+      "ratingLabel": "Rating",
+      "placeholder": "Share your experience...",
+      "submit": "Submit Rating",
+      "cancel": "Cancel",
+      "success": "Rating submitted successfully!",
+      "error": "Failed to submit rating"
+    },
+    "loadError": "Failed to load booking details",
+    "specialRequirements": "Special Requirements",
+    "breakdownBasePrice": "Vehicle Rental",
+    "breakdownDriverAllowance": "Driver Allowance",
+    "breakdownAdditionalCharges": "Additional Charges",
+    "breakdownSubtotal": "Subtotal",
+    "breakdownTax": "Tax",
+    "stopLabel": "Stop {index}",
+    "notFound": "Booking not found",
+    "goToBookings": "Go to Bookings",
+    "startTime": "Start time",
+    "duration": "Duration",
+    "amenitiesTitle": "Vehicle Amenities",
+    "ownerCompletedTrips": "{count, plural, =0 {No completed trips} one {# completed trip} other {# completed trips}}",
+    "driverTitle": "Driver",
+    "driverLicense": "License",
+    "timelineTitle": "Booking Timeline",
+    "timeline": {
+      "bookingCreated": "Booking Created",
+      "bookingConfirmed": "Booking Confirmed",
+      "paymentReceived": "Payment Received",
+      "driverAssigned": "Driver Assigned",
+      "tripStarted": "Trip Started",
+      "tripCompleted": "Trip Completed",
+      "bookingCancelled": "Booking Cancelled"
+    },
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "ongoing": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "disputed": "Disputed"
+    },
+    "paymentStatusLabels": {
+      "pending": "Pending",
+      "partial": "Partial",
+      "paid": "Paid",
+      "completed": "Paid",
+      "refunded": "Refunded",
+      "failed": "Failed"
+    }
+  },
+  "ownerPendingApproval": {
+    "title": "Registration Pending Approval",
+    "subtitle": "Thank you for registering with TraveNest. Our team is reviewing your application — we will notify you the moment it is approved.",
+    "statusBadge": "Pending Verification",
+    "roleBadge": "Bus Owner",
+    "timeline": {
+      "heading": "Verification Process",
+      "submittedTitle": "Registration Submitted",
+      "submittedDesc": "Your registration form has been successfully submitted.",
+      "reviewTitle": "Under Review",
+      "reviewDesc": "Our team is verifying your information and documents.",
+      "approvedTitle": "Approval Complete",
+      "approvedDesc": "You will be notified once your account is approved."
+    },
+    "estimated": {
+      "heading": "Estimated Review Time",
+      "value": "2–3 Business Days"
+    },
+    "details": {
+      "heading": "Your Registration Details",
+      "name": "Name",
+      "email": "Email",
+      "status": "Status",
+      "role": "Role"
+    },
+    "restrictions": {
+      "heading": "Account Restrictions",
+      "intro": "Until your account is approved, you cannot perform the following actions:",
+      "item1": "List your vehicles for booking",
+      "item2": "Receive booking requests from customers",
+      "item3": "Set pricing for your vehicles",
+      "item4": "Access the owner dashboard",
+      "item5": "Respond to customer quotation requests"
+    },
+    "nextSteps": {
+      "heading": "What Happens Next?",
+      "step1": "Our team will review your personal information and verify your NIC details.",
+      "step2": "We will verify your vehicle registration and documentation.",
+      "step3": "Once approved, you will receive an email notification.",
+      "step4": "You can then set up your vehicle pricing and start receiving bookings."
+    },
+    "support": {
+      "heading": "Need Help?",
+      "description": "If you have any questions about the verification process or need to update your registration details, please contact our support team.",
+      "emailSupport": "Email Support",
+      "callSupport": "Call Support"
+    },
+    "footer": {
+      "backHome": "Back to Home",
+      "logout": "Logout",
+      "submittedOn": "Your registration was submitted on {date}"
+    }
+  },
+  "adminNav": {
+    "badge": "ADMIN",
+    "sidebarLabel": "Admin portal navigation",
+    "primaryNavLabel": "Admin sections",
+    "selectLanguage": "Select language",
+    "openMenu": "Open admin menu",
+    "closeMenu": "Close menu",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "openAccountMenu": "open account menu",
+    "groups": {
+      "overview": "Overview",
+      "operations": "Operations",
+      "trust": "Trust & Quality",
+      "finance": "Finance",
+      "insights": "Insights",
+      "catalog": "Catalog",
+      "system": "System"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "vehicles": "Vehicles",
+      "bookings": "Bookings",
+      "disputes": "Disputes",
+      "ownerVerifications": "Owner verifications",
+      "vehicleVerifications": "Vehicle verifications",
+      "reviewModeration": "Review moderation",
+      "financial": "Financial",
+      "analytics": "Analytics",
+      "reports": "Reports",
+      "content": "Content",
+      "amenities": "Amenities",
+      "settings": "Settings",
+      "notifications": "Notifications",
+      "auditLogs": "Audit logs",
+      "profile": "Admin profile"
+    }
+  },
+  "adminShell": {
+    "breadcrumbRoot": "Admin"
+  },
+  "adminDashboard": {
+    "loadFailed": "Unable to load dashboard summary.",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing dashboard data…",
+    "ariaRefresh": "Refresh dashboard data",
+    "viewAllActivity": "View all activity",
+    "kpiLabel": "Key platform metrics",
+    "trendsLabel": "Six-month trends",
+    "kpi": {
+      "users": "Total users",
+      "vehicles": "Registered vehicles",
+      "bookings": "All bookings",
+      "revenue": "Completed revenue",
+      "subStat": {
+        "verifiedOwners": "{verified} of {total} owners verified",
+        "activeVehicles": "{count, plural, one {# active vehicle} other {# active vehicles}}",
+        "pendingBookings": "{count, plural, one {# booking pending} other {# bookings pending}}",
+        "payments": "{count, plural, one {# successful payment} other {# successful payments}}"
+      }
+    },
+    "alerts": {
+      "failedPayments": "{count, plural, one {# failed payment needs attention} other {# failed payments need attention}}",
+      "viewFinancial": "View financial"
+    },
+    "sections": {
+      "trends": "Trends (last 6 months)",
+      "trendsHint": "Updated with each dashboard refresh",
+      "activity": "Recent activity",
+      "activityHint": "Latest platform events across users and bookings",
+      "activityEmpty": "No activity available right now.",
+      "pending": "Pending actions",
+      "pendingEmpty": "Nothing waiting on you. Nice work.",
+      "pendingCount": "{count, plural, one {# item} other {# items}}"
+    },
+    "charts": {
+      "revenue": "Revenue by month",
+      "userGrowth": "User growth",
+      "bookingVolume": "Booking volume",
+      "empty": "No data yet — values will appear once activity begins."
+    }
+  },
+  "adminSettings": {
+    "title": "Platform settings",
+    "subtitle": "Adjust the platform-wide defaults used across booking, payment, notifications, and security.",
+    "lastUpdated": "Last updated by {by} on {at}",
+    "lastUpdatedUnknown": "Unknown admin",
+    "badges": {
+      "unsaved": "Unsaved changes",
+      "saved": "Saved"
+    },
+    "actions": {
+      "save": "Save changes",
+      "saving": "Saving…",
+      "revert": "Revert",
+      "reload": "Reload"
+    },
+    "tabs": {
+      "ariaLabel": "Settings categories",
+      "general": "General",
+      "notifications": "Notifications",
+      "payment": "Payment",
+      "booking": "Booking",
+      "security": "Security",
+      "map": "Map"
+    },
+    "maintenance": {
+      "title": "Maintenance mode",
+      "description": "When enabled, customers and owners see an interruption banner instead of the marketplace. Use during deploys or incidents.",
+      "toggleLabel": "Toggle maintenance mode",
+      "statusOn": "On",
+      "statusOff": "Off",
+      "activeWarning": "Customers cannot reach the marketplace while this is on.",
+      "messageLabel": "Maintenance message",
+      "messagePlaceholder": "TravelNest is undergoing scheduled maintenance. We'll be back shortly.",
+      "messageHelp": "{count} / 1000 characters"
+    },
+    "general": {
+      "platformName": {
+        "label": "Platform name",
+        "help": "Displayed in the header, emails, and PWA installer."
+      },
+      "supportEmail": {
+        "label": "Support email",
+        "help": "Customer-visible contact address for help requests."
+      },
+      "supportPhone": {
+        "label": "Support phone",
+        "help": "Local Sri Lankan number shown on contact pages."
+      },
+      "defaultLocale": {
+        "label": "Default locale",
+        "help": "Used when a new visitor has no language preference."
+      },
+      "defaultCurrency": {
+        "label": "Default currency",
+        "help": "Used for displayed prices and settlement reporting."
+      }
+    },
+    "notifications": {
+      "email": {
+        "label": "Email notifications",
+        "help": "Booking confirmations, quotation updates, settlement notices."
+      },
+      "sms": {
+        "label": "SMS notifications",
+        "help": "Turn on once the Twilio roadmap item is live."
+      },
+      "inApp": {
+        "label": "In-app notifications",
+        "help": "Notification center entries inside the customer and owner portals."
+      }
+    },
+    "payment": {
+      "provider": {
+        "label": "Primary payment provider",
+        "help": "PayHere is the default for v1.0. Other gateways are roadmap items."
+      },
+      "settlementWindow": {
+        "label": "Settlement window (days)",
+        "help": "Days between booking completion and owner settlement (1-60)."
+      }
+    },
+    "booking": {
+      "autoCancel": {
+        "label": "Auto-cancel unpaid bookings (hours)",
+        "help": "Bookings without payment are cancelled after this many hours (1-168)."
+      },
+      "refundWindow": {
+        "label": "Customer refund window (hours)",
+        "help": "Hours before trip start when refunds are still allowed."
+      }
+    },
+    "security": {
+      "strongPasswords": {
+        "label": "Require strong passwords",
+        "help": "Enforce minimum length, casing, and symbol rules at registration."
+      },
+      "sessionTimeout": {
+        "label": "Session timeout (minutes)",
+        "help": "Inactive sessions expire after this many minutes (5-1440)."
+      }
+    },
+    "map": {
+      "country": {
+        "label": "Default country code",
+        "help": "Two-letter ISO code (e.g. LK)."
+      },
+      "city": {
+        "label": "Default city",
+        "help": "City used as the search starting point for new sessions."
+      }
+    },
+    "errors": {
+      "platformNameRequired": "Platform name cannot be empty.",
+      "supportEmailInvalid": "Enter a valid support email address.",
+      "settlementWindowRange": "Settlement window must be between 1 and 60 days.",
+      "bookingHoursInvalid": "Booking hours must be positive values.",
+      "sessionTimeoutRange": "Session timeout must be between 5 and 1440 minutes.",
+      "maintenanceMessageTooLong": "Maintenance message must be 1000 characters or fewer.",
+      "saveFailed": "Failed to save settings."
+    }
+  },
+  "ownerNav": {
+    "badge": "OWNER PORTAL",
+    "sidebarLabel": "Owner portal navigation",
+    "primaryNavLabel": "Owner sections",
+    "openMenu": "Open owner menu",
+    "closeMenu": "Close menu",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "openAccountMenu": "open account menu",
+    "groups": {
+      "overview": "Overview",
+      "operations": "Operations",
+      "fleet": "Fleet",
+      "insights": "Insights",
+      "communication": "Communication"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "quotations": "Quotations",
+      "sentQuotes": "Sent Quotes",
+      "bookings": "Bookings",
+      "fleet": "My Fleet",
+      "packages": "Packages",
+      "analytics": "Analytics",
+      "earnings": "Earnings",
+      "reviews": "Reviews",
+      "messages": "Messages",
+      "notifications": "Notifications",
+      "disputes": "Disputes",
+      "profile": "My Profile",
+      "settings": "Settings"
+    }
+  },
+  "ownerShell": {
+    "breadcrumbRoot": "Owner Portal"
   }
 }

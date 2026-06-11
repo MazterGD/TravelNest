@@ -13,6 +13,7 @@ import { getDashboardUrl } from "@/lib/utils/getDashboardUrl";
 import { useAuthStore } from "@/store";
 import { useGuestGuard } from "@/hooks";
 import { cn } from "@/lib/utils/cn";
+import { setRemembered } from "@/lib/auth-storage";
 import { MARKETING_STATS, OTP_LENGTH, OTP_RESEND_COOLDOWN_SECONDS } from "@/constants";
 
 type LoginMethod = "password" | "otp";
@@ -32,7 +33,7 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({
     emailOrPhone: "",
     password: "",
-    rememberMe: false,
+    rememberMe: true,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -144,14 +145,19 @@ export default function LoginPage() {
           throw new ApiError(401, "Unable to complete OTP login");
         }
 
+        setRemembered(true);
         login(verificationResult.user, verificationResult.accessToken);
         router.push(getDashboardUrl(verificationResult.user, locale));
         return;
       }
 
+      // Persist the remember-me choice BEFORE the store writes the session.
+      setRemembered(formData.rememberMe);
+
       const response = await authService.login({
         email: formData.emailOrPhone,
         password: formData.password,
+        rememberMe: formData.rememberMe,
       });
 
       // Store user and token in auth store
@@ -214,20 +220,20 @@ export default function LoginPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-[calc(100vh-200px)] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-6 items-center">
+      <div className="min-h-[calc(100vh-200px)] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl w-full grid lg:grid-cols-2 gap-4 items-center">
           {/* Left Side - Image/Illustration */}
-          <div className="hidden lg:block">
-            <div className="bg-white rounded-3xl shadow-2xl p-12 border-2 border-gray-100">
-              <div className="mb-8">
-                <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          <div className="hidden lg:block h-full">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-gray-100 h-full flex flex-col justify-between">
+              <div className="mb-5">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">
                   {t("marketing.title")}
                 </h2>
-                <p className="text-xl text-gray-600 leading-relaxed">
+                <p className="text-base text-gray-600 leading-relaxed">
                   {t("marketing.subtitle")}
                 </p>
               </div>
-              <div className="relative h-96 rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary/10">
+              <div className="relative h-full rounded-2xl overflow-hidden bg-gradient-to-br from-primary/20 to-primary/10">
                 <Image
                   src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800"
                   alt="Bus travel in Sri Lanka"
@@ -237,37 +243,37 @@ export default function LoginPage() {
                   unoptimized
                 />
               </div>
-              <div className="mt-8 grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
-                  <div className="flex justify-center mb-2">
-                    <Bus className="w-6 h-6 text-primary" />
+              <div className="mt-5 grid grid-cols-3 gap-3">
+                <div className="text-center p-3 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
+                  <div className="flex justify-center mb-1.5">
+                    <Bus className="w-5 h-5 text-primary" />
                   </div>
-                  <div className="text-2xl font-bold text-primary mb-1">
+                  <div className="text-xl font-bold text-primary mb-0.5">
                     {marketingStats.verifiedBuses}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-xs text-gray-600">
                     {t("marketing.stats.buses")}
                   </div>
                 </div>
-                <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
-                  <div className="flex justify-center mb-2">
-                    <Users className="w-6 h-6 text-primary" />
+                <div className="text-center p-3 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
+                  <div className="flex justify-center mb-1.5">
+                    <Users className="w-5 h-5 text-primary" />
                   </div>
-                  <div className="text-2xl font-bold text-primary mb-1">
+                  <div className="text-xl font-bold text-primary mb-0.5">
                     {marketingStats.happyCustomers}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-xs text-gray-600">
                     {t("marketing.stats.customers")}
                   </div>
                 </div>
-                <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
-                  <div className="flex justify-center mb-2">
-                    <Star className="w-6 h-6 text-primary" />
+                <div className="text-center p-3 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
+                  <div className="flex justify-center mb-1.5">
+                    <Star className="w-5 h-5 text-primary" />
                   </div>
-                  <div className="text-2xl font-bold text-primary mb-1">
+                  <div className="text-xl font-bold text-primary mb-0.5">
                     {marketingStats.averageRating}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-xs text-gray-600">
                     {t("marketing.stats.rating")}
                   </div>
                 </div>
@@ -276,21 +282,21 @@ export default function LoginPage() {
           </div>
 
           {/* Right Side - Login Form */}
-          <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 border-2 border-gray-100">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border-2 border-gray-100">
+            <div className="mb-4">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">
                 {t("title")}
               </h1>
-              <p className="text-lg text-gray-600">{t("subtitle")}</p>
+              <p className="text-sm text-gray-600">{t("subtitle")}</p>
             </div>
 
             {/* Login Method Toggle */}
-            <div className="flex gap-2 bg-gray-100 p-1 rounded-lg mb-8">
+            <div className="flex gap-2 bg-gray-100 p-1 rounded-lg mb-4">
               <button
                 type="button"
                 onClick={() => setLoginMethod("password")}
                 className={cn(
-                  "flex-1 py-3 rounded-lg font-semibold transition-all",
+                  "flex-1 py-2 rounded-lg font-semibold transition-all text-sm",
                   loginMethod === "password"
                     ? "bg-white text-primary shadow-md"
                     : "text-gray-600 hover:text-gray-900",
@@ -302,7 +308,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setLoginMethod("otp")}
                 className={cn(
-                  "flex-1 py-3 rounded-lg font-semibold transition-all",
+                  "flex-1 py-2 rounded-lg font-semibold transition-all text-sm",
                   loginMethod === "otp"
                     ? "bg-white text-primary shadow-md"
                     : "text-gray-600 hover:text-gray-900",
@@ -312,20 +318,20 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+                <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
                   {error}
                 </div>
               )}
 
               {/* Email or Phone Input */}
               <div>
-                <label className="block text-lg font-semibold text-gray-800 mb-2">
+                <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                   {t("emailOrPhone")}
                 </label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                   <input
                     type="text"
                     required
@@ -335,14 +341,14 @@ export default function LoginPage() {
                       setFormData({ ...formData, emailOrPhone: e.target.value })
                     }
                     placeholder={t("emailOrPhonePlaceholder")}
-                    className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                    className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                   />
                 </div>
               </div>
 
               {loginMethod === "otp" && otpSent && (
                 <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                     OTP Code
                   </label>
                   <input
@@ -352,17 +358,17 @@ export default function LoginPage() {
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
                     placeholder="Enter 6-digit OTP"
-                    className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                    className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                     required
                   />
-                  <p className="mt-2 text-sm text-gray-500">
+                  <p className="mt-1.5 text-xs text-gray-500">
                     Code sent to {otpDestination || formData.emailOrPhone}
                   </p>
                   <button
                     type="button"
                     onClick={handleResendOtp}
                     disabled={otpCooldown > 0 || isLoading}
-                    className="mt-2 text-sm font-semibold text-primary disabled:text-gray-400"
+                    className="mt-1.5 text-xs font-semibold text-primary disabled:text-gray-400"
                   >
                     {otpCooldown > 0
                       ? `Resend OTP in ${otpCooldown}s`
@@ -374,11 +380,11 @@ export default function LoginPage() {
               {/* Password Input (only for password login) */}
               {loginMethod === "password" && (
                 <div>
-                  <label className="block text-lg font-semibold text-gray-800 mb-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                     {t("password")}
                   </label>
                   <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                     <input
                       type={showPassword ? "text" : "password"}
                       required
@@ -388,17 +394,18 @@ export default function LoginPage() {
                         setFormData({ ...formData, password: e.target.value })
                       }
                       placeholder={t("passwordPlaceholder")}
-                      className="w-full pl-12 pr-12 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                      className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
                     >
                       {showPassword ? (
-                        <EyeOff className="w-5 h-5" />
+                        <EyeOff className="w-4 h-4" />
                       ) : (
-                        <Eye className="w-5 h-5" />
+                        <Eye className="w-4 h-4" />
                       )}
                     </button>
                   </div>
@@ -408,7 +415,7 @@ export default function LoginPage() {
               {/* Remember Me & Forgot Password */}
               {loginMethod === "password" && (
                 <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-2 cursor-pointer group">
                     <input
                       type="checkbox"
                       checked={formData.rememberMe}
@@ -418,15 +425,15 @@ export default function LoginPage() {
                           rememberMe: e.target.checked,
                         })
                       }
-                      className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
-                    <span className="text-gray-700 group-hover:text-gray-900">
+                    <span className="text-sm text-gray-700 group-hover:text-gray-900">
                       {t("rememberMe")}
                     </span>
                   </label>
                   <Link
                     href={`/${locale}/forgot-password`}
-                    className="text-primary hover:text-primary/80 font-semibold transition-colors"
+                    className="text-sm text-primary hover:text-primary/80 font-semibold transition-colors"
                   >
                     {t("forgotPassword")}
                   </Link>
@@ -437,7 +444,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading || submitCooldown > 0}
-                className="w-full bg-gradient-to-r from-primary to-primary/90 text-white py-5 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-primary to-primary/90 text-white py-3 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <LoadingSpinner size="sm" className="text-white" />
@@ -454,54 +461,54 @@ export default function LoginPage() {
             </form>
 
             {/* Divider */}
-            <div className="relative my-8">
+            <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500 text-lg">
+                <span className="px-3 bg-white text-gray-500 text-sm">
                   {t("divider")}
                 </span>
               </div>
             </div>
 
             {/* Social Login */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-2 gap-3 mb-4">
               <button
                 type="button"
                 onClick={() => handleOAuthLogin("google")}
-                className="flex items-center justify-center gap-3 py-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
+                className="flex items-center justify-center gap-2 py-2.5 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
               >
-                <Chrome className="w-5 h-5 text-red-500" />
-                <span className="font-semibold text-gray-700">
+                <Chrome className="w-4 h-4 text-red-500" />
+                <span className="font-semibold text-sm text-gray-700">
                   {t("social.google")}
                 </span>
               </button>
               <button
                 type="button"
                 onClick={() => handleOAuthLogin("facebook")}
-                className="flex items-center justify-center gap-3 py-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
+                className="flex items-center justify-center gap-2 py-2.5 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
               >
-                <Facebook className="w-5 h-5 text-blue-600" />
-                <span className="font-semibold text-gray-700">
+                <Facebook className="w-4 h-4 text-blue-600" />
+                <span className="font-semibold text-sm text-gray-700">
                   {t("social.facebook")}
                 </span>
               </button>
             </div>
 
             {/* Register Links */}
-            <div className="text-center space-y-3">
-              <p className="text-gray-600">{t("noAccount")}</p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">{t("noAccount")}</p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
                 <Link
                   href={`/${locale}/register/customer`}
-                  className="px-6 py-3 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold"
+                  className="px-5 py-2 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold text-sm"
                 >
                   {t("registerCustomer")}
                 </Link>
                 <Link
                   href={`/${locale}/register/owner`}
-                  className="px-6 py-3 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold"
+                  className="px-5 py-2 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold text-sm"
                 >
                   {t("registerOwner")}
                 </Link>

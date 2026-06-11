@@ -76,7 +76,7 @@ export const authenticate = async (
         throw ApiError.unauthorized("User not found");
       }
 
-      if (user.status !== "ACTIVE") {
+      if (user.status !== "ACTIVE" && user.status !== "PENDING_VERIFICATION") {
         throw ApiError.forbidden("Account is not active");
       }
 
@@ -97,10 +97,13 @@ export const authenticate = async (
 
     next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      next(ApiError.unauthorized("Invalid token"));
-    } else if (error instanceof jwt.TokenExpiredError) {
+    // TokenExpiredError extends JsonWebTokenError, so it MUST be checked first —
+    // otherwise expired tokens fall into the generic branch and lose the
+    // TOKEN_EXPIRED code the web client keys its silent refresh on.
+    if (error instanceof jwt.TokenExpiredError) {
       next(ApiError.unauthorized("Token expired", "TOKEN_EXPIRED"));
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      next(ApiError.unauthorized("Invalid token"));
     } else {
       next(error);
     }

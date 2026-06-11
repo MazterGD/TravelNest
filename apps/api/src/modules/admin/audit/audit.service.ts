@@ -4,7 +4,9 @@ import { ResponseHelper } from "../../../utils/response.js";
 import { buildCsv } from "../types.js";
 
 export interface CreateAuditLogInput {
-  adminId: string;
+  adminId?: string;
+  actorId?: string;
+  actorRole?: string;
   action: string;
   entityType: string;
   entityId: string;
@@ -19,6 +21,8 @@ export interface GetAuditLogsFilters {
   page: number;
   limit: number;
   adminId?: string;
+  actorId?: string;
+  actorRole?: string;
   action?: string;
   entityType?: string;
   entityId?: string;
@@ -29,8 +33,34 @@ export interface GetAuditLogsFilters {
 
 type AuditFilterInput = Omit<GetAuditLogsFilters, "page" | "limit">;
 
+// Both admin and actor are surfaced; for non-admin (customer/owner) entries the
+// admin relation is null and the actor relation carries the acting user.
+const auditActorSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  role: true,
+  adminRole: true,
+} as const;
+
+const auditLogInclude = {
+  admin: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      adminRole: true,
+    },
+  },
+  actor: { select: auditActorSelect },
+} as const;
+
 const buildAuditWhere = (filters: AuditFilterInput): Prisma.AuditLogWhereInput => ({
   ...(filters.adminId && { adminId: filters.adminId }),
+  ...(filters.actorId && { actorId: filters.actorId }),
+  ...(filters.actorRole && { actorRole: filters.actorRole }),
   ...(filters.action && { action: filters.action }),
   ...(filters.entityType && { entityType: filters.entityType }),
   ...(filters.entityId && { entityId: filters.entityId }),
@@ -44,9 +74,16 @@ const buildAuditWhere = (filters: AuditFilterInput): Prisma.AuditLogWhereInput =
 });
 
 export const createAuditLog = async (data: CreateAuditLogInput) => {
+  // Always populate actorId so every entry is attributable, even legacy
+  // admin-only call sites that only pass adminId.
+  const actorId = data.actorId ?? data.adminId;
+  const actorRole = data.actorRole ?? (data.adminId ? "ADMIN" : undefined);
+
   return prisma.auditLog.create({
     data: {
       adminId: data.adminId,
+      actorId,
+      actorRole,
       action: data.action,
       entityType: data.entityType,
       entityId: data.entityId,
@@ -56,6 +93,35 @@ export const createAuditLog = async (data: CreateAuditLogInput) => {
       status: data.status ?? "success",
       errorMessage: data.errorMessage,
     },
+  });
+};
+
+/**
+ * Record an action performed by ANY authenticated user (customer/owner/admin).
+ * Used by the app-wide audit middleware. Never store request bodies here — they
+ * may contain PII or secrets; only metadata belongs in the audit trail.
+ */
+export const recordUserAction = async (input: {
+  actorId: string;
+  actorRole: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  changes?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+  status?: "success" | "failure";
+}) => {
+  return createAuditLog({
+    actorId: input.actorId,
+    actorRole: input.actorRole,
+    action: input.action,
+    entityType: input.entityType,
+    entityId: input.entityId,
+    changes: input.changes as Prisma.InputJsonValue | undefined,
+    ipAddress: input.ipAddress,
+    userAgent: input.userAgent,
+    status: input.status,
   });
 };
 
@@ -90,6 +156,8 @@ export const getAuditLogs = async (filters: GetAuditLogsFilters) => {
     page,
     limit,
     adminId,
+    actorId,
+    actorRole,
     action,
     entityType,
     entityId,
@@ -101,6 +169,8 @@ export const getAuditLogs = async (filters: GetAuditLogsFilters) => {
 
   const where = buildAuditWhere({
     adminId,
+    actorId,
+    actorRole,
     action,
     entityType,
     entityId,
@@ -112,17 +182,7 @@ export const getAuditLogs = async (filters: GetAuditLogsFilters) => {
   const [logs, total] = await Promise.all([
     prisma.auditLog.findMany({
       where,
-      include: {
-        admin: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            adminRole: true,
-          },
-        },
-      },
+      include: auditLogInclude,
       orderBy: { createdAt: "desc" },
       skip,
       take: limit,
@@ -139,17 +199,7 @@ export const getAuditLogs = async (filters: GetAuditLogsFilters) => {
 export const getAuditLogById = async (logId: string) => {
   const log = await prisma.auditLog.findUnique({
     where: { id: logId },
-    include: {
-      admin: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          adminRole: true,
-        },
-      },
-    },
+    include: auditLogInclude,
   });
 
   if (!log) {
@@ -181,17 +231,7 @@ export const exportAuditLogsCsv = async (filters: AuditFilterInput) => {
 
   const logs = await prisma.auditLog.findMany({
     where,
-    include: {
-      admin: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          adminRole: true,
-        },
-      },
-    },
+    include: auditLogInclude,
     orderBy: { createdAt: "desc" },
     take: 5000,
   });
@@ -199,6 +239,9 @@ export const exportAuditLogsCsv = async (filters: AuditFilterInput) => {
   const headers = [
     "logId",
     "createdAt",
+    "actorId",
+    "actorName",
+    "actorRole",
     "adminId",
     "adminName",
     "adminEmail",
@@ -216,10 +259,13 @@ export const exportAuditLogsCsv = async (filters: AuditFilterInput) => {
   const rows = logs.map((log) => [
     log.id,
     log.createdAt.toISOString(),
-    log.adminId,
-    `${log.admin.firstName} ${log.admin.lastName}`.trim(),
-    log.admin.email,
-    log.admin.adminRole,
+    log.actorId ?? "",
+    log.actor ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : "",
+    log.actorRole ?? "",
+    log.adminId ?? "",
+    log.admin ? `${log.admin.firstName} ${log.admin.lastName}`.trim() : "",
+    log.admin?.email ?? "",
+    log.admin?.adminRole ?? "",
     log.action,
     log.entityType,
     log.entityId,

@@ -169,13 +169,31 @@ router.patch(
   asyncHandler(vehicleController.toggleAvailability),
 );
 
-// Toggle vehicle status (isActive)
+// Toggle vehicle status (isActive) — admin controls activation; owner can only deactivate
 router.patch(
   "/:id/status",
   authenticate,
   csrfProtection,
   authorize("owner", "admin"),
   asyncHandler(vehicleController.toggleStatus),
+);
+
+// Submit activation request (owner → pending state)
+router.patch(
+  "/:id/request-activation",
+  authenticate,
+  csrfProtection,
+  authorize("owner"),
+  asyncHandler(vehicleController.requestActivation),
+);
+
+// Cancel pending activation request (owner → back to inactive)
+router.patch(
+  "/:id/cancel-activation",
+  authenticate,
+  csrfProtection,
+  authorize("owner"),
+  asyncHandler(vehicleController.cancelActivation),
 );
 
 export default router;

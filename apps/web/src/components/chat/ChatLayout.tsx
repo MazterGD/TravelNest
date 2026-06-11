@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { ChevronLeft } from "lucide-react";
 import { ChatList } from "./ChatList";
 import { MessageThread } from "./MessageThread";
 import { MessageInput } from "./MessageInput";
@@ -12,10 +13,17 @@ interface ChatLayoutProps {
   // When provided, a conversation for this booking is opened and selected on
   // mount — used by the "Message owner" entry point on the booking pages.
   initialBookingId?: string;
+  // When provided, a "View booking" link appears in the thread header pointing
+  // to `/${locale}${bookingBasePath}/${bookingId}`.
+  bookingBasePath?: string;
 }
 
-export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) {
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2";
+
+export function ChatLayout({ emptyDescKey, initialBookingId, bookingBasePath }: ChatLayoutProps) {
   const t = useTranslations("messages");
+  const locale = useLocale();
   const {
     conversations,
     conversationsLoading,
@@ -23,6 +31,8 @@ export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) 
     conversationsHasMore,
     conversationsLoadingMore,
     loadMoreConversations,
+    unreadOnly,
+    setUnreadOnly,
     activeConversationId,
     activeMessages,
     messagesLoading,
@@ -42,36 +52,27 @@ export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) 
     [conversations, activeConversationId],
   );
 
-  return (
-    <div className="overflow-hidden rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-base)] shadow-sm">
-      <div
-        className="flex items-center justify-between border-b border-[var(--color-border-default)] px-4 py-3"
-        aria-live="polite"
-      >
-        <span
-          className={`flex items-center gap-2 text-xs font-medium ${
-            isConnected
-              ? "text-[var(--color-success-text)]"
-              : "text-[var(--color-text-tertiary)]"
-          }`}
-        >
-          <span
-            className={`inline-block h-2 w-2 rounded-full ${
-              isConnected
-                ? "bg-[var(--color-success-text)]"
-                : "bg-[var(--color-text-tertiary)]"
-            }`}
-            aria-hidden="true"
-          />
-          {isConnected ? t("connected") : t("offline")}
-        </span>
-      </div>
+  const bookingHref = useMemo(() => {
+    if (!bookingBasePath || !activeConversation) return undefined;
+    return `/${locale}${bookingBasePath}/${activeConversation.bookingId}`;
+  }, [bookingBasePath, locale, activeConversation]);
 
-      <div className="grid h-[calc(100vh-260px)] min-h-[480px] grid-cols-1 md:grid-cols-[320px_1fr]">
+  return (
+    <div className="flex h-full flex-col overflow-hidden rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] shadow-sm">
+      {/* Two-pane chat layout. The status indicator lives on the conversation
+          header (right pane) rather than a separate strip so we keep the
+          interface dense — every pixel of the chat container is functional. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[320px_1fr]">
+        {/* Left pane: conversation list. Hidden on mobile when a chat is open
+            so the thread can use the full width — the back button in the
+            thread header returns the user here. */}
         <aside
-          className={`border-r border-[var(--color-border-default)] ${
+          className={`min-h-0 border-[var(--color-border-default)] md:border-r ${
             activeConversationId ? "hidden md:flex md:flex-col" : "flex flex-col"
           }`}
+          aria-label={t("conversationsListLabel", {
+            defaultValue: "Conversations",
+          })}
         >
           <ChatList
             conversations={conversations}
@@ -81,18 +82,35 @@ export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) 
             hasMore={conversationsHasMore}
             loadingMore={conversationsLoadingMore}
             emptyDescKey={emptyDescKey}
+            isConnected={isConnected}
+            unreadOnly={unreadOnly}
+            onToggleUnread={() => setUnreadOnly(!unreadOnly)}
             onSelect={selectConversation}
             onRetry={() => void refresh()}
             onLoadMore={loadMoreConversations}
           />
         </aside>
 
+        {/* Right pane: thread + input. Always flex column so the input docks
+            at the bottom regardless of message volume. */}
         <section
-          className={`flex flex-col ${
+          className={`min-h-0 flex-col ${
             activeConversationId ? "flex" : "hidden md:flex"
           }`}
+          aria-label={t("threadLabel", { defaultValue: "Message thread" })}
         >
-          <div className="flex-1 overflow-hidden">
+          {activeConversationId ? (
+            <button
+              type="button"
+              onClick={() => selectConversation(null)}
+              className={`flex shrink-0 items-center gap-1 border-b border-[var(--color-border-default)] px-3 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] md:hidden ${focusRing}`}
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              {t("backToList", { defaultValue: "Back to chats" })}
+            </button>
+          ) : null}
+
+          <div className="min-h-0 flex-1">
             <MessageThread
               conversation={activeConversation}
               messages={activeMessages}
@@ -101,6 +119,8 @@ export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) 
               error={messagesError}
               hasMoreMessages={messagesHasMore}
               loadingOlder={messagesLoadingOlder}
+              isConnected={isConnected}
+              bookingHref={bookingHref}
               onRetry={() =>
                 activeConversationId &&
                 selectConversation(activeConversationId)
@@ -108,12 +128,12 @@ export function ChatLayout({ emptyDescKey, initialBookingId }: ChatLayoutProps) 
               onLoadOlder={loadOlderMessages}
             />
           </div>
-          {activeConversationId && (
+          {activeConversationId ? (
             <MessageInput
               disabled={!activeConversationId}
               onSend={sendMessage}
             />
-          )}
+          ) : null}
         </section>
       </div>
     </div>

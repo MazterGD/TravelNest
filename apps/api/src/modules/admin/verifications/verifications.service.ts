@@ -11,7 +11,7 @@ type OwnerVerificationFilters = {
 
 type VehicleVerificationFilters = {
   search?: string;
-  documentStatus?: "PENDING" | "VERIFIED" | "REJECTED";
+  verificationState?: "PENDING" | "MISSING_DOCUMENTS" | "ACTIVATION_REQUEST";
 };
 
 const buildOwnerWhere = (filters: OwnerVerificationFilters): Prisma.UserWhereInput => {
@@ -47,30 +47,48 @@ const buildOwnerWhere = (filters: OwnerVerificationFilters): Prisma.UserWhereInp
 const buildVehicleWhere = (
   filters: VehicleVerificationFilters,
 ): Prisma.VehicleWhereInput => {
-  const where: Prisma.VehicleWhereInput = {};
+  // Always restrict to vehicles that need admin attention.
+  // Optionally narrow to just one state via verificationState filter.
+  let stateFilter: Prisma.VehicleWhereInput;
 
-  if (filters.documentStatus) {
-    where.documents = {
-      some: {
-        status: filters.documentStatus,
-      },
+  if (filters.verificationState === "PENDING") {
+    stateFilter = { documents: { some: { status: "PENDING" } } };
+  } else if (filters.verificationState === "MISSING_DOCUMENTS") {
+    stateFilter = { documents: { none: {} } };
+  } else if (filters.verificationState === "ACTIVATION_REQUEST") {
+    // Owner submitted an activation request: isActive=false, isAvailable=true
+    stateFilter = { isActive: false, isAvailable: true };
+  } else {
+    // All vehicles needing admin attention: pending/missing docs OR activation requests
+    stateFilter = {
+      OR: [
+        { documents: { none: {} } },
+        { documents: { some: { status: "PENDING" } } },
+        { isActive: false, isAvailable: true },
+      ],
     };
   }
 
+  const where: Prisma.VehicleWhereInput = { ...stateFilter };
+
   if (filters.search) {
-    where.OR = [
-      { name: { contains: filters.search, mode: "insensitive" } },
-      { licensePlate: { contains: filters.search, mode: "insensitive" } },
-      { brand: { contains: filters.search, mode: "insensitive" } },
-      { model: { contains: filters.search, mode: "insensitive" } },
+    where.AND = [
       {
-        owner: {
-          OR: [
-            { firstName: { contains: filters.search, mode: "insensitive" } },
-            { lastName: { contains: filters.search, mode: "insensitive" } },
-            { email: { contains: filters.search, mode: "insensitive" } },
-          ],
-        },
+        OR: [
+          { name: { contains: filters.search, mode: "insensitive" } },
+          { licensePlate: { contains: filters.search, mode: "insensitive" } },
+          { brand: { contains: filters.search, mode: "insensitive" } },
+          { model: { contains: filters.search, mode: "insensitive" } },
+          {
+            owner: {
+              OR: [
+                { firstName: { contains: filters.search, mode: "insensitive" } },
+                { lastName: { contains: filters.search, mode: "insensitive" } },
+                { email: { contains: filters.search, mode: "insensitive" } },
+              ],
+            },
+          },
+        ],
       },
     ];
   }
@@ -560,17 +578,22 @@ export const listVehicleVerifications = async (
   const items = vehicles.map((vehicle) => {
     const documentSummary = summarizeDocumentStatuses(vehicle.documents);
 
-    return {
-      ...vehicle,
-      documentSummary,
-      verificationState:
-        documentSummary.pending > 0
+    // Activation request takes precedence — owner is waiting for admin to approve isActive
+    const verificationState =
+      !vehicle.isActive && vehicle.isAvailable
+        ? "ACTIVATION_REQUEST"
+        : documentSummary.pending > 0
           ? "PENDING"
           : documentSummary.rejected > 0
             ? "REJECTED"
             : documentSummary.verified > 0
               ? "VERIFIED"
-              : "MISSING_DOCUMENTS",
+              : "MISSING_DOCUMENTS";
+
+    return {
+      ...vehicle,
+      documentSummary,
+      verificationState,
     };
   });
 
@@ -656,12 +679,14 @@ export const approveVehicleVerification = async (
       where: { id: vehicleId },
       data: {
         isActive: true,
+        isAvailable: true,
       },
       select: {
         id: true,
         name: true,
         licensePlate: true,
         isActive: true,
+        isAvailable: true,
         updatedAt: true,
       },
     });
@@ -738,12 +763,14 @@ export const rejectVehicleVerification = async (
       where: { id: vehicleId },
       data: {
         isActive: false,
+        isAvailable: false,
       },
       select: {
         id: true,
         name: true,
         licensePlate: true,
         isActive: true,
+        isAvailable: true,
         updatedAt: true,
       },
     });
@@ -837,4 +864,199 @@ export const getVerificationHistory = async (
     limit: paging.limit,
     totalPages: Math.max(1, Math.ceil(total / paging.limit)),
   };
+};
+
+export const approveVehicleDocument = async (
+  adminId: string,
+  vehicleId: string,
+  documentId: string,
+) => {
+  const document = await prisma.vehicleDocument.findFirst({
+    where: { id: documentId, vehicleId },
+    select: { id: true, type: true },
+  });
+
+  if (!document) throw new ApiError(404, "Vehicle document not found");
+
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    select: { id: true, ownerId: true, name: true, licensePlate: true },
+  });
+
+  if (!vehicle) throw new ApiError(404, "Vehicle not found");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.vehicleDocument.update({
+      where: { id: documentId },
+      data: { status: "VERIFIED", verifiedAt: new Date(), verifiedBy: adminId, rejectionReason: null },
+    });
+
+    const remaining = await tx.vehicleDocument.count({
+      where: { vehicleId, status: { not: "VERIFIED" } },
+    });
+
+    if (remaining === 0) {
+      await tx.vehicle.update({ where: { id: vehicleId }, data: { isActive: true, isAvailable: true } });
+
+      await tx.notification.create({
+        data: {
+          userId: vehicle.ownerId,
+          type: "vehicle_verification_approved",
+          title: "Vehicle verification complete",
+          message: `${vehicle.name} (${vehicle.licensePlate}) has been approved and is now active.`,
+          data: { vehicleId },
+        },
+      });
+    }
+  });
+
+  await recordAuditLog(
+    adminId, "UPDATE", "VEHICLE_VERIFICATION", vehicleId,
+    { documentId, documentType: document.type, action: "document_approved" },
+    `Document ${document.type} approved for ${vehicle.licensePlate}`,
+  );
+};
+
+export const rejectVehicleDocument = async (
+  adminId: string,
+  vehicleId: string,
+  documentId: string,
+  reason: string,
+) => {
+  const document = await prisma.vehicleDocument.findFirst({
+    where: { id: documentId, vehicleId },
+    select: { id: true, type: true },
+  });
+
+  if (!document) throw new ApiError(404, "Vehicle document not found");
+
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    select: { id: true, ownerId: true, name: true, licensePlate: true },
+  });
+
+  if (!vehicle) throw new ApiError(404, "Vehicle not found");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.vehicleDocument.update({
+      where: { id: documentId },
+      data: { status: "REJECTED", rejectionReason: reason, verifiedAt: null, verifiedBy: null },
+    });
+
+    await tx.vehicle.update({ where: { id: vehicleId }, data: { isActive: false } });
+
+    await tx.notification.create({
+      data: {
+        userId: vehicle.ownerId,
+        type: "vehicle_verification_rejected",
+        title: "Vehicle document rejected",
+        message: `A document for ${vehicle.name} was rejected. Please review and resubmit.`,
+        data: { vehicleId, documentId, reason },
+      },
+    });
+  });
+
+  await recordAuditLog(
+    adminId, "UPDATE", "VEHICLE_VERIFICATION", vehicleId,
+    { documentId, documentType: document.type, action: "document_rejected", reason },
+    `Document ${document.type} rejected for ${vehicle.licensePlate}`,
+  );
+};
+
+export const approveOwnerDocument = async (
+  adminId: string,
+  ownerId: string,
+  documentId: string,
+) => {
+  const document = await prisma.ownerDocument.findFirst({
+    where: { id: documentId, ownerId },
+    select: { id: true, type: true },
+  });
+
+  if (!document) throw new ApiError(404, "Owner document not found");
+
+  const owner = await prisma.user.findFirst({
+    where: { id: ownerId, role: "VEHICLE_OWNER" },
+    select: { id: true, email: true },
+  });
+
+  if (!owner) throw new ApiError(404, "Owner not found");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.ownerDocument.update({
+      where: { id: documentId },
+      data: { status: "VERIFIED", verifiedAt: new Date(), verifiedBy: adminId, rejectionReason: null },
+    });
+
+    const remaining = await tx.ownerDocument.count({
+      where: { ownerId, status: { not: "VERIFIED" } },
+    });
+
+    if (remaining === 0) {
+      await tx.user.update({
+        where: { id: ownerId },
+        data: { status: "ACTIVE", isVerified: true, verifiedAt: new Date(), verifiedBy: adminId, rejectedAt: null, rejectionReason: null },
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: ownerId,
+          type: "owner_verification_approved",
+          title: "Owner verification complete",
+          message: "All your documents have been verified. Your account is now active.",
+          data: { ownerId },
+        },
+      });
+    }
+  });
+
+  await recordAuditLog(
+    adminId, "UPDATE", "OWNER_VERIFICATION", ownerId,
+    { documentId, documentType: document.type, action: "document_approved" },
+    `Document ${document.type} approved for owner ${owner.email}`,
+  );
+};
+
+export const rejectOwnerDocument = async (
+  adminId: string,
+  ownerId: string,
+  documentId: string,
+  reason: string,
+) => {
+  const document = await prisma.ownerDocument.findFirst({
+    where: { id: documentId, ownerId },
+    select: { id: true, type: true },
+  });
+
+  if (!document) throw new ApiError(404, "Owner document not found");
+
+  const owner = await prisma.user.findFirst({
+    where: { id: ownerId, role: "VEHICLE_OWNER" },
+    select: { id: true, email: true },
+  });
+
+  if (!owner) throw new ApiError(404, "Owner not found");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.ownerDocument.update({
+      where: { id: documentId },
+      data: { status: "REJECTED", rejectionReason: reason, verifiedAt: null, verifiedBy: null },
+    });
+
+    await tx.notification.create({
+      data: {
+        userId: ownerId,
+        type: "owner_verification_rejected",
+        title: "Owner document rejected",
+        message: "A verification document was rejected. Please review and resubmit.",
+        data: { ownerId, documentId, reason },
+      },
+    });
+  });
+
+  await recordAuditLog(
+    adminId, "UPDATE", "OWNER_VERIFICATION", ownerId,
+    { documentId, documentType: document.type, action: "document_rejected", reason },
+    `Document ${document.type} rejected for owner ${owner.email}`,
+  );
 };

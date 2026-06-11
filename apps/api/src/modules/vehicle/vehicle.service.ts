@@ -285,6 +285,12 @@ export const getVehicleById = async (id: string) => {
         orderBy: { createdAt: "desc" },
         take: 10,
       },
+      _count: {
+        select: {
+          bookings: true,
+          quotations: true,
+        },
+      },
     },
   });
 
@@ -303,6 +309,8 @@ export const getVehicleById = async (id: string) => {
     ...vehicle,
     averageRating,
     reviewCount: vehicle.reviews.length,
+    totalBookings: vehicle._count.bookings,
+    quotationCount: vehicle._count.quotations,
   };
 };
 
@@ -332,6 +340,7 @@ export const getMyVehicles = async (ownerId: string) => {
       _count: {
         select: {
           bookings: true,
+          quotations: true,
         },
       },
     },
@@ -348,7 +357,8 @@ export const getMyVehicles = async (ownerId: string) => {
           vehicle.reviews.length
         : 0,
     reviewCount: vehicle.reviews.length,
-    bookingCount: vehicle._count.bookings,
+    totalBookings: vehicle._count.bookings,
+    quotationCount: vehicle._count.quotations,
   }));
 };
 
@@ -689,7 +699,8 @@ export const uploadVehicleDocuments = async (
 };
 
 /**
- * Toggle vehicle availability
+ * Toggle vehicle availability (owner pause/resume)
+ * Blocks deactivation when there are active bookings.
  */
 export const toggleVehicleAvailability = async (
   id: string,
@@ -710,6 +721,21 @@ export const toggleVehicleAvailability = async (
     );
   }
 
+  if (!available) {
+    const activeBookingCount = await prisma.booking.count({
+      where: {
+        vehicleId: id,
+        status: { in: ["PENDING", "CONFIRMED", "ONGOING"] },
+      },
+    });
+
+    if (activeBookingCount > 0) {
+      throw ApiError.badRequest(
+        `Cannot pause vehicle: ${activeBookingCount} active booking(s) must be cancelled first.`,
+      );
+    }
+  }
+
   const updated = await prisma.vehicle.update({
     where: { id },
     data: { isAvailable: available },
@@ -719,12 +745,14 @@ export const toggleVehicleAvailability = async (
 };
 
 /**
- * Toggle vehicle active status (isActive)
+ * Toggle vehicle active status (isActive) — admin only for activation.
+ * Owners can only deactivate; activation requires admin approval via requestVehicleActivation.
  */
 export const toggleVehicleStatus = async (
   id: string,
   ownerId: string,
   isActive: boolean,
+  isAdmin = false,
 ) => {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id },
@@ -734,13 +762,126 @@ export const toggleVehicleStatus = async (
     throw ApiError.notFound("Vehicle not found");
   }
 
-  if (vehicle.ownerId !== ownerId) {
+  if (!isAdmin && vehicle.ownerId !== ownerId) {
     throw ApiError.forbidden("You can only update status of your own vehicles");
+  }
+
+  if (!isAdmin && isActive) {
+    throw ApiError.forbidden(
+      "Vehicle activation requires admin approval. Submit an activation request instead.",
+    );
   }
 
   const updated = await prisma.vehicle.update({
     where: { id },
     data: { isActive },
+  });
+
+  return updated;
+};
+
+/**
+ * Request vehicle activation (owner action).
+ * Sets isAvailable=true when isActive=false, signalling admin for review.
+ * State transition: inactive (false/false) → pending (false/true)
+ */
+export const requestVehicleActivation = async (id: string, ownerId: string) => {
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      ownerId: true,
+      isActive: true,
+      isAvailable: true,
+      name: true,
+      licensePlate: true,
+    },
+  });
+
+  if (!vehicle) {
+    throw ApiError.notFound("Vehicle not found");
+  }
+
+  if (vehicle.ownerId !== ownerId) {
+    throw ApiError.forbidden("You can only request activation for your own vehicles");
+  }
+
+  if (vehicle.isActive) {
+    throw ApiError.badRequest("Vehicle is already active");
+  }
+
+  if (vehicle.isAvailable) {
+    throw ApiError.badRequest("An activation request is already pending for this vehicle");
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const vehicleRecord = await tx.vehicle.update({
+      where: { id },
+      data: { isAvailable: true },
+    });
+
+    const admins = await tx.user.findMany({
+      where: {
+        role: "ADMIN",
+        adminRole: { in: ["SUPER_ADMIN", "MODERATOR"] },
+      },
+      select: { id: true },
+    });
+
+    if (admins.length > 0) {
+      await tx.notification.createMany({
+        data: admins.map((admin) => ({
+          userId: admin.id,
+          category: "System",
+          type: "vehicle_activation_requested",
+          title: "Vehicle activation request",
+          message: `${vehicle.name} (${vehicle.licensePlate}) has requested activation approval.`,
+          data: { vehicleId: id, ownerId },
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    return vehicleRecord;
+  });
+
+  return updated;
+};
+
+/**
+ * Cancel a pending vehicle activation request (owner action).
+ * State transition: pending (false/true) → inactive (false/false)
+ */
+export const cancelVehicleActivation = async (id: string, ownerId: string) => {
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      ownerId: true,
+      isActive: true,
+      isAvailable: true,
+    },
+  });
+
+  if (!vehicle) {
+    throw ApiError.notFound("Vehicle not found");
+  }
+
+  if (vehicle.ownerId !== ownerId) {
+    throw ApiError.forbidden("You can only cancel activation for your own vehicles");
+  }
+
+  if (vehicle.isActive) {
+    throw ApiError.badRequest("Vehicle is already active");
+  }
+
+  if (!vehicle.isAvailable) {
+    throw ApiError.badRequest("No pending activation request found for this vehicle");
+  }
+
+  const updated = await prisma.vehicle.update({
+    where: { id },
+    data: { isAvailable: false },
   });
 
   return updated;

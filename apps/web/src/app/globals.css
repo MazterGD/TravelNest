@@ -100,20 +100,25 @@ textarea {
   min-height: 44px;
 }
 
-/* Scrollbar Styling */
+/* Scrollbar Styling — thin, neutral, unobtrusive */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-surface);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-action-primary);
-  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-action-primary-hover);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

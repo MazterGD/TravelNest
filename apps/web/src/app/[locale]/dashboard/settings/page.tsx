@@ -1,15 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { DashboardLayoutClient } from "../DashboardLayoutClient";
 import { Card, CardContent, CardHeader, CardTitle, Button, LoadingSpinner } from "@/components/ui";
-import { Lock, Bell, Globe, DollarSign } from "lucide-react";
+import { Lock, Bell, Globe } from "lucide-react";
 import { authService, ApiError } from "@/lib/api";
+import { LOCALE_LABELS } from "@/constants";
+
+const ring =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2";
 
 export default function CustomerSettingsPage({ params: { locale } }: { params: { locale: string } }) {
-  const t = useTranslations();
-  
+  const t = useTranslations("dashboard.settings");
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useParams();
+  const [, startTransition] = useTransition();
+
+  const currentLocale = (params.locale as string) || locale;
+  const locales = ["en", "si", "ta"] as const;
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,10 +31,18 @@ export default function CustomerSettingsPage({ params: { locale } }: { params: {
 
   const [emailNotifications, setEmailNotifications] = useState(true);
 
+  const handleLocaleChange = (newLocale: string) => {
+    if (newLocale === currentLocale) return;
+    startTransition(() => {
+      const newPathname = pathname.replace(`/${currentLocale}`, `/${newLocale}`);
+      router.push(newPathname);
+    });
+  };
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setPasswordError(t("auth.resetPassword.errors.passwordMismatch", { defaultValue: "New passwords do not match." }));
+      setPasswordError(t("errors.passwordMismatch", { defaultValue: "New passwords do not match." }));
       return;
     }
 
@@ -40,120 +60,130 @@ export default function CustomerSettingsPage({ params: { locale } }: { params: {
       if (err instanceof ApiError) {
         setPasswordError(err.message);
       } else {
-        setPasswordError("An unexpected error occurred while changing your password.");
+        setPasswordError(t("errors.unexpected", { defaultValue: "An unexpected error occurred while changing your password." }));
       }
     } finally {
       setIsChangingPassword(false);
     }
   };
 
+  const inputClass = `w-full px-4 py-2 border border-[var(--color-border-default)] rounded-xl text-sm text-[var(--color-text-primary)] bg-[var(--color-bg-base)] ${ring} transition-colors`;
+  const selectClass = `border border-[var(--color-border-default)] rounded-xl px-3 py-2 text-sm text-[var(--color-text-primary)] bg-[var(--color-bg-base)] ${ring} transition-colors`;
+
   return (
     <DashboardLayoutClient locale={locale}>
-      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8 space-y-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {t("dashboard.settings.title", { defaultValue: "Account Settings" })}
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8 space-y-2">
+        <h1 className="text-[var(--color-text-primary)] font-bold" style={{ fontSize: "1.875rem" }}>
+          {t("title")}
         </h1>
-        <p className="text-gray-600">
-          {t("dashboard.settings.subtitle", { defaultValue: "Manage your account security and preferences." })}
+        <p className="text-[var(--color-text-secondary)] text-sm">
+          {t("subtitle")}
         </p>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 md:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="mx-auto max-w-7xl px-4 md:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8 pb-8">
         {/* Security / Password */}
         <div className="lg:col-span-2 space-y-8">
           <Card>
-            <CardHeader className="border-b bg-gray-50/50 pb-4">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Lock className="w-5 h-5 text-gray-500" />
-                {t("dashboard.settings.changePassword", { defaultValue: "Change Password" })}
+            <CardHeader className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-surface)] pb-4">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-[var(--color-text-primary)]">
+                <Lock className="w-5 h-5 text-[var(--color-text-tertiary)]" aria-hidden="true" />
+                {t("changePassword")}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <form onSubmit={handlePasswordChange} className="space-y-4">
                 {passwordError && (
-                  <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+                  <div className="p-3 bg-[var(--color-error-bg)] text-[var(--color-error-text)] text-sm rounded-xl border border-[var(--color-error-border)]">
                     {passwordError}
                   </div>
                 )}
                 {passwordSuccess && (
-                  <div className="p-3 bg-green-50 text-green-700 text-sm rounded-lg border border-green-200">
-                    {t("dashboard.settings.passwordChanged", { defaultValue: "Your password has been changed successfully." })}
+                  <div className="p-3 bg-[var(--color-success-bg)] text-[var(--color-success-text)] text-sm rounded-xl border border-[var(--color-success-border)]">
+                    {t("passwordChanged")}
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("dashboard.settings.currentPassword", { defaultValue: "Current Password" })}
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    {t("currentPassword")}
                   </label>
                   <input
                     type="password"
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                    className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("dashboard.settings.newPassword", { defaultValue: "New Password" })}
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    {t("newPassword")}
                   </label>
                   <input
                     type="password"
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                    className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("dashboard.settings.confirmNewPassword", { defaultValue: "Confirm New Password" })}
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    {t("confirmNewPassword")}
                   </label>
                   <input
                     type="password"
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                    className={inputClass}
                   />
                 </div>
 
                 <div className="pt-2">
                   <Button type="submit" disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}>
-                     {isChangingPassword ? <LoadingSpinner size="sm" className="mr-2" /> : null}
-                     {t("dashboard.settings.updatePassword", { defaultValue: "Update Password" })}
+                    {isChangingPassword ? <LoadingSpinner size="sm" className="mr-2" /> : null}
+                    {t("updatePassword")}
                   </Button>
                 </div>
               </form>
             </CardContent>
           </Card>
 
-          {/* Preferences Placeholder */}
+          {/* Regional Preferences */}
           <Card>
-            <CardHeader className="border-b bg-gray-50/50 pb-4">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Globe className="w-5 h-5 text-gray-500" />
-                {t("dashboard.settings.regional", { defaultValue: "Regional Preferences" })}
+            <CardHeader className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-surface)] pb-4">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-[var(--color-text-primary)]">
+                <Globe className="w-5 h-5 text-[var(--color-text-tertiary)]" aria-hidden="true" />
+                {t("regional")}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h4 className="font-medium text-gray-900">Language</h4>
-                  <p className="text-sm text-gray-500">Select your preferred language.</p>
+                  <h4 className="text-sm font-medium text-[var(--color-text-primary)]">{t("language")}</h4>
+                  <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">{t("languageDescription")}</p>
                 </div>
-                <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary">
-                  <option value="en">English (US)</option>
-                  <option value="si">Sinhala</option>
-                  <option value="ta">Tamil</option>
+                <select
+                  value={currentLocale}
+                  onChange={(e) => handleLocaleChange(e.target.value)}
+                  className={selectClass}
+                  aria-label={t("language")}
+                >
+                  {locales.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {LOCALE_LABELS[loc]}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between gap-4 pt-4 border-t border-[var(--color-border-default)]">
                 <div>
-                  <h4 className="font-medium text-gray-900">Currency</h4>
-                  <p className="text-sm text-gray-500">Select your preferred currency.</p>
+                  <h4 className="text-sm font-medium text-[var(--color-text-primary)]">{t("currency")}</h4>
+                  <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">{t("currencyDescription")}</p>
                 </div>
-                <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary">
+                <select className={selectClass} aria-label={t("currency")}>
                   <option value="LKR">LKR (Rs)</option>
                   <option value="USD">USD ($)</option>
                 </select>
@@ -165,21 +195,27 @@ export default function CustomerSettingsPage({ params: { locale } }: { params: {
         {/* Sidebar settings */}
         <div className="space-y-8">
           <Card>
-            <CardHeader className="border-b bg-gray-50/50 pb-4">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Bell className="w-5 h-5 text-gray-500" />
-                {t("dashboard.settings.notifications", { defaultValue: "Notifications" })}
+            <CardHeader className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-surface)] pb-4">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-[var(--color-text-primary)]">
+                <Bell className="w-5 h-5 text-[var(--color-text-tertiary)]" aria-hidden="true" />
+                {t("notifications")}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="pr-4">
-                  <h4 className="text-sm font-medium text-gray-900">Email Notifications</h4>
-                  <p className="text-xs text-gray-500">Receive updates and booking confirmations via email.</p>
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <h4 className="text-sm font-medium text-[var(--color-text-primary)]">{t("emailNotifications")}</h4>
+                  <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">{t("emailNotificationsDesc")}</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" checked={emailNotifications} onChange={(e) => setEmailNotifications(e.target.checked)} />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                <label className="relative inline-flex shrink-0 items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={emailNotifications}
+                    onChange={(e) => setEmailNotifications(e.target.checked)}
+                    aria-label={t("emailNotifications")}
+                  />
+                  <div className="w-11 h-6 bg-[var(--color-border-default)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-action-focus)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--color-border-default)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-action-primary)]" />
                 </label>
               </div>
             </CardContent>

@@ -24,6 +24,7 @@ export { DatePicker, TimePicker, DateTimePicker } from "./DatePicker";
 export { Badge, StatusBadge } from "./Badge";
 export { Avatar, AvatarGroup } from "./Avatar";
 export { Tabs, TabsList } from "./Tabs";
+export * from "./LocationAutocomplete";
 export {
   EmptyState,
   EmptyBoxIcon,

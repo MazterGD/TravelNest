@@ -1,3 +1,4 @@
+import { MainLayout } from "@/components/layout/MainLayout";
 import VehicleDetailsPageContent from "./VehicleDetailsPageContent";
 
 interface PageProps {
@@ -6,5 +7,9 @@ interface PageProps {
 
 export default async function VehicleDetailsPage({ params }: PageProps) {
   const { locale, id } = await params;
-  return <VehicleDetailsPageContent locale={locale} vehicleId={id} />;
+  return (
+    <MainLayout>
+      <VehicleDetailsPageContent locale={locale} vehicleId={id} />
+    </MainLayout>
+  );
 }

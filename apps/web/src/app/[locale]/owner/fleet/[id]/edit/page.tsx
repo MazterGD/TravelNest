@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import {
   LoadingSpinner,
   Input,
@@ -365,19 +364,16 @@ export default function EditVehiclePage() {
 
   if (guardLoading || !isAuthorized || !user || loading) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         <header className="border-b border-border bg-card">
-          <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/fleet`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -395,17 +391,17 @@ export default function EditVehiclePage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-5xl px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-8 rounded-lg border border-border bg-card">
             {/* Tab Navigation */}
-            <div className="border-b border-border px-6">
-              <nav className="flex gap-6">
+            <div className="border-b border-border px-4 sm:px-6">
+              <nav className="-mb-px flex gap-4 overflow-x-auto sm:gap-6">
                 {sections.map((section) => (
                   <button
                     key={section.id}
                     type="button"
                     onClick={() => setActiveSection(section.id)}
-                    className={`border-b-2 py-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    className={`shrink-0 whitespace-nowrap border-b-2 py-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       activeSection === section.id
                         ? "border-primary text-primary"
                         : "border-transparent text-muted-foreground hover:text-foreground"
@@ -417,7 +413,7 @@ export default function EditVehiclePage() {
               </nav>
             </div>
 
-            <div className="p-8">
+            <div className="p-5 sm:p-8">
               <form onSubmit={handleSubmit}>
                 {/* Basic Information */}
                 {activeSection === "basic" && (
@@ -934,6 +930,5 @@ export default function EditVehiclePage() {
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }

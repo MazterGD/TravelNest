@@ -6,8 +6,9 @@ export const listConversations = async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+  const unreadOnly = req.query.unreadOnly === "true";
 
-  const result = await messageService.listConversations(userId, page, limit);
+  const result = await messageService.listConversations(userId, page, limit, unreadOnly);
   return ResponseHelper.success(res, result);
 };
 

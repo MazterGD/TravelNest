@@ -45,6 +45,24 @@ const buildReturnToWithParams = (
   return url.toString();
 };
 
+/**
+ * Set the HTTP-only refresh-token cookie. When `remember` is true the cookie is
+ * persistent (maxAge = refresh-token TTL); otherwise it is a session cookie that
+ * the browser clears on close.
+ */
+const setRefreshCookie = (
+  res: Response,
+  token: string,
+  options: { remember: boolean; maxAgeMs: number },
+) => {
+  res.cookie("refreshToken", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    ...(options.remember ? { maxAge: options.maxAgeMs } : {}),
+  });
+};
+
 // Register a new user
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.registerUser(req.body);
@@ -53,7 +71,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   res.cookie("refreshToken", result.refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
@@ -70,12 +88,11 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const result = await authService.loginUser(req.body);
 
-  // Set refresh token as HTTP-only cookie
-  res.cookie("refreshToken", result.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  // Persistent cookie when "remember me" is on; session cookie otherwise.
+  const maxAgeMs = await authService.getRefreshCookieMaxAgeMs();
+  setRefreshCookie(res, result.refreshToken, {
+    remember: result.remember,
+    maxAgeMs,
   });
 
   // Set CSRF token
@@ -103,7 +120,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     res.cookie("refreshToken", result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -125,12 +142,11 @@ export const refreshToken = asyncHandler(
     const token = req.body.refreshToken || req.cookies?.refreshToken;
     const tokens = await authService.refreshUserTokens(token);
 
-    // Set new refresh token as HTTP-only cookie
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    // Preserve the original "remember me" preference across token rotation.
+    const maxAgeMs = await authService.getRefreshCookieMaxAgeMs();
+    setRefreshCookie(res, tokens.refreshToken, {
+      remember: tokens.remember,
+      maxAgeMs,
     });
 
     return ResponseHelper.success(res, {
@@ -145,7 +161,7 @@ export const logout = asyncHandler(async (_req: Request, res: Response) => {
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
 
   return ResponseHelper.success(res, null, "Logged out successfully");
@@ -262,7 +278,7 @@ export const handleGoogleCallback = asyncHandler(
       res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 
@@ -325,7 +341,7 @@ export const handleFacebookCallback = asyncHandler(
       res.cookie("refreshToken", result.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 

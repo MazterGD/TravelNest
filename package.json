@@ -21,6 +21,7 @@
     "db:migrate": "pnpm --filter @travenest/database migrate",
     "db:migrate:deploy": "pnpm --filter @travenest/database migrate:deploy",
     "db:seed": "pnpm --filter @travenest/database seed",
+    "db:backfill:content": "pnpm --filter @travenest/database backfill:content",
     "db:studio": "pnpm --filter @travenest/database studio",
     "clean": "rimraf node_modules apps/*/node_modules packages/*/node_modules apps/*/.next apps/*/dist packages/*/dist",
     "typecheck": "pnpm -r exec tsc --noEmit",

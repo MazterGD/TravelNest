@@ -11,7 +11,7 @@ import {
   type ReceivedQuotation,
   type QuotationRequest,
 } from "@/store";
-import { quotationService } from "@/lib/api/services";
+import { quotationService, tripService } from "@/lib/api/services";
 import {
   ArrowLeft,
   Check,
@@ -81,12 +81,13 @@ export default function ComparisonPageContent({
 
   const quotationIds = searchParams.get("ids")?.split(",") || [];
   const requestId = searchParams.get("requestId");
+  const tripId = searchParams.get("tripId");
 
   useEffect(() => {
     if (!guardLoading) {
       fetchData();
     }
-  }, [guardLoading, requestId, quotationIds.join(",")]);
+  }, [guardLoading, requestId, tripId, quotationIds.join(",")]);
 
   // Auto-dismiss pdf notice after 4 seconds
   useEffect(() => {
@@ -98,6 +99,136 @@ export default function ComparisonPageContent({
   const fetchData = async () => {
     try {
       setLoading(true);
+
+      if (tripId) {
+        // Trip-scoped comparison: load the parent trip and only quotations that
+        // have an owner response (SENT / VIEWED / ACCEPTED). PENDING means the
+        // owner hasn't priced yet and EXPIRED means the validity period passed
+        // — neither belongs in a side-by-side price comparison.
+        const tripResponse = await tripService.getById(tripId);
+        const tripData =
+          (tripResponse as any)?.data?.trip ||
+          (tripResponse as any)?.trip ||
+          (tripResponse as any);
+        if (!tripData) {
+          setLoading(false);
+          return;
+        }
+        const allQs: any[] = Array.isArray(tripData.quotations)
+          ? tripData.quotations
+          : [];
+        const comparable = allQs.filter((q) => {
+          const status = String(q.status || "").toUpperCase();
+          return (
+            (status === "SENT" || status === "VIEWED" || status === "ACCEPTED") &&
+            q.totalAmount != null &&
+            q.vehicleId
+          );
+        });
+
+        const tripStart = tripData.startDate
+          ? String(tripData.startDate).split("T")[0]
+          : "";
+        const tripEnd = tripData.endDate
+          ? String(tripData.endDate).split("T")[0]
+          : tripStart;
+        const request: QuotationRequest = {
+          id: tripData.id,
+          customerId: tripData.customerId,
+          pickupLocation: {
+            address: tripData.pickupLocation || "",
+            city:
+              tripData.pickupCity ||
+              tripData.pickupLocation?.split(",")[0]?.trim() ||
+              "",
+            district: tripData.pickupDistrict || "",
+          },
+          dropoffLocation: {
+            address: tripData.dropoffLocation || "",
+            city:
+              tripData.dropoffCity ||
+              tripData.dropoffLocation?.split(",")[0]?.trim() ||
+              "",
+            district: tripData.dropoffDistrict || "",
+          },
+          pickupDate: tripStart,
+          pickupTime: tripData.startTime || "",
+          returnDate: tripEnd,
+          returnTime: undefined,
+          isRoundTrip: !!tripData.isRoundTrip,
+          passengerCount: tripData.passengerCount || 0,
+          vehicleType: tripData.vehicleTypePreference || "",
+          specialRequests: tripData.specialRequests,
+          luggageCount: 0,
+          needsAC: !!tripData.needsAC,
+          status: "quoted",
+          quotationsCount: comparable.length,
+          createdAt: tripData.createdAt,
+          updatedAt: tripData.updatedAt,
+        };
+        setRequestDetails(request);
+
+        const transformed: ExtendedQuotation[] = comparable.map((q: any) => ({
+          id: q.id,
+          requestId: tripData.id,
+          ownerId: q.vehicle?.owner?.id || q.ownerId || "",
+          ownerName: q.vehicle?.owner
+            ? `${q.vehicle.owner.firstName} ${q.vehicle.owner.lastName}`
+            : t("comparison.ownerFallback"),
+          vehicleId: q.vehicleId || "",
+          vehicleName:
+            q.vehicle?.name ||
+            (q.vehicle
+              ? `${q.vehicle.brand || ""} ${q.vehicle.model || ""}`.trim()
+              : "") ||
+            t("comparison.vehicleFallback"),
+          vehicleImage: q.vehicle?.images?.[0] || "",
+          status: (String(q.status || "pending").toLowerCase() as any),
+          totalAmount: q.totalAmount || 0,
+          price: q.totalAmount || 0,
+          expiryDate: q.expiryDate || q.validUntil,
+          validUntil: q.validUntil
+            ? new Date(q.validUntil).toLocaleDateString(locale)
+            : "",
+          notes: q.additionalNotes || q.notes || "",
+          message: q.additionalNotes || q.notes || "",
+          sentAt: q.sentAt,
+          createdAt: q.createdAt,
+          rating: null,
+          totalTrips: null,
+          priceBreakdown: {
+            vehicleRentalCost: q.vehicleRentalCost || 0,
+            driverCost: q.driverCost || 0,
+            fuelCost: q.fuelCost || 0,
+            tollCharges: q.tollCharges || 0,
+            permitFees: q.permitFees || 0,
+            otherCharges: (q.customItems || []).reduce(
+              (sum: number, item: any) => sum + (item.amount || 0),
+              0,
+            ),
+            tax: q.tax || 0,
+          },
+          vehicleSpecifications: q.vehicle
+            ? {
+                brand: q.vehicle.brand || "",
+                model: q.vehicle.model || "",
+                year: q.vehicle.year || 0,
+                seats: q.vehicle.seats || 0,
+                fuelType: q.vehicle.fuelType || "",
+                transmission: q.vehicle.transmission || "",
+              }
+            : undefined,
+          amenities: Array.isArray(q.vehicle?.features)
+            ? q.vehicle.features
+            : [],
+          contactPhone: q.vehicle?.owner?.phone || "",
+          customItems: q.customItems || [],
+        }));
+
+        setQuotations(transformed);
+        setSelectedQuotations(new Set(transformed.map((q) => q.id)));
+        return;
+      }
 
       if (requestId) {
         const requestResponse = await quotationService.getById(requestId);

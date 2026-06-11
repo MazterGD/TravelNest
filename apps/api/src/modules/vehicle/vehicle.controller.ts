@@ -314,11 +314,13 @@ export const toggleStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
   const ownerId = req.user!.id;
   const { isActive } = req.body;
+  const isAdmin = req.user!.role === "ADMIN";
 
   const vehicle = await vehicleService.toggleVehicleStatus(
     String(id),
     ownerId,
     isActive,
+    isAdmin,
   );
 
   return ResponseHelper.success(
@@ -326,6 +328,34 @@ export const toggleStatus = async (req: Request, res: Response) => {
     { vehicle },
     `Vehicle ${isActive ? "activated" : "deactivated"} successfully`,
   );
+};
+
+/**
+ * Request vehicle activation (owner action — pending state)
+ * PATCH /api/v1/vehicles/:id/request-activation
+ */
+export const requestActivation = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const ownerId = req.user!.id;
+  const vehicle = await vehicleService.requestVehicleActivation(String(id), ownerId);
+
+  return ResponseHelper.success(
+    res,
+    { vehicle },
+    "Activation request submitted. You will be notified once reviewed.",
+  );
+};
+
+/**
+ * Cancel a pending vehicle activation request (owner action)
+ * PATCH /api/v1/vehicles/:id/cancel-activation
+ */
+export const cancelActivation = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const ownerId = req.user!.id;
+  const vehicle = await vehicleService.cancelVehicleActivation(String(id), ownerId);
+
+  return ResponseHelper.success(res, { vehicle }, "Activation request cancelled.");
 };
 
 /**

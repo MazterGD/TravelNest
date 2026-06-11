@@ -103,17 +103,28 @@ export function Header() {
   const showAuthenticatedUI =
     isHydrated && !isLoading && isAuthenticated && user;
 
+  const isPendingOwner =
+    !!showAuthenticatedUI &&
+    user.role === "VEHICLE_OWNER" &&
+    !user.isVerified;
+
+  const disabledHint = t("disabledPending", {
+    defaultValue: "Available after your account is approved",
+  });
+
   const homeUrl = showAuthenticatedUI
     ? getDashboardUrl(user, locale)
     : `/${locale}`;
 
-  const navigation = [
-    { name: t("home"), href: homeUrl },
-    { name: t("search"), href: `/${locale}/search` },
-    { name: t("howItWorks"), href: `/${locale}/how-it-works` },
-    { name: t("about"), href: `/${locale}/about` },
-    { name: t("contact"), href: `/${locale}/contact` },
-  ];
+  const navigation = isPendingOwner
+    ? []
+    : [
+        { name: t("home"), href: homeUrl },
+        { name: t("search"), href: `/${locale}/search` },
+        { name: t("howItWorks"), href: `/${locale}/how-it-works` },
+        { name: t("about"), href: `/${locale}/about` },
+        { name: t("contact"), href: `/${locale}/contact` },
+      ];
 
   return (
     <header
@@ -153,20 +164,44 @@ export function Header() {
             <LanguageSwitcher />
             {showAuthenticatedUI ? (
               <>
-                {user.role === "VEHICLE_OWNER" && (
-                  <OwnerNotificationBell locale={locale} />
+                {user.role === "VEHICLE_OWNER" &&
+                  (isPendingOwner ? (
+                    <button
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      title={disabledHint}
+                      className="relative p-2 text-muted-foreground opacity-60 cursor-not-allowed"
+                    >
+                      <Bell className="h-5 w-5" aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <OwnerNotificationBell locale={locale} />
+                  ))}
+                {isPendingOwner ? (
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    title={disabledHint}
+                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed"
+                  >
+                    <User className="h-4 w-4" aria-hidden="true" />
+                    {user.firstName}
+                  </button>
+                ) : (
+                  <Link
+                    href={
+                      user.role === "VEHICLE_OWNER"
+                        ? `/${locale}/owner/profile`
+                        : getDashboardUrl(user, locale)
+                    }
+                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <User className="h-4 w-4" />
+                    {user.firstName}
+                  </Link>
                 )}
-                <Link
-                  href={
-                    user.role === "VEHICLE_OWNER"
-                      ? `/${locale}/owner/profile`
-                      : getDashboardUrl(user, locale)
-                  }
-                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <User className="h-4 w-4" />
-                  {user.firstName}
-                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 rounded-xl border border-error-border bg-error-bg px-4 py-2 text-sm font-medium text-error-foreground hover:opacity-80 transition-opacity"
@@ -229,30 +264,55 @@ export function Header() {
             <div className="border-t border-border pb-1 pt-4">
               {showAuthenticatedUI ? (
                 <>
-                  {user.role === "VEHICLE_OWNER" && (
+                  {user.role === "VEHICLE_OWNER" &&
+                    (isPendingOwner ? (
+                      <button
+                        type="button"
+                        disabled
+                        aria-disabled="true"
+                        title={disabledHint}
+                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-base font-medium text-muted-foreground opacity-60 cursor-not-allowed"
+                      >
+                        <Bell className="h-4 w-4" aria-hidden="true" />
+                        {t("notifications", { defaultValue: "Notifications" })}
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/${locale}/owner/notifications`}
+                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Bell className="h-4 w-4" />
+                        {t("notifications", { defaultValue: "Notifications" })}
+                      </Link>
+                    ))}
+                  {isPendingOwner ? (
+                    <button
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      title={disabledHint}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-base font-medium text-muted-foreground opacity-60 cursor-not-allowed"
+                    >
+                      <User className="h-4 w-4" aria-hidden="true" />
+                      {t("profile")}
+                    </button>
+                  ) : (
                     <Link
-                      href={`/${locale}/owner/notifications`}
+                      href={
+                        user.role === "VEHICLE_OWNER"
+                          ? `/${locale}/owner/profile`
+                          : getDashboardUrl(user, locale)
+                      }
                       className="flex items-center gap-2 rounded-xl px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <Bell className="h-4 w-4" />
-                      {t("notifications", { defaultValue: "Notifications" })}
+                      <User className="h-4 w-4" />
+                      {user.role === "VEHICLE_OWNER"
+                        ? t("profile")
+                        : t("dashboardFor", { name: user.firstName })}
                     </Link>
                   )}
-                  <Link
-                    href={
-                      user.role === "VEHICLE_OWNER"
-                        ? `/${locale}/owner/profile`
-                        : getDashboardUrl(user, locale)
-                    }
-                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-base font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <User className="h-4 w-4" />
-                    {user.role === "VEHICLE_OWNER"
-                      ? t("profile")
-                      : t("dashboardFor", { name: user.firstName })}
-                  </Link>
                   <button
                     onClick={handleLogout}
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50 transition-colors"

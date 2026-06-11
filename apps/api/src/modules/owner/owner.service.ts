@@ -312,6 +312,13 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
             },
           });
         }
+
+        // Sync vehicle.images with the primary photo URL so all downstream
+        // queries that fall back to the images field can find the cover photo.
+        await tx.vehicle.update({
+          where: { id: vehicle.id },
+          data: { images: [vehicleData.photos[0].url] },
+        });
       }
     }
 
@@ -319,7 +326,7 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
   });
 
   // Generate tokens
-  const tokens = generateTokens(result);
+  const tokens = await generateTokens(result);
 
   // Return user without password
   const { password: _, ...userWithoutPassword } = result;
@@ -1018,6 +1025,34 @@ export const getAnalyticsVehicles = async (ownerId: string) => {
       };
     })
     .sort((a, b) => b.revenue - a.revenue);
+};
+
+/**
+ * Booking history for a single vehicle — guards ownership before returning rows.
+ * Returns the 100 most recent bookings, newest first.
+ */
+export const getAnalyticsVehicleBookings = async (
+  ownerId: string,
+  vehicleId: string,
+) => {
+  const bookings = await prisma.booking.findMany({
+    where: { vehicleId, vehicle: { ownerId } },
+    select: {
+      id: true,
+      startDate: true,
+      totalAmount: true,
+      status: true,
+    },
+    orderBy: { startDate: "desc" },
+    take: 100,
+  });
+
+  return bookings.map((b) => ({
+    id: b.id,
+    date: b.startDate.toISOString(),
+    amount: b.totalAmount,
+    status: b.status,
+  }));
 };
 
 /**

@@ -58,11 +58,10 @@ export const useReportsGenerator = (): UseReportsGeneratorResult => {
         search: filters.search?.trim() || undefined,
       });
       setReportsData(data);
-
-      if (selectedReport) {
-        const freshSelection = data.items.find((item) => item.id === selectedReport.id) || null;
-        setSelectedReport(freshSelection);
-      }
+      // Functional form avoids selectedReport as a dep, preventing a re-fetch loop
+      setSelectedReport((prev) =>
+        prev ? (data.items.find((item) => item.id === prev.id) ?? null) : null,
+      );
     } catch (fetchError) {
       const message =
         fetchError instanceof Error ? fetchError.message : "Failed to load reports";
@@ -70,7 +69,7 @@ export const useReportsGenerator = (): UseReportsGeneratorResult => {
     } finally {
       setIsLoading(false);
     }
-  }, [filters, selectedReport]);
+  }, [filters]);
 
   useEffect(() => {
     void fetchReports();

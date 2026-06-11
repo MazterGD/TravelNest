@@ -187,6 +187,15 @@ enum OtpPurpose {
   PHONE_VERIFICATION
 }
 
+enum TripStatus {
+  PLANNING         // Trip created, no quotation requests sent yet
+  AWAITING_QUOTES  // At least one quotation request sent, no quote accepted
+  CONFIRMED        // Customer accepted a quotation -> booking created
+  COMPLETED        // Trip end date passed (or linked booking completed)
+  CANCELLED        // Customer cancelled the trip
+  EXPIRED          // Trip end date passed with no acceptance
+}
+
 // Models
 model User {
   id            String     @id @default(cuid())
@@ -236,6 +245,7 @@ model User {
   documents     OwnerDocument[]
   bookings      Booking[]       @relation("CustomerBookings")
   quotationRequests Quotation[] @relation("CustomerQuotations")
+  trips         Trip[]          @relation("CustomerTrips")
   reviews       Review[]
   notifications Notification[]
   payments      Payment[]
@@ -243,7 +253,8 @@ model User {
   otpTokens     OtpToken[]
   tripPackages  TripPackage[]
   adminPermissions AdminPermission[]
-  auditLogs     AuditLog[]
+  auditLogs     AuditLog[]            @relation("AuditLogAdmin")
+  actorAuditLogs AuditLog[]           @relation("AuditLogActor")
   disputesRaised Dispute[]            @relation("DisputesRaisedBy")
   disputesAgainst Dispute[]           @relation("DisputesAgainst")
   disputesAssigned Dispute[]          @relation("DisputesAssignedTo")
@@ -284,7 +295,11 @@ model AdminPermission {
 
 model AuditLog {
   id           String   @id @default(cuid())
-  adminId      String
+  // adminId is retained for back-compat with admin-only audit queries; actorId
+  // identifies the acting user for ANY role (customer, owner, admin).
+  adminId      String?
+  actorId      String?
+  actorRole    String?  // CUSTOMER | VEHICLE_OWNER | ADMIN
   action       String
   entityType   String
   entityId     String
@@ -295,9 +310,12 @@ model AuditLog {
   errorMessage String?
   createdAt    DateTime @default(now())
 
-  admin        User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  admin        User?    @relation("AuditLogAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+  actor        User?    @relation("AuditLogActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([adminId])
+  @@index([actorId])
+  @@index([actorRole])
   @@index([entityType, entityId])
   @@index([action, createdAt])
   @@index([createdAt])
@@ -562,6 +580,7 @@ model Quotation {
   id              String          @id @default(cuid())
   quotationId     String          @unique // QUO-2026-001 format
   customerId      String
+  tripId          String?         // Groups vehicle quotations under a customer's trip
   vehicleId       String?
   vehicleType     VehicleType?
   
@@ -609,15 +628,76 @@ model Quotation {
   // Relations
   customer        User            @relation("CustomerQuotations", fields: [customerId], references: [id], onDelete: Cascade)
   vehicle         Vehicle?        @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  trip            Trip?           @relation(fields: [tripId], references: [id], onDelete: SetNull)
   itineraryStops  ItineraryStop[]
   itineraryRoute  ItineraryRoute?
 
   @@index([customerId])
   @@index([vehicleId])
+  @@index([tripId])
   @@index([status])
   @@index([quotationId])
   @@index([validUntil])
   @@map("quotations")
+}
+
+// Customer-planned trip. Holds trip-level details once so multiple per-vehicle
+// quotations can hang off it for a single comparison, and trip details can be
+// reused when requesting quotes from additional vehicles for the same trip.
+model Trip {
+  id                  String      @id @default(cuid())
+  tripCode            String      @unique  // TRP-2026-001 format
+  customerId          String
+
+  title               String?     // Optional user-defined label
+
+  // Locations (single source of truth)
+  pickupLocation      String      // Full display address
+  pickupCity          String?
+  pickupDistrict      String?
+  pickupLatitude      Float?
+  pickupLongitude     Float?
+
+  dropoffLocation     String?
+  dropoffCity         String?
+  dropoffDistrict     String?
+  dropoffLatitude     Float?
+  dropoffLongitude    Float?
+
+  // Dates / timing
+  startDate           DateTime
+  endDate             DateTime
+  startTime           String?
+  isRoundTrip         Boolean     @default(false)
+
+  // Trip parameters
+  passengerCount      Int
+  vehicleTypePreference VehicleType?
+  needsAC             Boolean     @default(true)
+  specialRequests     String?
+
+  // OSRM-derived estimates (cached display values)
+  estimatedDistance   String?
+  estimatedDuration   String?
+  // Itinerary captured as JSON to avoid touching the PostGIS itinerary_* tables
+  // which are still keyed on quotationId.
+  itineraryStops      Json?       // Array of { order, locationName, lat, lng }
+  itineraryRoute      Json?       // Cached route geometry / metadata
+  intermediateStops   Json?       // Raw form input — preserves district/address for re-edit
+
+  status              TripStatus  @default(PLANNING)
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  // Relations
+  customer            User        @relation("CustomerTrips", fields: [customerId], references: [id], onDelete: Cascade)
+  quotations          Quotation[]
+
+  @@index([customerId, status])
+  @@index([startDate])
+  @@index([tripCode])
+  @@map("trips")
 }
 
 model Review {

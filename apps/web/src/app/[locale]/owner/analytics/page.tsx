@@ -1,12 +1,13 @@
-"use client";
+﻿"use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
 import {
   ArrowLeft,
+  ArrowRight,
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -16,6 +17,8 @@ import {
   BarChart3,
   CheckCircle,
   AlertCircle,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import { useOwnerGuard } from "@/hooks";
 import { ownerService } from "@/lib/api";
@@ -58,19 +61,340 @@ type VehicleRow = {
   reviewCount: number;
 };
 
-function StarRating({ rating }: { rating: number }) {
+function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "md" }) {
+  const cls = size === "md" ? "h-4 w-4" : "h-3.5 w-3.5";
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}
-          className={`h-3.5 w-3.5 ${
+          className={`${cls} ${
             star <= Math.round(rating)
               ? "fill-current text-primary"
               : "text-[var(--color-text-tertiary)]"
           }`}
         />
       ))}
+    </div>
+  );
+}
+
+type BookingRow = {
+  id: string;
+  date: string;
+  amount: number;
+  status: "PENDING" | "CONFIRMED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+};
+
+const STATUS_STYLES: Record<BookingRow["status"], string> = {
+  COMPLETED: "bg-[var(--color-success-bg)] text-[var(--color-success-text)]",
+  CONFIRMED: "bg-primary/10 text-primary",
+  ONGOING: "bg-primary/10 text-primary",
+  PENDING: "bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)]",
+  CANCELLED: "bg-[var(--color-error-bg)] text-[var(--color-error-text)]",
+};
+
+function VehicleAnalyticsModal({
+  vehicle,
+  locale,
+  onClose,
+}: {
+  vehicle: VehicleRow;
+  locale: string;
+  onClose: () => void;
+}) {
+  const t = useTranslations("ownerAnalytics");
+  const prefersReducedMotion = useReducedMotion();
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  const [bookings, setBookings] = useState<BookingRow[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+
+  const completionRate =
+    vehicle.totalBookings > 0
+      ? Math.round((vehicle.completedBookings / vehicle.totalBookings) * 100)
+      : 0;
+
+  useEffect(() => {
+    closeRef.current?.focus();
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    let cancelled = false;
+    ownerService.getAnalyticsVehicleBookings(vehicle.id).then((data) => {
+      if (!cancelled) {
+        setBookings(data);
+        setBookingsLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setBookingsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [vehicle.id]);
+
+  const panelVariants: Variants = prefersReducedMotion
+    ? { hidden: { opacity: 0 }, visible: { opacity: 1 }, exit: { opacity: 0 } }
+    : {
+        hidden: { opacity: 0, y: 24, scale: 0.97 },
+        visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 30 } },
+        exit: { opacity: 0, y: 16, scale: 0.97, transition: { duration: 0.15 } },
+      };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("vehicleModal.title")}
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+    >
+      {/* Backdrop */}
+      <motion.div
+        className="absolute inset-0 bg-black/50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+
+      {/* Panel — full-height sheet on mobile, constrained dialog on sm+ */}
+      <motion.div
+        className="relative z-10 flex w-full max-w-lg flex-col rounded-t-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] shadow-xl sm:rounded-[20px]"
+        style={{ maxHeight: "calc(100dvh - 2rem)" }}
+        variants={panelVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+      >
+        {/* ── Sticky header ── */}
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--color-border-default)] px-6 py-4">
+          <div className="min-w-0">
+            <p className="text-caption font-medium uppercase tracking-wide text-[var(--color-text-tertiary)]">
+              {t("vehicleModal.title")}
+            </p>
+            <h2 className="mt-0.5 truncate text-body-lg font-semibold text-[var(--color-text-primary)]">
+              {vehicle.name}
+            </h2>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            {vehicle.isActive ? (
+              <span className="inline-flex items-center gap-1 rounded-lg bg-[var(--color-success-bg)] px-2 py-0.5 text-xs font-medium text-[var(--color-success-text)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
+                {t("vehicleTable.active")}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-lg bg-[var(--color-bg-surface)] px-2 py-0.5 text-xs font-medium text-[var(--color-text-tertiary)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-text-tertiary)]" />
+                {t("vehicleTable.inactive")}
+              </span>
+            )}
+            <button
+              ref={closeRef}
+              onClick={onClose}
+              aria-label={t("vehicleModal.close")}
+              className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--color-border-default)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Scrollable body ── */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {/* KPI grid */}
+          <div className="grid grid-cols-2 gap-3 p-6">
+            {/* Total Revenue */}
+            <div className="col-span-2 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-caption text-[var(--color-text-secondary)]">
+                  {t("vehicleModal.totalRevenue")}
+                </p>
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+                  <DollarSign className="h-3.5 w-3.5 text-primary" />
+                </div>
+              </div>
+              <p className="mt-1 text-heading-md font-bold text-[var(--color-text-primary)]">
+                LKR {vehicle.revenue.toLocaleString()}
+              </p>
+            </div>
+
+            {/* Total Bookings */}
+            <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-caption text-[var(--color-text-secondary)]">
+                  {t("vehicleModal.totalBookings")}
+                </p>
+                <Calendar className="h-4 w-4 text-primary" />
+              </div>
+              <p className="mt-1 text-xl font-bold text-[var(--color-text-primary)]">
+                {vehicle.totalBookings}
+              </p>
+            </div>
+
+            {/* Completed */}
+            <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-caption text-[var(--color-text-secondary)]">
+                  {t("vehicleModal.completedBookings")}
+                </p>
+                <CheckCircle className="h-4 w-4 text-primary" />
+              </div>
+              <p className="mt-1 text-xl font-bold text-[var(--color-text-primary)]">
+                {vehicle.completedBookings}
+              </p>
+            </div>
+
+            {/* Completion Rate */}
+            <div className="col-span-2 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-caption text-[var(--color-text-secondary)]">
+                  {t("vehicleModal.completionRate")}
+                </p>
+                <p className="text-caption font-semibold text-[var(--color-text-primary)]">
+                  {completionRate}%
+                </p>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-border-default)]">
+                <motion.div
+                  className="h-full rounded-full bg-primary"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${completionRate}%` }}
+                  transition={
+                    prefersReducedMotion
+                      ? { duration: 0 }
+                      : { type: "spring", stiffness: 350, damping: 45, delay: 0.1 }
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Avg Rating */}
+            <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
+              <p className="text-caption text-[var(--color-text-secondary)]">
+                {t("vehicleModal.averageRating")}
+              </p>
+              {vehicle.reviewCount > 0 ? (
+                <div className="mt-1 flex items-center gap-2">
+                  <p className="text-xl font-bold text-[var(--color-text-primary)]">
+                    {vehicle.averageRating.toFixed(1)}
+                  </p>
+                  <StarRating rating={vehicle.averageRating} size="md" />
+                </div>
+              ) : (
+                <p className="mt-1 text-body text-[var(--color-text-tertiary)]">
+                  {t("vehicleModal.noReviews")}
+                </p>
+              )}
+            </div>
+
+            {/* Review count */}
+            <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-caption text-[var(--color-text-secondary)]">
+                  {t("vehicleModal.reviews")}
+                </p>
+                <Star className="h-4 w-4 text-primary" />
+              </div>
+              <p className="mt-1 text-xl font-bold text-[var(--color-text-primary)]">
+                {vehicle.reviewCount}
+              </p>
+            </div>
+          </div>
+
+          {/* ── Booking History ── */}
+          <div className="border-t border-[var(--color-border-default)]">
+            <div className="px-6 py-4">
+              <h3 className="text-body font-semibold text-[var(--color-text-primary)]">
+                {t("vehicleModal.bookingHistory")}
+              </h3>
+            </div>
+
+            {bookingsLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <LoadingSpinner size="sm" />
+                <span className="ml-2 text-caption text-[var(--color-text-secondary)]">
+                  {t("vehicleModal.loadingBookings")}
+                </span>
+              </div>
+            ) : bookings.length === 0 ? (
+              <p className="px-6 pb-8 text-caption text-[var(--color-text-tertiary)]">
+                {t("vehicleModal.noBookings")}
+              </p>
+            ) : (
+              <div className="overflow-x-auto pb-2">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-y border-[var(--color-border-default)] bg-[var(--color-bg-surface)]">
+                      <th className="px-6 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                        {t("vehicleModal.colBookingId")}
+                      </th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                        {t("vehicleModal.colDate")}
+                      </th>
+                      <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                        {t("vehicleModal.colAmount")}
+                      </th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                        {t("vehicleModal.colStatus")}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--color-border-default)]">
+                    {bookings.map((b) => (
+                      <tr
+                        key={b.id}
+                        className="transition-colors hover:bg-[var(--color-bg-surface)]"
+                      >
+                        <td className="px-6 py-3">
+                          <Link
+                            href={`/${locale}/owner/bookings/${b.id}`}
+                            className="inline-flex items-center gap-1 font-mono text-xs font-medium text-primary hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                          >
+                            #{b.id.slice(-8).toUpperCase()}
+                            <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[var(--color-text-secondary)]">
+                          {new Date(b.date).toLocaleDateString("en-LK", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs font-medium text-[var(--color-text-primary)]">
+                          LKR {b.amount.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`rounded-lg px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[b.status]}`}
+                          >
+                            {b.status.charAt(0) + b.status.slice(1).toLowerCase()}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Sticky footer ── */}
+        <div className="flex shrink-0 items-center justify-center gap-3 border-t border-[var(--color-border-default)] px-6 py-4">
+          <Link
+            href={`/${locale}/owner/fleet/${vehicle.id}`}
+            className="flex min-h-[44px] items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            {t("vehicleModal.viewFleetProfile")}
+            <ExternalLink className="h-4 w-4" />
+          </Link>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -86,6 +410,7 @@ export default function OwnerAnalyticsPage() {
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleRow | null>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -112,18 +437,15 @@ export default function OwnerAnalyticsPage() {
 
   if (guardLoading || (!isAuthorized && !error)) {
     return (
-      <MainLayout>
         <div className="flex min-h-screen items-center justify-center bg-muted">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   const hasRevenueData = revenueData.some((d) => d.revenue > 0);
 
   return (
-    <MainLayout>
     <div className="min-h-screen bg-muted">
       <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
 
@@ -421,10 +743,15 @@ export default function OwnerAnalyticsPage() {
 
             {/* Vehicle Performance Table */}
             <div className="rounded-lg border border-border bg-card">
-              <div className="border-b border-border px-6 py-4">
+              <div className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
                 <h2 className="text-base font-semibold text-foreground">
                   {t("vehicleTable.title")}
                 </h2>
+                {vehicles.length > 0 && (
+                  <p className="text-xs text-[var(--color-text-tertiary)]">
+                    {t("vehicleModal.clickRow")}
+                  </p>
+                )}
               </div>
 
               {vehicles.length === 0 ? (
@@ -460,13 +787,24 @@ export default function OwnerAnalyticsPage() {
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
                           {t("vehicleTable.rating")}
                         </th>
+                        <th className="w-8 px-4 py-3" />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {vehicles.map((v) => (
                         <tr
                           key={v.id}
-                          className="transition-colors hover:bg-muted"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`${v.name} — ${t("vehicleModal.title")}`}
+                          onClick={() => setSelectedVehicle(v)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setSelectedVehicle(v);
+                            }
+                          }}
+                          className="cursor-pointer transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                         >
                           <td className="px-6 py-4">
                             <span className="font-medium text-foreground">
@@ -509,6 +847,9 @@ export default function OwnerAnalyticsPage() {
                               </span>
                             )}
                           </td>
+                          <td className="px-4 py-4">
+                            <ArrowRight className="h-4 w-4 text-[var(--color-text-tertiary)]" />
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -519,7 +860,17 @@ export default function OwnerAnalyticsPage() {
           </>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedVehicle && (
+          <VehicleAnalyticsModal
+            key={selectedVehicle.id}
+            vehicle={selectedVehicle}
+            locale={locale}
+            onClose={() => setSelectedVehicle(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
-    </MainLayout>
   );
 }

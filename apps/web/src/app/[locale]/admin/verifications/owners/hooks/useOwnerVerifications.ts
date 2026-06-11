@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   adminService,
   type AdminOwnerVerificationDetails,
   type AdminOwnerVerificationQuery,
   type AdminOwnerVerificationResponse,
   type AdminOwnerVerificationStatus,
-  type AdminVerificationDocumentStatus,
   type AdminVerificationHistoryResponse,
 } from "@/lib/api";
 import { useDebounce } from "@/hooks";
@@ -22,24 +22,39 @@ interface UseOwnerVerificationsResult {
   selectedHistory: AdminVerificationHistoryResponse | null;
   setFilters: (next: Partial<AdminOwnerVerificationQuery>) => void;
   loadOwnerDetails: (ownerId: string) => Promise<void>;
+  approveDocument: (documentId: string) => Promise<void>;
+  rejectDocument: (documentId: string, reason: string) => Promise<void>;
   approveOwner: (ownerId: string, note?: string) => Promise<void>;
   rejectOwner: (ownerId: string, reason: string) => Promise<void>;
   requestResubmission: (ownerId: string, reason: string) => Promise<void>;
   refetch: () => Promise<void>;
 }
 
-const DEFAULT_FILTERS: AdminOwnerVerificationQuery = {
-  page: 1,
-  limit: 20,
-  search: "",
-};
+const VALID_OWNER_STATUSES: AdminOwnerVerificationStatus[] = [
+  "ACTIVE",
+  "INACTIVE",
+  "SUSPENDED",
+  "PENDING_VERIFICATION",
+];
 
 export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
+  // Seed from URL params so dashboard deep-links arrive pre-filtered.
+  const searchParams = useSearchParams();
+  const rawStatus = searchParams.get("status");
+
+  const initialStatus = VALID_OWNER_STATUSES.includes(rawStatus as AdminOwnerVerificationStatus)
+    ? (rawStatus as AdminOwnerVerificationStatus)
+    : "PENDING_VERIFICATION";
+
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilterState] =
-    useState<AdminOwnerVerificationQuery>(DEFAULT_FILTERS);
+  const [filters, setFilterState] = useState<AdminOwnerVerificationQuery>({
+    page: 1,
+    limit: 20,
+    search: "",
+    status: initialStatus,
+  });
   const [queueData, setQueueData] =
     useState<AdminOwnerVerificationResponse | null>(null);
   const [selectedOwner, setSelectedOwner] =
@@ -68,13 +83,7 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
     } finally {
       setIsLoading(false);
     }
-  }, [
-    debouncedSearch,
-    filters.documentStatus,
-    filters.limit,
-    filters.page,
-    filters.status,
-  ]);
+  }, [debouncedSearch, filters.limit, filters.page, filters.status]);
 
   useEffect(() => {
     void fetchQueue();
@@ -87,9 +96,7 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
       page:
         next.page !== undefined
           ? next.page
-          : next.search !== undefined ||
-              next.status !== undefined ||
-              next.documentStatus !== undefined
+          : next.search !== undefined || next.status !== undefined
             ? 1
             : previous.page,
     }));
@@ -119,55 +126,77 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
   }, []);
 
   const withMutation = useCallback(
-    async (operation: () => Promise<void>, ownerId?: string) => {
+    async (operation: () => Promise<unknown>) => {
       setIsMutating(true);
       setError(null);
 
       try {
         await operation();
+
+        // Refresh both the queue and the open detail panel
         await fetchQueue();
 
-        if (ownerId && selectedOwner?.id === ownerId) {
-          await loadOwnerDetails(ownerId);
+        if (selectedOwner) {
+          await loadOwnerDetails(selectedOwner.id);
         }
       } catch (mutationError) {
         const message =
           mutationError instanceof Error
             ? mutationError.message
-            : "Verification action failed";
+            : "Document action failed";
         setError(message);
       } finally {
         setIsMutating(false);
       }
     },
-    [fetchQueue, loadOwnerDetails, selectedOwner?.id],
+    [fetchQueue, loadOwnerDetails, selectedOwner],
   );
 
-  const approveOwner = useCallback<UseOwnerVerificationsResult["approveOwner"]>(
-    async (ownerId, note) => {
-      await withMutation(async () => {
-        await adminService.approveOwnerVerification(ownerId, note);
-      }, ownerId);
+  const approveDocument = useCallback(
+    async (documentId: string) => {
+      if (!selectedOwner) return;
+      await withMutation(() =>
+        adminService.approveOwnerDocument(selectedOwner.id, documentId),
+      );
+    },
+    [withMutation, selectedOwner],
+  );
+
+  const rejectDocument = useCallback(
+    async (documentId: string, reason: string) => {
+      if (!selectedOwner) return;
+      await withMutation(() =>
+        adminService.rejectOwnerDocument(selectedOwner.id, documentId, reason),
+      );
+    },
+    [withMutation, selectedOwner],
+  );
+
+  // Owner-level verification decisions (the document-level actions above gate
+  // these; exposed for callers that approve/reject the owner as a whole).
+  const approveOwner = useCallback(
+    async (ownerId: string, note?: string) => {
+      await withMutation(() =>
+        adminService.approveOwnerVerification(ownerId, note),
+      );
     },
     [withMutation],
   );
 
-  const rejectOwner = useCallback<UseOwnerVerificationsResult["rejectOwner"]>(
-    async (ownerId, reason) => {
-      await withMutation(async () => {
-        await adminService.rejectOwnerVerification(ownerId, reason);
-      }, ownerId);
+  const rejectOwner = useCallback(
+    async (ownerId: string, reason: string) => {
+      await withMutation(() =>
+        adminService.rejectOwnerVerification(ownerId, reason),
+      );
     },
     [withMutation],
   );
 
-  const requestResubmission = useCallback<
-    UseOwnerVerificationsResult["requestResubmission"]
-  >(
-    async (ownerId, reason) => {
-      await withMutation(async () => {
-        await adminService.requestOwnerResubmission(ownerId, reason);
-      }, ownerId);
+  const requestResubmission = useCallback(
+    async (ownerId: string, reason: string) => {
+      await withMutation(() =>
+        adminService.requestOwnerResubmission(ownerId, reason),
+      );
     },
     [withMutation],
   );
@@ -182,6 +211,8 @@ export const useOwnerVerifications = (): UseOwnerVerificationsResult => {
     selectedHistory,
     setFilters,
     loadOwnerDetails,
+    approveDocument,
+    rejectDocument,
     approveOwner,
     rejectOwner,
     requestResubmission,

@@ -4,6 +4,7 @@
  */
 
 import { api, ApiError } from "./client";
+import { readAuthRaw } from "@/lib/auth-storage";
 import type {
   User,
   Vehicle,
@@ -481,10 +482,22 @@ export const vehicleService = {
     api.patch<Vehicle>(`/vehicles/${id}/availability`, { available }),
 
   /**
-   * Toggle vehicle active status (isActive)
+   * Toggle vehicle active status (isActive) — admin-only activation; owner can deactivate
    */
   toggleStatus: (id: string, isActive: boolean) =>
     api.patch<{ vehicle: Vehicle }>(`/vehicles/${id}/status`, { isActive }),
+
+  /**
+   * Request vehicle activation (inactive → pending, awaiting admin approval)
+   */
+  requestActivation: (id: string) =>
+    api.patch<{ vehicle: Vehicle }>(`/vehicles/${id}/request-activation`, {}),
+
+  /**
+   * Cancel pending activation request (pending → inactive)
+   */
+  cancelActivation: (id: string) =>
+    api.patch<{ vehicle: Vehicle }>(`/vehicles/${id}/cancel-activation`, {}),
 
   /**
    * Get vehicle availability for date range
@@ -776,6 +789,155 @@ export const quotationService = {
 };
 
 // ============================================
+// Trip Services (customer-only)
+// ============================================
+export interface TripLocation {
+  address?: string;
+  city?: string;
+  district?: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface CreateTripInput {
+  title?: string;
+  pickupLocation: TripLocation | string;
+  dropoffLocation?: TripLocation | string;
+  intermediateStops?: Array<{ id?: string; location: TripLocation }>;
+  startDate: string;
+  endDate?: string;
+  startTime?: string;
+  isRoundTrip?: boolean;
+  passengerCount: number;
+  vehicleTypePreference?: string;
+  needsAC?: boolean;
+  specialRequests?: string;
+  estimatedDistance?: string;
+  estimatedDuration?: string;
+  itineraryStops?: any[];
+  itineraryRoute?: any;
+}
+
+export type UpdateTripInput = Partial<CreateTripInput>;
+
+export interface TripDTO {
+  id: string;
+  tripCode: string;
+  customerId: string;
+  title?: string | null;
+  pickupLocation: string;
+  pickupCity?: string | null;
+  pickupDistrict?: string | null;
+  pickupLatitude?: number | null;
+  pickupLongitude?: number | null;
+  dropoffLocation?: string | null;
+  dropoffCity?: string | null;
+  dropoffDistrict?: string | null;
+  dropoffLatitude?: number | null;
+  dropoffLongitude?: number | null;
+  startDate: string;
+  endDate: string;
+  startTime?: string | null;
+  isRoundTrip: boolean;
+  passengerCount: number;
+  vehicleTypePreference?: string | null;
+  needsAC: boolean;
+  specialRequests?: string | null;
+  estimatedDistance?: string | null;
+  estimatedDuration?: string | null;
+  itineraryStops?: any;
+  itineraryRoute?: any;
+  intermediateStops?: any;
+  status:
+    | "PLANNING"
+    | "AWAITING_QUOTES"
+    | "CONFIRMED"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "EXPIRED";
+  createdAt: string;
+  updatedAt: string;
+  quotations?: Quotation[];
+  _count?: { quotations: number };
+}
+
+export const tripService = {
+  /**
+   * Plan a new trip for the authenticated customer.
+   */
+  create: (data: CreateTripInput) =>
+    api.post<{
+      success: boolean;
+      message: string;
+      data: { trip: TripDTO };
+    }>("/trips", data),
+
+  /**
+   * List the current customer's trips.
+   */
+  list: (params?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+    activeOnly?: boolean;
+  }) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<{
+      success: boolean;
+      data: {
+        trips: TripDTO[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      };
+    }>(`/trips${query}`);
+  },
+
+  /**
+   * Get one trip with its quotation responses.
+   */
+  getById: (id: string) =>
+    api.get<{
+      success: boolean;
+      data: { trip: TripDTO };
+    }>(`/trips/${id}`),
+
+  /**
+   * Get the customer's still-active (not confirmed/cancelled/expired) trips —
+   * used to offer "Add this vehicle to your existing trip" on the new
+   * quotation flow.
+   */
+  getActive: () =>
+    api.get<{
+      success: boolean;
+      data: { trips: TripDTO[] };
+    }>(`/trips/active`),
+
+  /**
+   * Update an editable trip.
+   */
+  update: (id: string, data: UpdateTripInput) =>
+    api.patch<{
+      success: boolean;
+      message: string;
+      data: { trip: TripDTO };
+    }>(`/trips/${id}`, data),
+
+  /**
+   * Cancel a trip.
+   */
+  cancel: (id: string) =>
+    api.patch<{
+      success: boolean;
+      message: string;
+      data: { trip: TripDTO };
+    }>(`/trips/${id}/cancel`),
+};
+
+// ============================================
 // Booking Services
 // ============================================
 export interface BookingSearchParams extends PaginationParams {
@@ -1020,6 +1182,152 @@ export const reviewService = {
    */
   respond: (id: string, response: string) =>
     api.post<Review>(`/reviews/${id}/response`, { response }),
+};
+
+// ============================================
+// Dispute Services (customer ↔ owner)
+// ============================================
+export type DisputeStatus =
+  | "OPEN"
+  | "INVESTIGATING"
+  | "RESOLVED"
+  | "CLOSED"
+  | "ESCALATED";
+
+export type DisputeType =
+  | "BOOKING_QUALITY_ISSUE"
+  | "CANCELLATION_DISPUTE"
+  | "PAYMENT_ISSUE"
+  | "VEHICLE_CONDITION"
+  | "BEHAVIOR_COMPLAINT"
+  | "SERVICE_NOT_PROVIDED"
+  | "OTHER";
+
+export interface DisputeParty {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  role?: string | null;
+}
+
+export interface DisputeBookingSummary {
+  id: string;
+  startDate: string;
+  endDate: string;
+  vehicle: { id: string; name: string; licensePlate: string };
+}
+
+export interface DisputeListItem {
+  id: string;
+  disputeCode: string;
+  type: DisputeType;
+  status: DisputeStatus;
+  priority: string;
+  subject: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  isRaisedByMe: boolean;
+  raisedByUser: DisputeParty;
+  againstUser: DisputeParty;
+  booking: DisputeBookingSummary;
+}
+
+export interface DisputeMessageItem {
+  id: string;
+  message: string;
+  createdAt: string;
+  sender: DisputeParty;
+}
+
+export interface DisputeDetail {
+  id: string;
+  disputeCode: string;
+  type: DisputeType;
+  status: DisputeStatus;
+  priority: string;
+  subject: string;
+  description: string;
+  evidenceUrls: string[];
+  resolution: string | null;
+  resolutionType: string | null;
+  resolutionAmount: number | null;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  isRaisedByMe: boolean;
+  raisedByUser: DisputeParty;
+  againstUser: DisputeParty;
+  booking: DisputeBookingSummary & {
+    status: string;
+    pickupLocation: string;
+    dropoffLocation: string;
+    totalAmount: number;
+  };
+  messages: DisputeMessageItem[];
+}
+
+export interface CreateDisputeInput {
+  bookingId: string;
+  type: DisputeType;
+  subject: string;
+  description: string;
+  evidenceUrls?: string[];
+}
+
+export interface DisputeListResponse {
+  disputes: DisputeListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export const disputeService = {
+  create: (data: CreateDisputeInput) =>
+    api.post<{ dispute: DisputeDetail }>("/disputes", data),
+
+  list: (params?: {
+    page?: number;
+    limit?: number;
+    status?: DisputeStatus;
+    role?: "all" | "raised" | "against";
+  }) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<DisputeListResponse>(`/disputes${query}`);
+  },
+
+  get: (id: string) => api.get<{ dispute: DisputeDetail }>(`/disputes/${id}`),
+
+  reply: (id: string, message: string) =>
+    api.post<{ message: DisputeMessageItem }>(`/disputes/${id}/messages`, {
+      message,
+    }),
+};
+
+// ============================================
+// Public content pages (Terms, Privacy, Refund, FAQ)
+// ============================================
+export interface PublicLocaleContent {
+  title?: string;
+  body?: string;
+}
+
+export interface PublicContentPage {
+  slug: string;
+  title: string;
+  // Locale-keyed: { en: { title?, body? }, si: {...}, ta: {...} } for policies,
+  // or { en: [{ question, answer }], ... } for the FAQ page.
+  content: Record<string, unknown> | null;
+  updatedAt: string;
+}
+
+export const publicContentService = {
+  getPage: (slug: string) =>
+    api.get<{ page: PublicContentPage }>(`/content/${slug}`, { skipAuth: true }),
 };
 
 // ============================================
@@ -1295,7 +1603,7 @@ export interface MessagesListResponse {
 }
 
 export const messageService = {
-  listConversations: (params?: PaginationParams) => {
+  listConversations: (params?: PaginationParams & { unreadOnly?: boolean }) => {
     const query = params ? `?${buildQueryString(params)}` : "";
     return api.get<ConversationListResponse>(`/messages/conversations${query}`);
   },
@@ -1379,7 +1687,7 @@ const getStoredAuthToken = (): string | null => {
   }
 
   try {
-    const stored = localStorage.getItem("travenest-auth");
+    const stored = readAuthRaw();
     if (!stored) {
       return null;
     }
@@ -1724,7 +2032,7 @@ export interface AdminOwnerVerificationQuery extends PaginationParams {
 
 export interface AdminVehicleVerificationQuery extends PaginationParams {
   search?: string;
-  documentStatus?: AdminVerificationDocumentStatus;
+  verificationState?: "PENDING" | "MISSING_DOCUMENTS" | "ACTIVATION_REQUEST";
 }
 
 export interface AdminReviewModerationQuery extends PaginationParams {
@@ -1850,7 +2158,7 @@ export interface AdminVehicleVerificationItem {
   };
   documents: AdminVehicleDocument[];
   documentSummary: AdminVerificationDocumentSummary;
-  verificationState: "PENDING" | "REJECTED" | "VERIFIED" | "MISSING_DOCUMENTS";
+  verificationState: "PENDING" | "REJECTED" | "VERIFIED" | "MISSING_DOCUMENTS" | "ACTIVATION_REQUEST";
   _count: {
     bookings: number;
     documents: number;
@@ -2574,6 +2882,8 @@ export type AdminAuditLogStatus = "success" | "failure";
 
 export interface AdminAuditLogQuery extends PaginationParams {
   adminId?: string;
+  actorId?: string;
+  actorRole?: string;
   action?: string;
   entityType?: string;
   entityId?: string;
@@ -2582,9 +2892,20 @@ export interface AdminAuditLogQuery extends PaginationParams {
   dateTo?: string;
 }
 
+export interface AdminAuditActor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role?: string | null;
+  adminRole: string | null;
+}
+
 export interface AdminAuditLog {
   id: string;
-  adminId: string;
+  adminId: string | null;
+  actorId: string | null;
+  actorRole: string | null;
   action: string;
   entityType: string;
   entityId: string;
@@ -2600,7 +2921,8 @@ export interface AdminAuditLog {
     lastName: string;
     email: string;
     adminRole: string | null;
-  };
+  } | null;
+  actor: AdminAuditActor | null;
 }
 
 export interface AdminAuditLogListResponse {
@@ -2748,6 +3070,57 @@ export interface AdminProfilePermissionsResponse {
 
 const withAdminDateQuery = (params?: AdminAnalyticsDateQuery) =>
   params ? `?${buildQueryString(params)}` : "";
+
+// ── Admin Vehicles ────────────────────────────────────────────────────────────
+
+export interface AdminVehiclesQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  type?: string;
+  isActive?: boolean;
+  ownerId?: string;
+}
+
+export interface AdminVehicleRecord {
+  id: string;
+  name: string;
+  licensePlate: string;
+  type: string;
+  brand: string;
+  model: string;
+  year: number;
+  seats: number;
+  acType: string | null;
+  color: string | null;
+  condition: string | null;
+  location: string;
+  pricePerDay: number;
+  pricePerKm: number | null;
+  driverAllowance: number | null;
+  isActive: boolean;
+  isAvailable: boolean;
+  createdAt: string;
+  updatedAt: string;
+  owner: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  photos: { url: string }[];
+  _count: { bookings: number; reviews: number };
+}
+
+export interface AdminVehiclesResponse {
+  vehicles: AdminVehicleRecord[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 export const adminService = {
   getDashboardOverview: () =>
@@ -2941,6 +3314,18 @@ export const adminService = {
 
   rejectVehicleVerification: (vehicleId: string, reason: string) =>
     api.post(`/admin/verifications/vehicles/${vehicleId}/reject`, { reason }),
+
+  approveVehicleDocument: (vehicleId: string, documentId: string) =>
+    api.post(`/admin/verifications/vehicles/${vehicleId}/documents/${documentId}/approve`, {}),
+
+  rejectVehicleDocument: (vehicleId: string, documentId: string, reason: string) =>
+    api.post(`/admin/verifications/vehicles/${vehicleId}/documents/${documentId}/reject`, { reason }),
+
+  approveOwnerDocument: (ownerId: string, documentId: string) =>
+    api.post(`/admin/verifications/owners/${ownerId}/documents/${documentId}/approve`, {}),
+
+  rejectOwnerDocument: (ownerId: string, documentId: string, reason: string) =>
+    api.post(`/admin/verifications/owners/${ownerId}/documents/${documentId}/reject`, { reason }),
 
   getVerificationHistory: (entityId: string, params?: PaginationParams) => {
     const query = params ? `?${buildQueryString(params)}` : "";
@@ -3268,6 +3653,17 @@ export const adminService = {
 
   getAdminProfilePermissions: () =>
     api.get<AdminProfilePermissionsResponse>(`/admin/profile/permissions`),
+
+  getAdminVehicles: (params?: AdminVehiclesQuery) => {
+    const query = params ? `?${buildQueryString(params)}` : "";
+    return api.get<AdminVehiclesResponse>(`/admin/vehicles${query}`);
+  },
+
+  suspendVehicle: (vehicleId: string) =>
+    api.patch(`/vehicles/${vehicleId}/status`, { isActive: false }),
+
+  activateVehicle: (vehicleId: string) =>
+    api.patch(`/vehicles/${vehicleId}/status`, { isActive: true }),
 };
 
 // ============================================
@@ -3538,6 +3934,19 @@ export const ownerService = {
         reviewCount: number;
       }>
     >("/owner/analytics/vehicles"),
+
+  /**
+   * Get booking history for a single vehicle (100 most recent, newest first)
+   */
+  getAnalyticsVehicleBookings: (vehicleId: string) =>
+    api.get<
+      Array<{
+        id: string;
+        date: string;
+        amount: number;
+        status: "PENDING" | "CONFIRMED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+      }>
+    >(`/owner/analytics/vehicles/${vehicleId}/bookings`),
 
   /**
    * Get earnings summary — lifetime/month/year earnings + pending balance

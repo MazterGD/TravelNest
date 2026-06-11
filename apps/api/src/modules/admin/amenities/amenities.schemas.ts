@@ -10,7 +10,7 @@ const amenityCodeSchema = z
   .trim()
   .min(2)
   .max(50)
-  .regex(/^[A-Z0-9_\-]+$/);
+  .regex(/^[A-Z0-9_-]+$/);
 
 export const listAmenitiesSchema = z.object({
   query: paginationQuerySchema.extend({

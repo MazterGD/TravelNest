@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback, Fragment } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import {
   LoadingSpinner,
   Input,
@@ -308,19 +307,16 @@ export default function AddVehiclePage() {
 
   if (guardLoading || !isAuthorized || !user) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="min-h-screen bg-muted">
         <header className="border-b border-border bg-card">
-          <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/fleet`}
               className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -337,10 +333,10 @@ export default function AddVehiclePage() {
           </div>
         </header>
 
-        <div className="mx-auto max-w-5xl px-6 py-8 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-8 rounded-[20px] border border-border bg-card">
             {/* Stepper navigation */}
-            <div className="border-b border-border px-6 py-6">
+            <div className="border-b border-border px-4 py-6 sm:px-6">
               <div className="flex items-start">
                 {STEPS.map((step, idx) => (
                   <Fragment key={idx}>
@@ -386,7 +382,7 @@ export default function AddVehiclePage() {
               </div>
             </div>
 
-            <div className="p-8">
+            <div className="p-5 sm:p-8">
               <form onSubmit={handleSubmit}>
                 {errors.submit && (
                   <div className="mb-6 rounded-xl border border-error bg-[var(--color-error-bg)] p-4 text-sm text-error-foreground">
@@ -930,6 +926,5 @@ export default function AddVehiclePage() {
           </div>
         </div>
       </div>
-    </MainLayout>
   );
 }

@@ -3,13 +3,17 @@ import { asyncHandler } from "../../../middleware/errorHandler.js";
 import { validate } from "../../../middleware/validate.js";
 import { requireAdminPermission, requireAdminRole } from "../admin.middleware.js";
 import {
+  approveDocumentSchema,
   approveVerificationSchema,
   entityIdParamsSchema,
   listOwnerVerificationsSchema,
   listVehicleVerificationsSchema,
+  ownerDocumentParamsSchema,
   ownerIdParamsSchema,
+  rejectDocumentSchema,
   rejectVerificationSchema,
   requestResubmissionSchema,
+  vehicleDocumentParamsSchema,
   vehicleIdParamsSchema,
 } from "./verifications.schemas.js";
 import {
@@ -18,9 +22,13 @@ import {
   getVehicleVerificationById,
   getVehicleVerificationQueue,
   getVerificationHistoryByEntityId,
+  postApproveOwnerDocument,
   postApproveOwnerVerification,
+  postApproveVehicleDocument,
   postApproveVehicleVerification,
+  postRejectOwnerDocument,
   postRejectOwnerVerification,
+  postRejectVehicleDocument,
   postRejectVehicleVerification,
   postRequestOwnerResubmission,
 } from "./verifications.controller.js";
@@ -99,6 +107,34 @@ router.get(
   validate(entityIdParamsSchema),
   requireAdminPermission("admin.verifications.read"),
   asyncHandler(getVerificationHistoryByEntityId),
+);
+
+router.post(
+  "/vehicles/:vehicleId/documents/:documentId/approve",
+  validate(approveDocumentSchema),
+  requireAdminPermission("admin.verifications.approve"),
+  asyncHandler(postApproveVehicleDocument),
+);
+
+router.post(
+  "/vehicles/:vehicleId/documents/:documentId/reject",
+  validate(rejectDocumentSchema),
+  requireAdminPermission("admin.verifications.reject"),
+  asyncHandler(postRejectVehicleDocument),
+);
+
+router.post(
+  "/owners/:ownerId/documents/:documentId/approve",
+  validate(approveDocumentSchema),
+  requireAdminPermission("admin.verifications.approve"),
+  asyncHandler(postApproveOwnerDocument),
+);
+
+router.post(
+  "/owners/:ownerId/documents/:documentId/reject",
+  validate(rejectDocumentSchema),
+  requireAdminPermission("admin.verifications.reject"),
+  asyncHandler(postRejectOwnerDocument),
 );
 
 export default router;

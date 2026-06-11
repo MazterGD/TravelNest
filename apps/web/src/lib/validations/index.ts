@@ -6,6 +6,7 @@ import { z } from "zod";
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  rememberMe: z.boolean().optional(),
 });
 
 export const registerSchema = z
@@ -46,15 +47,16 @@ export const locationSchema = z.object({
 export const quotationRequestSchema = z
   .object({
     vehicleId: z.string().optional(), // For requests from specific vehicle detail page
+    tripId: z.string().optional(), // Attach to an existing customer trip
     pickupLocation: locationSchema,
     dropoffLocation: locationSchema,
-    pickupDate: z.string().refine((date) => new Date(date) > new Date(), {
+    startDate: z.string().refine((date) => new Date(date) > new Date(), {
       message: "Pickup date must be in the future",
     }),
-    pickupTime: z
+    startTime: z
       .string()
       .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
-    returnDate: z.string().optional(),
+    endDate: z.string().optional(),
     returnTime: z.string().optional(),
     isRoundTrip: z.boolean().default(false),
     passengerCount: z.number().min(1, "At least 1 passenger required").max(100),
@@ -62,17 +64,22 @@ export const quotationRequestSchema = z
     specialRequests: z.string().max(500).optional(),
     luggageCount: z.number().min(0).default(0),
     needsAC: z.boolean().default(false),
+    itineraryStops: z.array(z.any()).optional(),
+    itineraryRoute: z.any().optional(),
+    intermediateStops: z.array(z.any()).optional(),
+    estimatedDistance: z.string().optional(),
+    estimatedDuration: z.string().optional(),
   })
   .refine(
     (data) => {
       if (data.isRoundTrip) {
-        return data.returnDate && data.returnTime;
+        return data.endDate && data.returnTime;
       }
       return true;
     },
     {
       message: "Return date and time required for round trips",
-      path: ["returnDate"],
+      path: ["endDate"],
     },
   );
 

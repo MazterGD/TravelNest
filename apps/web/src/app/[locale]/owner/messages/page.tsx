@@ -1,8 +1,7 @@
-"use client";
+﻿"use client";
 
 import { use } from "react";
 import { useTranslations } from "next-intl";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { ChatLayout } from "@/components/chat";
 import { useOwnerGuard } from "@/hooks";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -22,19 +21,16 @@ export default function OwnerMessagesPage({
 
   if (guardLoading || !isAuthorized) {
     return (
-      <MainLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="min-h-screen bg-[var(--color-bg-surface)] px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-6">
+      <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg-surface)] px-4 pt-8 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col">
+          <div className="mb-6 shrink-0">
             <h1 className="mb-2 text-3xl font-bold text-[var(--color-text-primary)]">
               {t("title")}
             </h1>
@@ -43,12 +39,14 @@ export default function OwnerMessagesPage({
             </p>
           </div>
 
-          <ChatLayout
-            emptyDescKey="emptyListDescOwner"
-            initialBookingId={initialBookingId}
-          />
+          <div className="min-h-0 flex-1 pb-8">
+            <ChatLayout
+              emptyDescKey="emptyListDescOwner"
+              initialBookingId={initialBookingId}
+              bookingBasePath="/owner/bookings"
+            />
+          </div>
         </div>
       </div>
-    </MainLayout>
   );
 }

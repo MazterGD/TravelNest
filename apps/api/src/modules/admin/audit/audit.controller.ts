@@ -28,6 +28,8 @@ export const getAuditLogs = async (req: Request, res: Response) => {
     page,
     limit,
     adminId: req.query.adminId ? String(req.query.adminId) : undefined,
+    actorId: req.query.actorId ? String(req.query.actorId) : undefined,
+    actorRole: req.query.actorRole ? String(req.query.actorRole) : undefined,
     action: req.query.action ? String(req.query.action) : undefined,
     entityType: req.query.entityType ? String(req.query.entityType) : undefined,
     entityId: req.query.entityId ? String(req.query.entityId) : undefined,
@@ -83,6 +85,8 @@ export const exportAuditLogs = async (req: Request, res: Response) => {
 
   const csv = await auditService.exportAuditLogsCsv({
     adminId: req.query.adminId ? String(req.query.adminId) : undefined,
+    actorId: req.query.actorId ? String(req.query.actorId) : undefined,
+    actorRole: req.query.actorRole ? String(req.query.actorRole) : undefined,
     action: req.query.action ? String(req.query.action) : undefined,
     entityType: req.query.entityType ? String(req.query.entityType) : undefined,
     entityId: req.query.entityId ? String(req.query.entityId) : undefined,

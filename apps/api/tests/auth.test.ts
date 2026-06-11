@@ -439,6 +439,25 @@ describe("Token Management", () => {
       expect(response.status).toBe(401);
     });
 
+    // Regression: TokenExpiredError extends JsonWebTokenError, so the middleware
+    // must surface the TOKEN_EXPIRED code (not the generic "Invalid token") —
+    // the web client's silent refresh only triggers on that exact code. Needs no
+    // DB: jwt.verify throws on the expired token before any Prisma lookup runs.
+    it("should return TOKEN_EXPIRED code for an expired access token", async () => {
+      const expiredToken = jwt.sign(
+        { id: "test", email: "test@test.com", role: "CUSTOMER" },
+        process.env.JWT_SECRET || "test-secret",
+        { expiresIn: "-1h" },
+      );
+
+      const response = await request(app)
+        .get(`${API_BASE}/auth/me`)
+        .set("Authorization", `Bearer ${expiredToken}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.code).toBe("TOKEN_EXPIRED");
+    });
+
     it("should reject request with malformed Authorization header", async () => {
       const response = await request(app)
         .get(`${API_BASE}/auth/me`)

@@ -86,41 +86,46 @@ export const getUsers = async (
 };
 
 export const getUserDetails = async (userId: string) => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      phone: true,
-      avatar: true,
-      role: true,
-      status: true,
-      adminRole: true,
-      isVerified: true,
-      address: true,
-      city: true,
-      district: true,
-      postalCode: true,
-      baseLocation: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: {
-        select: {
-          bookings: true,
-          reviews: true,
-          notifications: true,
+  const [user, ownerBookingCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        avatar: true,
+        role: true,
+        status: true,
+        adminRole: true,
+        isVerified: true,
+        address: true,
+        city: true,
+        district: true,
+        postalCode: true,
+        baseLocation: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            bookings: true,
+            reviews: true,
+            notifications: true,
+            vehicles: true,
+          },
         },
       },
-    },
-  });
+    }),
+    // Count bookings where this user's vehicles were chartered (0 for non-owners)
+    prisma.booking.count({ where: { vehicle: { ownerId: userId } } }),
+  ]);
 
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
-  return user;
+  return { ...user, ownerBookingCount };
 };
 
 export const getUserActivity = async (

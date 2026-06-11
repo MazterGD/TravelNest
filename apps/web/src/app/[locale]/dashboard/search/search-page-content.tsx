@@ -624,7 +624,7 @@ export function SearchPageContent({ locale }: SearchPageContentProps) {
                       </p>
                     </div>
 
-                    <Link href={`/${locale}/vehicles/${vehicle.id}`}>
+                    <Link href={`/${locale}/dashboard/vehicles/${vehicle.id}`}>
                       <Button size="sm">{t("viewDetails")}</Button>
                     </Link>
                   </div>

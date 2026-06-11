@@ -8,6 +8,7 @@ import {
   AccordionItem,
   Button,
 } from "@/components/ui";
+import { FaqContent } from "@/components/features/content/FaqContent";
 
 export default function FAQPage() {
   const t = useTranslations("faq");
@@ -53,17 +54,21 @@ export default function FAQPage() {
       <section className="py-12 sm:py-16">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <Card className="p-8">
-            <Accordion>
-              {faqItems.map((item, index) => (
-                <AccordionItem
-                  key={item.key}
-                  title={item.question}
-                  defaultOpen={index === 0}
-                >
-                  <p className="text-sm leading-relaxed">{item.answer}</p>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            <FaqContent
+              fallback={
+                <Accordion>
+                  {faqItems.map((item, index) => (
+                    <AccordionItem
+                      key={item.key}
+                      title={item.question}
+                      defaultOpen={index === 0}
+                    >
+                      <p className="text-sm leading-relaxed">{item.answer}</p>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              }
+            />
           </Card>
 
           {/* Contact CTA */}

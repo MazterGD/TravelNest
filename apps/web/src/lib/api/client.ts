@@ -3,6 +3,8 @@
  * Industry-standard HTTP client with interceptors, error handling, and token refresh
  */
 
+import { readAuthRaw, writeAuthRaw, clearAuthRaw } from "@/lib/auth-storage";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -123,7 +125,7 @@ class ApiClient {
     if (typeof window === "undefined") return null;
 
     try {
-      const stored = localStorage.getItem("travenest-auth");
+      const stored = readAuthRaw();
       if (stored) {
         const parsed = JSON.parse(stored);
         return parsed.state?.token || null;
@@ -141,10 +143,10 @@ class ApiClient {
     if (typeof window === "undefined") return;
 
     try {
-      const stored = localStorage.getItem("travenest-auth");
+      const stored = readAuthRaw();
       const parsed = stored ? JSON.parse(stored) : { state: {} };
       parsed.state.token = token;
-      localStorage.setItem("travenest-auth", JSON.stringify(parsed));
+      writeAuthRaw(JSON.stringify(parsed));
     } catch {
       // Ignore storage errors
     }
@@ -155,7 +157,7 @@ class ApiClient {
    */
   private clearAuthToken(): void {
     if (typeof window === "undefined") return;
-    localStorage.removeItem("travenest-auth");
+    clearAuthRaw();
   }
 
   /**

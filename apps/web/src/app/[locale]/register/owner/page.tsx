@@ -21,6 +21,7 @@ import {
   Contact,
   Camera,
   ImageUp,
+  Info,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import {
@@ -54,7 +55,6 @@ interface VehicleData {
   acType: string;
   condition: string;
   description: string;
-  pricePerKm: string;
   pricePerDay: string;
   driverAllowance: string;
   amenities: string[];
@@ -122,7 +122,6 @@ export default function OwnerRegistrationPage() {
       acType: "",
       condition: "",
       description: "",
-      pricePerKm: "",
       pricePerDay: "",
       driverAllowance: "",
       amenities: [],
@@ -300,14 +299,15 @@ export default function OwnerRegistrationPage() {
     setFieldErrors({});
 
     switch (step) {
-      case 1: // Personal Information (including NIC)
-        if (
-          !personalInfo.firstName ||
-          !personalInfo.lastName ||
-          !personalInfo.email ||
-          !personalInfo.phone ||
-          !personalInfo.nicNumber
-        ) {
+      case 1: {
+        const errs: Record<string, string> = {};
+        if (!personalInfo.firstName) errs.firstName = t("errors.requiredFields");
+        if (!personalInfo.lastName) errs.lastName = t("errors.requiredFields");
+        if (!personalInfo.email) errs.email = t("errors.requiredFields");
+        if (!personalInfo.phone) errs.phone = t("errors.requiredFields");
+        if (!personalInfo.nicNumber) errs.nicNumber = t("errors.requiredFields");
+        if (Object.keys(errs).length > 0) {
+          setFieldErrors(errs);
           setError(t("errors.requiredFields"));
           return false;
         }
@@ -316,55 +316,61 @@ export default function OwnerRegistrationPage() {
           return false;
         }
         if (!ownerPhoto || !nicDocument) {
-          setFieldErrors({
-            ownerPhoto: !ownerPhoto ? t("errors.profilePhotoRequired") : "",
-            nicDocument: !nicDocument ? t("errors.nicDocumentRequired") : "",
-          });
+          const photoErrs: Record<string, string> = {};
+          if (!ownerPhoto) photoErrs.ownerPhoto = t("errors.profilePhotoRequired");
+          if (!nicDocument) photoErrs.nicDocument = t("errors.nicDocumentRequired");
+          setFieldErrors(photoErrs);
           setError(t("errors.identityDocsRequired"));
           return false;
         }
         return true;
+      }
 
-      case 2: // Address
-        if (
-          !addressInfo.address ||
-          !addressInfo.city ||
-          !addressInfo.district ||
-          !addressInfo.baseLocation
-        ) {
+      case 2: {
+        const errs: Record<string, string> = {};
+        if (!addressInfo.address) errs.address = t("errors.requiredAddressFields");
+        if (!addressInfo.city) errs.city = t("errors.requiredAddressFields");
+        if (!addressInfo.district) errs.district = t("errors.requiredAddressFields");
+        if (!addressInfo.baseLocation) errs.baseLocation = t("errors.requiredAddressFields");
+        if (Object.keys(errs).length > 0) {
+          setFieldErrors(errs);
           setError(t("errors.requiredAddressFields"));
           return false;
         }
         return true;
+      }
 
-      case 3: // Vehicle Information
+      case 3: {
+        const errs: Record<string, string> = {};
         for (let i = 0; i < vehicles.length; i++) {
-          const vehicle = vehicles[i];
-          if (
-            !vehicle.registrationNumber ||
-            !vehicle.vehicleType ||
-            !vehicle.make ||
-            !vehicle.model ||
-            !vehicle.year ||
-            !vehicle.seatingCapacity ||
-            !vehicle.acType
-          ) {
-            setError(t("errors.requiredVehicleFields", { index: i + 1 }));
-            return false;
-          }
-          if (
-            !vehicle.documents.license ||
-            !vehicle.documents.insurance ||
-            !vehicle.documents.registrationCertificate
-          ) {
-            setError(t("errors.requiredVehicleDocs", { index: i + 1 }));
-            return false;
+          const v = vehicles[i];
+          const msg = t("errors.requiredVehicleFields", { index: i + 1 });
+          if (!v.registrationNumber) errs[`vehicle_${i}_registrationNumber`] = msg;
+          if (!v.vehicleType) errs[`vehicle_${i}_vehicleType`] = msg;
+          if (!v.make) errs[`vehicle_${i}_make`] = msg;
+          if (!v.model) errs[`vehicle_${i}_model`] = msg;
+          if (!v.year) errs[`vehicle_${i}_year`] = msg;
+          if (!v.seatingCapacity) errs[`vehicle_${i}_seatingCapacity`] = msg;
+          if (!v.acType) errs[`vehicle_${i}_acType`] = msg;
+          if (!v.color) errs[`vehicle_${i}_color`] = msg;
+          if (!v.documents.license || !v.documents.insurance || !v.documents.registrationCertificate) {
+            errs[`vehicle_${i}_docs`] = t("errors.requiredVehicleDocs", { index: i + 1 });
           }
         }
+        if (Object.keys(errs).length > 0) {
+          setFieldErrors(errs);
+          setError(t("errors.requiredVehicleFields", { index: 1 }));
+          return false;
+        }
         return true;
+      }
 
-      case 4: // Password
+      case 4: {
         if (!passwordData.password || !passwordData.confirmPassword) {
+          const errs: Record<string, string> = {};
+          if (!passwordData.password) errs.password = t("errors.passwordRequired");
+          if (!passwordData.confirmPassword) errs.confirmPassword = t("errors.passwordRequired");
+          setFieldErrors(errs);
           setError(t("errors.passwordRequired"));
           return false;
         }
@@ -373,17 +379,15 @@ export default function OwnerRegistrationPage() {
           return false;
         }
         if (passwordStrength < 50) {
+          setFieldErrors({ password: t("errors.weakPassword") });
           setError(t("errors.weakPassword"));
           return false;
         }
         return true;
+      }
 
       case 5: // Terms
-        if (
-          !termsData.termsAccepted ||
-          !termsData.privacyAccepted ||
-          !termsData.dataProcessingAccepted
-        ) {
+        if (!termsData.termsAccepted || !termsData.privacyAccepted) {
           setError(t("errors.acceptTerms"));
           return false;
         }
@@ -395,9 +399,16 @@ export default function OwnerRegistrationPage() {
   };
 
   const nextStep = () => {
-    if (validateStep(currentStep) && currentStep < TOTAL_STEPS) {
-      setCurrentStep(currentStep + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    if (validateStep(currentStep)) {
+      if (currentStep < TOTAL_STEPS) {
+        setCurrentStep(currentStep + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } else {
+      setTimeout(() => {
+        const firstError = document.querySelector<HTMLElement>('[data-field-error="true"]');
+        if (firstError) firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
     }
   };
 
@@ -422,7 +433,6 @@ export default function OwnerRegistrationPage() {
         acType: "",
         condition: "",
         description: "",
-        pricePerKm: "",
         pricePerDay: "",
         driverAllowance: "",
         amenities: [],
@@ -690,16 +700,16 @@ export default function OwnerRegistrationPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Progress Indicator */}
-          <div className="mb-8">
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">
+          <div className="mb-4">
+            <div className="bg-white rounded-2xl shadow-lg p-4 border-2 border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl font-bold text-gray-900">
                   {t("title")}
                 </h2>
-                <span className="text-lg text-gray-600">
+                <span className="text-sm text-gray-600">
                   {t("progress.stepOf", {
                     current: currentStep,
                     total: TOTAL_STEPS,
@@ -716,7 +726,7 @@ export default function OwnerRegistrationPage() {
                     >
                       <div
                         className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all",
+                          "w-8 h-8 rounded-full flex items-center justify-center font-bold transition-all text-sm",
                           step <= currentStep
                             ? "bg-gradient-to-r from-primary to-primary/90 text-white shadow-lg"
                             : "bg-gray-200 text-gray-500",
@@ -745,7 +755,7 @@ export default function OwnerRegistrationPage() {
                     </div>
                   ))}
                 </div>
-                <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 -z-10">
+                <div className="absolute top-4 left-0 right-0 h-1 bg-gray-200 -z-10">
                   <div
                     className="h-full bg-gradient-to-r from-primary to-primary/90 transition-all duration-500"
                     style={{
@@ -757,20 +767,20 @@ export default function OwnerRegistrationPage() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-4">
             {/* Left Sidebar */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 border-2 border-gray-100 sticky top-8">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              <div className="bg-white rounded-3xl shadow-2xl p-6 border-2 border-gray-100 sticky top-6">
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">
                     {t("sidebar.title")}
                   </h2>
-                  <p className="text-gray-600 leading-relaxed">
+                  <p className="text-sm text-gray-600 leading-relaxed">
                     {t("sidebar.subtitle")}
                   </p>
                 </div>
 
-                <div className="relative h-64 rounded-2xl overflow-hidden mb-6 bg-gradient-to-br from-primary/20 to-primary/10">
+                <div className="relative h-44 rounded-2xl overflow-hidden mb-4 bg-gradient-to-br from-primary/20 to-primary/10">
                   <Image
                     src="https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=600"
                     alt={t("sidebar.imageAlt")}
@@ -780,55 +790,55 @@ export default function OwnerRegistrationPage() {
                   />
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-1">
+                      <h3 className="font-bold text-sm text-gray-900 mb-0.5">
                         {t("sidebar.benefits.noListingFees.title")}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         {t("sidebar.benefits.noListingFees.description")}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-1">
+                      <h3 className="font-bold text-sm text-gray-900 mb-0.5">
                         {t("sidebar.benefits.commission.title")}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         {t("sidebar.benefits.commission.description")}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 mb-1">
+                      <h3 className="font-bold text-sm text-gray-900 mb-0.5">
                         {t("sidebar.benefits.dashboard.title")}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs text-gray-600">
                         {t("sidebar.benefits.dashboard.description")}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <p className="text-sm text-gray-600 mb-3">
+                <div className="mt-5 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-600 mb-2.5">
                     {t("sidebar.alreadyRegistered")}
                   </p>
                   <Link
                     href={`/${locale}/login`}
-                    className="block w-full py-3 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold text-center"
+                    className="block w-full py-2.5 border-2 border-primary text-primary rounded-xl hover:bg-primary hover:text-white transition-all font-semibold text-center text-sm"
                   >
                     {t("sidebar.signIn")}
                   </Link>
@@ -838,34 +848,35 @@ export default function OwnerRegistrationPage() {
 
             {/* Right Side - Multi-step Form */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 border-2 border-gray-100">
+              <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border-2 border-gray-100">
                 <form onSubmit={handleSubmit}>
                   {error && (
-                    <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+                    <div className="mb-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">
                       {error}
                     </div>
                   )}
 
                   {/* Step 1: Personal Information */}
                   {currentStep === 1 && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
                           {t("sections.personalInfo")}
                         </h2>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-sm text-gray-600 mb-3">
                           {t("sections.personalInfoDescription")}
                         </p>
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-6">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.firstName.label")}
                           </label>
                           <div className="relative group">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-firstName"
                               type="text"
                               required
                               value={personalInfo.firstName}
@@ -876,18 +887,30 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.firstName.placeholder")}
-                              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.firstName ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.firstName
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                           </div>
+                          {fieldErrors.firstName && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.firstName}
+                            </p>
+                          )}
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.lastName.label")}
                           </label>
                           <div className="relative group">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-lastName"
                               type="text"
                               required
                               value={personalInfo.lastName}
@@ -898,18 +921,30 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.lastName.placeholder")}
-                              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.lastName ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.lastName
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                           </div>
+                          {fieldErrors.lastName && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.lastName}
+                            </p>
+                          )}
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.email.label")}
                           </label>
                           <div className="relative group">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-email"
                               type="email"
                               required
                               value={personalInfo.email}
@@ -920,7 +955,13 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.email.placeholder")}
-                              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.email ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.email
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                           </div>
                           {fieldErrors.email && (
@@ -931,12 +972,13 @@ export default function OwnerRegistrationPage() {
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.phone.label")}
                           </label>
                           <div className="relative group">
-                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-phone"
                               type="tel"
                               required
                               value={personalInfo.phone}
@@ -947,18 +989,30 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.phone.placeholder")}
-                              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.phone ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.phone
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                           </div>
+                          {fieldErrors.phone && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.phone}
+                            </p>
+                          )}
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.nicNumber.label")}
                           </label>
                           <div className="relative group">
-                            <Contact className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <Contact className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-nicNumber"
                               type="text"
                               required
                               value={personalInfo.nicNumber}
@@ -969,24 +1023,35 @@ export default function OwnerRegistrationPage() {
                                 })
                               }
                               placeholder={t("fields.nicNumber.placeholder")}
-                              className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.nicNumber ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.nicNumber
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                           </div>
+                          {fieldErrors.nicNumber && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.nicNumber}
+                            </p>
+                          )}
                         </div>
                       </div>
 
                       {/* Owner Photo and NIC Document */}
-                      <div className="border-t-2 border-gray-100 pt-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <div className="border-t-2 border-gray-100 pt-4">
+                        <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                           <Camera className="text-primary" />
                           {t("sections.identityVerification")}
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full ml-2">
                             {t("badges.required")}
                           </span>
                         </h3>
-                        <div className="grid md:grid-cols-2 gap-6">
+                        <div className="grid md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block font-semibold text-gray-800 mb-2">
+                            <label className="block font-semibold text-gray-800 mb-1.5">
                               {t("fields.ownerPhoto.label")}
                             </label>
                             <div
@@ -1002,7 +1067,7 @@ export default function OwnerRegistrationPage() {
                                   <img
                                     src={ownerPhoto.preview}
                                     alt={t("fields.ownerPhoto.alt")}
-                                    className="w-32 h-32 object-cover rounded-full mx-auto"
+                                    className="w-24 h-24 object-cover rounded-full mx-auto"
                                   />
                                   <button
                                     type="button"
@@ -1017,7 +1082,7 @@ export default function OwnerRegistrationPage() {
                                 </div>
                               ) : (
                                 <label className="cursor-pointer">
-                                  <Camera className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                  <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                                   <p className="text-gray-600">
                                     {t("fields.ownerPhoto.uploadPrompt")}
                                   </p>
@@ -1072,23 +1137,24 @@ export default function OwnerRegistrationPage() {
 
                   {/* Step 2: Address & Base Location */}
                   {currentStep === 2 && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
                           {t("sections.addressInfo")}
                         </h2>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-sm text-gray-600 mb-3">
                           {t("sections.addressInfoDescription")}
                         </p>
                       </div>
 
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.address.label")}
                         </label>
                         <div className="relative group">
-                          <MapPin className="absolute left-4 top-4 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                          <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                           <textarea
+                            id="owner-address"
                             required
                             value={addressInfo.address}
                             onChange={(e) =>
@@ -1099,17 +1165,29 @@ export default function OwnerRegistrationPage() {
                             }
                             rows={3}
                             placeholder={t("fields.address.placeholder")}
-                            className="w-full pl-12 pr-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white resize-none"
+                            data-field-error={fieldErrors.address ? "true" : undefined}
+                            className={cn(
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all resize-none",
+                              fieldErrors.address
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                            )}
                           />
                         </div>
+                        {fieldErrors.address && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {fieldErrors.address}
+                          </p>
+                        )}
                       </div>
 
                       <div className="grid md:grid-cols-3 gap-6">
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.city.label")}
                           </label>
                           <input
+                            id="owner-city"
                             type="text"
                             required
                             value={addressInfo.city}
@@ -1120,16 +1198,34 @@ export default function OwnerRegistrationPage() {
                               })
                             }
                             placeholder={t("fields.city.placeholder")}
-                            className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            data-field-error={fieldErrors.city ? "true" : undefined}
+                            className={cn(
+                              "w-full px-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              fieldErrors.city
+                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                            )}
                           />
+                          {fieldErrors.city && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.city}
+                            </p>
+                          )}
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.district.label")}
                           </label>
                           <select
-                            className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer appearance-none"
+                            id="owner-district"
+                            data-field-error={fieldErrors.district ? "true" : undefined}
+                            className={cn(
+                              "w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors appearance-none cursor-pointer",
+                              fieldErrors.district
+                                ? "bg-red-50 border border-red-400 focus:border-red-400 focus:ring-red-100"
+                                : "bg-background border border-border focus:ring-primary focus:border-primary",
+                            )}
                             required
                             value={addressInfo.district}
                             onChange={(e) =>
@@ -1151,10 +1247,15 @@ export default function OwnerRegistrationPage() {
                               </option>
                             ))}
                           </select>
+                          {fieldErrors.district && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.district}
+                            </p>
+                          )}
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.postalCode.label")}
                           </label>
                           <input
@@ -1167,16 +1268,17 @@ export default function OwnerRegistrationPage() {
                               })
                             }
                             placeholder={t("fields.postalCode.placeholder")}
-                            className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-lg font-semibold text-gray-800 mb-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           {t("fields.baseLocation.label")}
                         </label>
                         <input
+                          id="owner-baseLocation"
                           type="text"
                           required
                           value={addressInfo.baseLocation}
@@ -1187,8 +1289,19 @@ export default function OwnerRegistrationPage() {
                             })
                           }
                           placeholder={t("fields.baseLocation.placeholder")}
-                          className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                          data-field-error={fieldErrors.baseLocation ? "true" : undefined}
+                          className={cn(
+                            "w-full px-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                            fieldErrors.baseLocation
+                              ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                              : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                          )}
                         />
+                        {fieldErrors.baseLocation && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {fieldErrors.baseLocation}
+                          </p>
+                        )}
                         <p className="text-sm text-gray-500 mt-2">
                           {t("fields.baseLocation.helpText")}
                         </p>
@@ -1198,9 +1311,9 @@ export default function OwnerRegistrationPage() {
 
                   {/* Step 3: Vehicle Information & Documents */}
                   {currentStep === 3 && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
                           {t("sections.vehicleInfo")}
                         </h2>
                         <p className="text-gray-600 mb-2">
@@ -1214,10 +1327,10 @@ export default function OwnerRegistrationPage() {
                       {vehicles.map((vehicle, index) => (
                         <div
                           key={index}
-                          className="border-2 border-gray-200 rounded-2xl p-6 space-y-6"
+                          className="border-2 border-gray-200 rounded-2xl p-4 space-y-4"
                         >
                           <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                               <Bus className="text-primary" />
                               {t("vehicle.cardTitle", { index: index + 1 })}
                             </h3>
@@ -1235,10 +1348,11 @@ export default function OwnerRegistrationPage() {
                           {/* Vehicle Details */}
                           <div className="grid md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.registrationNumber.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-registrationNumber`}
                                 type="text"
                                 required
                                 value={vehicle.registrationNumber}
@@ -1252,16 +1366,69 @@ export default function OwnerRegistrationPage() {
                                 placeholder={t(
                                   "fields.registrationNumber.placeholder",
                                 )}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_registrationNumber`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_registrationNumber`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_registrationNumber`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_registrationNumber`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
-                                {t("fields.vehicleType.label")}
-                              </label>
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <label className="block font-semibold text-gray-800">
+                                  {t("fields.vehicleType.label")}
+                                </label>
+                                {/* Tooltip explaining each vehicle type */}
+                                <div className="relative group/tooltip">
+                                  <button
+                                    type="button"
+                                    aria-label={t("fields.vehicleType.tooltipTitle")}
+                                    className="text-gray-400 hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full"
+                                  >
+                                    <Info className="w-4 h-4" />
+                                  </button>
+                                  <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-20 w-72 opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150">
+                                    <div className="bg-gray-900 text-white text-xs rounded-xl p-3 shadow-xl space-y-2">
+                                      <p className="font-semibold text-white/90 border-b border-white/10 pb-1.5">
+                                        {t("fields.vehicleType.tooltipTitle")}
+                                      </p>
+                                      <div>
+                                        <p className="font-medium text-[var(--color-action-primary)]">Ordinary</p>
+                                        <p className="text-white/70 mt-0.5">{t("fields.vehicleType.tooltipOrdinary")}</p>
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-[var(--color-action-primary)]">Semi-Luxury</p>
+                                        <p className="text-white/70 mt-0.5">{t("fields.vehicleType.tooltipSemiLuxury")}</p>
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-[var(--color-action-primary)]">Luxury AC</p>
+                                        <p className="text-white/70 mt-0.5">{t("fields.vehicleType.tooltipLuxuryAc")}</p>
+                                      </div>
+                                    </div>
+                                    {/* Arrow */}
+                                    <div className="flex justify-center">
+                                      <div className="w-2 h-2 bg-gray-900 rotate-45 -mt-1" />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
                               <select
-                                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors appearance-none cursor-pointer"
+                                id={`vehicle-${index}-vehicleType`}
+                                data-field-error={fieldErrors[`vehicle_${index}_vehicleType`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors appearance-none cursor-pointer",
+                                  fieldErrors[`vehicle_${index}_vehicleType`]
+                                    ? "bg-red-50 border border-red-400 focus:border-red-400 focus:ring-red-100"
+                                    : "bg-background border border-border focus:ring-primary focus:border-primary",
+                                )}
                                 required
                                 value={vehicle.vehicleType}
                                 onChange={(e) =>
@@ -1281,13 +1448,19 @@ export default function OwnerRegistrationPage() {
                                   </option>
                                 ))}
                               </select>
+                              {fieldErrors[`vehicle_${index}_vehicleType`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_vehicleType`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.make.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-make`}
                                 type="text"
                                 required
                                 value={vehicle.make}
@@ -1295,15 +1468,27 @@ export default function OwnerRegistrationPage() {
                                   updateVehicle(index, "make", e.target.value)
                                 }
                                 placeholder={t("fields.make.placeholder")}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_make`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_make`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_make`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_make`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.model.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-model`}
                                 type="text"
                                 required
                                 value={vehicle.model}
@@ -1311,15 +1496,27 @@ export default function OwnerRegistrationPage() {
                                   updateVehicle(index, "model", e.target.value)
                                 }
                                 placeholder={t("fields.model.placeholder")}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_model`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_model`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_model`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_model`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.year.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-year`}
                                 type="number"
                                 required
                                 value={vehicle.year}
@@ -1329,15 +1526,27 @@ export default function OwnerRegistrationPage() {
                                 placeholder={t("fields.year.placeholder")}
                                 min="1990"
                                 max={new Date().getFullYear()}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_year`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_year`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_year`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_year`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.seatingCapacity.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-seatingCapacity`}
                                 type="number"
                                 required
                                 value={vehicle.seatingCapacity}
@@ -1353,16 +1562,34 @@ export default function OwnerRegistrationPage() {
                                 )}
                                 min="1"
                                 max="100"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_seatingCapacity`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_seatingCapacity`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_seatingCapacity`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_seatingCapacity`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.acType.label")}
                               </label>
                               <select
-                                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer appearance-none"
+                                id={`vehicle-${index}-acType`}
+                                data-field-error={fieldErrors[`vehicle_${index}_acType`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors cursor-pointer appearance-none",
+                                  fieldErrors[`vehicle_${index}_acType`]
+                                    ? "bg-red-50 border border-red-400 focus:border-red-400 focus:ring-red-100"
+                                    : "bg-background border border-border focus:ring-primary focus:border-primary",
+                                )}
                                 required
                                 value={vehicle.acType}
                                 onChange={(e) =>
@@ -1378,13 +1605,19 @@ export default function OwnerRegistrationPage() {
                                   </option>
                                 ))}
                               </select>
+                              {fieldErrors[`vehicle_${index}_acType`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_acType`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.color.label")}
                               </label>
                               <input
+                                id={`vehicle-${index}-color`}
                                 type="text"
                                 required
                                 value={vehicle.color}
@@ -1392,12 +1625,23 @@ export default function OwnerRegistrationPage() {
                                   updateVehicle(index, "color", e.target.value)
                                 }
                                 placeholder={t("fields.color.placeholder")}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                data-field-error={fieldErrors[`vehicle_${index}_color`] ? "true" : undefined}
+                                className={cn(
+                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  fieldErrors[`vehicle_${index}_color`]
+                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                )}
                               />
+                              {fieldErrors[`vehicle_${index}_color`] && (
+                                <p className="mt-1 text-sm text-red-600">
+                                  {fieldErrors[`vehicle_${index}_color`]}
+                                </p>
+                              )}
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.condition.label")}
                               </label>
                               <select
@@ -1427,34 +1671,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
-                                {t("fields.pricePerKilometer.label")}
-                              </label>
-                              <input
-                                type="number"
-                                required
-                                value={vehicle.pricePerKm}
-                                onChange={(e) =>
-                                  updateVehicle(
-                                    index,
-                                    "pricePerKm",
-                                    e.target.value,
-                                  )
-                                }
-                                placeholder={t(
-                                  "fields.pricePerKilometer.placeholder",
-                                )}
-                                min="0"
-                                step="0.01"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                {t("fields.pricePerKilometer.helpText")}
-                              </p>
-                            </div>
-
-                            <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.pricePerDay.label")}
                               </label>
                               <input
@@ -1481,7 +1698,7 @@ export default function OwnerRegistrationPage() {
                             </div>
 
                             <div>
-                              <label className="block font-semibold text-gray-800 mb-2">
+                              <label className="block font-semibold text-gray-800 mb-1.5">
                                 {t("fields.driverAllowance.label")}
                               </label>
                               <input
@@ -1509,7 +1726,7 @@ export default function OwnerRegistrationPage() {
 
                           {/* Description */}
                           <div className="mt-4">
-                            <label className="block font-semibold text-gray-800 mb-2">
+                            <label className="block font-semibold text-gray-800 mb-1.5">
                               {t("fields.description.label")}
                             </label>
                             <textarea
@@ -1535,7 +1752,7 @@ export default function OwnerRegistrationPage() {
 
                           {/* Amenities Selection */}
                           <div className="pt-4 border-t border-gray-200">
-                            <h4 className="text-lg font-bold text-gray-900 mb-4">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3">
                               {t("vehicle.amenitiesTitle")}
                             </h4>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1584,7 +1801,7 @@ export default function OwnerRegistrationPage() {
 
                           {/* Vehicle Photos */}
                           <div className="pt-4 border-t border-gray-200">
-                            <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                               <ImageUp className="text-primary" />
                               {t("vehicle.photosTitle")}
                               <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full ml-2">
@@ -1648,7 +1865,7 @@ export default function OwnerRegistrationPage() {
 
                           {/* Document Uploads */}
                           <div className="pt-4 border-t border-gray-200">
-                            <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                               <FileText className="text-primary" />
                               {t("vehicle.documentsTitle")}
                               <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full ml-2">
@@ -1656,7 +1873,48 @@ export default function OwnerRegistrationPage() {
                               </span>
                             </h4>
 
-                            <div className="grid md:grid-cols-3 gap-4">
+                            {/* Document Guidelines */}
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-5">
+                              <div className="flex gap-3">
+                                <FileText className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+                                <div>
+                                  <h3 className="font-bold text-gray-900 mb-2">
+                                    {t("vehicle.documentGuidelines.title")}
+                                  </h3>
+                                  <ul className="space-y-1 text-sm text-gray-700">
+                                    <li>
+                                      •{" "}
+                                      {t(
+                                        "vehicle.documentGuidelines.points.clear",
+                                      )}
+                                    </li>
+                                    <li>
+                                      •{" "}
+                                      {t(
+                                        "vehicle.documentGuidelines.points.valid",
+                                      )}
+                                    </li>
+                                    <li>
+                                      •{" "}
+                                      {t(
+                                        "vehicle.documentGuidelines.points.formats",
+                                      )}
+                                    </li>
+                                    <li>
+                                      •{" "}
+                                      {t(
+                                        "vehicle.documentGuidelines.points.verificationTime",
+                                      )}
+                                    </li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div
+                              data-field-error={fieldErrors[`vehicle_${index}_docs`] ? "true" : undefined}
+                              className="grid md:grid-cols-3 gap-4"
+                            >
                               <FileUpload
                                 label={t(
                                   "fields.documents.drivingLicense.label",
@@ -1709,6 +1967,11 @@ export default function OwnerRegistrationPage() {
                                 )}
                               />
                             </div>
+                            {fieldErrors[`vehicle_${index}_docs`] && (
+                              <p className="mt-2 text-sm text-red-600">
+                                {fieldErrors[`vehicle_${index}_docs`]}
+                              </p>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -1716,64 +1979,35 @@ export default function OwnerRegistrationPage() {
                       <button
                         type="button"
                         onClick={addVehicle}
-                        className="w-full py-4 border-2 border-dashed border-primary text-primary rounded-xl hover:bg-primary/5 transition-all font-semibold flex items-center justify-center gap-2"
+                        className="w-full py-3 border-2 border-dashed border-primary text-primary rounded-xl hover:bg-primary/5 transition-all font-semibold text-sm flex items-center justify-center gap-2"
                       >
                         <Bus />
                         {t("vehicle.addAnother")}
                       </button>
-
-                      {/* Document Guidelines */}
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
-                        <div className="flex gap-3">
-                          <FileText className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-                          <div>
-                            <h3 className="font-bold text-gray-900 mb-2">
-                              {t("vehicle.documentGuidelines.title")}
-                            </h3>
-                            <ul className="space-y-1 text-sm text-gray-700">
-                              <li>
-                                • {t("vehicle.documentGuidelines.points.clear")}
-                              </li>
-                              <li>
-                                • {t("vehicle.documentGuidelines.points.valid")}
-                              </li>
-                              <li>
-                                •{" "}
-                                {t("vehicle.documentGuidelines.points.formats")}
-                              </li>
-                              <li>
-                                •{" "}
-                                {t(
-                                  "vehicle.documentGuidelines.points.verificationTime",
-                                )}
-                              </li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   )}
 
                   {/* Step 4: Create Password */}
                   {currentStep === 4 && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
                           {t("sections.password")}
                         </h2>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-sm text-gray-600 mb-3">
                           {t("sections.passwordDescription")}
                         </p>
                       </div>
 
-                      <div className="space-y-6">
+                      <div className="space-y-4">
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.password.label")}
                           </label>
                           <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-password"
                               type={showPassword ? "text" : "password"}
                               required
                               value={passwordData.password}
@@ -1785,7 +2019,13 @@ export default function OwnerRegistrationPage() {
                                 calculatePasswordStrength(e.target.value);
                               }}
                               placeholder={t("fields.password.placeholder")}
-                              className="w-full pl-12 pr-12 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.password ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.password
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                             <button
                               type="button"
@@ -1825,15 +2065,21 @@ export default function OwnerRegistrationPage() {
                               </div>
                             </div>
                           )}
+                          {fieldErrors.password && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {fieldErrors.password}
+                            </p>
+                          )}
                         </div>
 
                         <div>
-                          <label className="block text-lg font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                             {t("fields.confirmPassword.label")}
                           </label>
                           <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
                             <input
+                              id="owner-confirmPassword"
                               type={showConfirmPassword ? "text" : "password"}
                               required
                               value={passwordData.confirmPassword}
@@ -1846,7 +2092,13 @@ export default function OwnerRegistrationPage() {
                               placeholder={t(
                                 "fields.confirmPassword.placeholder",
                               )}
-                              className="w-full pl-12 pr-12 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                              data-field-error={fieldErrors.confirmPassword ? "true" : undefined}
+                              className={cn(
+                                "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                fieldErrors.confirmPassword
+                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              )}
                             />
                             <button
                               type="button"
@@ -1870,8 +2122,8 @@ export default function OwnerRegistrationPage() {
                         </div>
                       </div>
 
-                      <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6">
-                        <h3 className="font-bold text-gray-900 mb-3">
+                      <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4">
+                        <h3 className="font-bold text-sm text-gray-900 mb-2">
                           {t("passwordRequirements.title")}
                         </h3>
                         <ul className="space-y-2 text-gray-700">
@@ -1927,18 +2179,18 @@ export default function OwnerRegistrationPage() {
 
                   {/* Step 5: Terms and Conditions */}
                   {currentStep === 5 && (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
                           {t("sections.terms")}
                         </h2>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-sm text-gray-600 mb-3">
                           {t("sections.termsDescription")}
                         </p>
                       </div>
 
-                      <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6 max-h-64 overflow-y-auto">
-                        <h3 className="font-bold text-gray-900 mb-3">
+                      <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 max-h-48 overflow-y-auto">
+                        <h3 className="font-bold text-sm text-gray-900 mb-2">
                           {t("terms.summaryTitle")}
                         </h3>
                         <div className="space-y-3 text-gray-700">
@@ -1965,7 +2217,7 @@ export default function OwnerRegistrationPage() {
                                 termsAccepted: e.target.checked,
                               })
                             }
-                            className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-1"
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
                           />
                           <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                             {t("terms.acceptPrefix")}{" "}
@@ -1989,7 +2241,7 @@ export default function OwnerRegistrationPage() {
                                 privacyAccepted: e.target.checked,
                               })
                             }
-                            className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-1"
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
                           />
                           <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                             {t("terms.privacyPrefix")}{" "}
@@ -2013,10 +2265,10 @@ export default function OwnerRegistrationPage() {
                                 dataProcessingAccepted: e.target.checked,
                               })
                             }
-                            className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary mt-1"
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
                           />
                           <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
-                            {t("terms.dataProcessing")} *
+                            {t("terms.dataProcessing")}
                           </span>
                         </label>
                       </div>
@@ -2024,12 +2276,12 @@ export default function OwnerRegistrationPage() {
                   )}
 
                   {/* Navigation Buttons */}
-                  <div className="flex gap-4 mt-8 pt-6 border-t-2 border-gray-100">
+                  <div className="flex gap-3 mt-5 pt-4 border-t-2 border-gray-100">
                     {currentStep > 1 && (
                       <button
                         type="button"
                         onClick={prevStep}
-                        className="flex items-center gap-2 px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold"
+                        className="flex items-center gap-2 px-5 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold text-sm"
                       >
                         <ChevronLeft className="w-4 h-4" />
                         {t("actions.previous")}
@@ -2040,7 +2292,7 @@ export default function OwnerRegistrationPage() {
                       <button
                         type="button"
                         onClick={nextStep}
-                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/90 text-white py-4 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all font-bold text-lg"
+                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/90 text-white py-3 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all font-bold text-base"
                       >
                         {t("actions.continue")}
                         <ChevronRight className="w-4 h-4" />
@@ -2049,7 +2301,7 @@ export default function OwnerRegistrationPage() {
                       <button
                         type="submit"
                         disabled={isLoading || isSendingOtp}
-                        className="flex-1 bg-gradient-to-r from-primary to-primary/90 text-white py-4 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="flex-1 bg-gradient-to-r from-primary to-primary/90 text-white py-3 rounded-xl hover:shadow-xl hover:shadow-primary/30 transition-all font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isLoading || isSendingOtp ? (
                           <LoadingSpinner size="sm" className="text-white" />

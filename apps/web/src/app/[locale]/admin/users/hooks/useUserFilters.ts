@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   adminService,
   type AdminCreateInput,
@@ -23,10 +24,13 @@ interface UseUserFiltersResult {
     postalCode: string | null;
     baseLocation: string | null;
     avatar: string | null;
+    // Present on list rows; the detail endpoint omits these.
+    ownerBookingCount?: number;
     _count: {
       bookings: number;
       reviews: number;
       notifications: number;
+      vehicles?: number;
     };
   }) | null;
   selectedUserActivity: AdminUserActivityResponse | null;
@@ -46,15 +50,21 @@ interface UseUserFiltersResult {
 
 const DEFAULT_FILTERS: AdminUsersQuery = {
   page: 1,
-  limit: 20,
+  limit: 10,
   search: "",
 };
 
 export const useUserFilters = (): UseUserFiltersResult => {
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("search") ?? "";
+
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilterState] = useState<AdminUsersQuery>(DEFAULT_FILTERS);
+  const [filters, setFilterState] = useState<AdminUsersQuery>({
+    ...DEFAULT_FILTERS,
+    search: initialSearch,
+  });
   const [usersData, setUsersData] = useState<AdminUsersResponse | null>(null);
   const [selectedUser, setSelectedUser] = useState<
     UseUserFiltersResult["selectedUser"]

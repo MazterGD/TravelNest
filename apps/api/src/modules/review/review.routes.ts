@@ -2,6 +2,8 @@ import { Router } from "express";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
 import { csrfProtection } from "../../middleware/csrf.js";
+import { validate } from "../../middleware/validate.js";
+import { createReviewSchema, updateReviewSchema } from "./review.schemas.js";
 import * as reviewController from "./review.controller.js";
 
 const router = Router();
@@ -55,6 +57,7 @@ router.post(
   "/",
   authenticate,
   csrfProtection,
+  validate(createReviewSchema),
   asyncHandler(reviewController.createReview),
 );
 
@@ -67,6 +70,7 @@ router.put(
   "/:id",
   authenticate,
   csrfProtection,
+  validate(updateReviewSchema),
   asyncHandler(reviewController.updateReview),
 );
 

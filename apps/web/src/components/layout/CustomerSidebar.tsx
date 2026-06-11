@@ -10,13 +10,15 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  ClipboardList,
   Globe,
   Home,
+  Info,
   LogOut,
   MapPin,
   MessageSquare,
+  Route,
   Settings,
+  ShieldAlert,
   Star,
   User,
   Bus,
@@ -24,7 +26,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/store";
 import { useNotificationStream } from "@/hooks";
-import { messageService, notificationService } from "@/lib/api";
+import { authService, api, messageService, notificationService } from "@/lib/api";
 import { APP_NAME, LOCALE_LABELS } from "@/constants";
 
 interface CustomerSidebarProps {
@@ -45,6 +47,7 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
   const [messagesUnread, setMessagesUnread] = useState(0);
   const [langOpen, setLangOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -83,6 +86,12 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
     void refreshUnread();
   });
 
+  // ── Close the mobile account menu when navigating ──────────────────────────
+
+  useEffect(() => {
+    setMobileProfileOpen(false);
+  }, [pathname]);
+
   // ── Close user menu on outside click ───────────────────────────────────────
 
   useEffect(() => {
@@ -99,8 +108,13 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
 
   const handleLogout = () => {
     setUserMenuOpen(false);
+    authService.logout().catch(() => {});
     logout();
-    router.push(`/${locale}`);
+    localStorage.removeItem("travenest-auth");
+    api.stopTokenRefresh();
+    // Hard navigation prevents auth guards on the current page from
+    // racing to redirect to /login before the router push resolves.
+    window.location.replace(`/${currentLocale}`);
   };
 
   const handleLocaleChange = (newLocale: string) => {
@@ -124,10 +138,10 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
       exact: true,
     },
     {
-      id: "quotations",
-      label: t("quotations"),
-      href: `/${locale}/dashboard/quotations`,
-      icon: ClipboardList,
+      id: "trips",
+      label: t("trips", { defaultValue: "Trips" }),
+      href: `/${locale}/dashboard/trips`,
+      icon: Route,
     },
     {
       id: "search",
@@ -160,6 +174,12 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
       href: `/${locale}/dashboard/reviews`,
       icon: Star,
     },
+    {
+      id: "disputes",
+      label: t("disputes", { defaultValue: "Disputes" }),
+      href: `/${locale}/dashboard/disputes`,
+      icon: ShieldAlert,
+    },
   ];
 
   const isActive = (href: string, exact = false) =>
@@ -173,10 +193,61 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  const mobileNavIds = ["overview", "bookings", "quotations", "messages", "reviews"];
-  const mobileNavItems = mobileNavIds
-    .map((id) => navItems.find((item) => item.id === id))
-    .filter(Boolean) as (typeof navItems)[number][];
+  // Bottom bar keeps only primary destinations; the overflow (secondary links +
+  // logout) lives in the account menu, since the mobile chrome has no sidebar
+  // and therefore no other place for the customer to sign out.
+  const mobileBarItems = [
+    ...(["overview", "trips", "bookings"]
+      .map((id) => navItems.find((item) => item.id === id))
+      .filter(Boolean) as (typeof navItems)[number][]),
+    {
+      id: "notifications",
+      label: t("notifications", { defaultValue: "Notifications" }),
+      href: `/${locale}/dashboard/notifications`,
+      icon: Bell,
+      badge: notificationsUnread,
+    },
+  ];
+
+  const mobileProfileItems = [
+    {
+      id: "messages",
+      label: t("messages"),
+      href: `/${locale}/dashboard/messages`,
+      icon: MessageSquare,
+      badge: messagesUnread,
+    },
+    {
+      id: "reviews",
+      label: t("reviews", { defaultValue: "Reviews" }),
+      href: `/${locale}/dashboard/reviews`,
+      icon: Star,
+    },
+    {
+      id: "disputes",
+      label: t("disputes", { defaultValue: "Disputes" }),
+      href: `/${locale}/dashboard/disputes`,
+      icon: ShieldAlert,
+    },
+    {
+      id: "profile",
+      label: t("profile"),
+      href: `/${locale}/dashboard/profile`,
+      icon: User,
+    },
+    {
+      id: "settings",
+      label: t("settings", { defaultValue: "Settings" }),
+      href: `/${locale}/dashboard/settings`,
+      icon: Settings,
+    },
+    {
+      id: "about",
+      label: t("about", { defaultValue: "About Us" }),
+      href: `/${locale}/about`,
+      icon: Info,
+    },
+  ];
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -531,8 +602,78 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--color-bg-base)] border-t border-[var(--color-border-default)]"
         aria-label="Customer navigation"
       >
-        <div className="flex items-center justify-around py-1 px-2">
-          {mobileNavItems.map((item) => {
+        {/* Account menu — opens above the bar; secondary links + logout */}
+        {mobileProfileOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              aria-hidden="true"
+              onClick={() => setMobileProfileOpen(false)}
+            />
+            <div
+              role="menu"
+              aria-label={t("profile")}
+              className="absolute bottom-full right-2 z-50 mb-2 w-56 overflow-hidden rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] shadow-lg"
+            >
+              <div className="border-b border-[var(--color-border-default)] px-4 py-3">
+                <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
+                  {displayName || "—"}
+                </p>
+                <p className="truncate text-xs text-[var(--color-text-tertiary)]">
+                  {user?.email ?? ""}
+                </p>
+              </div>
+              <div className="p-1.5">
+                {mobileProfileItems.map((item) => {
+                  const Icon = item.icon;
+                  const badge = "badge" in item ? (item.badge as number) : 0;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      role="menuitem"
+                      onClick={() => setMobileProfileOpen(false)}
+                      className={cn(
+                        "flex min-h-[44px] items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                        "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)]",
+                        ring,
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                        {item.label}
+                      </span>
+                      {badge > 0 && (
+                        <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-error-border)] px-1.5 text-xs font-semibold text-white">
+                          {badge > 99 ? "99+" : badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+
+                <div className="my-1 h-px bg-[var(--color-border-default)]" />
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleLogout}
+                  className={cn(
+                    "flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                    "text-[var(--color-text-secondary)] hover:bg-[var(--color-error-bg)] hover:text-[var(--color-error-text)]",
+                    ring,
+                  )}
+                >
+                  <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {t("logout")}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="flex items-stretch justify-around px-1 py-1">
+          {mobileBarItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href, "exact" in item ? item.exact : false);
             const badge = "badge" in item ? (item.badge as number) : 0;
@@ -542,7 +683,7 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-1 px-3 py-2 min-h-[44px] min-w-[44px] justify-center rounded-lg transition-colors",
+                  "flex min-w-[44px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 min-h-[44px] transition-colors",
                   ring,
                   active
                     ? "text-[var(--color-action-primary)]"
@@ -558,10 +699,40 @@ export function CustomerSidebar({ locale }: CustomerSidebarProps) {
                     />
                   )}
                 </span>
-                <span className="text-[10px] font-medium leading-none">{item.label}</span>
+                <span className="whitespace-nowrap text-[10px] font-medium leading-none">
+                  {item.label}
+                </span>
               </Link>
             );
           })}
+
+          {/* Account / profile menu trigger */}
+          <button
+            type="button"
+            onClick={() => setMobileProfileOpen((v) => !v)}
+            aria-expanded={mobileProfileOpen}
+            aria-haspopup="menu"
+            aria-label={`${displayName || "Account"} — open account menu`}
+            className={cn(
+              "flex min-w-[44px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 min-h-[44px] transition-colors",
+              ring,
+              mobileProfileOpen
+                ? "text-[var(--color-action-primary)]"
+                : "text-[var(--color-text-tertiary)]",
+            )}
+          >
+            <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-[var(--color-action-primary)] text-[9px] font-semibold text-white">
+              {user?.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.avatar} alt="" className="h-6 w-6 object-cover" />
+              ) : (
+                initials || <User className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+            </span>
+            <span className="whitespace-nowrap text-[10px] font-medium leading-none">
+              {t("profile")}
+            </span>
+          </button>
         </div>
       </nav>
     </>

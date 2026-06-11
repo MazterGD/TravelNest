@@ -16,7 +16,7 @@ const SOCKET_BASE_URL = (() => {
   return apiUrl.replace(/\/api\/v\d+\/?$/, "");
 })();
 
-const CONVERSATION_PAGE_SIZE = 20;
+const CONVERSATION_PAGE_SIZE = 6;
 const MESSAGE_PAGE_SIZE = 30;
 
 const getStoredAccessToken = (): string | null => {
@@ -94,6 +94,8 @@ export interface UseChatState {
   conversationsHasMore: boolean;
   conversationsLoadingMore: boolean;
   loadMoreConversations: () => void;
+  unreadOnly: boolean;
+  setUnreadOnly: (val: boolean) => void;
   activeConversationId: string | null;
   activeMessages: ChatMessage[];
   messagesLoading: boolean;
@@ -103,7 +105,7 @@ export interface UseChatState {
   loadOlderMessages: () => void;
   currentUserId: string;
   isConnected: boolean;
-  selectConversation: (id: string) => void;
+  selectConversation: (id: string | null) => void;
   sendMessage: (content: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -132,6 +134,10 @@ export function useChat(options: UseChatOptions = {}): UseChatState {
   const [messagesLoadingOlder, setMessagesLoadingOlder] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
+  const [unreadOnly, setUnreadOnlyState] = useState(false);
+  const unreadOnlyRef = useRef(false);
+  unreadOnlyRef.current = unreadOnly;
+
   const socketRef = useRef<Socket | null>(null);
   const activeIdRef = useRef<string | null>(null);
   const currentUserIdRef = useRef<string>(currentUserId);
@@ -154,6 +160,7 @@ export function useChat(options: UseChatOptions = {}): UseChatState {
       const data = await messageService.listConversations({
         page: 1,
         limit: CONVERSATION_PAGE_SIZE,
+        unreadOnly: unreadOnlyRef.current,
       });
       conversationsPageRef.current = 1;
       setConversations(data.conversations);
@@ -176,6 +183,7 @@ export function useChat(options: UseChatOptions = {}): UseChatState {
         const data = await messageService.listConversations({
           page: nextPage,
           limit: CONVERSATION_PAGE_SIZE,
+          unreadOnly: unreadOnlyRef.current,
         });
         conversationsPageRef.current = nextPage;
         setConversations((prev) => {
@@ -196,9 +204,15 @@ export function useChat(options: UseChatOptions = {}): UseChatState {
     })();
   }, [conversationsLoadingMore, conversationsHasMore]);
 
+  const setUnreadOnly = useCallback((val: boolean) => {
+    setUnreadOnlyState(val);
+    setConversations([]);
+    conversationsPageRef.current = 1;
+  }, []);
+
   useEffect(() => {
     void loadConversations();
-  }, [loadConversations]);
+  }, [loadConversations, unreadOnly]);
 
   useEffect(() => {
     const token = getStoredAccessToken();
@@ -310,7 +324,7 @@ export function useChat(options: UseChatOptions = {}): UseChatState {
     };
   }, [loadConversations]);
 
-  const selectConversation = useCallback((id: string) => {
+  const selectConversation = useCallback((id: string | null) => {
     setActiveConversationId(id);
     activeIdRef.current = id;
     setActiveMessages([]);
@@ -319,6 +333,12 @@ export function useChat(options: UseChatOptions = {}): UseChatState {
     setMessagesHasMore(false);
     setMessagesLoadingOlder(false);
     messagesPageRef.current = 1;
+
+    // Deselecting (mobile back button) — nothing else to do.
+    if (id === null) {
+      setMessagesLoading(false);
+      return;
+    }
 
     const socket = socketRef.current;
     if (socket && !joinedRoomsRef.current.has(id)) {
@@ -456,6 +476,8 @@ export function useChat(options: UseChatOptions = {}): UseChatState {
     conversationsHasMore,
     conversationsLoadingMore,
     loadMoreConversations,
+    unreadOnly,
+    setUnreadOnly,
     activeConversationId,
     activeMessages,
     messagesLoading,

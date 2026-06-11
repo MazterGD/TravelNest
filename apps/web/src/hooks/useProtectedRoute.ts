@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useParams } from "next/navigation";
 import { useAuthStore } from "@/store";
 import { UserRole, type User } from "@/types";
 
@@ -51,15 +51,15 @@ interface ProtectedRouteResult {
 export function useProtectedRoute(
   options: UseProtectedRouteOptions = {},
 ): ProtectedRouteResult {
-  const {
-    allowedRoles = [],
-    redirectTo = "/login",
-    unauthorizedRedirectTo = "/",
-  } = options;
+  const { allowedRoles = [], redirectTo, unauthorizedRedirectTo = "/" } = options;
 
   const router = useRouter();
   const pathname = usePathname();
+  const params = useParams();
+  const locale = (params.locale as string) || "en";
   const { user, isAuthenticated, isLoading } = useAuthStore();
+
+  const loginRedirect = redirectTo ?? `/${locale}/login`;
 
   useEffect(() => {
     // Wait for auth state to be determined
@@ -68,7 +68,7 @@ export function useProtectedRoute(
     // Not authenticated - redirect to login
     if (!isAuthenticated || !user) {
       const returnUrl = encodeURIComponent(pathname);
-      router.replace(`${redirectTo}?returnUrl=${returnUrl}`);
+      router.replace(`${loginRedirect}?returnUrl=${returnUrl}`);
       return;
     }
 
@@ -81,7 +81,7 @@ export function useProtectedRoute(
     isAuthenticated,
     user,
     allowedRoles,
-    redirectTo,
+    loginRedirect,
     unauthorizedRedirectTo,
     router,
     pathname,

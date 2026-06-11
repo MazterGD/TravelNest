@@ -13,6 +13,7 @@ type PromptConfig = {
   minLength?: number;
   confirmText?: string;
   cancelText?: string;
+  variant?: "danger";
 };
 
 type PromptState = PromptConfig & {
@@ -152,7 +153,15 @@ export const useDialogPrompts = () => {
               >
                 {promptState.cancelText || t("cancel")}
               </Button>
-              <Button type="button" onClick={submitPrompt}>
+              <Button
+                type="button"
+                onClick={submitPrompt}
+                className={
+                  promptState.variant === "danger"
+                    ? "bg-[var(--color-error-border)] text-white hover:brightness-90 active:brightness-75"
+                    : ""
+                }
+              >
                 {promptState.confirmText || t("confirm")}
               </Button>
             </div>

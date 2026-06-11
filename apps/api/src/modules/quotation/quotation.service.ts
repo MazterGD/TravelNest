@@ -253,20 +253,26 @@ export interface QuotationQuery {
 
 export interface CreateQuotationRequestData {
   vehicleId?: string; // For requests from specific vehicle details page
+  tripId?: string;    // Optional: attach to an existing customer trip
   vehicleType?: VehicleType;
   startDate: string | Date;
   endDate: string | Date;
   startTime?: string;
   pickupLocation:
     | string
-    | { address?: string; city?: string; district?: string };
+    | { address?: string; city?: string; district?: string; lat?: number; lng?: number };
   dropoffLocation?:
     | string
-    | { address?: string; city?: string; district?: string };
+    | { address?: string; city?: string; district?: string; lat?: number; lng?: number };
   passengerCount?: number;
   estimatedDistance?: string;
   estimatedDuration?: string;
   specialRequests?: string;
+  itineraryStops?: any[];
+  itineraryRoute?: any;
+  intermediateStops?: any[];
+  isRoundTrip?: boolean;
+  needsAC?: boolean;
 }
 
 const normalizeLocationInput = (
@@ -551,8 +557,14 @@ export const getCustomerQuotations = async (
         vehicle: {
           select: {
             id: true,
+            name: true,
+            brand: true,
+            model: true,
+            year: true,
+            seats: true,
+            images: true,
+            type: true,
             licensePlate: true,
-
             owner: {
               select: {
                 id: true,
@@ -605,10 +617,14 @@ export const getQuotationById = async (
         vehicle: {
           select: {
             id: true,
-            licensePlate: true,
-
+            name: true,
+            brand: true,
+            model: true,
             year: true,
-
+            seats: true,
+            images: true,
+            type: true,
+            licensePlate: true,
             pricePerDay: true,
             ownerId: true,
             owner: {
@@ -620,6 +636,22 @@ export const getQuotationById = async (
                 phone: true,
               },
             },
+          },
+        },
+        trip: {
+          select: {
+            id: true,
+            tripCode: true,
+            pickupLatitude: true,
+            pickupLongitude: true,
+            pickupCity: true,
+            dropoffLatitude: true,
+            dropoffLongitude: true,
+            dropoffCity: true,
+            intermediateStops: true,
+            itineraryRoute: true,
+            estimatedDistance: true,
+            estimatedDuration: true,
           },
         },
       },
@@ -644,6 +676,27 @@ export const getQuotationById = async (
       ...routeRaw[0],
       coordinates: routeRaw[0].routeGeometry ? JSON.parse(routeRaw[0].routeGeometry).coordinates : null,
     };
+  }
+
+  // For ACCEPTED quotations the customer has a real booking; surface its id so
+  // the customer-facing detail page can deep-link straight into the chat.
+  if (
+    quotation.status === "ACCEPTED" &&
+    quotation.vehicleId &&
+    quotation.customerId
+  ) {
+    const booking = await prisma.booking.findFirst({
+      where: {
+        customerId: quotation.customerId,
+        vehicleId: quotation.vehicleId,
+        startDate: quotation.startDate,
+        endDate: quotation.endDate,
+      },
+      select: { id: true, status: true },
+    });
+    if (booking) {
+      (quotation as any).booking = booking;
+    }
   }
 
   if (!quotation) {
@@ -774,11 +827,79 @@ export const createQuotationRequest = async (
   });
   const quotationId = `QUO-${currentYear}-${String(count + 1).padStart(3, "0")}`;
 
+  // Resolve or auto-create the Trip this quotation belongs to. Customers can
+  // either pick an active trip explicitly (data.tripId) or implicitly create a
+  // new one from the form they just filled out.
+  let resolvedTripId: string | null = data.tripId || null;
+
+  if (resolvedTripId) {
+    const trip = await prisma.trip.findUnique({
+      where: { id: resolvedTripId },
+      select: { id: true, customerId: true, status: true },
+    });
+    if (!trip || trip.customerId !== customerId) {
+      throw ApiError.forbidden("Unauthorized trip reference");
+    }
+    if (
+      trip.status !== "PLANNING" &&
+      trip.status !== "AWAITING_QUOTES"
+    ) {
+      throw ApiError.badRequest(
+        "Cannot add a vehicle quotation to a trip that is already confirmed, completed, cancelled, or expired.",
+      );
+    }
+  } else {
+    // No tripId provided — create a Trip from this quotation's details so
+    // every quotation has a parent Trip going forward.
+    const pickupPayload =
+      typeof data.pickupLocation === "object" ? data.pickupLocation : null;
+    const dropoffPayload =
+      typeof data.dropoffLocation === "object" ? data.dropoffLocation : null;
+    const tripCountYear = await prisma.trip.count({
+      where: { tripCode: { startsWith: `TRP-${currentYear}` } },
+    });
+    const tripCode = `TRP-${currentYear}-${String(tripCountYear + 1).padStart(3, "0")}`;
+    const newTrip = await prisma.trip.create({
+      data: {
+        tripCode,
+        customerId,
+        pickupLocation,
+        pickupCity: pickupPayload?.city || pickupLocation.split(",")[0]?.trim() || null,
+        pickupDistrict: pickupPayload?.district || null,
+        pickupLatitude: pickupPayload?.lat ?? null,
+        pickupLongitude: pickupPayload?.lng ?? null,
+        dropoffLocation: dropoffLocation || null,
+        dropoffCity: dropoffPayload?.city || dropoffLocation.split(",")[0]?.trim() || null,
+        dropoffDistrict: dropoffPayload?.district || null,
+        dropoffLatitude: dropoffPayload?.lat ?? null,
+        dropoffLongitude: dropoffPayload?.lng ?? null,
+        startDate,
+        endDate,
+        startTime: data.startTime || null,
+        isRoundTrip: data.isRoundTrip ?? false,
+        passengerCount: data.passengerCount ?? 1,
+        vehicleTypePreference: vehicleType,
+        needsAC: data.needsAC ?? true,
+        specialRequests: data.specialRequests || null,
+        estimatedDistance: data.estimatedDistance || null,
+        estimatedDuration: data.estimatedDuration || null,
+        itineraryStops: (data.itineraryStops as any) ?? undefined,
+        itineraryRoute: (data.itineraryRoute as any) ?? undefined,
+        intermediateStops: (data.intermediateStops as any) ?? undefined,
+        // Will be flipped to AWAITING_QUOTES below once the quotation is
+        // created.
+        status: "PLANNING",
+      },
+    });
+    resolvedTripId = newTrip.id;
+  }
+
   // Create quotation with only allowed fields (whitelist approach)
   const quotation = await prisma.quotation.create({
     data: {
       quotationId,
       customerId,
+      tripId: resolvedTripId,
       vehicleId: data.vehicleId || null,
       vehicleType,
       startDate,
@@ -803,6 +924,28 @@ export const createQuotationRequest = async (
       },
     },
   });
+
+  // Promote a PLANNING trip to AWAITING_QUOTES now that it has a quotation.
+  if (resolvedTripId) {
+    await prisma.trip.update({
+      where: { id: resolvedTripId },
+      data: { status: "AWAITING_QUOTES" },
+    }).catch(() => undefined);
+  }
+
+  // Calculate and persist route if itineraryStops are provided
+  if (data.itineraryStops && data.itineraryStops.length >= 2) {
+    try {
+      const { calculateRoute } = await import("../routing/routing.service.js");
+      await calculateRoute({
+        waypoints: data.itineraryStops,
+        quotationId: quotation.id,
+      });
+    } catch (err) {
+      console.error("Failed to save itinerary route for quotation:", err);
+      // Don't fail the quotation creation if routing fails
+    }
+  }
 
   if (targetOwnerId) {
     const route = `${pickupLocation} → ${dropoffLocation || pickupLocation}`;
@@ -1067,6 +1210,15 @@ export const respondToQuotation = async (
           estimatedDuration: quotation.estimatedDuration,
         },
       });
+
+      // Flip the parent trip to CONFIRMED so the customer's trip list reflects
+      // that this trip now has a real booking.
+      if (quotation.tripId) {
+        await tx.trip.update({
+          where: { id: quotation.tripId },
+          data: { status: "CONFIRMED" },
+        });
+      }
 
       return {
         ...updated,
