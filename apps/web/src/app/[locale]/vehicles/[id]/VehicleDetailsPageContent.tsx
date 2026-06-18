@@ -967,7 +967,6 @@ export default function VehicleDetailsPageContent({
                       <li>{t("pricing.notes.distanceTraveled")}</li>
                       <li>{t("pricing.notes.fuelCosts")}</li>
                       <li>{t("pricing.notes.tollCharges")}</li>
-                      <li>{t("pricing.notes.permitFees")}</li>
                     </ul>
                   </div>
 

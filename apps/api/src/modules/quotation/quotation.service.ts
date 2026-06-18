@@ -3,6 +3,7 @@ import type { Prisma } from "@travenest/database";
 import type { QuotationStatus, VehicleType } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { config } from "../../config/index.js";
+import { getVehicleTypePricing } from "../admin/settings/settings.service.js";
 import { dispatchNotification } from "../notification/notification.service.js";
 import {
   quotationAcceptedToOwner,
@@ -36,12 +37,11 @@ const validateQuotationPricing = (
   const warnings: string[] = [];
   const suggestions: PricingValidationResult["suggestions"] = {};
 
-  // Get rates for this vehicle type
+  // Get rates for this vehicle type. Vehicle rental is no longer validated here
+  // because it is derived server-side from the platform's type-based rate.
   const fuelRates =
     pricingRules.fuelCostPerKm[vehicleType] ||
     pricingRules.fuelCostPerKm.ORDINARY;
-  const perKmRates =
-    pricingRules.perKmRate[vehicleType] || pricingRules.perKmRate.ORDINARY;
   const driverRates = pricingRules.driverAllowance;
   const tolerance = pricingRules.validationTolerance;
 
@@ -95,25 +95,6 @@ const validateQuotationPricing = (
     } else if (data.driverCost > expectedMaxDriver * (1 + tolerance)) {
       warnings.push(
         `Driver cost (LKR ${data.driverCost}) is higher than typical. Consider reviewing.`,
-      );
-    }
-  }
-
-  // Validate vehicle rental cost (per km rate * distance)
-  if (data.vehicleRentalCost && estimatedDistanceKm > 0) {
-    const expectedMinRental = perKmRates.min * estimatedDistanceKm;
-    const expectedMaxRental = perKmRates.max * estimatedDistanceKm;
-    const suggestedRental = perKmRates.default * estimatedDistanceKm;
-
-    suggestions.vehicleRentalCost = {
-      min: Math.round(expectedMinRental),
-      max: Math.round(expectedMaxRental),
-      suggested: Math.round(suggestedRental),
-    };
-
-    if (data.vehicleRentalCost < expectedMinRental * (1 - tolerance)) {
-      warnings.push(
-        `Vehicle rental (LKR ${data.vehicleRentalCost}) seems low for ${vehicleType} over ${estimatedDistanceKm}km.`,
       );
     }
   }
@@ -297,7 +278,6 @@ export interface SendQuotationData {
   driverCost: number;
   fuelCost: number;
   tollCharges: number;
-  permitFees: number;
   customItems?: Array<{ description: string; amount: number }>;
   subtotal: number;
   tax: number;
@@ -1013,6 +993,36 @@ export const sendQuotation = async (
     ) + 1,
   );
 
+  // Vehicle rental cost is derived from the platform's type-based rate, never
+  // taken from the client — keeps the quoted base price consistent per type.
+  const typePricing = await getVehicleTypePricing();
+  const derivedRentalCost = Math.round(
+    typePricing[vehicle.type as keyof typeof typePricing].pricePerKm *
+      estimatedDistanceKm,
+  );
+  data.vehicleRentalCost = derivedRentalCost;
+
+  // Recompute totals server-side so an edited client value cannot change the
+  // stored price. Owner-driven components (driver/fuel/tolls/permits/custom)
+  // are still trusted from the request.
+  const customItemsTotal = (data.customItems ?? []).reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0,
+  );
+  const subtotal =
+    derivedRentalCost +
+    data.driverCost +
+    data.fuelCost +
+    data.tollCharges +
+    customItemsTotal;
+  const pricingConfig = await prisma.platformConfig.findUnique({
+    where: { key: "quotation_pricing" },
+  });
+  const taxRate =
+    (pricingConfig?.value as { taxRate?: number } | null)?.taxRate ?? 0;
+  const tax = Math.round(subtotal * taxRate);
+  const totalAmount = subtotal + tax;
+
   // Validate pricing against industry standards
   const pricingValidation = validateQuotationPricing(
     data,
@@ -1031,15 +1041,15 @@ export const sendQuotation = async (
     startTime: data.startTime,
     estimatedDistance: data.estimatedDistance,
     estimatedDuration: data.estimatedDuration,
-    vehicleRentalCost: data.vehicleRentalCost,
+    vehicleRentalCost: derivedRentalCost,
     driverCost: data.driverCost,
     fuelCost: data.fuelCost,
     tollCharges: data.tollCharges,
-    permitFees: data.permitFees,
+    permitFees: 0,
     customItems: data.customItems || [],
-    subtotal: data.subtotal,
-    tax: data.tax,
-    totalAmount: data.totalAmount,
+    subtotal,
+    tax,
+    totalAmount,
     additionalNotes: data.additionalNotes || null,
     validityDays: data.validityDays,
     validUntil,

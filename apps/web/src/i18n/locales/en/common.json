@@ -163,6 +163,7 @@
     "pricing": {
       "title": "Pricing Breakdown",
       "vehicleRental": "Vehicle Rental Cost",
+      "vehicleRentalNote": "Set by the platform from the vehicle type rate and trip distance — not editable.",
       "driverCost": "Driver Cost",
       "fuelCost": "Estimated Fuel Cost",
       "tollCharges": "Toll Charges",
@@ -1014,8 +1015,8 @@
       },
       "passwordLogin": "Password Login",
       "otpLogin": "OTP Login",
-      "emailOrPhone": "Email or Phone Number",
-      "emailOrPhonePlaceholder": "Enter your email or phone number",
+      "emailOrPhone": "Email",
+      "emailOrPhonePlaceholder": "Enter your email",
       "passwordPlaceholder": "Enter your password",
       "sendOtp": "Send OTP",
       "divider": "Or continue with",
@@ -2979,12 +2980,15 @@
     "fieldDescription": "Description",
     "fieldDescriptionPlaceholder": "Describe your bus, seating layout, and any special features...",
     "pricingTitle": "Pricing Information",
-    "pricingSubtitle": "Set your rental rates",
-    "pricingSubtitleEdit": "Update your rental rates",
+    "pricingSubtitle": "Base rates are set by the platform; you set the driver allowance",
+    "pricingSubtitleEdit": "Base rates are set by the platform; you set the driver allowance",
+    "platformPricingNote": "Base rates are set by TraveNest based on your bus type to keep prices fair and consistent across the marketplace. You only set the driver allowance.",
+    "platformPriceSelectType": "Select a vehicle type in the previous step to see its base rates.",
     "fieldPricePerKm": "Price per Kilometer",
     "fieldPricePerKmHelp": "LKR per kilometer",
     "fieldPricePerDay": "Price per Day",
     "fieldPricePerDayHelp": "LKR per day",
+    "fieldFuelCostPerKm": "Fuel Cost per Kilometer",
     "fieldDriverAllowance": "Driver Allowance per Day",
     "fieldDriverAllowanceHelp": "Optional: LKR daily allowance for the driver",
     "sampleCalcTitle": "Sample Calculation",
@@ -3466,7 +3470,8 @@
       "payment": "Payment",
       "booking": "Booking",
       "security": "Security",
-      "map": "Map"
+      "map": "Map",
+      "pricing": "Vehicle pricing"
     },
     "maintenance": {
       "title": "Maintenance mode",
@@ -3555,6 +3560,19 @@
         "help": "City used as the search starting point for new sessions."
       }
     },
+    "pricing": {
+      "intro": "Base rates are set per vehicle type to keep listing prices consistent across the marketplace. Owners cannot change these; they apply automatically to every bus of that type. All values are in LKR.",
+      "types": {
+        "ORDINARY": "Ordinary",
+        "SEMI_LUXURY": "Semi-luxury",
+        "LUXURY_AC": "Luxury (A/C)"
+      },
+      "fields": {
+        "pricePerDay": "Price per day (LKR)",
+        "pricePerKm": "Price per km (LKR)",
+        "fuelCostPerKm": "Fuel cost per km (LKR)"
+      }
+    },
     "errors": {
       "platformNameRequired": "Platform name cannot be empty.",
       "supportEmailInvalid": "Enter a valid support email address.",
@@ -3562,6 +3580,7 @@
       "bookingHoursInvalid": "Booking hours must be positive values.",
       "sessionTimeoutRange": "Session timeout must be between 5 and 1440 minutes.",
       "maintenanceMessageTooLong": "Maintenance message must be 1000 characters or fewer.",
+      "pricingInvalid": "Each vehicle type needs a price per day above zero and non-negative per-km rates.",
       "saveFailed": "Failed to save settings."
     }
   },

@@ -8,6 +8,10 @@ import prisma, {
 import { ApiError } from "../../middleware/errorHandler.js";
 import { deleteByUrl } from "../../utils/storage.js";
 import { generateTokens, UserRole, UserStatus } from "../auth/auth.service.js";
+import {
+  getVehicleTypePricing,
+  type VehicleType,
+} from "../admin/settings/settings.service.js";
 import type {
   OwnerRegistrationInput,
   VehicleInput,
@@ -255,13 +259,18 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
       });
     }
 
+    // Base rates are platform-set per vehicle type, not chosen by the owner.
+    const typePricing = await getVehicleTypePricing();
+
     // Create vehicles with documents and photos
     for (const vehicleData of data.vehicles) {
+      const canonicalType = mapVehicleType(vehicleData.vehicleType) as VehicleType;
+      const pricing = typePricing[canonicalType];
       const vehicle = await tx.vehicle.create({
         data: {
           ownerId: user.id,
           name: `${vehicleData.make} ${vehicleData.model}`,
-          type: mapVehicleType(vehicleData.vehicleType) as any,
+          type: canonicalType as any,
           brand: xss(vehicleData.make.trim()),
           model: xss(vehicleData.model.trim()),
           year: vehicleData.year,
@@ -271,7 +280,9 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
           fuelType: "DIESEL", // Default for buses
           transmission: "MANUAL", // Default for buses
           location: data.address.baseLocation,
-          pricePerDay: 0, // To be set later by owner
+          pricePerDay: pricing.pricePerDay,
+          pricePerKm: pricing.pricePerKm,
+          fuelCostPerKm: pricing.fuelCostPerKm,
           isAvailable: false, // Not available until verified
           isActive: false, // Not active until verified
           images: [], // Will be populated from photos

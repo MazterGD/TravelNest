@@ -7,6 +7,7 @@ import {
   Banknote,
   Bell,
   Calendar,
+  Coins,
   Globe,
   Map,
   RefreshCw,
@@ -66,6 +67,16 @@ type MapForm = {
   defaultCity: string;
 };
 
+type TypePricing = {
+  pricePerDay: number;
+  pricePerKm: number;
+  fuelCostPerKm: number;
+};
+
+const PRICING_TYPES = ["ORDINARY", "SEMI_LUXURY", "LUXURY_AC"] as const;
+type PricingTypeKey = (typeof PRICING_TYPES)[number];
+type PricingForm = Record<PricingTypeKey, TypePricing>;
+
 type DraftState = {
   general: GeneralForm;
   notification: NotificationForm;
@@ -73,6 +84,7 @@ type DraftState = {
   booking: BookingForm;
   security: SecurityForm;
   map: MapForm;
+  pricing: PricingForm;
   maintenanceMode: boolean;
   maintenanceMessage: string;
 };
@@ -83,7 +95,8 @@ type TabId =
   | "payment"
   | "booking"
   | "security"
-  | "map";
+  | "map"
+  | "pricing";
 
 const DEFAULTS: DraftState = {
   general: {
@@ -113,6 +126,11 @@ const DEFAULTS: DraftState = {
   map: {
     defaultCountry: "LK",
     defaultCity: "Colombo",
+  },
+  pricing: {
+    ORDINARY: { pricePerDay: 18000, pricePerKm: 55, fuelCostPerKm: 20 },
+    SEMI_LUXURY: { pricePerDay: 24000, pricePerKm: 65, fuelCostPerKm: 24 },
+    LUXURY_AC: { pricePerDay: 32000, pricePerKm: 80, fuelCostPerKm: 32 },
   },
   maintenanceMode: false,
   maintenanceMessage: "",
@@ -148,6 +166,21 @@ const readBoolean = (
 ): boolean => {
   const value = source?.[key];
   return typeof value === "boolean" ? value : fallback;
+};
+
+const readTypePricing = (
+  source: Record<string, unknown> | null | undefined,
+  type: PricingTypeKey,
+  fallback: TypePricing,
+): TypePricing => {
+  const node = (source?.[type] ?? undefined) as
+    | Record<string, unknown>
+    | undefined;
+  return {
+    pricePerDay: readNumber(node, "pricePerDay", fallback.pricePerDay),
+    pricePerKm: readNumber(node, "pricePerKm", fallback.pricePerKm),
+    fuelCostPerKm: readNumber(node, "fuelCostPerKm", fallback.fuelCostPerKm),
+  };
 };
 
 const formatTimestamp = (value: string | null | undefined) => {
@@ -253,6 +286,23 @@ const deriveDraft = (settings: AdminPlatformSettings): DraftState => ({
       settings.mapSettings,
       "defaultCity",
       DEFAULTS.map.defaultCity,
+    ),
+  },
+  pricing: {
+    ORDINARY: readTypePricing(
+      settings.pricingSettings,
+      "ORDINARY",
+      DEFAULTS.pricing.ORDINARY,
+    ),
+    SEMI_LUXURY: readTypePricing(
+      settings.pricingSettings,
+      "SEMI_LUXURY",
+      DEFAULTS.pricing.SEMI_LUXURY,
+    ),
+    LUXURY_AC: readTypePricing(
+      settings.pricingSettings,
+      "LUXURY_AC",
+      DEFAULTS.pricing.LUXURY_AC,
     ),
   },
   maintenanceMode: settings.maintenanceMode ?? false,
@@ -381,7 +431,24 @@ function SettingsForm({
     { id: "booking", label: t("tabs.booking"), icon: Calendar },
     { id: "security", label: t("tabs.security"), icon: Shield },
     { id: "map", label: t("tabs.map"), icon: Map },
+    { id: "pricing", label: t("tabs.pricing"), icon: Coins },
   ];
+
+  const updatePricing = (
+    type: PricingTypeKey,
+    field: keyof TypePricing,
+    value: string,
+  ) =>
+    setDraft((prev) => ({
+      ...prev,
+      pricing: {
+        ...prev.pricing,
+        [type]: {
+          ...prev.pricing[type],
+          [field]: Math.max(0, Number(value) || 0),
+        },
+      },
+    }));
 
   const validateAndSave = async () => {
     setFormError(null);
@@ -424,6 +491,22 @@ function SettingsForm({
       setFormError(t("errors.maintenanceMessageTooLong"));
       return;
     }
+    const pricingInvalid = PRICING_TYPES.some((type) => {
+      const row = draft.pricing[type];
+      return (
+        !Number.isFinite(row.pricePerDay) ||
+        row.pricePerDay <= 0 ||
+        !Number.isFinite(row.pricePerKm) ||
+        row.pricePerKm < 0 ||
+        !Number.isFinite(row.fuelCostPerKm) ||
+        row.fuelCostPerKm < 0
+      );
+    });
+    if (pricingInvalid) {
+      setFormError(t("errors.pricingInvalid"));
+      setActiveTab("pricing");
+      return;
+    }
 
     const merged: AdminPlatformSettingsUpdateInput = {
       generalSettings: {
@@ -450,6 +533,7 @@ function SettingsForm({
         ...(settings.mapSettings ?? {}),
         ...draft.map,
       },
+      pricingSettings: draft.pricing,
       maintenanceMode: draft.maintenanceMode,
       maintenanceMessage: draft.maintenanceMessage.trim(),
     };
@@ -973,6 +1057,53 @@ function SettingsForm({
                 />
               </FieldRow>
             </>
+          )}
+
+          {activeTab === "pricing" && (
+            <div className="space-y-5">
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                {t("pricing.intro")}
+              </p>
+              {PRICING_TYPES.map((type) => (
+                <div
+                  key={type}
+                  className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4"
+                >
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {t(`pricing.types.${type}`)}
+                  </h3>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                    <Input
+                      label={t("pricing.fields.pricePerDay")}
+                      type="number"
+                      min={0}
+                      value={draft.pricing[type].pricePerDay}
+                      onChange={(event) =>
+                        updatePricing(type, "pricePerDay", event.target.value)
+                      }
+                    />
+                    <Input
+                      label={t("pricing.fields.pricePerKm")}
+                      type="number"
+                      min={0}
+                      value={draft.pricing[type].pricePerKm}
+                      onChange={(event) =>
+                        updatePricing(type, "pricePerKm", event.target.value)
+                      }
+                    />
+                    <Input
+                      label={t("pricing.fields.fuelCostPerKm")}
+                      type="number"
+                      min={0}
+                      value={draft.pricing[type].fuelCostPerKm}
+                      onChange={(event) =>
+                        updatePricing(type, "fuelCostPerKm", event.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </Card>

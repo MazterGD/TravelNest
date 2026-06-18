@@ -61,7 +61,6 @@ interface BookingData {
     driverCost: number;
     fuelCost: number;
     tollCharges: number;
-    permitFees: number;
     otherCharges: number;
     tax: number;
   };
@@ -160,7 +159,6 @@ export default function BookingConfirmationContent({
           driverCost: quotation.driverCost || 0,
           fuelCost: quotation.fuelCost || 0,
           tollCharges: quotation.tollCharges || 0,
-          permitFees: quotation.permitFees || 0,
           otherCharges,
           tax: quotation.tax || 0,
         },
@@ -514,12 +512,6 @@ export default function BookingConfirmationContent({
                   <span className="font-medium">
                     Rs.{" "}
                     {bookingData.priceBreakdown.tollCharges.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Permit Fees</span>
-                  <span className="font-medium">
-                    Rs. {bookingData.priceBreakdown.permitFees.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">

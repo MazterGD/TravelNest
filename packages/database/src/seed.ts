@@ -637,8 +637,8 @@ async function main() {
         value: {
           driverCostPercentage: 0.2,
           fuelCostPerKm: 50,
-          tollChargesBase: 2000,
-          permitFeesBase: 1500,
+          tollChargesBase: 0,
+          permitFeesBase: 0,
           taxRate: 0.1,
           defaultValidityDays: 7,
           validityOptionsDays: [3, 5, 7, 14, 30],

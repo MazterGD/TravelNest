@@ -16,6 +16,15 @@ const sanitizeQueryParam = (
 };
 
 /**
+ * Get platform-set base pricing per vehicle type
+ * GET /api/v1/vehicles/pricing-config
+ */
+export const getTypePricing = async (_req: Request, res: Response) => {
+  const pricing = await vehicleService.getTypePricing();
+  return ResponseHelper.success(res, { pricing });
+};
+
+/**
  * Get all vehicles with filters
  * GET /api/v1/vehicles
  */

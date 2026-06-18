@@ -469,6 +469,12 @@ export const vehicleService = {
   getById: (id: string) => api.get<Vehicle>(`/vehicles/${id}`),
 
   /**
+   * Get platform-set base pricing per vehicle type (read-only reference)
+   */
+  getTypePricing: () =>
+    api.get<{ pricing: VehiclePricingByType }>("/vehicles/pricing-config"),
+
+  /**
    * Create a new vehicle (owner only)
    */
   create: (data: VehicleInput) => api.post<Vehicle>("/vehicles", data),
@@ -2606,6 +2612,16 @@ export interface AdminCommissionRuleInput {
   isActive?: boolean;
 }
 
+export type VehicleTypeKey = "ORDINARY" | "SEMI_LUXURY" | "LUXURY_AC";
+
+export interface VehicleTypePricing {
+  pricePerDay: number;
+  pricePerKm: number;
+  fuelCostPerKm: number;
+}
+
+export type VehiclePricingByType = Record<VehicleTypeKey, VehicleTypePricing>;
+
 export interface AdminPlatformSettings {
   id: string;
   generalSettings: Record<string, unknown> | null;
@@ -2614,6 +2630,7 @@ export interface AdminPlatformSettings {
   bookingSettings: Record<string, unknown> | null;
   securitySettings: Record<string, unknown> | null;
   mapSettings: Record<string, unknown> | null;
+  pricingSettings: Record<string, unknown> | null;
   maintenanceMode: boolean;
   maintenanceMessage: string | null;
   updatedBy: string | null;
@@ -2635,6 +2652,7 @@ export interface AdminPlatformSettingsUpdateInput {
   bookingSettings?: Record<string, unknown>;
   securitySettings?: Record<string, unknown>;
   mapSettings?: Record<string, unknown>;
+  pricingSettings?: VehiclePricingByType;
   maintenanceMode?: boolean;
   maintenanceMessage?: string;
 }

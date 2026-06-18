@@ -504,9 +504,6 @@ export function QuotationDetailPageContent({
                   {quotation.tollCharges ? (
                     <BreakdownRow label={t("tollCharges")} amount={quotation.tollCharges} locale={locale} />
                   ) : null}
-                  {quotation.permitFees ? (
-                    <BreakdownRow label={t("permitFees")} amount={quotation.permitFees} locale={locale} />
-                  ) : null}
                   {customItems.map((item, idx) => (
                     <BreakdownRow
                       key={`custom-${idx}`}

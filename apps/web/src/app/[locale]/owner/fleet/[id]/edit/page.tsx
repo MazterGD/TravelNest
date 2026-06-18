@@ -16,6 +16,7 @@ import type { UploadedFile, ExistingFile } from "@/components/ui/FileUpload";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { vehicleService, landingContentService, ApiError } from "@/lib/api";
+import type { VehiclePricingByType } from "@/lib/api";
 import { ArrowLeft, CheckCircle, Upload, X, Plus } from "lucide-react";
 
 type FormSection = "basic" | "pricing" | "photos" | "documents" | "amenities";
@@ -47,8 +48,6 @@ interface FormData {
   acType: string;
   condition: string;
   description: string;
-  pricePerKm: string;
-  pricePerDay: string;
   driverAllowance: string;
   location: string;
   latitude: number | null;
@@ -118,14 +117,15 @@ export default function EditVehiclePage() {
     acType: "",
     condition: "",
     description: "",
-    pricePerKm: "",
-    pricePerDay: "",
     driverAllowance: "",
     location: "",
     latitude: null,
     longitude: null,
     gpsEnabled: false,
   });
+  const [typePricing, setTypePricing] = useState<VehiclePricingByType | null>(
+    null,
+  );
 
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
@@ -163,8 +163,6 @@ export default function EditVehiclePage() {
           acType: vehicle.acType || "",
           condition: vehicle.condition || "",
           description: vehicle.description || "",
-          pricePerKm: vehicle.pricePerKm?.toString() || "",
-          pricePerDay: vehicle.pricePerDay?.toString() || "",
           driverAllowance: vehicle.driverAllowance?.toString() || "",
           location: vehicle.location || "",
           latitude: vehicle.latitude ?? null,
@@ -254,6 +252,15 @@ export default function EditVehiclePage() {
     fetchConfig();
   }, []);
 
+  useEffect(() => {
+    vehicleService
+      .getTypePricing()
+      .then((res) => setTypePricing(res?.pricing ?? null))
+      .catch(() => {
+        // Reference pricing is non-critical for the form to function.
+      });
+  }, []);
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -324,10 +331,6 @@ export default function EditVehiclePage() {
         condition:
           (formData.condition as "excellent" | "good" | "fair") || undefined,
         description: formData.description || undefined,
-        pricePerDay: parseFloat(formData.pricePerDay),
-        pricePerKm: formData.pricePerKm
-          ? parseFloat(formData.pricePerKm)
-          : undefined,
         driverAllowance: formData.driverAllowance
           ? parseFloat(formData.driverAllowance)
           : undefined,
@@ -607,27 +610,42 @@ export default function EditVehiclePage() {
                         {t("pricingSubtitleEdit")}
                       </p>
                     </div>
+                    <div className="rounded-lg border border-border bg-muted p-5">
+                      <p className="text-sm text-muted-foreground">
+                        {t("platformPricingNote")}
+                      </p>
+                      {formData.type && typePricing ? (
+                        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                          {(
+                            [
+                              ["fieldPricePerDay", "pricePerDay"],
+                              ["fieldPricePerKm", "pricePerKm"],
+                              ["fieldFuelCostPerKm", "fuelCostPerKm"],
+                            ] as const
+                          ).map(([labelKey, field]) => (
+                            <div
+                              key={field}
+                              className="rounded-lg border border-border bg-background p-4"
+                            >
+                              <p className="text-xs text-muted-foreground">
+                                {t(labelKey)}
+                              </p>
+                              <p className="mt-1 text-body-lg font-semibold text-foreground">
+                                LKR{" "}
+                                {typePricing[
+                                  formData.type as keyof VehiclePricingByType
+                                ][field].toLocaleString()}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-sm text-muted-foreground">
+                          {t("platformPriceSelectType")}
+                        </p>
+                      )}
+                    </div>
                     <div className="grid gap-5 md:grid-cols-2">
-                      <Input
-                        label={t("fieldPricePerKm")}
-                        name="pricePerKm"
-                        type="number"
-                        required
-                        value={formData.pricePerKm}
-                        onChange={handleChange}
-                        placeholder="85"
-                        helperText={t("fieldPricePerKmHelp")}
-                      />
-                      <Input
-                        label={t("fieldPricePerDay")}
-                        name="pricePerDay"
-                        type="number"
-                        required
-                        value={formData.pricePerDay}
-                        onChange={handleChange}
-                        placeholder="25000"
-                        helperText={t("fieldPricePerDayHelp")}
-                      />
                       <Input
                         label={t("fieldDriverAllowance")}
                         name="driverAllowance"
@@ -638,43 +656,6 @@ export default function EditVehiclePage() {
                         helperText={t("fieldDriverAllowanceHelp")}
                       />
                     </div>
-                    {formData.pricePerKm && formData.pricePerDay && (
-                      <div className="rounded-lg border border-border bg-muted p-5">
-                        <div className="mb-3 text-sm font-medium text-foreground">
-                          {t("sampleCalcTitle")}
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>{t("sampleCalcDistance")}</span>
-                            <span>
-                              LKR{" "}
-                              {(
-                                parseFloat(formData.pricePerKm) * 150
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>{t("sampleCalcRental")}</span>
-                            <span>
-                              LKR{" "}
-                              {parseFloat(
-                                formData.pricePerDay,
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between border-t border-border pt-2 font-medium text-foreground">
-                            <span>{t("sampleCalcTotal")}</span>
-                            <span>
-                              LKR{" "}
-                              {(
-                                parseFloat(formData.pricePerKm) * 150 +
-                                parseFloat(formData.pricePerDay)
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 

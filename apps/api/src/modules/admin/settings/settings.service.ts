@@ -2,6 +2,23 @@ import { prisma, type Prisma } from "@travenest/database";
 import { recordAuditLog } from "../audit/audit.service.js";
 import type { UpdatePlatformSettingsInput } from "./settings.schemas.js";
 
+export type VehicleType = "ORDINARY" | "SEMI_LUXURY" | "LUXURY_AC";
+
+export interface VehicleTypePricing {
+  pricePerDay: number;
+  pricePerKm: number;
+  fuelCostPerKm: number;
+}
+
+// Platform-set base pricing per vehicle type. Owners no longer set their own
+// base rates; these are the single source of truth so listing prices stay
+// consistent across the marketplace. Tunable by admins via platform settings.
+export const DEFAULT_VEHICLE_PRICING: Record<VehicleType, VehicleTypePricing> = {
+  ORDINARY: { pricePerDay: 18000, pricePerKm: 55, fuelCostPerKm: 20 },
+  SEMI_LUXURY: { pricePerDay: 24000, pricePerKm: 65, fuelCostPerKm: 24 },
+  LUXURY_AC: { pricePerDay: 32000, pricePerKm: 80, fuelCostPerKm: 32 },
+};
+
 const DEFAULT_PLATFORM_SETTINGS = {
   generalSettings: {
     platformName: "TravelNest",
@@ -31,12 +48,51 @@ const DEFAULT_PLATFORM_SETTINGS = {
     defaultCountry: "LK",
     defaultCity: "Colombo",
   },
+  pricingSettings: DEFAULT_VEHICLE_PRICING,
   maintenanceMode: false,
   maintenanceMessage: null,
 } as const;
 
 const toJsonValue = (value: unknown): Prisma.InputJsonValue =>
   value as Prisma.InputJsonValue;
+
+const readPositiveNumber = (value: unknown, fallback: number): number => {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (!Number.isNaN(parsed) && parsed >= 0) return parsed;
+  }
+  return fallback;
+};
+
+// Defensive merge: stored JSON may be absent or partial, so each field falls
+// back to the platform default to guarantee a complete, valid pricing table.
+const normalizeVehiclePricing = (
+  raw: unknown,
+): Record<VehicleType, VehicleTypePricing> => {
+  const source = (raw ?? {}) as Record<string, unknown>;
+  const result = {} as Record<VehicleType, VehicleTypePricing>;
+
+  (Object.keys(DEFAULT_VEHICLE_PRICING) as VehicleType[]).forEach((type) => {
+    const typeSource = (source[type] ?? {}) as Record<string, unknown>;
+    const defaults = DEFAULT_VEHICLE_PRICING[type];
+    result[type] = {
+      pricePerDay: readPositiveNumber(
+        typeSource.pricePerDay,
+        defaults.pricePerDay,
+      ),
+      pricePerKm: readPositiveNumber(typeSource.pricePerKm, defaults.pricePerKm),
+      fuelCostPerKm: readPositiveNumber(
+        typeSource.fuelCostPerKm,
+        defaults.fuelCostPerKm,
+      ),
+    };
+  });
+
+  return result;
+};
 
 const ensurePlatformSettings = async () => {
   const existing = await prisma.platformSettings.findFirst({
@@ -68,6 +124,7 @@ const ensurePlatformSettings = async () => {
       bookingSettings: toJsonValue(DEFAULT_PLATFORM_SETTINGS.bookingSettings),
       securitySettings: toJsonValue(DEFAULT_PLATFORM_SETTINGS.securitySettings),
       mapSettings: toJsonValue(DEFAULT_PLATFORM_SETTINGS.mapSettings),
+      pricingSettings: toJsonValue(DEFAULT_PLATFORM_SETTINGS.pricingSettings),
       maintenanceMode: DEFAULT_PLATFORM_SETTINGS.maintenanceMode,
       maintenanceMessage: DEFAULT_PLATFORM_SETTINGS.maintenanceMessage,
     },
@@ -87,6 +144,18 @@ const ensurePlatformSettings = async () => {
 
 export const getPlatformSettings = async () => {
   return ensurePlatformSettings();
+};
+
+/**
+ * Resolve the platform's base pricing per vehicle type. Single source of truth
+ * for vehicle listing prices — consumed when auto-populating a vehicle's rates
+ * and when surfacing reference pricing to owners.
+ */
+export const getVehicleTypePricing = async (): Promise<
+  Record<VehicleType, VehicleTypePricing>
+> => {
+  const settings = await ensurePlatformSettings();
+  return normalizeVehiclePricing(settings.pricingSettings);
 };
 
 export const updatePlatformSettings = async (
@@ -117,6 +186,13 @@ export const updatePlatformSettings = async (
         : {}),
       ...(payload.mapSettings !== undefined
         ? { mapSettings: toJsonValue(payload.mapSettings) }
+        : {}),
+      ...(payload.pricingSettings !== undefined
+        ? {
+            pricingSettings: toJsonValue(
+              normalizeVehiclePricing(payload.pricingSettings),
+            ),
+          }
         : {}),
       ...(payload.maintenanceMode !== undefined
         ? { maintenanceMode: payload.maintenanceMode }

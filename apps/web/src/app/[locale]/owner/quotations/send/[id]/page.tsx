@@ -66,6 +66,7 @@ interface Vehicle {
   rawType: string;
   capacity: number;
   baseRate: number;
+  pricePerKm: number;
   acType: string;
   fuelCostPerKm?: number;
 }
@@ -109,7 +110,6 @@ export default function SendQuotationPage({
   const [fuelCost, setFuelCost] = useState<number>(0);
   const [fuelPricePerKm, setFuelPricePerKm] = useState<number>(0);
   const [tollCharges, setTollCharges] = useState<number>(0);
-  const [permitFees, setPermitFees] = useState<number>(0);
   const [customLineItems, setCustomLineItems] = useState<CustomLineItem[]>([]);
   const [validityDays, setValidityDays] = useState<number>(0);
   const [additionalNotes, setAdditionalNotes] = useState<string>("");
@@ -184,6 +184,7 @@ export default function SendQuotationPage({
             rawType: v.type,
             capacity: v.seats || v.passengerCapacity || 0,
             baseRate: v.pricePerDay || 0,
+            pricePerKm: (v as any).pricePerKm || 0,
             acType: v.acType || "",
             fuelCostPerKm: (v as any).fuelCostPerKm || 0,
           }),
@@ -294,15 +295,15 @@ export default function SendQuotationPage({
     if (selectedVehicle && vehicles.length > 0) {
       const vehicle = vehicles.find((v) => v.id === selectedVehicle);
       if (vehicle) {
-        setVehicleRentalCost(vehicle.baseRate);
+        const distance = parseFloat(request?.trip.estimatedDistance || "0");
+        // Vehicle rental is platform-set: type-based per-km rate × trip distance.
+        setVehicleRentalCost(Math.round(vehicle.pricePerKm * distance));
         setDriverCost(
           Math.round(vehicle.baseRate * quotationPricing.driverCostPercentage),
         );
-        const distance = parseFloat(request?.trip.estimatedDistance || "0");
         const perKmRate = vehicle.fuelCostPerKm || quotationPricing.fuelCostPerKm || 0;
         setFuelPricePerKm(perKmRate);
         setTollCharges(quotationPricing.tollChargesBase);
-        setPermitFees(quotationPricing.permitFeesBase);
       }
     }
   }, [selectedVehicle, vehicles, request, quotationPricing]);
@@ -345,7 +346,6 @@ export default function SendQuotationPage({
       driverCost +
       fuelCost +
       tollCharges +
-      permitFees +
       customTotal
     );
   };
@@ -379,7 +379,6 @@ export default function SendQuotationPage({
         driverCost,
         fuelCost,
         tollCharges,
-        permitFees,
         customItems: customLineItems.map((item) => ({
           description: item.description,
           amount: item.amount,
@@ -834,11 +833,13 @@ export default function SendQuotationPage({
                       <input
                         type="number"
                         value={vehicleRentalCost}
-                        onChange={(e) =>
-                          setVehicleRentalCost(Number(e.target.value))
-                        }
-                        className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        readOnly
+                        aria-readonly="true"
+                        className="h-11 w-full cursor-not-allowed rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
                       />
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        {t("pricing.vehicleRentalNote")}
+                      </p>
                     </div>
 
                     <div>
@@ -888,18 +889,6 @@ export default function SendQuotationPage({
                         onChange={(e) =>
                           setTollCharges(Number(e.target.value))
                         }
-                        className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-foreground">
-                        {t("pricing.permitFees")}
-                      </label>
-                      <input
-                        type="number"
-                        value={permitFees}
-                        onChange={(e) => setPermitFees(Number(e.target.value))}
                         className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     </div>
@@ -1065,15 +1054,6 @@ export default function SendQuotationPage({
                             LKR {tollCharges.toLocaleString()}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            {t("preview.permitFees")}
-                          </span>
-                          <span className="font-medium text-foreground">
-                            LKR {permitFees.toLocaleString()}
-                          </span>
-                        </div>
-
                         {customLineItems.map((item) => (
                           <div key={item.id} className="flex justify-between">
                             <span className="text-muted-foreground">

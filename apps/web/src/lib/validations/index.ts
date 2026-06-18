@@ -102,8 +102,7 @@ export const vehicleSchema = z.object({
   condition: z.enum(["excellent", "good", "fair"]).optional(),
   fuelType: z.enum(["DIESEL"]).default("DIESEL"),
   transmission: z.enum(["MANUAL"]).default("MANUAL"),
-  pricePerKm: z.number().min(0).optional(),
-  pricePerDay: z.number().min(0),
+  // pricePerDay/pricePerKm are platform-set per vehicle type, not owner-editable.
   driverAllowance: z.number().min(0).optional(),
   location: z.string().min(2, "Location is required"),
   latitude: z.number().min(-90).max(90).optional(),
@@ -123,7 +122,6 @@ export const quotationResponseSchema = z.object({
   driverCost: z.number().min(0),
   fuelCost: z.number().min(0),
   tollCharges: z.number().min(0),
-  permitFees: z.number().min(0),
   customItems: z
     .array(
       z.object({

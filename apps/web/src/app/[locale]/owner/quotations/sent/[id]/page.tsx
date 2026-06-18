@@ -57,7 +57,6 @@ interface QuotationDetail {
     driverCost: number;
     fuelCost: number;
     tollCharges: number;
-    permitFees: number;
     customItems: Array<{ description: string; amount: number }>;
     subtotal: number;
     tax: number;
@@ -134,7 +133,6 @@ export default function QuotationDetailPage({
             driverCost: data.driverCost || 0,
             fuelCost: data.fuelCost || 0,
             tollCharges: data.tollCharges || 0,
-            permitFees: data.permitFees || 0,
             customItems: data.customItems || [],
             subtotal: data.subtotal || 0,
             tax: data.tax || 0,
@@ -505,12 +503,6 @@ export default function QuotationDetailPage({
                     <span className="text-muted-foreground">{t("detail.pricing.tollCharges")}</span>
                     <span className="font-medium text-foreground">
                       LKR {quotation.pricing.tollCharges.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("detail.pricing.permitFees")}</span>
-                    <span className="font-medium text-foreground">
-                      LKR {quotation.pricing.permitFees.toLocaleString()}
                     </span>
                   </div>
 

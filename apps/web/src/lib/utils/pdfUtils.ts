@@ -303,7 +303,6 @@ export interface ComparisonQuotation {
     driverCost: number;
     fuelCost: number;
     tollCharges: number;
-    permitFees: number;
     otherCharges: number;
     tax: number;
   };
@@ -342,7 +341,6 @@ export function buildComparisonHTML(
             <div class="cmp-row"><span>Driver</span><span class="v">${fmtRs(bd.driverCost)}</span></div>
             <div class="cmp-row"><span>Fuel</span><span class="v">${fmtRs(bd.fuelCost)}</span></div>
             <div class="cmp-row"><span>Tolls</span><span class="v">${fmtRs(bd.tollCharges)}</span></div>
-            <div class="cmp-row"><span>Permits</span><span class="v">${fmtRs(bd.permitFees)}</span></div>
             ${bd.otherCharges ? `<div class="cmp-row"><span>Other</span><span class="v">${fmtRs(bd.otherCharges)}</span></div>` : ''}
             ${bd.tax ? `<div class="cmp-row"><span>Tax</span><span class="v">${fmtRs(bd.tax)}</span></div>` : ''}
           </div>`

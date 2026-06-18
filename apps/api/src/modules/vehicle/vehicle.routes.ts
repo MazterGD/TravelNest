@@ -58,6 +58,12 @@ const documentUpload = multer({
 // Get all vehicles (with filters)
 router.get("/", optionalAuth, asyncHandler(vehicleController.getAllVehicles));
 
+// Platform-set base pricing per vehicle type (read-only reference) — MUST come before /:id
+router.get(
+  "/pricing-config",
+  asyncHandler(vehicleController.getTypePricing),
+);
+
 // Protected routes (Owner only)
 // Get my vehicles - MUST come before /:id
 router.get(

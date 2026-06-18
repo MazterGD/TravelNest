@@ -85,7 +85,7 @@ export const ownerRegistrationSchema = z.object({
       .max(50),
     email: z.string().trim().email("Invalid email address").max(254),
     phone: z.string().trim().min(1, "Phone number is required").max(20),
-    nicNumber: z.string().trim().min(1, "NIC number is required").max(20),
+    nicNumber: z.string().trim().min(1, "NIC number is required").max(12, "NIC number must be 12 characters or less"),
 
     // Password
     password: z
@@ -130,7 +130,7 @@ export const updatePersonalInfoSchema = z.object({
     firstName: z.string().min(2).max(50).optional(),
     lastName: z.string().min(2).max(50).optional(),
     phone: z.string().min(1).max(20).optional(),
-    nicNumber: z.string().min(1).max(20).optional(),
+    nicNumber: z.string().min(1).max(12).optional(),
     businessName: z.string().trim().min(2).max(120).optional(),
     businessType: z.string().trim().min(2).max(80).optional(),
     businessRegNumber: z.string().trim().min(2).max(80).optional(),

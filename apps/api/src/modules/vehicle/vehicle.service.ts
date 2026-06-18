@@ -2,6 +2,16 @@ import { prisma } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { deleteByUrl } from "../../utils/storage.js";
 import xss from "xss";
+import {
+  getVehicleTypePricing,
+  type VehicleType,
+} from "../admin/settings/settings.service.js";
+
+/**
+ * Platform-set base pricing per vehicle type. Surfaced read-only to owners so
+ * they can see what their bus will be priced at before listing it.
+ */
+export const getTypePricing = () => getVehicleTypePricing();
 
 /**
  * Vehicle Service
@@ -67,8 +77,6 @@ interface VehicleCreateInput {
   fuelType?: string;
   transmission?: string;
   description?: string;
-  pricePerKm?: number;
-  pricePerDay: number;
   driverAllowance?: number;
   location: string;
   latitude?: number;
@@ -522,12 +530,17 @@ export const createVehicle = async (
     );
   }
 
+  // Base rates are platform-set per vehicle type, not chosen by the owner, so
+  // listing prices stay consistent across the marketplace.
+  const canonicalType = mapVehicleType(data.type) as VehicleType;
+  const typePricing = (await getVehicleTypePricing())[canonicalType];
+
   // Create vehicle
   const vehicle = await prisma.vehicle.create({
     data: {
       ownerId,
       name: xss(data.name),
-      type: mapVehicleType(data.type) as any,
+      type: canonicalType as any,
       brand: xss(data.brand),
       model: xss(data.model),
       year: data.year,
@@ -539,8 +552,9 @@ export const createVehicle = async (
       fuelType: "DIESEL", // Default for buses
       transmission: "MANUAL", // Default for buses
       description: data.description ? xss(data.description) : null,
-      pricePerDay: data.pricePerDay,
-      pricePerKm: data.pricePerKm || null,
+      pricePerDay: typePricing.pricePerDay,
+      pricePerKm: typePricing.pricePerKm,
+      fuelCostPerKm: typePricing.fuelCostPerKm,
       driverAllowance: data.driverAllowance || null,
       location: xss(data.location),
       latitude: data.latitude ?? null,
@@ -588,7 +602,15 @@ export const updateVehicle = async (
   if (data.brand || data.model) {
     updateData.name = `${data.brand || existing.brand} ${data.model || existing.model}`;
   }
-  if (data.type) updateData.type = mapVehicleType(data.type) as any;
+  if (data.type) {
+    const canonicalType = mapVehicleType(data.type) as VehicleType;
+    updateData.type = canonicalType as any;
+    // Type drives the platform base rates, so re-derive them on a type change.
+    const typePricing = (await getVehicleTypePricing())[canonicalType];
+    updateData.pricePerDay = typePricing.pricePerDay;
+    updateData.pricePerKm = typePricing.pricePerKm;
+    updateData.fuelCostPerKm = typePricing.fuelCostPerKm;
+  }
   if (data.licensePlate) updateData.licensePlate = xss(data.licensePlate);
   if (data.brand) updateData.brand = xss(data.brand);
   if (data.model) updateData.model = xss(data.model);
@@ -599,8 +621,6 @@ export const updateVehicle = async (
   if (data.condition) updateData.condition = xss(data.condition);
   if (data.description !== undefined)
     updateData.description = data.description ? xss(data.description) : null;
-  if (data.pricePerDay) updateData.pricePerDay = data.pricePerDay;
-  if (data.pricePerKm) updateData.pricePerKm = data.pricePerKm;
   if (data.driverAllowance !== undefined)
     updateData.driverAllowance = data.driverAllowance;
   if (data.location) updateData.location = xss(data.location);

@@ -1026,6 +1026,7 @@ model PlatformSettings {
   bookingSettings      Json?
   securitySettings     Json?
   mapSettings          Json?
+  pricingSettings      Json?    // Platform-set base pricing per vehicle type (pricePerDay/pricePerKm/fuelCostPerKm)
   maintenanceMode      Boolean  @default(false)
   maintenanceMessage   String?
   updatedBy            String?

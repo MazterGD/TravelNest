@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { z } from "zod";
 import {
   User,
   Mail,
@@ -61,7 +62,6 @@ interface VehicleData {
   acType: string;
   condition: string;
   description: string;
-  pricePerDay: string;
   driverAllowance: string;
   amenities: string[];
   photos: VehiclePhotoItem[];
@@ -128,7 +128,6 @@ export default function OwnerRegistrationPage() {
       acType: "",
       condition: "",
       description: "",
-      pricePerDay: "",
       driverAllowance: "",
       amenities: [],
       photos: [],
@@ -442,7 +441,6 @@ export default function OwnerRegistrationPage() {
         acType: "",
         condition: "",
         description: "",
-        pricePerDay: "",
         driverAllowance: "",
         amenities: [],
         photos: [],
@@ -461,6 +459,44 @@ export default function OwnerRegistrationPage() {
     }
   };
 
+  const validateField = (field: string, value: string | number, schema: z.ZodTypeAny) => {
+    const result = schema.safeParse(value);
+    if (!result.success) {
+      setFieldErrors((prev) => ({ ...prev, [field]: result.error.errors[0].message }));
+    } else {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handlePersonalInfoChange = (field: keyof typeof personalInfo, value: string) => {
+    setPersonalInfo((prev) => ({ ...prev, [field]: value }));
+    let schema: z.ZodTypeAny | null = null;
+    switch (field) {
+      case "firstName": schema = z.string().min(2, t("errors.requiredFields")).max(50); break;
+      case "lastName": schema = z.string().min(2, t("errors.requiredFields")).max(50); break;
+      case "email": schema = z.string().email(t("errors.invalidEmail")).max(254); break;
+      case "phone": schema = z.string().min(10, t("errors.requiredFields")).max(20); break;
+      case "nicNumber": schema = z.string().min(1, t("errors.requiredFields")).max(12, "NIC number must be 12 characters or less"); break;
+    }
+    if (schema) validateField(field, value, schema);
+  };
+
+  const handleAddressInfoChange = (field: keyof typeof addressInfo, value: string) => {
+    setAddressInfo((prev) => ({ ...prev, [field]: value }));
+    let schema: z.ZodTypeAny | null = null;
+    switch (field) {
+      case "address": schema = z.string().min(5, t("errors.requiredAddressFields")); break;
+      case "city": schema = z.string().min(2, t("errors.requiredAddressFields")); break;
+      case "district": schema = z.string().min(1, t("errors.requiredAddressFields")); break;
+      case "baseLocation": schema = z.string().min(2, t("errors.requiredAddressFields")); break;
+    }
+    if (schema) validateField(field, value, schema);
+  };
+
   const updateVehicle = (
     index: number,
     field: keyof VehicleData,
@@ -469,6 +505,16 @@ export default function OwnerRegistrationPage() {
     const updated = [...vehicles];
     updated[index] = { ...updated[index], [field]: value };
     setVehicles(updated);
+
+    let schema: z.ZodTypeAny | null = null;
+    switch (field) {
+      case "registrationNumber": schema = z.string().regex(/^[A-Z]{2,3}-\d{4}$/, "Format must be like WP-1234 or ABC-1234"); break;
+      case "make": schema = z.string().min(2, "Make must be at least 2 characters"); break;
+      case "model": schema = z.string().min(1, "Model is required"); break;
+      case "year": schema = z.coerce.number().min(1990, "Year must be 1990 or later").max(new Date().getFullYear() + 1, "Invalid year"); break;
+      case "seatingCapacity": schema = z.coerce.number().min(10, "Must have at least 10 seats").max(100, "Cannot exceed 100 seats"); break;
+    }
+    if (schema) validateField(`vehicle_${index}_${field}`, value, schema);
   };
 
   // Add vehicle photos
@@ -899,12 +945,7 @@ export default function OwnerRegistrationPage() {
                               type="text"
                               required
                               value={personalInfo.firstName}
-                              onChange={(e) =>
-                                setPersonalInfo({
-                                  ...personalInfo,
-                                  firstName: e.target.value,
-                                })
-                              }
+                              onChange={(e) => handlePersonalInfoChange("firstName", e.target.value)}
                               placeholder={t("fields.firstName.placeholder")}
                               data-field-error={fieldErrors.firstName ? "true" : undefined}
                               className={cn(
@@ -933,12 +974,7 @@ export default function OwnerRegistrationPage() {
                               type="text"
                               required
                               value={personalInfo.lastName}
-                              onChange={(e) =>
-                                setPersonalInfo({
-                                  ...personalInfo,
-                                  lastName: e.target.value,
-                                })
-                              }
+                              onChange={(e) => handlePersonalInfoChange("lastName", e.target.value)}
                               placeholder={t("fields.lastName.placeholder")}
                               data-field-error={fieldErrors.lastName ? "true" : undefined}
                               className={cn(
@@ -967,12 +1003,7 @@ export default function OwnerRegistrationPage() {
                               type="email"
                               required
                               value={personalInfo.email}
-                              onChange={(e) =>
-                                setPersonalInfo({
-                                  ...personalInfo,
-                                  email: e.target.value,
-                                })
-                              }
+                              onChange={(e) => handlePersonalInfoChange("email", e.target.value)}
                               placeholder={t("fields.email.placeholder")}
                               data-field-error={fieldErrors.email ? "true" : undefined}
                               className={cn(
@@ -1001,12 +1032,7 @@ export default function OwnerRegistrationPage() {
                               type="tel"
                               required
                               value={personalInfo.phone}
-                              onChange={(e) =>
-                                setPersonalInfo({
-                                  ...personalInfo,
-                                  phone: e.target.value,
-                                })
-                              }
+                              onChange={(e) => handlePersonalInfoChange("phone", e.target.value)}
                               placeholder={t("fields.phone.placeholder")}
                               data-field-error={fieldErrors.phone ? "true" : undefined}
                               className={cn(
@@ -1035,12 +1061,7 @@ export default function OwnerRegistrationPage() {
                               type="text"
                               required
                               value={personalInfo.nicNumber}
-                              onChange={(e) =>
-                                setPersonalInfo({
-                                  ...personalInfo,
-                                  nicNumber: e.target.value,
-                                })
-                              }
+                              onChange={(e) => handlePersonalInfoChange("nicNumber", e.target.value)}
                               placeholder={t("fields.nicNumber.placeholder")}
                               data-field-error={fieldErrors.nicNumber ? "true" : undefined}
                               className={cn(
@@ -1176,12 +1197,7 @@ export default function OwnerRegistrationPage() {
                             id="owner-address"
                             required
                             value={addressInfo.address}
-                            onChange={(e) =>
-                              setAddressInfo({
-                                ...addressInfo,
-                                address: e.target.value,
-                              })
-                            }
+                            onChange={(e) => handleAddressInfoChange("address", e.target.value)}
                             rows={3}
                             placeholder={t("fields.address.placeholder")}
                             data-field-error={fieldErrors.address ? "true" : undefined}
@@ -1210,12 +1226,7 @@ export default function OwnerRegistrationPage() {
                             type="text"
                             required
                             value={addressInfo.city}
-                            onChange={(e) =>
-                              setAddressInfo({
-                                ...addressInfo,
-                                city: e.target.value,
-                              })
-                            }
+                            onChange={(e) => handleAddressInfoChange("city", e.target.value)}
                             placeholder={t("fields.city.placeholder")}
                             data-field-error={fieldErrors.city ? "true" : undefined}
                             className={cn(
@@ -1247,12 +1258,7 @@ export default function OwnerRegistrationPage() {
                             )}
                             required
                             value={addressInfo.district}
-                            onChange={(e) =>
-                              setAddressInfo({
-                                ...addressInfo,
-                                district: e.target.value,
-                              })
-                            }
+                            onChange={(e) => handleAddressInfoChange("district", e.target.value)}
                           >
                             <option value="">
                               {t("fields.district.select")}
@@ -1301,12 +1307,7 @@ export default function OwnerRegistrationPage() {
                           type="text"
                           required
                           value={addressInfo.baseLocation}
-                          onChange={(e) =>
-                            setAddressInfo({
-                              ...addressInfo,
-                              baseLocation: e.target.value,
-                            })
-                          }
+                          onChange={(e) => handleAddressInfoChange("baseLocation", e.target.value)}
                           placeholder={t("fields.baseLocation.placeholder")}
                           data-field-error={fieldErrors.baseLocation ? "true" : undefined}
                           className={cn(
@@ -1687,33 +1688,6 @@ export default function OwnerRegistrationPage() {
                                   </option>
                                 ))}
                               </select>
-                            </div>
-
-                            <div>
-                              <label className="block font-semibold text-gray-800 mb-1.5">
-                                {t("fields.pricePerDay.label")}
-                              </label>
-                              <input
-                                type="number"
-                                required
-                                value={vehicle.pricePerDay}
-                                onChange={(e) =>
-                                  updateVehicle(
-                                    index,
-                                    "pricePerDay",
-                                    e.target.value,
-                                  )
-                                }
-                                placeholder={t(
-                                  "fields.pricePerDay.placeholder",
-                                )}
-                                min="0"
-                                step="0.01"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                {t("fields.pricePerDay.helpText")}
-                              </p>
                             </div>
 
                             <div>

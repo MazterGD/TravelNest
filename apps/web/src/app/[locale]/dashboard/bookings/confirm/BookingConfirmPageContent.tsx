@@ -33,7 +33,6 @@ interface QuotationDetails {
   driverCost: number;
   fuelCost: number;
   tollCharges: number;
-  permitFees: number;
   subtotal: number;
   tax: number;
   totalAmount: number;
@@ -354,14 +353,6 @@ export default function BookingConfirmPageContent({
                   <span className="text-gray-600">Toll Charges</span>
                   <span className="font-medium">
                     Rs. {quotation.tollCharges.toLocaleString()}
-                  </span>
-                </div>
-              )}
-              {quotation.permitFees > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Permit Fees</span>
-                  <span className="font-medium">
-                    Rs. {quotation.permitFees.toLocaleString()}
                   </span>
                 </div>
               )}

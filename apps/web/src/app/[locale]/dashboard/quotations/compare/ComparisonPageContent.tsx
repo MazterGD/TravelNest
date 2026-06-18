@@ -34,7 +34,6 @@ interface PriceBreakdown {
   driverCost: number;
   fuelCost: number;
   tollCharges: number;
-  permitFees: number;
   otherCharges: number;
   tax: number;
 }
@@ -194,7 +193,6 @@ const fetchData = async () => {
             driverCost: q.driverCost || 0,
             fuelCost: q.fuelCost || 0,
             tollCharges: q.tollCharges || 0,
-            permitFees: q.permitFees || 0,
             otherCharges: (q.customItems || []).reduce(
               (sum: number, item: any) => sum + (item.amount || 0),
               0,
@@ -316,7 +314,6 @@ const fetchData = async () => {
               driverCost: q.driverCost || 0,
               fuelCost: q.fuelCost || 0,
               tollCharges: q.tollCharges || 0,
-              permitFees: q.permitFees || 0,
               otherCharges: (q.customItems || []).reduce(
                 (sum: number, item: any) => sum + (item.amount || 0),
                 0,
@@ -388,7 +385,6 @@ const fetchData = async () => {
                     driverCost: q.driverCost || 0,
                     fuelCost: q.fuelCost || 0,
                     tollCharges: q.tollCharges || 0,
-                    permitFees: q.permitFees || 0,
                     otherCharges: (q.customItems || []).reduce(
                       (sum: number, item: any) => sum + (item.amount || 0),
                       0,
@@ -866,15 +862,6 @@ const fetchData = async () => {
                             <span className="font-medium text-[var(--color-text-primary)]">
                               Rs.{" "}
                               {quotation.priceBreakdown.tollCharges.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-[var(--color-text-secondary)]">
-                              {t("comparison.permitFees")}
-                            </span>
-                            <span className="font-medium text-[var(--color-text-primary)]">
-                              Rs.{" "}
-                              {quotation.priceBreakdown.permitFees.toLocaleString()}
                             </span>
                           </div>
                           <div className="flex justify-between">
