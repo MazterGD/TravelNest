@@ -536,7 +536,11 @@
     "backToBookings": "Back to Bookings",
     "createdOn": "Created",
     "startTrip": "Start Trip",
+    "completeTrip": "Complete Trip",
     "cancelTrip": "Cancel",
+    "startError": "Couldn't start the trip. It can only be started on the day of the trip — please try again.",
+    "completeError": "Couldn't mark the trip as complete. Please try again.",
+    "cancelError": "Couldn't cancel the booking. Please try again or contact support.",
     "sectionCustomer": "Customer Information",
     "message": "Message",
     "nameLabel": "Name",
@@ -553,6 +557,7 @@
     "noItinerary": "No itinerary stops available",
     "sectionVehicleDriver": "Vehicle & Driver",
     "assignedVehicle": "Assigned Vehicle",
+    "viewVehicle": "View Vehicle",
     "driverAssignment": "Driver Assignment",
     "capacityLabel": "Capacity",
     "seats": "seats",
@@ -599,7 +604,21 @@
     },
     "errorLoad": "Failed to load booking",
     "notFound": "Booking not found",
-    "na": "N/A"
+    "na": "N/A",
+    "assignDriver": "Assign Driver",
+    "changeDriver": "Change",
+    "driverModal": {
+      "title": "Assign Driver",
+      "subtitle": "Select an available driver for these booking dates.",
+      "noDrivers": "No active drivers available for these dates. Add drivers in your Driver Roster.",
+      "loadError": "Failed to load available drivers.",
+      "assignError": "Failed to assign driver. They may already be booked for these dates.",
+      "unassignError": "Failed to remove driver assignment.",
+      "unassign": "Remove current driver",
+      "cancel": "Cancel",
+      "confirm": "Assign Driver",
+      "confirmUnassign": "Remove Assignment"
+    }
   },
   "welcomeBack": "Welcome back",
   "navigation": {
@@ -765,6 +784,17 @@
     "results": "results found",
     "noResults": "No buses found matching your criteria",
     "adjustFilters": "Try adjusting your filters or search in a different area",
+    "nearby": {
+      "label": "Nearby results",
+      "withinRadius": "No buses based in {place}. Showing buses within {km} km.",
+      "sameDistrict": "No buses near {place}. Showing buses across the same district.",
+      "none": "No buses found near {place}. Try a different area or widen your search."
+    },
+    "tripType": {
+      "label": "Trip Type",
+      "oneWay": "One Way",
+      "roundTrip": "Round Trip"
+    },
     "errors": {
       "fetchVehicles": "Failed to fetch vehicles"
     },
@@ -1389,6 +1419,7 @@
         "requiredAddressFields": "Please fill in all required address fields",
         "requiredVehicleFields": "Please fill in all required fields for Vehicle {index}",
         "requiredVehicleDocs": "Please upload all required documents for Vehicle {index}",
+        "requiredVehiclePhotos": "Please upload at least one photo for Vehicle {index}",
         "passwordRequired": "Please enter and confirm your password",
         "passwordMismatch": "Passwords do not match",
         "weakPassword": "Please choose a stronger password",
@@ -1943,7 +1974,15 @@
       "body": "We noticed you already have a trip in progress. Attaching this quote to an existing trip lets you compare bus options side-by-side.",
       "attach": "Use this trip",
       "startNew": "Start a different trip",
+      "orCreate": "Or continue without selecting — we'll create a new trip from the details you enter below.",
       "noDestination": "Destination TBD"
+    },
+    "tripAttachment": {
+      "attached": "This quote will be attached to {trip}",
+      "attachedGeneric": "This quote will be attached to your selected trip",
+      "willCreate": "A new trip will be created from the details below",
+      "change": "Change trip",
+      "choose": "Select a trip"
     },
     "pickupFallback": "Pickup location",
     "back": "Back to Quotations",
@@ -2992,6 +3031,7 @@
     "saveChanges": "Save Changes",
     "saving": "Saving...",
     "cancel": "Cancel",
+    "errorPhotosRequired": "At least one vehicle photo is required",
     "errorDocRequired": "All vehicle documents are required to publish",
     "errorCreate": "Failed to create vehicle",
     "errorUpdate": "Failed to update vehicle",
@@ -3555,10 +3595,46 @@
       "notifications": "Notifications",
       "disputes": "Disputes",
       "profile": "My Profile",
-      "settings": "Settings"
+      "settings": "Settings",
+      "drivers": "Drivers"
     }
   },
   "ownerShell": {
     "breadcrumbRoot": "Owner Portal"
+  },
+  "ownerDrivers": {
+    "title": "Driver Roster",
+    "subtitle": "Manage your drivers and track their assignments",
+    "addDriver": "Add Driver",
+    "loadError": "Failed to load drivers. Please try again.",
+    "saveError": "Failed to save. Please try again.",
+    "deleteConfirm": "Are you sure you want to delete {name}? This cannot be undone.",
+    "deleteError": "Failed to delete driver. They may have active bookings.",
+    "deleteAriaLabel": "Delete {name}",
+    "emptyTitle": "No drivers yet",
+    "emptyDesc": "Add drivers to your roster so you can assign them to bookings.",
+    "statTotal": "Total Drivers",
+    "statActive": "Active",
+    "statTotalTrips": "Total Trips",
+    "statOnTrip": "Currently Active",
+    "totalTrips": "Total Trips",
+    "activeTrips": "Active",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "edit": "Edit",
+    "backToDrivers": "Back to Drivers",
+    "addTitle": "Add New Driver",
+    "editTitle": "Edit Driver",
+    "fieldName": "Full Name",
+    "fieldNamePlaceholder": "e.g. Kamal Perera",
+    "fieldPhone": "Phone Number",
+    "fieldPhonePlaceholder": "e.g. 0771234567",
+    "fieldPhoneHint": "Customers will see this number to contact the driver directly.",
+    "fieldStatus": "Status",
+    "inactiveHint": "Inactive drivers cannot be assigned to new bookings.",
+    "cancel": "Cancel",
+    "saveDriver": "Add Driver",
+    "saveChanges": "Save Changes",
+    "saving": "Saving…"
   }
 }
