@@ -1,6 +1,8 @@
 import prisma from "@travenest/database";
+import { config } from "../../config/index.js";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { emitToUser } from "../../realtime/socket.js";
+import { sendNotificationEmail } from "./email.service.js";
 import type { NotificationCategory } from "./notification.schemas.js";
 
 /**
@@ -188,6 +190,49 @@ const emitNotificationCreated = (userId: string): void => {
   emitToUser(userId, "notification:new", { at: new Date().toISOString() });
 };
 
+/**
+ * High-value notification types that also warrant an email. Kept deliberately
+ * small — in-app + realtime is the primary channel; email is a nudge for the
+ * moments a customer is most likely to be away from the app.
+ */
+const EMAILED_NOTIFICATION_TYPES = new Set([
+  "booking_confirmed",
+  "payment_received",
+]);
+
+const buildNotificationCtaUrl = (
+  data?: Record<string, unknown> | null,
+): string | undefined => {
+  const bookingId = data?.bookingId;
+  return typeof bookingId === "string"
+    ? `${config.appUrl}/en/dashboard/bookings/${bookingId}`
+    : undefined;
+};
+
+/**
+ * Mirror a notification to email for the allow-listed high-value types. Best
+ * effort: a missing email or SMTP failure is swallowed by the caller's catch
+ * so it can never disrupt notification creation.
+ */
+const maybeEmailNotification = async (
+  notification: NotificationResponse,
+): Promise<void> => {
+  if (!EMAILED_NOTIFICATION_TYPES.has(notification.type)) return;
+
+  const user = await prisma.user.findUnique({
+    where: { id: notification.userId },
+    select: { email: true },
+  });
+  if (!user?.email) return;
+
+  await sendNotificationEmail(
+    user.email,
+    notification.title,
+    notification.message,
+    buildNotificationCtaUrl(notification.data),
+  );
+};
+
 const buildData = (
   data?: Record<string, unknown>,
   i18n?: NotificationI18n,
@@ -219,6 +264,12 @@ export const createNotification = async (
   });
 
   emitNotificationCreated(userId);
+
+  void maybeEmailNotification(notification as NotificationResponse).catch(
+    (err) => {
+      console.error(`[notification] email bridge failed (${type})`, err);
+    },
+  );
 
   return notification as NotificationResponse;
 };

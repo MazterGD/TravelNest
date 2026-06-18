@@ -28,12 +28,28 @@ export const getAllVehicles = async (req: Request, res: Response) => {
         .filter(Boolean)
     : undefined;
 
+  // Accept lat/lng only when both are finite and inside Sri Lanka's bounding
+  // box; otherwise ignore them so the search degrades to string matching.
+  const parseCoord = (raw: unknown, min: number, max: number) => {
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < min || value > max) return undefined;
+    return value;
+  };
+  const lat = parseCoord(req.query.lat, 5.5, 10.0);
+  const lng = parseCoord(req.query.lng, 79.2, 82.2);
+  const lat2 = parseCoord(req.query.lat2, 5.5, 10.0);
+  const lng2 = parseCoord(req.query.lng2, 79.2, 82.2);
+
   const filters = {
     type: sanitizeQueryParam(req.query.type as string | undefined),
     location: sanitizeQueryParam(req.query.location as string | undefined),
     district: sanitizeQueryParam(req.query.district as string | undefined),
+    location2: sanitizeQueryParam(req.query.location2 as string | undefined),
+    district2: sanitizeQueryParam(req.query.district2 as string | undefined),
     acType: sanitizeQueryParam(req.query.acType as string | undefined),
     amenities,
+    ...(lat !== undefined && lng !== undefined ? { lat, lng } : {}),
+    ...(lat2 !== undefined && lng2 !== undefined ? { lat2, lng2 } : {}),
     minSeats: req.query.minSeats ? Number(req.query.minSeats) : undefined,
     maxSeats: req.query.maxSeats ? Number(req.query.maxSeats) : undefined,
     available:
@@ -166,6 +182,17 @@ export const uploadPhotos = async (req: Request, res: Response) => {
 };
 
 /**
+ * Delete a vehicle photo
+ * DELETE /api/v1/vehicles/:id/photos/:photoId
+ */
+export const deletePhoto = async (req: Request, res: Response) => {
+  const { id, photoId } = req.params;
+  const ownerId = req.user!.id;
+  await vehicleService.deleteVehiclePhoto(String(id), String(photoId), ownerId);
+  return ResponseHelper.success(res, null, "Photo deleted successfully");
+};
+
+/**
  * Upload vehicle photos (metadata only)
  * POST /api/v1/vehicles/:id/photos/metadata
  */
@@ -178,6 +205,7 @@ export const uploadPhotosMetadata = async (req: Request, res: Response) => {
     fileSize: number;
     mimeType: string;
     isPrimary?: boolean;
+    tag?: string;
   }>) || [];
 
   if (!photos.length) {

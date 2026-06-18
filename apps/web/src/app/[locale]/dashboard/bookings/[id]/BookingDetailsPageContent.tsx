@@ -7,6 +7,7 @@ import { LoadingSpinner, Badge, Button, Card } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
 import { bookingService } from "@/lib/api/services";
 import { ArrowLeft, Calendar, MapPin, Users, Clock, Phone, Mail, Bus, Snowflake, CheckCircle, Download, Printer, AlertCircle, XCircle, Hourglass } from 'lucide-react';
+import { printAsPDF } from "@/lib/utils/pdfUtils";
 
 interface BookingDetailsPageContentProps {
   locale: string;
@@ -126,8 +127,37 @@ export default function BookingDetailsPageContent({
   };
 
   const handleDownload = () => {
-    // TODO: Implement PDF download
-    alert("PDF download will be available soon");
+    if (!booking) return;
+    const fmtDate = (d: string) =>
+      new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const fmtRs = (n: number) => `Rs. ${Number(n).toLocaleString()}`;
+    const esc = (s: unknown) =>
+      String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const html = `
+      <div style="font-family:sans-serif;padding:40px;color:#0F172A;max-width:760px;margin:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:2px solid #20B0E9;margin-bottom:24px;">
+          <div style="font-size:22px;font-weight:800;color:#20B0E9;">TraveNest</div>
+          <div style="text-align:right;">
+            <div style="font-size:15px;font-weight:700;">Booking #${esc(booking.bookingNumber)}</div>
+            <div style="font-size:12px;color:#475569;">Issued: ${fmtDate(booking.createdAt)}</div>
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <tr><td style="padding:6px 0;color:#475569;">Status</td><td style="font-weight:500;">${esc(booking.status)}</td></tr>
+          <tr><td style="padding:6px 0;color:#475569;">Pickup</td><td style="font-weight:500;">${esc(booking.pickupLocation)}</td></tr>
+          <tr><td style="padding:6px 0;color:#475569;">Dropoff</td><td style="font-weight:500;">${esc(booking.dropoffLocation)}</td></tr>
+          <tr><td style="padding:6px 0;color:#475569;">Start Date</td><td style="font-weight:500;">${fmtDate(booking.startDate)}</td></tr>
+          <tr><td style="padding:6px 0;color:#475569;">End Date</td><td style="font-weight:500;">${fmtDate(booking.endDate)}</td></tr>
+          <tr><td style="padding:6px 0;color:#475569;">Passengers</td><td style="font-weight:500;">${esc(booking.passengers)}</td></tr>
+          <tr><td style="padding:6px 0;color:#475569;">Vehicle</td><td style="font-weight:500;">${esc(booking.vehicle.name)} (${esc(booking.vehicle.licensePlate)})</td></tr>
+          <tr><td style="padding:6px 0;color:#475569;">Total</td><td style="font-weight:700;font-size:16px;color:#20B0E9;">${fmtRs(booking.totalPrice)}</td></tr>
+        </table>
+        <div style="margin-top:36px;padding-top:14px;border-top:1px solid #E2E8F0;font-size:11px;color:#94A3B8;text-align:center;">
+          TraveNest — Sri Lanka's Bus Charter Marketplace | support@travelnest.lk
+        </div>
+      </div>`;
+    printAsPDF(html, `TraveNest Booking – #${booking.bookingNumber}`);
   };
 
   if (guardLoading || loading) {

@@ -11,21 +11,34 @@ import {
   Input,
   Select,
   Skeleton,
+  LocationAutocomplete,
 } from "@/components/ui";
 import { ApiError, landingContentService, vehicleService } from "@/lib/api";
 import { localizePlaceName } from "@/lib/i18n/placeName";
 import { cn } from "@/lib/utils/cn";
 import { Bus, Filter, MapPin, Snowflake, Star, Users } from "lucide-react";
-import type { Vehicle } from "@/types";
+import type { SearchMatchTier, Vehicle } from "@/types";
 
 interface SearchPageContentProps {
   locale: string;
 }
 
+interface SelectedPlace {
+  lat: number;
+  lng: number;
+  district: string;
+}
+
+type TripType = "one_way" | "round_trip";
+
 interface SearchFilters {
   query: string;
   from: string;
   to: string;
+  // Coordinates captured from the autocomplete enable nearby-city expansion.
+  fromPlace: SelectedPlace | null;
+  toPlace: SelectedPlace | null;
+  tripType: TripType;
   travelDate: string;
   passengers: string;
   vehicleType: string;
@@ -40,6 +53,9 @@ const createDefaultFilters = (): SearchFilters => ({
   query: "",
   from: "",
   to: "",
+  fromPlace: null,
+  toPlace: null,
+  tripType: "round_trip",
   travelDate: "",
   passengers: "",
   vehicleType: "",
@@ -51,6 +67,30 @@ const createDefaultFilters = (): SearchFilters => ({
 });
 
 type SortOption = "" | "price_asc" | "price_desc" | "rating" | "newest";
+
+// Great-circle distance in km — mirrors the backend's PostGIS straight-line
+// radius so the dashboard's client-side tiers match the server behaviour.
+const haversineKm = (
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number => {
+  const R = 6371;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+};
+
+const RADIUS_TIERS: Array<[number, SearchMatchTier]> = [
+  [10, "10km"],
+  [20, "20km"],
+  [30, "30km"],
+];
 
 export function SearchPageContent({ locale }: SearchPageContentProps) {
   const t = useTranslations("search");
@@ -137,7 +177,7 @@ export function SearchPageContent({ locale }: SearchPageContentProps) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await vehicleService.getAll();
+      const response = await vehicleService.getAll({ limit: 48 });
       const data = response as {
         data?: { vehicles?: Vehicle[] };
         vehicles?: Vehicle[];
@@ -180,8 +220,9 @@ export function SearchPageContent({ locale }: SearchPageContentProps) {
     void fetchPublicOptions();
   }, []);
 
-  const filteredVehicles = useMemo(() => {
+  const { vehicles: filteredVehicles, matchTier } = useMemo(() => {
     let list = [...allVehicles];
+    let resolvedTier: SearchMatchTier | null = null;
 
     if (filters.query) {
       const query = filters.query.toLowerCase();
@@ -235,18 +276,6 @@ export function SearchPageContent({ locale }: SearchPageContentProps) {
       }
     }
 
-    if (filters.from || filters.to) {
-      const from = filters.from.toLowerCase();
-      const to = filters.to.toLowerCase();
-      list = list.filter((vehicle) => {
-        const location = (vehicle.location || "").toLowerCase();
-        if (from && to) {
-          return location.includes(from) || location.includes(to);
-        }
-        return from ? location.includes(from) : location.includes(to);
-      });
-    }
-
     if (filters.amenities.length > 0) {
       list = list.filter((vehicle) => {
         const amenitySet = new Set(
@@ -255,6 +284,77 @@ export function SearchPageContent({ locale }: SearchPageContentProps) {
         return filters.amenities.every((amenity) =>
           amenitySet.has(amenity.toLowerCase()),
         );
+      });
+    }
+
+    // Progressive radius: one-way searches both endpoints, round trip the
+    // origin only. Widen exact → 10/20/30 km → same district → none.
+    const oneWay = filters.tripType === "one_way";
+    const places = [
+      filters.fromPlace,
+      oneWay ? filters.toPlace : null,
+    ].filter((place): place is SelectedPlace => place !== null);
+    const cityNames = [filters.from, oneWay ? filters.to : ""]
+      .map((name) => name.trim().toLowerCase())
+      .filter(Boolean);
+    const searchDistricts = places
+      .map((place) => place.district?.toLowerCase())
+      .filter((value): value is string => Boolean(value));
+
+    if (places.length > 0) {
+      const distanceKm = (vehicle: Vehicle) => {
+        if (vehicle.latitude == null || vehicle.longitude == null)
+          return Infinity;
+        return Math.min(
+          ...places.map((place) =>
+            haversineKm(
+              place.lat,
+              place.lng,
+              vehicle.latitude as number,
+              vehicle.longitude as number,
+            ),
+          ),
+        );
+      };
+
+      const exact = list.filter((vehicle) =>
+        cityNames.some((city) =>
+          (vehicle.location || "").toLowerCase().includes(city),
+        ),
+      );
+
+      if (exact.length > 0) {
+        list = exact;
+        resolvedTier = "exact";
+      } else {
+        const ring = RADIUS_TIERS.find(
+          ([km]) => list.some((vehicle) => distanceKm(vehicle) <= km),
+        );
+        if (ring) {
+          list = list.filter((vehicle) => distanceKm(vehicle) <= ring[0]);
+          resolvedTier = ring[1];
+        } else {
+          const inDistrict = list.filter((vehicle) => {
+            const district = (vehicle.owner?.district || "").toLowerCase();
+            return Boolean(district) && searchDistricts.includes(district);
+          });
+          if (inDistrict.length > 0) {
+            list = inDistrict;
+            resolvedTier = "district";
+          } else {
+            list = [];
+            resolvedTier = "none";
+          }
+        }
+      }
+    } else if (filters.from || (oneWay && filters.to)) {
+      // Free-text fallback when no place was picked from the autocomplete.
+      const from = filters.from.toLowerCase();
+      const to = (oneWay ? filters.to : "").toLowerCase();
+      list = list.filter((vehicle) => {
+        const location = (vehicle.location || "").toLowerCase();
+        if (from && to) return location.includes(from) || location.includes(to);
+        return from ? location.includes(from) : location.includes(to);
       });
     }
 
@@ -277,7 +377,7 @@ export function SearchPageContent({ locale }: SearchPageContentProps) {
       );
     }
 
-    return list;
+    return { vehicles: list, matchTier: resolvedTier };
   }, [allVehicles, filters, sortBy]);
 
   const toggleAmenity = (amenityId: string) => {
@@ -325,21 +425,87 @@ export function SearchPageContent({ locale }: SearchPageContentProps) {
 
         {showFilters && (
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Input
-              label={tCommon("from")}
-              value={filters.from}
-              onChange={(event) =>
-                setFilters((prev) => ({ ...prev, from: event.target.value }))
-              }
-            />
+            <div className="md:col-span-2 xl:col-span-4">
+              <label className="mb-2 block text-sm font-medium text-foreground">
+                {t("tripType.label")}
+              </label>
+              <div className="flex gap-2">
+                {(["round_trip", "one_way"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        tripType: value,
+                        ...(value === "round_trip"
+                          ? { to: "", toPlace: null }
+                          : {}),
+                      }))
+                    }
+                    className={cn(
+                      "min-h-[44px] flex-1 rounded-xl border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      filters.tripType === value
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {value === "round_trip"
+                      ? t("tripType.roundTrip")
+                      : t("tripType.oneWay")}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            <Input
-              label={tCommon("to")}
-              value={filters.to}
-              onChange={(event) =>
-                setFilters((prev) => ({ ...prev, to: event.target.value }))
-              }
-            />
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">
+                {tCommon("from")}
+              </label>
+              <LocationAutocomplete
+                placeholder={tCommon("from")}
+                value={filters.from}
+                onChange={(val) =>
+                  setFilters((prev) => ({ ...prev, from: val, fromPlace: null }))
+                }
+                onSelectLocation={(loc) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    from: loc.city || loc.displayName.split(",")[0],
+                    fromPlace: {
+                      lat: loc.lat,
+                      lng: loc.lng,
+                      district: loc.district,
+                    },
+                  }))
+                }
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">
+                {tCommon("to")}
+              </label>
+              <LocationAutocomplete
+                placeholder={tCommon("to")}
+                value={filters.to}
+                disabled={filters.tripType === "round_trip"}
+                onChange={(val) =>
+                  setFilters((prev) => ({ ...prev, to: val, toPlace: null }))
+                }
+                onSelectLocation={(loc) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    to: loc.city || loc.displayName.split(",")[0],
+                    toPlace: {
+                      lat: loc.lat,
+                      lng: loc.lng,
+                      district: loc.district,
+                    },
+                  }))
+                }
+              />
+            </div>
 
             <Input
               label={tCommon("date")}
@@ -504,6 +670,32 @@ export function SearchPageContent({ locale }: SearchPageContentProps) {
         </div>
       </div>
 
+      {!isLoading &&
+        !error &&
+        matchTier &&
+        matchTier !== "exact" &&
+        matchTier !== "none" &&
+        (filters.from || filters.to) && (
+          <div className="flex items-start gap-3 rounded-[20px] border border-primary/30 bg-primary/5 p-4">
+            <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+            <p className="text-sm text-foreground">
+              {matchTier === "district"
+                ? t("nearby.sameDistrict", {
+                    place: localizePlace(filters.from || filters.to),
+                  })
+                : t("nearby.withinRadius", {
+                    place: localizePlace(filters.from || filters.to),
+                    km:
+                      matchTier === "10km"
+                        ? 10
+                        : matchTier === "20km"
+                          ? 20
+                          : 30,
+                  })}
+            </p>
+          </div>
+        )}
+
       {isLoading && (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((item) => (
@@ -644,7 +836,11 @@ export function SearchPageContent({ locale }: SearchPageContentProps) {
             {t("noResults")}
           </h3>
           <p className="mt-2 max-w-md text-sm text-muted-foreground">
-            {t("adjustFilters")}
+            {matchTier === "none" && (filters.from || filters.to)
+              ? t("nearby.none", {
+                  place: localizePlace(filters.from || filters.to),
+                })
+              : t("adjustFilters")}
           </p>
           <Button className="mt-6" onClick={clearFilters}>
             {t("filters.clearAll")}

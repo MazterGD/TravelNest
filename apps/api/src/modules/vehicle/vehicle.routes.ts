@@ -14,6 +14,7 @@ import {
   updateVehicleSchema,
   getVehicleByIdSchema,
   deleteVehicleSchema,
+  deletePhotoSchema,
   getVehicleAvailabilitySchema,
   getSimilarVehiclesSchema,
   uploadPhotosSchema,
@@ -135,6 +136,15 @@ router.post(
   authorize("owner", "admin"),
   validate(uploadPhotosSchema),
   asyncHandler(vehicleController.uploadPhotosMetadata),
+);
+
+router.delete(
+  "/:id/photos/:photoId",
+  authenticate,
+  csrfProtection,
+  authorize("owner", "admin"),
+  validate(deletePhotoSchema),
+  asyncHandler(vehicleController.deletePhoto),
 );
 
 // Upload vehicle documents

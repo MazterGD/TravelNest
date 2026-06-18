@@ -2,7 +2,9 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { printAsPDF, buildInvoiceHTML } from "@/lib/utils/pdfUtils";
 import { LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
@@ -26,8 +28,10 @@ import {
   Flag,
   Ban,
   Check,
+  Phone,
+  AlertCircle,
 } from "lucide-react";
-import { bookingService, ApiError } from "@/lib/api";
+import { bookingService, driverService, type DriverAvailability, ApiError } from "@/lib/api";
 import dynamic from "next/dynamic";
 
 const InteractiveMap = dynamic(
@@ -42,10 +46,20 @@ export default function BookingDetailsPage({
 }) {
   const t = useTranslations("bookingDetails");
   const tMsg = useTranslations("messages");
+  const router = useRouter();
   const { user } = useAuthStore();
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [showDriverModal, setShowDriverModal] = useState(false);
+  const [availableDrivers, setAvailableDrivers] = useState<DriverAvailability[]>([]);
+  const [driversLoading, setDriversLoading] = useState(false);
+  const [selectedDriverId, setSelectedDriverId] = useState<string>("");
+  const [assigningDriver, setAssigningDriver] = useState(false);
+  const [driverError, setDriverError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const { id, locale } = use(params);
 
@@ -68,6 +82,123 @@ export default function BookingDetailsPage({
     };
     load();
   }, [id]);
+
+  const openDriverModal = async () => {
+    if (!booking) return;
+    setDriverError(null);
+    setSelectedDriverId(booking.driver?.id || booking.driverId || "");
+    setShowDriverModal(true);
+    setDriversLoading(true);
+    try {
+      const startDate = booking.trip?.startDate || booking.startDate;
+      const endDate = booking.trip?.endDate || booking.endDate;
+      const res = await driverService.getAvailable(startDate, endDate, id);
+      setAvailableDrivers(res.drivers);
+    } catch {
+      setDriverError(t("driverModal.loadError"));
+    } finally {
+      setDriversLoading(false);
+    }
+  };
+
+  const handleAssignDriver = async () => {
+    if (!selectedDriverId) return;
+    setAssigningDriver(true);
+    setDriverError(null);
+    try {
+      await driverService.assignToBooking(id, selectedDriverId);
+      setShowDriverModal(false);
+      // Reload booking to reflect new driver info.
+      const response = await bookingService.getById(id);
+      const data = (response as any)?.booking || response;
+      setBooking(data);
+    } catch (err: any) {
+      setDriverError(err.message || t("driverModal.assignError"));
+    } finally {
+      setAssigningDriver(false);
+    }
+  };
+
+  const handleUnassignDriver = async () => {
+    setAssigningDriver(true);
+    setDriverError(null);
+    try {
+      await driverService.unassignFromBooking(id);
+      setShowDriverModal(false);
+      const response = await bookingService.getById(id);
+      const data = (response as any)?.booking || response;
+      setBooking(data);
+    } catch (err: any) {
+      setDriverError(err.message || t("driverModal.unassignError"));
+    } finally {
+      setAssigningDriver(false);
+    }
+  };
+
+  const reloadBooking = async () => {
+    const response = await bookingService.getById(id);
+    const data = (response as any)?.booking || response;
+    setBooking(data);
+  };
+
+  const handleStartTrip = async () => {
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await bookingService.startTrip(id);
+      await reloadBooking();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : t("startError"));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCompleteTrip = async () => {
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await bookingService.complete(id);
+      await reloadBooking();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : t("completeError"));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!cancelReason.trim()) return;
+    setCancelling(true);
+    setActionError(null);
+    try {
+      await bookingService.rejectBooking(id, cancelReason.trim());
+      setShowCancelModal(false);
+      setCancelReason("");
+      await reloadBooking();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : t("cancelError"));
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleGenerateInvoice = () => {
+    if (!booking) return;
+    const html = buildInvoiceHTML({
+      bookingRef: booking.bookingRef,
+      status: booking.status,
+      createdAt: booking.createdAt,
+      customer: booking.customer,
+      trip: booking.trip,
+      vehicle: booking.vehicle,
+      owner: { name: booking.owner?.name, phone: booking.owner?.phone },
+      driver: booking.driver,
+      payment: booking.payment,
+      notes: booking.notes,
+    });
+    printAsPDF(html, `TraveNest Invoice – ${booking.bookingRef}`);
+  };
 
   if (guardLoading || !isAuthorized || !user) {
     return (
@@ -107,6 +238,20 @@ export default function BookingDetailsPage({
     t("na");
   const trip = booking.trip || {};
   const payment = booking.payment || {};
+  const status = booking.status?.toLowerCase();
+
+  const dayStart = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const tripStartRaw = trip.startDate || booking.startDate;
+  const tripEndRaw = trip.endDate || booking.endDate || tripStartRaw;
+  const today = dayStart(new Date());
+  const isWithinTripWindow =
+    !!tripStartRaw &&
+    today >= dayStart(new Date(tripStartRaw)) &&
+    today <= dayStart(new Date(tripEndRaw));
+
+  const canStartTrip = status === "confirmed" && isWithinTripWindow;
+  const canCancel = status === "pending" || status === "confirmed";
   const commissionRateLabel =
     typeof payment.commissionRate === "number"
       ? `${(payment.commissionRate * 100).toFixed(1)}%`
@@ -133,23 +278,51 @@ export default function BookingDetailsPage({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {["upcoming", "confirmed", "ongoing"].includes(booking.status?.toLowerCase()) && (
-                  <>
-                    <button className="flex min-h-[44px] items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+                {canStartTrip && (
+                  <button
+                    onClick={handleStartTrip}
+                    disabled={actionLoading}
+                    className="flex min-h-[44px] items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {actionLoading ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      <PlayCircle className="h-4 w-4" />
+                    )}
+                    {t("startTrip")}
+                  </button>
+                )}
+                {status === "ongoing" && (
+                  <button
+                    onClick={handleCompleteTrip}
+                    disabled={actionLoading}
+                    className="flex min-h-[44px] items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {actionLoading ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
                       <CheckCircle className="h-4 w-4" />
-                      {t("startTrip")}
-                    </button>
-                    <button
-                      onClick={() => setShowCancelModal(true)}
-                      className="flex min-h-[44px] items-center gap-2 rounded-md border border-error px-4 py-2 text-sm font-medium text-error-foreground transition-colors hover:bg-[var(--color-error-bg)]"
-                    >
-                      <XCircle className="h-4 w-4" />
-                      {t("cancelTrip")}
-                    </button>
-                  </>
+                    )}
+                    {t("completeTrip")}
+                  </button>
+                )}
+                {canCancel && (
+                  <button
+                    onClick={() => { setActionError(null); setShowCancelModal(true); }}
+                    className="flex min-h-[44px] items-center gap-2 rounded-md border border-error px-4 py-2 text-sm font-medium text-error-foreground transition-colors hover:bg-[var(--color-error-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    {t("cancelTrip")}
+                  </button>
                 )}
               </div>
             </div>
+            {actionError && !showCancelModal && (
+              <div className="mt-3 flex items-center gap-2 rounded-md border border-[var(--color-error-border)] bg-[var(--color-error-bg)] px-3 py-2 text-sm text-[var(--color-error-text)]">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {actionError}
+              </div>
+            )}
           </div>
         </header>
 
@@ -358,21 +531,37 @@ export default function BookingDetailsPage({
                   </div>
 
                   <div className="rounded-lg border border-border p-4">
-                    <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-                      <User className="h-4 w-4" />
-                      {t("driverAssignment")}
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        {t("driverAssignment")}
+                      </span>
+                      {["pending", "confirmed", "ongoing"].includes(booking.status?.toLowerCase()) && (
+                        <button
+                          onClick={openDriverModal}
+                          className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {booking.driver ? t("changeDriver") : t("assignDriver")}
+                        </button>
+                      )}
                     </div>
-                    {booking.driverName ? (
+                    {booking.driver ? (
                       <div>
-                        <div className="mb-1 font-medium text-foreground">{booking.driverName}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {booking.driverPhone || t("na")}
-                        </div>
-                        {booking.driverLicense && (
-                          <div className="mt-1 text-xs text-[var(--color-text-tertiary)]">
-                            {t("licenseLabel")}: {booking.driverLicense}
-                          </div>
+                        <div className="mb-1 font-medium text-foreground">{booking.driver.name}</div>
+                        {booking.driver.phone && (
+                          <a
+                            href={`tel:${booking.driver.phone}`}
+                            className="flex items-center gap-1.5 text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                            {booking.driver.phone}
+                          </a>
                         )}
+                        {/* {booking.driver.license && (
+                          <div className="mt-1 text-xs text-[var(--color-text-tertiary)]">
+                            {t("licenseLabel")}: {booking.driver.license}
+                          </div>
+                        )} */}
                       </div>
                     ) : (
                       <div className="text-sm text-muted-foreground">{t("noDriver")}</div>
@@ -527,11 +716,17 @@ export default function BookingDetailsPage({
               <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                 <h3 className="mb-4 font-semibold text-foreground">{t("sectionActions")}</h3>
                 <div className="space-y-2">
-                  <button className="flex min-h-[44px] w-full items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted">
+                  <button
+                    onClick={handleGenerateInvoice}
+                    className="flex min-h-[44px] w-full items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
                     <FileText className="h-4 w-4" />
                     {t("generateInvoice")}
                   </button>
-                  <button className="flex min-h-[44px] w-full items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted">
+                  <button
+                    onClick={() => router.push(`/${locale}/owner/disputes`)}
+                    className="flex min-h-[44px] w-full items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
                     <AlertTriangle className="h-4 w-4" />
                     {t("reportIssue")}
                   </button>
@@ -541,6 +736,103 @@ export default function BookingDetailsPage({
           </div>
         </div>
 
+        {/* Driver Assignment Modal */}
+        {showDriverModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-[20px] bg-card p-6 shadow-xl">
+              <h3 className="mb-1 text-lg font-semibold text-foreground">
+                {t("driverModal.title")}
+              </h3>
+              <p className="mb-5 text-sm text-muted-foreground">
+                {t("driverModal.subtitle")}
+              </p>
+
+              {driverError && (
+                <div className="mb-4 flex items-center gap-2 rounded-xl border border-[var(--color-error-border)] bg-[var(--color-error-bg)] px-3 py-2 text-sm text-[var(--color-error-text)]">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {driverError}
+                </div>
+              )}
+
+              {driversLoading ? (
+                <div className="flex min-h-[100px] items-center justify-center">
+                  <LoadingSpinner size="md" />
+                </div>
+              ) : availableDrivers.length === 0 && !booking.driverName ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  {t("driverModal.noDrivers")}
+                </p>
+              ) : (
+                <div className="mb-5 space-y-2 max-h-64 overflow-y-auto">
+                  {/* Unassign option */}
+                  {booking.driverName && (
+                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                      <input
+                        type="radio"
+                        name="driver"
+                        value=""
+                        checked={selectedDriverId === ""}
+                        onChange={() => setSelectedDriverId("")}
+                        className="h-4 w-4 accent-[var(--color-action-primary)]"
+                      />
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {t("driverModal.unassign")}
+                      </span>
+                    </label>
+                  )}
+                  {availableDrivers.map((driver) => (
+                    <label
+                      key={driver.id}
+                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    >
+                      <input
+                        type="radio"
+                        name="driver"
+                        value={driver.id}
+                        checked={selectedDriverId === driver.id}
+                        onChange={() => setSelectedDriverId(driver.id)}
+                        className="h-4 w-4 accent-[var(--color-action-primary)]"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-foreground">{driver.name}</p>
+                        <p className="text-xs text-muted-foreground">{driver.phone}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowDriverModal(false); setDriverError(null); }}
+                  disabled={assigningDriver}
+                  className="flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                >
+                  {t("driverModal.cancel")}
+                </button>
+                <button
+                  onClick={
+                    selectedDriverId === "" && booking.driverName
+                      ? handleUnassignDriver
+                      : handleAssignDriver
+                  }
+                  disabled={
+                    assigningDriver ||
+                    driversLoading ||
+                    (selectedDriverId === "" && !booking.driverName)
+                  }
+                  className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {assigningDriver ? <LoadingSpinner size="sm" /> : null}
+                  {selectedDriverId === "" && booking.driverName
+                    ? t("driverModal.confirmUnassign")
+                    : t("driverModal.confirm")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Cancel Modal */}
         {showCancelModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -549,6 +841,12 @@ export default function BookingDetailsPage({
                 {t("cancelModal.title")}
               </h3>
               <p className="mb-4 text-sm text-muted-foreground">{t("cancelModal.desc")}</p>
+              {actionError && (
+                <div className="mb-4 flex items-center gap-2 rounded-md border border-[var(--color-error-border)] bg-[var(--color-error-bg)] px-3 py-2 text-sm text-[var(--color-error-text)]">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {actionError}
+                </div>
+              )}
               <div className="mb-6">
                 <label className="mb-2 block text-sm font-medium text-foreground">
                   {t("cancelModal.reasonRequired")}
@@ -563,16 +861,22 @@ export default function BookingDetailsPage({
               </div>
               <div className="flex gap-3">
                 <button
-                  onClick={() => setShowCancelModal(false)}
-                  className="flex-1 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                  onClick={() => { setShowCancelModal(false); setActionError(null); }}
+                  disabled={cancelling}
+                  className="flex-1 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
                 >
                   {t("cancelModal.keepBooking")}
                 </button>
                 <button
-                  disabled={!cancelReason}
+                  onClick={handleCancelBooking}
+                  disabled={!cancelReason.trim() || cancelling}
                   className="flex flex-1 items-center justify-center gap-2 rounded-md bg-error px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-error/90 disabled:opacity-50"
                 >
-                  <XCircle className="h-4 w-4" />
+                  {cancelling ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <XCircle className="h-4 w-4" />
+                  )}
                   {t("cancelModal.confirm")}
                 </button>
               </div>

@@ -598,6 +598,7 @@ export const getBookingById = async (
     },
     driver: booking.driverName
       ? {
+          id: booking.driverId,
           name: booking.driverName,
           phone: booking.driverPhone,
           license: booking.driverLicense,

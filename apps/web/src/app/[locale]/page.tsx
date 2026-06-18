@@ -54,7 +54,10 @@ export default function Home() {
     <MainLayout>
       <SearchSection searchHref={searchHref} howItWorksHref={howItWorksHref} />
       <TrustIndicators stats={landingData?.stats || []} />
-      <PopularPackages packagesHref={packagesHref} />
+      <PopularPackages
+        packagesHref={packagesHref}
+        packages={landingData?.popularPackages || []}
+      />
       <PopularRoutes
         searchHref={searchHref}
         routes={landingData?.popularRoutes || []}

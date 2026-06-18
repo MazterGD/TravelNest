@@ -17,7 +17,13 @@ import {
   X,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Button, Input, Select, Skeleton } from "@/components/ui";
+import {
+  Button,
+  Input,
+  Select,
+  Skeleton,
+  LocationAutocomplete,
+} from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
 import {
   vehicleService,
@@ -26,11 +32,19 @@ import {
   type VehicleSearchParams,
 } from "@/lib/api";
 import { localizePlaceName } from "@/lib/i18n/placeName";
-import type { Vehicle } from "@/types";
+import type { SearchMatchTier, Vehicle } from "@/types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type SortOption = "" | "price_asc" | "price_desc" | "rating" | "newest";
+
+type TripType = "one_way" | "round_trip";
+
+interface SelectedPlace {
+  lat: number;
+  lng: number;
+  district: string;
+}
 
 interface SearchFilters {
   vehicleType: string;
@@ -41,6 +55,12 @@ interface SearchFilters {
   amenities: string[];
   routeFrom: string;
   routeTo: string;
+  // Coordinates captured when a place is picked from the autocomplete — these
+  // unlock progressive radius (nearby-city) expansion on the backend.
+  fromPlace: SelectedPlace | null;
+  toPlace: SelectedPlace | null;
+  // One-way searches both endpoints; round trip searches the origin only.
+  tripType: TripType;
   travelDate: string;
   tripPassengers: string;
 }
@@ -70,6 +90,9 @@ const createDefaultFilters = (): SearchFilters => ({
   amenities: [],
   routeFrom: "",
   routeTo: "",
+  fromPlace: null,
+  toPlace: null,
+  tripType: "round_trip",
   travelDate: "",
   tripPassengers: "",
 });
@@ -95,6 +118,9 @@ const readFiltersFromParams = (params: URLSearchParams): SearchFilters => {
         .filter(Boolean) ?? [],
     routeFrom: params.get("from")?.trim() ?? "",
     routeTo: params.get("to")?.trim() ?? "",
+    fromPlace: null,
+    toPlace: null,
+    tripType: params.get("tripType") === "one_way" ? "one_way" : "round_trip",
     travelDate: params.get("date")?.trim() ?? "",
     tripPassengers: normalizeCount(params.get("passengers")),
   };
@@ -125,13 +151,28 @@ const buildSearchParams = (
     newest: { sortBy: "newest", sortOrder: "desc" },
   };
 
-  const locationQuery = filters.routeFrom || filters.routeTo || undefined;
+  // One-way searches both endpoints; round trip uses the origin only.
+  const oneWay = filters.tripType === "one_way";
+  const fromPlace = filters.fromPlace;
+  const toPlace = oneWay ? filters.toPlace : null;
+
+  const originName = filters.routeFrom || undefined;
+  const destName = oneWay ? filters.routeTo || undefined : undefined;
+
+  // The explicit district filter wins; otherwise fall back to the searched
+  // place's district so the "same district" tier has something to match.
+  const originDistrict = filters.district || fromPlace?.district || undefined;
+  const destDistrict = oneWay ? toPlace?.district || undefined : undefined;
 
   return {
     ...(filters.vehicleType ? { type: filters.vehicleType } : {}),
-    ...(filters.district ? { district: filters.district } : {}),
+    ...(originDistrict ? { district: originDistrict } : {}),
+    ...(destDistrict ? { district2: destDistrict } : {}),
     ...(filters.acType ? { acType: filters.acType } : {}),
-    ...(locationQuery ? { location: locationQuery } : {}),
+    ...(originName ? { location: originName } : {}),
+    ...(destName ? { location2: destName } : {}),
+    ...(fromPlace ? { lat: fromPlace.lat, lng: fromPlace.lng } : {}),
+    ...(toPlace ? { lat2: toPlace.lat, lng2: toPlace.lng } : {}),
     ...(minSeats ? { minSeats } : {}),
     ...(filters.maxCapacity
       ? { maxSeats: parseInt(filters.maxCapacity) }
@@ -181,6 +222,7 @@ export default function SearchPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [matchTier, setMatchTier] = useState<SearchMatchTier | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [publicOptions, setPublicOptions] = useState<PublicOptions>({
     vehicleTypes: [],
@@ -294,6 +336,7 @@ export default function SearchPage() {
         const response = await vehicleService.getAll(params);
         if (!cancelled) {
           setVehicles(response.vehicles ?? []);
+          setMatchTier(response.matchTier ?? null);
           if (response.pagination) setPagination(response.pagination);
         }
       } catch (err) {
@@ -409,22 +452,95 @@ export default function SearchPage() {
 
                 {/* Route + trip inputs */}
                 <div className="space-y-3">
-                  <Input
-                    label={tLandingSearch("fromLabel")}
-                    value={filters.routeFrom}
-                    placeholder={tLandingSearch("fromPlaceholder")}
-                    onChange={(e) =>
-                      setFilters({ ...filters, routeFrom: e.target.value })
-                    }
-                  />
-                  <Input
-                    label={tLandingSearch("toLabel")}
-                    value={filters.routeTo}
-                    placeholder={tLandingSearch("toPlaceholder")}
-                    onChange={(e) =>
-                      setFilters({ ...filters, routeTo: e.target.value })
-                    }
-                  />
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">
+                      {t("tripType.label")}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["round_trip", "one_way"] as const).map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              tripType: value,
+                              ...(value === "round_trip"
+                                ? { routeTo: "", toPlace: null }
+                                : {}),
+                            }))
+                          }
+                          className={cn(
+                            "min-h-[44px] rounded-xl border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            filters.tripType === value
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary",
+                          )}
+                        >
+                          {value === "round_trip"
+                            ? t("tripType.roundTrip")
+                            : t("tripType.oneWay")}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">
+                      {tLandingSearch("fromLabel")}
+                    </label>
+                    <LocationAutocomplete
+                      placeholder={tLandingSearch("fromPlaceholder")}
+                      value={filters.routeFrom}
+                      onChange={(val) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          routeFrom: val,
+                          fromPlace: null,
+                        }))
+                      }
+                      onSelectLocation={(loc) => {
+                        setFilters((prev) => ({
+                          ...prev,
+                          routeFrom: loc.city || loc.displayName.split(",")[0],
+                          fromPlace: {
+                            lat: loc.lat,
+                            lng: loc.lng,
+                            district: loc.district,
+                          },
+                        }));
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">
+                      {tLandingSearch("toLabel")}
+                    </label>
+                    <LocationAutocomplete
+                      placeholder={tLandingSearch("toPlaceholder")}
+                      value={filters.routeTo}
+                      disabled={filters.tripType === "round_trip"}
+                      onChange={(val) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          routeTo: val,
+                          toPlace: null,
+                        }))
+                      }
+                      onSelectLocation={(loc) => {
+                        setFilters((prev) => ({
+                          ...prev,
+                          routeTo: loc.city || loc.displayName.split(",")[0],
+                          toPlace: {
+                            lat: loc.lat,
+                            lng: loc.lng,
+                            district: loc.district,
+                          },
+                        }));
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </div>
                   <Input
                     label={tLandingSearch("dateLabel")}
                     type="date"
@@ -602,6 +718,37 @@ export default function SearchPage() {
                   />
                 </div>
               </div>
+
+              {/* Nearby-results notice (radius / district expansion) */}
+              {!isLoading &&
+                !error &&
+                matchTier &&
+                matchTier !== "exact" &&
+                matchTier !== "none" &&
+                (filters.routeFrom || filters.routeTo) && (
+                  <div className="mb-4 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+                    <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+                    <p className="text-sm text-foreground">
+                      {matchTier === "district"
+                        ? t("nearby.sameDistrict", {
+                            place: localizePlace(
+                              filters.routeFrom || filters.routeTo,
+                            ),
+                          })
+                        : t("nearby.withinRadius", {
+                            place: localizePlace(
+                              filters.routeFrom || filters.routeTo,
+                            ),
+                            km:
+                              matchTier === "10km"
+                                ? 10
+                                : matchTier === "20km"
+                                  ? 20
+                                  : 30,
+                          })}
+                    </p>
+                  </div>
+                )}
 
               {/* Loading skeletons */}
               {isLoading && (
@@ -833,7 +980,14 @@ export default function SearchPage() {
                     {t("noResults")}
                   </h3>
                   <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-                    {t("adjustFilters")}
+                    {matchTier === "none" &&
+                    (filters.routeFrom || filters.routeTo)
+                      ? t("nearby.none", {
+                          place: localizePlace(
+                            filters.routeFrom || filters.routeTo,
+                          ),
+                        })
+                      : t("adjustFilters")}
                   </p>
                   <Button onClick={clearFilters} variant="outline">
                     {t("filters.clearAll")}

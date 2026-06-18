@@ -12,6 +12,8 @@
         "seed": "tsx src/seed.ts",
         "backfill:settlement-bank-encryption": "tsx src/backfillSettlementBankEncryption.ts",
         "backfill:content": "tsx src/backfillContent.ts",
+        "backfill:vehicle-coordinates": "tsx src/backfillVehicleCoordinates.ts",
+        "backfill:osrm-routes": "tsx src/backfillOsrmRoutes.ts",
         "studio": "prisma studio"
     },
     "dependencies": {

@@ -45,7 +45,7 @@ interface Vehicle {
   condition?: string;
   amenities: string[];
   images: string[];
-  photos?: Array<{ url: string; isPrimary?: boolean }>;
+  photos?: Array<{ url: string; isPrimary?: boolean; tag?: string }>;
   pricePerDay: number;
   pricePerHour?: number;
   pricePerKm?: number;
@@ -376,6 +376,10 @@ export default function VehicleDetailsPageContent({
   const fromPhotos = vehicle.photos?.map((p) => p.url) ?? [];
   const fromImages = vehicle.images ?? [];
   const images = [...new Set([...fromPhotos, ...fromImages])];
+  // Map URL → tag for thumbnail strip labels
+  const photoTagMap = new Map(
+    (vehicle.photos ?? []).filter((p) => p.tag).map((p) => [p.url, p.tag!]),
+  );
 
   const availabilityPeriods = availability
     ? [
@@ -452,28 +456,38 @@ export default function VehicleDetailsPageContent({
               {/* Thumbnail strip */}
               {images.length > 1 && (
                 <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                  {images.map((img, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedImage(index)}
-                      aria-label={`View photo ${index + 1} of ${images.length}`}
-                      aria-current={selectedImage === index ? "true" : undefined}
-                      className={cn(
-                        "relative h-16 w-24 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-                        selectedImage === index
-                          ? "border-primary opacity-100"
-                          : "border-transparent opacity-50 hover:opacity-80",
-                      )}
-                    >
-                      <Image
-                        src={img}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="96px"
-                      />
-                    </button>
-                  ))}
+                  {images.map((img, index) => {
+                    const tag = photoTagMap.get(img);
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedImage(index)}
+                        aria-label={`View photo ${index + 1} of ${images.length}${tag ? ` — ${tag.toLowerCase()}` : ""}`}
+                        aria-current={selectedImage === index ? "true" : undefined}
+                        className={cn(
+                          "relative flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+                          selectedImage === index
+                            ? "border-primary opacity-100"
+                            : "border-transparent opacity-50 hover:opacity-80",
+                        )}
+                      >
+                        <div className="relative h-16 w-24">
+                          <Image
+                            src={img}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            sizes="96px"
+                          />
+                          {tag && (
+                            <span className="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5 text-center text-[10px] font-medium text-white">
+                              {tag.charAt(0).toUpperCase() + tag.slice(1).toLowerCase()}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </>

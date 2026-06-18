@@ -16,14 +16,17 @@ export const landingService = {
       testimonials,
       trustedPartners,
       featuredVehiclesRaw,
+      popularPackagesRaw,
     ] = await Promise.all([
       prisma.platformStat.findMany({
         where: { isActive: true },
         orderBy: { sortOrder: "asc" },
       }),
+      // Routes are admin-curated; sort by actual booking count (bookingsCount field) descending,
+      // falling back to manual sortOrder so newly added routes still appear in order.
       prisma.popularRoute.findMany({
         where: { isActive: true },
-        orderBy: { sortOrder: "asc" },
+        orderBy: [{ bookingsCount: "desc" }, { sortOrder: "asc" }],
         take: 6,
       }),
       prisma.testimonial.findMany({
@@ -35,13 +38,14 @@ export const landingService = {
         where: { isActive: true },
         orderBy: { sortOrder: "asc" },
       }),
+      // Order vehicles by total booking count — more bookings = more popular.
       prisma.vehicle.findMany({
         where: {
           isActive: true,
           isAvailable: true,
         },
         orderBy: {
-          createdAt: "desc",
+          bookings: { _count: "desc" },
         },
         take: 6,
         include: {
@@ -60,6 +64,24 @@ export const landingService = {
               rating: true,
             },
           },
+        },
+      }),
+      // Order packages by booking count — more bookings = more popular.
+      prisma.tripPackage.findMany({
+        where: { isActive: true },
+        orderBy: {
+          bookings: { _count: "desc" },
+        },
+        take: 3,
+        select: {
+          id: true,
+          startLocation: true,
+          endLocation: true,
+          durationDays: true,
+          price: true,
+          minPassengers: true,
+          maxPassengers: true,
+          _count: { select: { bookings: true } },
         },
       }),
     ]);
@@ -85,12 +107,24 @@ export const landingService = {
       };
     });
 
+    const popularPackages = popularPackagesRaw.map((pkg) => ({
+      id: pkg.id,
+      startLocation: pkg.startLocation,
+      endLocation: pkg.endLocation,
+      durationDays: pkg.durationDays,
+      price: pkg.price,
+      minPassengers: pkg.minPassengers,
+      maxPassengers: pkg.maxPassengers,
+      bookingCount: pkg._count.bookings,
+    }));
+
     return {
       stats,
       popularRoutes,
       testimonials,
       trustedPartners,
       featuredVehicles,
+      popularPackages,
     };
   },
 

@@ -258,6 +258,7 @@ router.patch(
   "/:id/reject",
   authenticate,
   authorize("owner", "admin"),
+  csrfProtection,
   asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const { reason } = req.body;
@@ -366,6 +367,94 @@ router.patch(
     res.json({
       success: true,
       message: "Booking marked as completed",
+      data: { booking: updatedBooking },
+    });
+  }),
+);
+
+/**
+ * @route   POST /api/v1/bookings/:id/start
+ * @desc    Start a trip (CONFIRMED -> ONGOING). Only allowed on the day of the trip.
+ * @access  Private (Owner only)
+ */
+router.post(
+  "/:id/start",
+  authenticate,
+  authorize("owner", "admin"),
+  csrfProtection,
+  asyncHandler(async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const ownerId = req.user!.id;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        vehicle: {
+          select: { ownerId: true },
+        },
+      },
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        error: { message: "Booking not found", code: "BOOKING_NOT_FOUND" },
+      });
+    }
+
+    if (booking.vehicle.ownerId !== ownerId && req.user!.role !== "ADMIN") {
+      return res.status(403).json({
+        success: false,
+        error: { message: "Not authorized", code: "FORBIDDEN" },
+      });
+    }
+
+    if (booking.status !== "CONFIRMED") {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: "Only confirmed bookings can be started",
+          code: "INVALID_STATUS",
+        },
+      });
+    }
+
+    // A trip may only be started within its scheduled window — not before the
+    // start date and not after the end date has fully passed.
+    const now = new Date();
+    const startBoundary = new Date(booking.startDate);
+    startBoundary.setHours(0, 0, 0, 0);
+    const endBoundary = new Date(booking.endDate);
+    endBoundary.setHours(23, 59, 59, 999);
+
+    if (now < startBoundary) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: "This trip can only be started on the day it begins",
+          code: "TRIP_NOT_STARTED_YET",
+        },
+      });
+    }
+
+    if (now > endBoundary) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: "This trip's scheduled dates have already passed",
+          code: "TRIP_WINDOW_PASSED",
+        },
+      });
+    }
+
+    const updatedBooking = await prisma.booking.update({
+      where: { id },
+      data: { status: "ONGOING" },
+    });
+
+    res.json({
+      success: true,
+      message: "Trip started successfully",
       data: { booking: updatedBooking },
     });
   }),

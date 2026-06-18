@@ -411,7 +411,7 @@ export default function BookingConfirmPageContent({
               </Button>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            {/* <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <div className="flex items-start gap-2">
                 <Banknote className="text-[#20B0E9] mt-1" />
                 <div className="text-sm text-gray-700">
@@ -423,7 +423,7 @@ export default function BookingConfirmPageContent({
                   </p>
                 </div>
               </div>
-            </div>
+            </div> */}
           </Card>
         </div>
       </div>

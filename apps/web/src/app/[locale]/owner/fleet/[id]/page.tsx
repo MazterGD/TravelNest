@@ -39,6 +39,7 @@ type VehiclePhoto = {
   fileName?: string | null;
   isPrimary?: boolean | null;
   sortOrder?: number | null;
+  tag?: string | null;
 };
 
 type ReviewItem = {
@@ -483,6 +484,11 @@ export default function OwnerFleetVehicleDetailsPage() {
                           height={120}
                           className="aspect-[4/3] w-full object-cover transition-transform group-hover:scale-105"
                         />
+                        {photo.tag && (
+                          <span className="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5 text-center text-[10px] font-medium text-white">
+                            {photo.tag.charAt(0).toUpperCase() + photo.tag.slice(1).toLowerCase()}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>

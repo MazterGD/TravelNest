@@ -71,6 +71,8 @@ interface VehicleCreateInput {
   pricePerDay: number;
   driverAllowance?: number;
   location: string;
+  latitude?: number;
+  longitude?: number;
   amenities?: string[];
   features?: Record<string, boolean>;
 }
@@ -115,6 +117,51 @@ const mapACType = (acType: string): string => {
 /**
  * Get all vehicles with filters
  */
+/**
+ * Progressive radius tiers (metres) used when a coordinate is supplied.
+ * The search widens only when a tier yields zero results.
+ */
+const RADIUS_TIERS_M = [10_000, 20_000, 30_000] as const;
+
+/** Tier label returned to the client so the UI can explain the expansion. */
+export type SearchMatchTier = "exact" | "10km" | "20km" | "30km" | "district" | "none";
+
+const VEHICLE_LIST_INCLUDE = {
+  owner: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      isVerified: true,
+      businessName: true,
+      district: true,
+    },
+  },
+  photos: {
+    where: { isPrimary: true },
+    take: 1,
+  },
+  reviews: {
+    select: {
+      rating: true,
+    },
+  },
+} as const;
+
+const normalizeVehicleList = (
+  vehicles: Array<{ reviews: { rating: number }[] }>,
+) =>
+  vehicles.map((vehicle) => ({
+    ...vehicle,
+    averageRating:
+      vehicle.reviews.length > 0
+        ? vehicle.reviews.reduce((acc, r) => acc + r.rating, 0) /
+          vehicle.reviews.length
+        : 0,
+    reviewCount: vehicle.reviews.length,
+  }));
+
 export const getAllVehicles = async (filters: {
   type?: string;
   location?: string;
@@ -124,6 +171,14 @@ export const getAllVehicles = async (filters: {
   minSeats?: number;
   maxSeats?: number;
   available?: boolean;
+  lat?: number;
+  lng?: number;
+  // Optional second endpoint (one-way trip destination). When present, the
+  // radius/district tiers match a vehicle near EITHER endpoint.
+  lat2?: number;
+  lng2?: number;
+  location2?: string;
+  district2?: string;
   page?: number;
   limit?: number;
   sortBy?: string;
@@ -133,50 +188,38 @@ export const getAllVehicles = async (filters: {
   const limit = Math.min(48, Math.max(1, filters.limit || 12));
   const skip = (page - 1) * limit;
 
-  const where: any = {
+  // Base filters shared by every tier. Location/district are intentionally
+  // excluded here — they define the tier, not the base constraint.
+  const baseWhere: any = {
     isActive: true,
     isAvailable: true,
   };
 
   if (filters.type) {
-    where.type = mapVehicleType(filters.type);
-  }
-
-  if (filters.location) {
-    where.location = {
-      contains: filters.location,
-      mode: "insensitive",
-    };
-  }
-
-  if (filters.district) {
-    where.location = {
-      contains: filters.district,
-      mode: "insensitive",
-    };
+    baseWhere.type = mapVehicleType(filters.type);
   }
 
   if (filters.acType) {
-    where.acType = {
+    baseWhere.acType = {
       equals: filters.acType.toLowerCase().replace(/_/g, "-"),
       mode: "insensitive",
     };
   }
 
   if (filters.amenities && filters.amenities.length > 0) {
-    where.amenities = {
+    baseWhere.amenities = {
       hasEvery: filters.amenities,
     };
   }
 
   if (filters.minSeats || filters.maxSeats) {
-    where.seats = {};
-    if (filters.minSeats) where.seats.gte = filters.minSeats;
-    if (filters.maxSeats) where.seats.lte = filters.maxSeats;
+    baseWhere.seats = {};
+    if (filters.minSeats) baseWhere.seats.gte = filters.minSeats;
+    if (filters.maxSeats) baseWhere.seats.lte = filters.maxSeats;
   }
 
   if (filters.available !== undefined) {
-    where.isAvailable = filters.available;
+    baseWhere.isAvailable = filters.available;
   }
 
   const sortOrder = filters.sortOrder === "asc" ? "asc" : "desc";
@@ -196,57 +239,145 @@ export const getAllVehicles = async (filters: {
     orderBy = { createdAt: sortOrder };
   }
 
-  const [vehicles, total] = await Promise.all([
-    prisma.vehicle.findMany({
-      where,
-      skip,
-      take: limit,
-      include: {
-        owner: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            phone: true,
-            isVerified: true,
-            businessName: true,
-          },
-        },
-        photos: {
-          where: { isPrimary: true },
-          take: 1,
-        },
-        reviews: {
-          select: {
-            rating: true,
-          },
-        },
+  const buildPage = async (where: any, matchTier: SearchMatchTier) => {
+    const [vehicles, total] = await Promise.all([
+      prisma.vehicle.findMany({
+        where,
+        skip,
+        take: limit,
+        include: VEHICLE_LIST_INCLUDE,
+        orderBy,
+      }),
+      prisma.vehicle.count({ where }),
+    ]);
+
+    return {
+      vehicles: normalizeVehicleList(vehicles),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
-      orderBy,
-    }),
-    prisma.vehicle.count({ where }),
-  ]);
-
-  // Calculate average ratings
-  const normalizedVehicles = vehicles.map((vehicle) => ({
-    ...vehicle,
-    averageRating:
-      vehicle.reviews.length > 0
-        ? vehicle.reviews.reduce((acc, r) => acc + r.rating, 0) /
-          vehicle.reviews.length
-        : 0,
-    reviewCount: vehicle.reviews.length,
-  }));
-
-  return {
-    vehicles: normalizedVehicles,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
-    },
+      matchTier,
+    };
   };
+
+  // ── Coordinate-driven progressive radius search ──────────────────────────
+  const isFinitePair = (a?: number, b?: number) =>
+    typeof a === "number" &&
+    typeof b === "number" &&
+    Number.isFinite(a) &&
+    Number.isFinite(b);
+
+  // One point = round trip / single endpoint; two = one-way (origin + dest).
+  const points: Array<{ lat: number; lng: number }> = [];
+  if (isFinitePair(filters.lat, filters.lng)) {
+    points.push({ lat: filters.lat as number, lng: filters.lng as number });
+  }
+  if (isFinitePair(filters.lat2, filters.lng2)) {
+    points.push({ lat: filters.lat2 as number, lng: filters.lng2 as number });
+  }
+
+  if (points.length > 0) {
+    const maxRadius = RADIUS_TIERS_M[RADIUS_TIERS_M.length - 1];
+
+    // Prefilter (GIST-indexed) to the widest radius of any endpoint, tagged
+    // with the distance to the NEAREST endpoint so we can bucket by tier.
+    const ringRows =
+      points.length === 1
+        ? await prisma.$queryRaw<Array<{ id: string; distance_m: number }>>`
+            SELECT "id",
+                   ST_Distance("geom", ST_SetSRID(ST_MakePoint(${points[0].lng}, ${points[0].lat}), 4326)::geography) AS distance_m
+            FROM "vehicles"
+            WHERE "isActive" = true AND "isAvailable" = true AND "geom" IS NOT NULL
+              AND ST_DWithin("geom", ST_SetSRID(ST_MakePoint(${points[0].lng}, ${points[0].lat}), 4326)::geography, ${maxRadius})
+            ORDER BY distance_m ASC
+          `
+        : await prisma.$queryRaw<Array<{ id: string; distance_m: number }>>`
+            SELECT "id",
+                   LEAST(
+                     ST_Distance("geom", ST_SetSRID(ST_MakePoint(${points[0].lng}, ${points[0].lat}), 4326)::geography),
+                     ST_Distance("geom", ST_SetSRID(ST_MakePoint(${points[1].lng}, ${points[1].lat}), 4326)::geography)
+                   ) AS distance_m
+            FROM "vehicles"
+            WHERE "isActive" = true AND "isAvailable" = true AND "geom" IS NOT NULL
+              AND (
+                ST_DWithin("geom", ST_SetSRID(ST_MakePoint(${points[0].lng}, ${points[0].lat}), 4326)::geography, ${maxRadius})
+                OR ST_DWithin("geom", ST_SetSRID(ST_MakePoint(${points[1].lng}, ${points[1].lat}), 4326)::geography, ${maxRadius})
+              )
+            ORDER BY distance_m ASC
+          `;
+
+    const idsWithin = (meters: number) =>
+      ringRows
+        .filter((row) => Number(row.distance_m) <= meters)
+        .map((row) => row.id);
+
+    type Tier = { key: SearchMatchTier; where: any };
+    const tiers: Tier[] = [];
+
+    // Tier 0 — exact city/cities the user typed (origin and/or destination).
+    const exactOr: any[] = [];
+    if (filters.location) {
+      exactOr.push({ location: { contains: filters.location, mode: "insensitive" } });
+    }
+    if (filters.location2) {
+      exactOr.push({ location: { contains: filters.location2, mode: "insensitive" } });
+    }
+    if (exactOr.length > 0) {
+      tiers.push({ key: "exact", where: { ...baseWhere, OR: exactOr } });
+    }
+
+    // Tiers 1–3 — widening radius rings (10 → 20 → 30 km from either endpoint).
+    const tierKeys: SearchMatchTier[] = ["10km", "20km", "30km"];
+    RADIUS_TIERS_M.forEach((meters, index) => {
+      tiers.push({
+        key: tierKeys[index],
+        where: { ...baseWhere, id: { in: idsWithin(meters) } },
+      });
+    });
+
+    // Tier 4 — same district (any supplied district), via the owner's district.
+    const districtConds = [filters.district, filters.district2]
+      .filter((value): value is string => Boolean(value))
+      .map((value) => ({
+        district: { equals: value, mode: "insensitive" as const },
+      }));
+    if (districtConds.length > 0) {
+      tiers.push({
+        key: "district",
+        where: { ...baseWhere, owner: { OR: districtConds } },
+      });
+    }
+
+    for (const tier of tiers) {
+      const total = await prisma.vehicle.count({ where: tier.where });
+      if (total > 0) {
+        return buildPage(tier.where, tier.key);
+      }
+    }
+
+    // Nothing within any tier.
+    return {
+      vehicles: [],
+      pagination: { page, limit, total: 0, totalPages: 1 },
+      matchTier: "none" as SearchMatchTier,
+    };
+  }
+
+  // ── Fallback: original string-based search (no coordinate supplied) ───────
+  const where: any = { ...baseWhere };
+
+  if (filters.location) {
+    where.location = { contains: filters.location, mode: "insensitive" };
+  }
+
+  if (filters.district) {
+    where.location = { contains: filters.district, mode: "insensitive" };
+  }
+
+  return buildPage(where, "exact");
 };
 
 /**
@@ -412,6 +543,8 @@ export const createVehicle = async (
       pricePerKm: data.pricePerKm || null,
       driverAllowance: data.driverAllowance || null,
       location: xss(data.location),
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
       amenities: data.amenities || [],
       features: [],
       isAvailable: owner.isVerified, // Auto-available if owner is verified
@@ -471,6 +604,8 @@ export const updateVehicle = async (
   if (data.driverAllowance !== undefined)
     updateData.driverAllowance = data.driverAllowance;
   if (data.location) updateData.location = xss(data.location);
+  if (data.latitude !== undefined) updateData.latitude = data.latitude;
+  if (data.longitude !== undefined) updateData.longitude = data.longitude;
   if (data.amenities) updateData.amenities = data.amenities;
   if (data.features) updateData.features = data.features;
   if (data.isAvailable !== undefined) updateData.isAvailable = data.isAvailable;
@@ -550,6 +685,7 @@ export const uploadVehiclePhotos = async (
     fileSize: number;
     mimeType: string;
     isPrimary?: boolean;
+    tag?: string;
   }>,
 ) => {
   // Validate MIME types and file sizes
@@ -604,6 +740,7 @@ export const uploadVehiclePhotos = async (
               existingPhotos.length === 0 && index === 0
                 ? true
                 : photo.isPrimary || false,
+            tag: (photo.tag || "EXTERIOR") as any,
             sortOrder: nextSortOrder + index,
           },
         }),
@@ -623,6 +760,54 @@ export const uploadVehiclePhotos = async (
   }
 
   return createdPhotos;
+};
+
+/**
+ * Delete a vehicle photo
+ */
+export const deleteVehiclePhoto = async (
+  vehicleId: string,
+  photoId: string,
+  ownerId: string,
+) => {
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    include: { photos: true },
+  });
+
+  if (!vehicle) throw ApiError.notFound("Vehicle not found");
+  if (vehicle.ownerId !== ownerId)
+    throw ApiError.forbidden("You can only delete photos from your own vehicles");
+
+  const photo = vehicle.photos.find((p) => p.id === photoId);
+  // Idempotent: photo already deleted (e.g. retry after partial save failure)
+  if (!photo) return { deleted: true };
+
+  await prisma.vehiclePhoto.delete({ where: { id: photoId } });
+  await deleteByUrl(photo.url);
+
+  // Promote next photo to primary if the deleted one was primary
+  if (photo.isPrimary) {
+    const remaining = vehicle.photos.filter((p) => p.id !== photoId);
+    if (remaining.length > 0) {
+      const next = remaining.sort((a, b) => a.sortOrder - b.sortOrder)[0];
+      await prisma.vehiclePhoto.update({
+        where: { id: next.id },
+        data: { isPrimary: true },
+      });
+      await prisma.vehicle.update({
+        where: { id: vehicleId },
+        data: { images: [next.url] },
+      });
+    } else {
+      await prisma.vehicle.update({
+        where: { id: vehicleId },
+        data: { images: [] },
+      });
+    }
+  }
+
+  return { deleted: true };
 };
 
 /**

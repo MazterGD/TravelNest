@@ -106,6 +106,8 @@ export const vehicleSchema = z.object({
   pricePerDay: z.number().min(0),
   driverAllowance: z.number().min(0).optional(),
   location: z.string().min(2, "Location is required"),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   amenities: z.array(z.string()).optional(),
   color: z.string().optional(),
   description: z.string().max(1000).optional(),

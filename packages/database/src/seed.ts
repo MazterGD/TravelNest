@@ -6,6 +6,47 @@ import { seedContentPages } from "./backfillContent.js";
 const prisma = new PrismaClient();
 const prismaAny = prisma as any;
 
+// ===========================================
+// Demo date anchoring (modular re-centering)
+// ===========================================
+// Every hard-coded calendar date in this file is authored relative to this
+// baseline "now": the moment at which the ONGOING bookings straddle the present
+// and the "just completed" / "starts tomorrow" demo records line up. Changing
+// the demo date below slides the entire dataset onto a new window via D().
+const SEED_BASELINE = new Date(Date.UTC(2026, 5, 3)); // 2026-06-03T00:00:00Z
+
+// The demo "now". Specify the date to center every booking / quotation / trip /
+// settlement state on, via either:
+//   • CLI arg:  pnpm seed 2026-09-01
+//   • env var:  SEED_DEMO_DATE=2026-09-01 pnpm seed
+// Accepts YYYY-MM-DD or a full ISO timestamp. Defaults to the real current date
+// so a plain `pnpm seed` always produces a "today-centered" demo.
+const resolveDemoNow = (): Date => {
+  const argDate = process.argv.slice(2).find((a) => /^\d{4}-\d{2}-\d{2}/.test(a));
+  const raw = (process.env.SEED_DEMO_DATE || argDate || "").trim();
+  if (!raw) return new Date();
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00.000Z` : raw;
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(
+      `Invalid demo date "${raw}". Use YYYY-MM-DD or a full ISO timestamp.`,
+    );
+  }
+  return parsed;
+};
+
+const DEMO_NOW = resolveDemoNow();
+const DEMO_SHIFT_MS = DEMO_NOW.getTime() - SEED_BASELINE.getTime();
+
+// Re-anchor a baseline-relative seed date onto the configured demo window. Used
+// in place of `new Date(...)` for every fixed calendar date so the whole
+// dataset slides together when the demo date changes, preserving each relative
+// relationship (past / ongoing / upcoming / expired / valid-until).
+const D = (value: string | Date): Date => {
+  const ms = value instanceof Date ? value.getTime() : Date.parse(value);
+  return new Date(ms + DEMO_SHIFT_MS);
+};
+
 // Sri Lankan Districts for realistic data
 const SRI_LANKAN_DISTRICTS = [
   "Colombo",
@@ -67,19 +108,25 @@ const BUS_MAKES = [
   { make: "BYD", models: ["K9", "C6", "Electric Coach"] },
 ];
 
-// Generate Sri Lankan vehicle registration numbers
+// Generate Sri Lankan vehicle registration numbers matching /^[A-Z]{2,3}-\d{4}$/
 const generateLicensePlate = (index: number): string => {
   const provinces = ["WP", "CP", "SP", "NP", "EP", "NW", "NC", "SG", "UV"];
-  const province = provinces[Math.floor(Math.random() * provinces.length)];
-  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const letter1 = letters[Math.floor(Math.random() * letters.length)];
-  const letter2 = letters[Math.floor(Math.random() * letters.length)];
-  const number = String(1000 + index + Math.floor(Math.random() * 8999));
-  return `${province}-${letter1}${letter2}-${number}`;
+  const province = provinces[index % provinces.length];
+  const number = String(1000 + (index * 137) % 9000).padStart(4, "0");
+  return `${province}-${number}`;
 };
 
 async function main() {
   console.log("Starting Sri Lankan TraveNest database seed...\n");
+  console.log(
+    `Demo date (anchor "now"): ${DEMO_NOW.toISOString()}` +
+      (DEMO_SHIFT_MS === 0
+        ? "  [baseline — dates unchanged]"
+        : `  [shifted ${Math.round(DEMO_SHIFT_MS / 86_400_000)} day(s) from baseline]`),
+  );
+  console.log(
+    "Override with `pnpm seed <YYYY-MM-DD>` or `SEED_DEMO_DATE=<YYYY-MM-DD>`.\n",
+  );
 
   // Clean up existing data
   console.log("Cleaning up existing data...");
@@ -96,6 +143,7 @@ async function main() {
   await prisma.payment.deleteMany({});
   await prisma.review.deleteMany({});
   await prisma.booking.deleteMany({});
+  await prisma.driver.deleteMany({});
   await prisma.tripPackage.deleteMany({});
   await prisma.quotation.deleteMany({});
   // @ts-ignore - prisma client regeneration pending; trip table exists after migration
@@ -604,21 +652,21 @@ async function main() {
             id: "1",
             from: "Colombo",
             to: "Kandy",
-            date: "2026-02-15",
+            date: D("2026-02-15T00:00:00.000Z").toISOString().slice(0, 10),
             passengers: 4,
           },
           {
             id: "2",
             from: "Galle",
             to: "Colombo Airport",
-            date: "2026-02-20",
+            date: D("2026-02-20T00:00:00.000Z").toISOString().slice(0, 10),
             passengers: 2,
           },
           {
             id: "3",
             from: "Kandy",
             to: "Nuwara Eliya",
-            date: "2026-03-01",
+            date: D("2026-03-01T00:00:00.000Z").toISOString().slice(0, 10),
             passengers: 6,
           },
         ],
@@ -686,7 +734,7 @@ async function main() {
         fileSize: 524288,
         mimeType: "application/pdf",
         status: "VERIFIED",
-        verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
+        verifiedAt: D("2026-02-10T10:00:00.000Z"),
         verifiedBy: admin.id,
       },
       {
@@ -697,7 +745,7 @@ async function main() {
         fileSize: 425984,
         mimeType: "application/pdf",
         status: "VERIFIED",
-        verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
+        verifiedAt: D("2026-02-10T10:00:00.000Z"),
         verifiedBy: admin.id,
       },
       {
@@ -708,7 +756,7 @@ async function main() {
         fileSize: 687104,
         mimeType: "application/pdf",
         status: "VERIFIED",
-        verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
+        verifiedAt: D("2026-02-10T10:00:00.000Z"),
         verifiedBy: admin.id,
       },
     ],
@@ -749,7 +797,7 @@ async function main() {
         fileSize: 498432,
         mimeType: "application/pdf",
         status: "VERIFIED",
-        verifiedAt: new Date("2026-02-05T14:00:00.000Z"),
+        verifiedAt: D("2026-02-05T14:00:00.000Z"),
         verifiedBy: admin.id,
       },
       {
@@ -787,7 +835,7 @@ async function main() {
       year: 2023,
       color: "White",
       seats: 45,
-      acType: "FULL_AC" as const,
+      acType: "full-ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: [
@@ -803,7 +851,7 @@ async function main() {
       pricePerDay: 35000,
       pricePerKm: 85,
       location: "Colombo",
-      condition: "EXCELLENT" as const,
+      condition: "excellent" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -817,7 +865,7 @@ async function main() {
       year: 2022,
       color: "Silver",
       seats: 52,
-      acType: "SEMI_AC" as const,
+      acType: "ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: [
@@ -830,7 +878,7 @@ async function main() {
       pricePerDay: 28000,
       pricePerKm: 70,
       location: "Colombo",
-      condition: "GOOD" as const,
+      condition: "good" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -844,9 +892,9 @@ async function main() {
       year: 2021,
       color: "Blue",
       seats: 28,
-      acType: "FULL_AC" as const,
+      acType: "full-ac" as const,
       fuelType: "DIESEL" as const,
-      transmission: "AUTOMATIC" as const,
+      transmission: "MANUAL" as const,
       features: [
         "Full AC",
         "Comfortable Seats",
@@ -857,7 +905,7 @@ async function main() {
       pricePerDay: 22000,
       pricePerKm: 60,
       location: "Colombo",
-      condition: "EXCELLENT" as const,
+      condition: "excellent" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -871,7 +919,7 @@ async function main() {
       year: 2020,
       color: "Yellow",
       seats: 40,
-      acType: "NON_AC" as const,
+      acType: "non-ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: [
@@ -884,7 +932,7 @@ async function main() {
       pricePerDay: 18000,
       pricePerKm: 50,
       location: "Colombo",
-      condition: "GOOD" as const,
+      condition: "good" as const,
       isAvailable: false, // In use for school service on weekdays
       isActive: true,
     },
@@ -936,7 +984,7 @@ async function main() {
       year: 2022,
       color: "White",
       seats: 48,
-      acType: "FULL_AC" as const,
+      acType: "full-ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: [
@@ -949,7 +997,7 @@ async function main() {
       pricePerDay: 30000,
       pricePerKm: 75,
       location: "Jaffna",
-      condition: "EXCELLENT" as const,
+      condition: "excellent" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -963,14 +1011,14 @@ async function main() {
       year: 2019,
       color: "Red",
       seats: 54,
-      acType: "NON_AC" as const,
+      acType: "non-ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: ["Fan", "Luggage Rack", "Emergency Exit", "First Aid"],
       pricePerDay: 15000,
       pricePerKm: 45,
       location: "Jaffna",
-      condition: "GOOD" as const,
+      condition: "good" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -984,9 +1032,9 @@ async function main() {
       year: 2023,
       color: "Black",
       seats: 22,
-      acType: "FULL_AC" as const,
+      acType: "full-ac" as const,
       fuelType: "DIESEL" as const,
-      transmission: "AUTOMATIC" as const,
+      transmission: "MANUAL" as const,
       features: [
         "Full AC",
         "Leather Seats",
@@ -998,7 +1046,7 @@ async function main() {
       pricePerDay: 25000,
       pricePerKm: 65,
       location: "Jaffna",
-      condition: "EXCELLENT" as const,
+      condition: "excellent" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -1012,7 +1060,7 @@ async function main() {
       year: 2020,
       color: "White",
       seats: 40,
-      acType: "SEMI_AC" as const,
+      acType: "ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: [
@@ -1024,7 +1072,7 @@ async function main() {
       pricePerDay: 18000,
       pricePerKm: 45,
       location: "Jaffna",
-      condition: "GOOD" as const,
+      condition: "good" as const,
       isAvailable: false,
       isActive: false,
     },
@@ -1076,7 +1124,7 @@ async function main() {
       year: 2021,
       color: "Green",
       seats: 42,
-      acType: "FULL_AC" as const,
+      acType: "full-ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: [
@@ -1090,7 +1138,7 @@ async function main() {
       pricePerDay: 32000,
       pricePerKm: 80,
       location: "Kandy",
-      condition: "EXCELLENT" as const,
+      condition: "excellent" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -1104,9 +1152,9 @@ async function main() {
       year: 2022,
       color: "Silver",
       seats: 14,
-      acType: "FULL_AC" as const,
+      acType: "full-ac" as const,
       fuelType: "DIESEL" as const,
-      transmission: "AUTOMATIC" as const,
+      transmission: "MANUAL" as const,
       features: [
         "Full AC",
         "Comfortable Seats",
@@ -1116,7 +1164,7 @@ async function main() {
       pricePerDay: 18000,
       pricePerKm: 55,
       location: "Kandy",
-      condition: "EXCELLENT" as const,
+      condition: "excellent" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -1130,7 +1178,7 @@ async function main() {
       year: 2020,
       color: "White",
       seats: 30,
-      acType: "SEMI_AC" as const,
+      acType: "ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: [
@@ -1143,7 +1191,7 @@ async function main() {
       pricePerDay: 20000,
       pricePerKm: 55,
       location: "Kandy",
-      condition: "GOOD" as const,
+      condition: "good" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -1157,9 +1205,9 @@ async function main() {
       year: 2024,
       color: "Green",
       seats: 35,
-      acType: "FULL_AC" as const,
-      fuelType: "ELECTRIC" as const,
-      transmission: "AUTOMATIC" as const,
+      acType: "full-ac" as const,
+      fuelType: "DIESEL" as const,
+      transmission: "MANUAL" as const,
       features: [
         "Full AC",
         "Electric Drive",
@@ -1170,7 +1218,7 @@ async function main() {
       pricePerDay: 28000,
       pricePerKm: 0, // Electric, no per km charge
       location: "Kandy",
-      condition: "EXCELLENT" as const,
+      condition: "excellent" as const,
       isAvailable: false,
       isActive: false,
     },
@@ -1222,7 +1270,7 @@ async function main() {
       year: 2021,
       color: "Blue",
       seats: 50,
-      acType: "SEMI_AC" as const,
+      acType: "ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: [
@@ -1234,7 +1282,7 @@ async function main() {
       pricePerDay: 25000,
       pricePerKm: 65,
       location: "Batticaloa",
-      condition: "GOOD" as const,
+      condition: "good" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -1248,14 +1296,14 @@ async function main() {
       year: 2022,
       color: "White",
       seats: 26,
-      acType: "FULL_AC" as const,
+      acType: "full-ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: ["Full AC", "Decorated Interior", "Sound System", "LED Lights"],
       pricePerDay: 20000,
       pricePerKm: 55,
       location: "Batticaloa",
-      condition: "EXCELLENT" as const,
+      condition: "excellent" as const,
       isAvailable: true,
       isActive: true,
     },
@@ -1307,7 +1355,7 @@ async function main() {
       year: 2024,
       color: "Pearl White",
       seats: 45,
-      acType: "FULL_AC" as const,
+      acType: "full-ac" as const,
       fuelType: "DIESEL" as const,
       transmission: "MANUAL" as const,
       features: [
@@ -1321,7 +1369,7 @@ async function main() {
       pricePerDay: 45000,
       pricePerKm: 100,
       location: "Galle",
-      condition: "EXCELLENT" as const,
+      condition: "excellent" as const,
       isAvailable: false,
       isActive: false, // Pending verification
     },
@@ -1335,9 +1383,9 @@ async function main() {
       year: 2024,
       color: "Green",
       seats: 35,
-      acType: "FULL_AC" as const,
-      fuelType: "ELECTRIC" as const,
-      transmission: "AUTOMATIC" as const,
+      acType: "full-ac" as const,
+      fuelType: "DIESEL" as const,
+      transmission: "MANUAL" as const,
       features: [
         "Full AC",
         "Zero Emissions",
@@ -1349,7 +1397,7 @@ async function main() {
       pricePerDay: 40000,
       pricePerKm: 90,
       location: "Galle",
-      condition: "EXCELLENT" as const,
+      condition: "excellent" as const,
       isAvailable: false,
       isActive: false, // Pending verification
     },
@@ -1565,9 +1613,9 @@ async function main() {
           fileSize: 425984,
           mimeType: "application/pdf",
           status: "VERIFIED",
-          verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
+          verifiedAt: D("2026-02-10T10:00:00.000Z"),
           verifiedBy: admin.id,
-          expiryDate: new Date("2028-06-30T00:00:00.000Z"),
+          expiryDate: D("2028-06-30T00:00:00.000Z"),
         },
         {
           vehicleId: vehicle.id,
@@ -1577,9 +1625,9 @@ async function main() {
           fileSize: 687104,
           mimeType: "application/pdf",
           status: "VERIFIED",
-          verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
+          verifiedAt: D("2026-02-10T10:00:00.000Z"),
           verifiedBy: admin.id,
-          expiryDate: new Date("2027-01-31T00:00:00.000Z"),
+          expiryDate: D("2027-01-31T00:00:00.000Z"),
         },
         {
           vehicleId: vehicle.id,
@@ -1589,7 +1637,7 @@ async function main() {
           fileSize: 368640,
           mimeType: "application/pdf",
           status: "VERIFIED",
-          verifiedAt: new Date("2026-02-10T10:00:00.000Z"),
+          verifiedAt: D("2026-02-10T10:00:00.000Z"),
           verifiedBy: admin.id,
         },
       ],
@@ -1608,9 +1656,9 @@ async function main() {
           fileSize: 425984,
           mimeType: "application/pdf",
           status: "VERIFIED",
-          verifiedAt: new Date("2026-02-05T14:00:00.000Z"),
+          verifiedAt: D("2026-02-05T14:00:00.000Z"),
           verifiedBy: admin.id,
-          expiryDate: new Date("2027-12-31T00:00:00.000Z"),
+          expiryDate: D("2027-12-31T00:00:00.000Z"),
         },
         {
           vehicleId: owner2Vehicles[0].id,
@@ -1622,7 +1670,7 @@ async function main() {
           status: "REJECTED",
           rejectionReason:
             "Insurance certificate is expired. Please upload a current valid certificate.",
-          expiryDate: new Date("2025-12-31T00:00:00.000Z"),
+          expiryDate: D("2025-12-31T00:00:00.000Z"),
         },
         {
           vehicleId: owner2Vehicles[0].id,
@@ -1651,15 +1699,15 @@ async function main() {
       data: [
         {
           vehicleId: owner1Vehicles[0].id,
-          startDate: new Date("2026-07-01T00:00:00.000Z"),
-          endDate: new Date("2026-07-05T23:59:59.000Z"),
+          startDate: D("2026-07-01T00:00:00.000Z"),
+          endDate: D("2026-07-05T23:59:59.000Z"),
           isBlocked: true,
           reason: "Scheduled maintenance — annual service",
         },
         {
           vehicleId: owner1Vehicles[0].id,
-          startDate: new Date("2026-07-20T00:00:00.000Z"),
-          endDate: new Date("2026-07-22T23:59:59.000Z"),
+          startDate: D("2026-07-20T00:00:00.000Z"),
+          endDate: D("2026-07-22T23:59:59.000Z"),
           isBlocked: true,
           reason: "Owner personal reservation",
         },
@@ -1672,8 +1720,8 @@ async function main() {
       data: [
         {
           vehicleId: owner3Vehicles[0].id,
-          startDate: new Date("2026-07-10T00:00:00.000Z"),
-          endDate: new Date("2026-07-12T23:59:59.000Z"),
+          startDate: D("2026-07-10T00:00:00.000Z"),
+          endDate: D("2026-07-12T23:59:59.000Z"),
           isBlocked: true,
           reason: "Driver annual leave",
         },
@@ -1697,8 +1745,8 @@ async function main() {
       customerId: customer1.id,
       vehicleId: owner1Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-25T08:00:00.000Z"),
-      endDate: new Date("2026-06-26T20:00:00.000Z"),
+      startDate: D("2026-06-25T08:00:00.000Z"),
+      endDate: D("2026-06-26T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Colombo - Galle Face Green",
       dropoffLocation: "Kandy - Temple of the Tooth",
@@ -1718,8 +1766,8 @@ async function main() {
       customerId: customer2.id,
       vehicleId: owner1Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-20T06:00:00.000Z"),
-      endDate: new Date("2026-06-22T18:00:00.000Z"),
+      startDate: D("2026-06-20T06:00:00.000Z"),
+      endDate: D("2026-06-22T18:00:00.000Z"),
       startTime: "06:00 AM",
       pickupLocation: "Negombo - Beach Resort Area",
       dropoffLocation: "Jaffna - Fort Area",
@@ -1743,8 +1791,8 @@ async function main() {
       additionalNotes:
         "Vehicle includes full AC, comfortable reclining seats, and entertainment system.",
       validityDays: 7,
-      validUntil: new Date("2026-06-08T23:59:59.000Z"),
-      sentAt: new Date("2026-06-01T10:30:00.000Z"),
+      validUntil: D("2026-06-08T23:59:59.000Z"),
+      sentAt: D("2026-06-01T10:30:00.000Z"),
     },
   });
 
@@ -1755,8 +1803,8 @@ async function main() {
       customerId: customer2.id,
       vehicleId: owner3Vehicles[2]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-25T06:00:00.000Z"),
-      endDate: new Date("2026-06-27T18:00:00.000Z"),
+      startDate: D("2026-06-25T06:00:00.000Z"),
+      endDate: D("2026-06-27T18:00:00.000Z"),
       startTime: "06:00 AM",
       pickupLocation: "Colombo - Hilton Hotel",
       dropoffLocation: "Ella - Railway Station",
@@ -1781,8 +1829,8 @@ async function main() {
       customerId: customer1.id,
       vehicleId: owner2Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-25T08:00:00.000Z"),
-      endDate: new Date("2026-06-26T20:00:00.000Z"),
+      startDate: D("2026-06-25T08:00:00.000Z"),
+      endDate: D("2026-06-26T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Colombo - Galle Face Green",
       dropoffLocation: "Kandy - Temple of the Tooth",
@@ -1806,8 +1854,8 @@ async function main() {
       additionalNotes:
         "Experienced driver with 15+ years in hill country routes. Vehicle equipped with GPS and emergency kit.",
       validityDays: 5,
-      validUntil: new Date("2026-06-30T23:59:59.000Z"),
-      sentAt: new Date("2026-06-01T14:00:00.000Z"),
+      validUntil: D("2026-06-30T23:59:59.000Z"),
+      sentAt: D("2026-06-01T14:00:00.000Z"),
     },
   });
 
@@ -1818,8 +1866,8 @@ async function main() {
       customerId: customer1.id,
       vehicleId: owner3Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-25T08:00:00.000Z"),
-      endDate: new Date("2026-06-26T20:00:00.000Z"),
+      startDate: D("2026-06-25T08:00:00.000Z"),
+      endDate: D("2026-06-26T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Colombo - Galle Face Green",
       dropoffLocation: "Kandy - Temple of the Tooth",
@@ -1844,8 +1892,8 @@ async function main() {
       additionalNotes:
         "Panoramic windows perfect for scenic views. Driver will take you via the most picturesque route through tea plantations.",
       validityDays: 6,
-      validUntil: new Date("2026-06-30T23:59:59.000Z"),
-      sentAt: new Date("2026-06-01T09:30:00.000Z"),
+      validUntil: D("2026-06-30T23:59:59.000Z"),
+      sentAt: D("2026-06-01T09:30:00.000Z"),
     },
   });
 
@@ -1856,8 +1904,8 @@ async function main() {
       customerId: customer1.id,
       vehicleId: owner1Vehicles[1]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-25T08:00:00.000Z"),
-      endDate: new Date("2026-06-26T20:00:00.000Z"),
+      startDate: D("2026-06-25T08:00:00.000Z"),
+      endDate: D("2026-06-26T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Colombo - Galle Face Green",
       dropoffLocation: "Kandy - Temple of the Tooth",
@@ -1878,9 +1926,9 @@ async function main() {
       additionalNotes:
         "Budget-friendly option without compromising on comfort. Clean vehicle with reliable service.",
       validityDays: 5,
-      validUntil: new Date("2026-06-30T23:59:59.000Z"),
-      sentAt: new Date("2026-06-01T11:00:00.000Z"),
-      viewedAt: new Date("2026-06-02T16:45:00.000Z"),
+      validUntil: D("2026-06-30T23:59:59.000Z"),
+      sentAt: D("2026-06-01T11:00:00.000Z"),
+      viewedAt: D("2026-06-02T16:45:00.000Z"),
     },
   });
 
@@ -1891,8 +1939,8 @@ async function main() {
       customerId: customer1.id,
       vehicleId: owner4Vehicles[0]?.id,
       vehicleType: "SEMI_LUXURY",
-      startDate: new Date("2026-06-25T08:00:00.000Z"),
-      endDate: new Date("2026-06-26T20:00:00.000Z"),
+      startDate: D("2026-06-25T08:00:00.000Z"),
+      endDate: D("2026-06-26T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Colombo - Galle Face Green",
       dropoffLocation: "Kandy - Temple of the Tooth",
@@ -1914,8 +1962,8 @@ async function main() {
       additionalNotes:
         "Value-for-money option with a reliable semi-luxury vehicle. Driver has 10+ years of experience on this route.",
       validityDays: 5,
-      validUntil: new Date("2026-06-30T23:59:59.000Z"),
-      sentAt: new Date("2026-06-01T12:30:00.000Z"),
+      validUntil: D("2026-06-30T23:59:59.000Z"),
+      sentAt: D("2026-06-01T12:30:00.000Z"),
     },
   });
 
@@ -1927,8 +1975,8 @@ async function main() {
       customerId: customer3.id,
       vehicleId: owner2Vehicles[0]?.id,
       vehicleType: "SEMI_LUXURY",
-      startDate: new Date("2026-06-18T07:00:00.000Z"),
-      endDate: new Date("2026-06-18T19:00:00.000Z"),
+      startDate: D("2026-06-18T07:00:00.000Z"),
+      endDate: D("2026-06-18T19:00:00.000Z"),
       startTime: "07:00 AM",
       pickupLocation: "Galle - Fort",
       dropoffLocation: "Colombo - Airport",
@@ -1948,9 +1996,9 @@ async function main() {
       additionalNotes:
         "Experienced driver with airport route knowledge included.",
       validityDays: 5,
-      validUntil: new Date("2026-06-05T23:59:59.000Z"),
-      sentAt: new Date("2026-06-01T09:00:00.000Z"),
-      viewedAt: new Date("2026-06-03T14:30:00.000Z"),
+      validUntil: D("2026-06-05T23:59:59.000Z"),
+      sentAt: D("2026-06-01T09:00:00.000Z"),
+      viewedAt: D("2026-06-03T14:30:00.000Z"),
     },
   });
 
@@ -1961,8 +2009,8 @@ async function main() {
       customerId: customer4.id,
       vehicleId: owner3Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-18T06:00:00.000Z"),
-      endDate: new Date("2026-06-20T18:00:00.000Z"),
+      startDate: D("2026-06-18T06:00:00.000Z"),
+      endDate: D("2026-06-20T18:00:00.000Z"),
       startTime: "06:00 AM",
       pickupLocation: "Negombo - Beach Hotels",
       dropoffLocation: "Sigiriya - Hotel Area",
@@ -1986,10 +2034,10 @@ async function main() {
       additionalNotes:
         "Professional driver with cultural tour experience. Vehicle includes entertainment system and WiFi.",
       validityDays: 7,
-      validUntil: new Date("2026-06-08T23:59:59.000Z"),
-      sentAt: new Date("2026-06-01T11:00:00.000Z"),
-      viewedAt: new Date("2026-06-02T10:00:00.000Z"),
-      respondedAt: new Date("2026-06-03T15:30:00.000Z"),
+      validUntil: D("2026-06-08T23:59:59.000Z"),
+      sentAt: D("2026-06-01T11:00:00.000Z"),
+      viewedAt: D("2026-06-02T10:00:00.000Z"),
+      respondedAt: D("2026-06-03T15:30:00.000Z"),
     },
   });
 
@@ -2000,8 +2048,8 @@ async function main() {
       customerId: customer5.id,
       vehicleId: owner1Vehicles[1]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-05T08:00:00.000Z"),
-      endDate: new Date("2026-06-05T20:00:00.000Z"),
+      startDate: D("2026-06-05T08:00:00.000Z"),
+      endDate: D("2026-06-05T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Matara - Town",
       dropoffLocation: "Kandy - City Center",
@@ -2020,10 +2068,10 @@ async function main() {
       totalAmount: 62150,
       additionalNotes: "Full day rental with experienced driver.",
       validityDays: 5,
-      validUntil: new Date("2026-05-30T23:59:59.000Z"),
-      sentAt: new Date("2026-05-25T13:00:00.000Z"),
-      viewedAt: new Date("2026-05-27T09:00:00.000Z"),
-      respondedAt: new Date("2026-05-27T16:00:00.000Z"),
+      validUntil: D("2026-05-30T23:59:59.000Z"),
+      sentAt: D("2026-05-25T13:00:00.000Z"),
+      viewedAt: D("2026-05-27T09:00:00.000Z"),
+      respondedAt: D("2026-05-27T16:00:00.000Z"),
       rejectionReason: "Found a more economical option from another provider",
     },
   });
@@ -2035,8 +2083,8 @@ async function main() {
       customerId: customer2.id,
       vehicleId: owner2Vehicles[1]?.id,
       vehicleType: "SEMI_LUXURY",
-      startDate: new Date("2026-06-03T07:00:00.000Z"),
-      endDate: new Date("2026-06-05T19:00:00.000Z"),
+      startDate: D("2026-06-03T07:00:00.000Z"),
+      endDate: D("2026-06-05T19:00:00.000Z"),
       startTime: "07:00 AM",
       pickupLocation: "Colombo - Colombo Fort",
       dropoffLocation: "Trincomalee - Beach Area",
@@ -2055,9 +2103,9 @@ async function main() {
       totalAmount: 68750,
       additionalNotes: "Coastal route specialist driver included.",
       validityDays: 3,
-      validUntil: new Date("2026-05-30T23:59:59.000Z"),
-      sentAt: new Date("2026-05-25T10:00:00.000Z"),
-      viewedAt: new Date("2026-05-27T11:00:00.000Z"),
+      validUntil: D("2026-05-30T23:59:59.000Z"),
+      sentAt: D("2026-05-25T10:00:00.000Z"),
+      viewedAt: D("2026-05-27T11:00:00.000Z"),
     },
   });
 
@@ -2068,8 +2116,8 @@ async function main() {
       quotationId: generateQuotationId(),
       customerId: customer1.id,
       vehicleType: "ORDINARY",
-      startDate: new Date("2026-06-01T09:00:00.000Z"),
-      endDate: new Date("2026-06-01T18:00:00.000Z"),
+      startDate: D("2026-06-01T09:00:00.000Z"),
+      endDate: D("2026-06-01T18:00:00.000Z"),
       startTime: "09:00 AM",
       pickupLocation: "Kurunegala - Town Hall",
       dropoffLocation: "Anuradhapura - Sacred City",
@@ -2088,8 +2136,8 @@ async function main() {
       customerId: customer5.id,
       vehicleId: owner3Vehicles[1]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-25T06:00:00.000Z"),
-      endDate: new Date("2026-06-27T18:00:00.000Z"),
+      startDate: D("2026-06-25T06:00:00.000Z"),
+      endDate: D("2026-06-27T18:00:00.000Z"),
       startTime: "06:00 AM",
       pickupLocation: "Matara - Railway Station",
       dropoffLocation: "Jaffna - Town Center",
@@ -2110,8 +2158,8 @@ async function main() {
       customerId: customer3.id,
       vehicleId: owner1Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-22T09:00:00.000Z"),
-      endDate: new Date("2026-06-22T18:00:00.000Z"),
+      startDate: D("2026-06-22T09:00:00.000Z"),
+      endDate: D("2026-06-22T18:00:00.000Z"),
       startTime: "09:00 AM",
       pickupLocation: "Colombo - Mount Lavinia Hotel",
       dropoffLocation: "Bentota - Beach Resorts",
@@ -2131,8 +2179,8 @@ async function main() {
       customerId: customer4.id,
       vehicleId: owner2Vehicles[1]?.id,
       vehicleType: "SEMI_LUXURY",
-      startDate: new Date("2026-06-20T07:00:00.000Z"),
-      endDate: new Date("2026-06-22T19:00:00.000Z"),
+      startDate: D("2026-06-20T07:00:00.000Z"),
+      endDate: D("2026-06-22T19:00:00.000Z"),
       startTime: "07:00 AM",
       pickupLocation: "Negombo - Hotels Area",
       dropoffLocation: "Anuradhapura - Sacred City",
@@ -2156,8 +2204,8 @@ async function main() {
       additionalNotes:
         "Driver experienced with temple routes and protocols. Vehicle includes comfortable seating for long journey.",
       validityDays: 5,
-      validUntil: new Date("2026-06-07T23:59:59.000Z"),
-      sentAt: new Date("2026-06-02T08:30:00.000Z"),
+      validUntil: D("2026-06-07T23:59:59.000Z"),
+      sentAt: D("2026-06-02T08:30:00.000Z"),
     },
   });
 
@@ -2168,8 +2216,8 @@ async function main() {
       customerId: customer5.id,
       vehicleId: owner3Vehicles[2]?.id,
       vehicleType: "SEMI_LUXURY",
-      startDate: new Date("2026-06-17T10:00:00.000Z"),
-      endDate: new Date("2026-06-17T17:00:00.000Z"),
+      startDate: D("2026-06-17T10:00:00.000Z"),
+      endDate: D("2026-06-17T17:00:00.000Z"),
       startTime: "10:00 AM",
       pickupLocation: "Matara - City Center",
       dropoffLocation: "Mirissa - Whale Watching Point",
@@ -2189,9 +2237,9 @@ async function main() {
       additionalNotes:
         "Perfect mini bus for small groups. Driver familiar with coastal routes.",
       validityDays: 3,
-      validUntil: new Date("2026-06-04T23:59:59.000Z"),
-      sentAt: new Date("2026-06-01T15:00:00.000Z"),
-      viewedAt: new Date("2026-06-03T09:15:00.000Z"),
+      validUntil: D("2026-06-04T23:59:59.000Z"),
+      sentAt: D("2026-06-01T15:00:00.000Z"),
+      viewedAt: D("2026-06-03T09:15:00.000Z"),
     },
   });
 
@@ -2202,8 +2250,8 @@ async function main() {
       customerId: customer1.id,
       vehicleId: owner1Vehicles[2]?.id,
       vehicleType: "SEMI_LUXURY",
-      startDate: new Date("2026-06-17T08:00:00.000Z"),
-      endDate: new Date("2026-06-17T20:00:00.000Z"),
+      startDate: D("2026-06-17T08:00:00.000Z"),
+      endDate: D("2026-06-17T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Colombo - Nugegoda",
       dropoffLocation: "Yala - National Park Entrance",
@@ -2224,10 +2272,10 @@ async function main() {
       additionalNotes:
         "Mini bus perfect for safari tours. Driver experienced with wildlife routes.",
       validityDays: 4,
-      validUntil: new Date("2026-06-05T23:59:59.000Z"),
-      sentAt: new Date("2026-06-01T10:00:00.000Z"),
-      viewedAt: new Date("2026-06-02T14:30:00.000Z"),
-      respondedAt: new Date("2026-06-03T10:45:00.000Z"),
+      validUntil: D("2026-06-05T23:59:59.000Z"),
+      sentAt: D("2026-06-01T10:00:00.000Z"),
+      viewedAt: D("2026-06-02T14:30:00.000Z"),
+      respondedAt: D("2026-06-03T10:45:00.000Z"),
     },
   });
 
@@ -2238,8 +2286,8 @@ async function main() {
       customerId: customer2.id,
       vehicleId: owner4Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-10T06:00:00.000Z"),
-      endDate: new Date("2026-06-12T18:00:00.000Z"),
+      startDate: D("2026-06-10T06:00:00.000Z"),
+      endDate: D("2026-06-12T18:00:00.000Z"),
       startTime: "06:00 AM",
       pickupLocation: "Wellawatte - Sea Beach Hotel",
       dropoffLocation: "Trincomalee - Fort Area",
@@ -2261,10 +2309,10 @@ async function main() {
       totalAmount: 165000,
       additionalNotes: "Premium service with experienced driver.",
       validityDays: 7,
-      validUntil: new Date("2026-06-01T23:59:59.000Z"),
-      sentAt: new Date("2026-05-25T11:00:00.000Z"),
-      viewedAt: new Date("2026-05-28T09:00:00.000Z"),
-      respondedAt: new Date("2026-05-29T15:30:00.000Z"),
+      validUntil: D("2026-06-01T23:59:59.000Z"),
+      sentAt: D("2026-05-25T11:00:00.000Z"),
+      viewedAt: D("2026-05-28T09:00:00.000Z"),
+      respondedAt: D("2026-05-29T15:30:00.000Z"),
       rejectionReason: "Budget exceeded, found alternative option",
     },
   });
@@ -2276,8 +2324,8 @@ async function main() {
       customerId: customer3.id,
       vehicleId: owner2Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-22T07:00:00.000Z"),
-      endDate: new Date("2026-06-26T18:00:00.000Z"),
+      startDate: D("2026-06-22T07:00:00.000Z"),
+      endDate: D("2026-06-26T18:00:00.000Z"),
       startTime: "07:00 AM",
       pickupLocation: "Kandy - City Center",
       dropoffLocation: "Kandy - City Center",
@@ -2297,8 +2345,8 @@ async function main() {
       customerId: customer3.id,
       vehicleId: owner3Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-22T07:00:00.000Z"),
-      endDate: new Date("2026-06-26T18:00:00.000Z"),
+      startDate: D("2026-06-22T07:00:00.000Z"),
+      endDate: D("2026-06-26T18:00:00.000Z"),
       startTime: "07:00 AM",
       pickupLocation: "Kandy - City Center",
       dropoffLocation: "Kandy - City Center",
@@ -2324,8 +2372,8 @@ async function main() {
       additionalNotes:
         "Comprehensive cultural triangle package with experienced guide-driver. All logistics handled.",
       validityDays: 10,
-      validUntil: new Date("2026-06-22T23:59:59.000Z"),
-      sentAt: new Date("2026-06-02T14:00:00.000Z"),
+      validUntil: D("2026-06-22T23:59:59.000Z"),
+      sentAt: D("2026-06-02T14:00:00.000Z"),
     },
   });
 
@@ -2336,8 +2384,8 @@ async function main() {
       customerId: customer3.id,
       vehicleId: owner4Vehicles[1]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-22T07:00:00.000Z"),
-      endDate: new Date("2026-06-26T18:00:00.000Z"),
+      startDate: D("2026-06-22T07:00:00.000Z"),
+      endDate: D("2026-06-26T18:00:00.000Z"),
       startTime: "07:00 AM",
       pickupLocation: "Kandy - City Center",
       dropoffLocation: "Kandy - City Center",
@@ -2362,8 +2410,8 @@ async function main() {
       additionalNotes:
         "Budget-friendly cultural tour package. Clean vehicle with knowledgeable driver.",
       validityDays: 10,
-      validUntil: new Date("2026-06-22T23:59:59.000Z"),
-      sentAt: new Date("2026-06-02T16:30:00.000Z"),
+      validUntil: D("2026-06-22T23:59:59.000Z"),
+      sentAt: D("2026-06-02T16:30:00.000Z"),
     },
   });
 
@@ -2378,8 +2426,8 @@ async function main() {
       customerId: customer2.id,
       vehicleId: owner4Vehicles[0]?.id,
       vehicleType: "LUXURY_AC",
-      startDate: new Date("2026-06-22T06:00:00.000Z"),
-      endDate: new Date("2026-06-24T18:00:00.000Z"),
+      startDate: D("2026-06-22T06:00:00.000Z"),
+      endDate: D("2026-06-24T18:00:00.000Z"),
       startTime: "06:00 AM",
       pickupLocation: "Batticaloa - Bus Stand",
       dropoffLocation: "Colombo - Fort",
@@ -2397,8 +2445,8 @@ async function main() {
       customerId: customer3.id,
       vehicleId: owner4Vehicles[1]?.id,
       vehicleType: "SEMI_LUXURY",
-      startDate: new Date("2026-06-25T08:00:00.000Z"),
-      endDate: new Date("2026-06-25T20:00:00.000Z"),
+      startDate: D("2026-06-25T08:00:00.000Z"),
+      endDate: D("2026-06-25T20:00:00.000Z"),
       startTime: "08:00 AM",
       pickupLocation: "Batticaloa - City Center",
       dropoffLocation: "Arugam Bay - Beach Area",
@@ -2417,8 +2465,8 @@ async function main() {
       customerId: customer5.id,
       vehicleId: owner1Vehicles[3]?.id,
       vehicleType: "ORDINARY",
-      startDate: new Date("2026-06-25T07:00:00.000Z"),
-      endDate: new Date("2026-06-25T17:00:00.000Z"),
+      startDate: D("2026-06-25T07:00:00.000Z"),
+      endDate: D("2026-06-25T17:00:00.000Z"),
       startTime: "07:00 AM",
       pickupLocation: "Colombo - Pettah Bus Stand",
       dropoffLocation: "Galle - Fort",
@@ -2554,7 +2602,7 @@ async function main() {
   }
 
   let tripCounter = 1;
-  const now = new Date();
+  const now = new Date(DEMO_NOW);
   for (const [, members] of tripGroups) {
     const primary = members[0];
     const tripCode = `TRP-2026-${String(tripCounter).padStart(3, "0")}`;
@@ -2656,8 +2704,8 @@ async function main() {
       dropoffDistrict: "Matara",
       dropoffLatitude: CITY_COORDS.Mirissa.lat,
       dropoffLongitude: CITY_COORDS.Mirissa.lng,
-      startDate: new Date("2026-06-12T07:00:00.000Z"),
-      endDate: new Date("2026-06-14T20:00:00.000Z"),
+      startDate: D("2026-06-12T07:00:00.000Z"),
+      endDate: D("2026-06-14T20:00:00.000Z"),
       startTime: "07:00 AM",
       isRoundTrip: true,
       passengerCount: 18,
@@ -2709,8 +2757,8 @@ async function main() {
       dropoffDistrict: "Matale",
       dropoffLatitude: CITY_COORDS.Sigiriya.lat,
       dropoffLongitude: CITY_COORDS.Sigiriya.lng,
-      startDate: new Date("2026-07-08T05:30:00.000Z"),
-      endDate: new Date("2026-07-08T22:00:00.000Z"),
+      startDate: D("2026-07-08T05:30:00.000Z"),
+      endDate: D("2026-07-08T22:00:00.000Z"),
       startTime: "05:30 AM",
       isRoundTrip: true,
       passengerCount: 45,
@@ -2765,8 +2813,8 @@ async function main() {
       data: {
         customerId: customer1.id,
         vehicleId: owner1Vehicles[0].id,
-        startDate: new Date("2026-06-15T06:00:00.000Z"),
-        endDate: new Date("2026-06-17T18:00:00.000Z"),
+        startDate: D("2026-06-15T06:00:00.000Z"),
+        endDate: D("2026-06-17T18:00:00.000Z"),
         pickupLocation: "Colombo - Fort Railway Station",
         dropoffLocation: "Nuwara Eliya - Grand Hotel",
         totalPassengers: 40,
@@ -2792,8 +2840,8 @@ async function main() {
       data: {
         customerId: customer1.id,
         vehicleId: owner1Vehicles[0].id,
-        startDate: new Date("2026-06-13T07:30:00.000Z"),
-        endDate: new Date("2026-06-13T19:30:00.000Z"),
+        startDate: D("2026-06-13T07:30:00.000Z"),
+        endDate: D("2026-06-13T19:30:00.000Z"),
         pickupLocation: "Colombo - Town Hall",
         dropoffLocation: "Galle - Fort",
         totalPassengers: 32,
@@ -2821,8 +2869,8 @@ async function main() {
       data: {
         customerId: customer2.id,
         vehicleId: owner1Vehicles[1].id,
-        startDate: new Date("2026-06-16T08:00:00.000Z"),
-        endDate: new Date("2026-06-18T20:00:00.000Z"),
+        startDate: D("2026-06-16T08:00:00.000Z"),
+        endDate: D("2026-06-18T20:00:00.000Z"),
         pickupLocation: "Colombo - Cinnamon Grand Hotel",
         dropoffLocation: "Galle - Lighthouse Hotel",
         totalPassengers: 50,
@@ -2838,8 +2886,8 @@ async function main() {
       data: {
         customerId: customer3.id,
         vehicleId: owner1Vehicles[0].id,
-        startDate: new Date("2026-05-25T06:00:00.000Z"),
-        endDate: new Date("2026-05-28T18:00:00.000Z"),
+        startDate: D("2026-05-25T06:00:00.000Z"),
+        endDate: D("2026-05-28T18:00:00.000Z"),
         pickupLocation: "Colombo - Bandaranaike Airport",
         dropoffLocation: "Colombo - Bandaranaike Airport",
         totalPassengers: 35,
@@ -2865,8 +2913,8 @@ async function main() {
       data: {
         customerId: customer1.id,
         vehicleId: owner1Vehicles[2].id,
-        startDate: new Date("2026-05-28T10:00:00.000Z"),
-        endDate: new Date("2026-05-28T18:00:00.000Z"),
+        startDate: D("2026-05-28T10:00:00.000Z"),
+        endDate: D("2026-05-28T18:00:00.000Z"),
         pickupLocation: "Colombo - Slave Island",
         dropoffLocation: "Kandy - City Center",
         totalPassengers: 25,
@@ -2885,8 +2933,8 @@ async function main() {
       data: {
         customerId: customer2.id,
         vehicleId: owner2Vehicles[0].id,
-        startDate: new Date("2026-06-18T08:00:00.000Z"),
-        endDate: new Date("2026-06-18T18:00:00.000Z"),
+        startDate: D("2026-06-18T08:00:00.000Z"),
+        endDate: D("2026-06-18T18:00:00.000Z"),
         pickupLocation: "Jaffna - Railway Station",
         dropoffLocation: "Jaffna - Nallur Kovil",
         totalPassengers: 45,
@@ -2912,8 +2960,8 @@ async function main() {
       data: {
         customerId: customer3.id,
         vehicleId: owner2Vehicles[1].id,
-        startDate: new Date("2026-06-16T06:00:00.000Z"),
-        endDate: new Date("2026-06-18T20:00:00.000Z"),
+        startDate: D("2026-06-16T06:00:00.000Z"),
+        endDate: D("2026-06-18T20:00:00.000Z"),
         pickupLocation: "Jaffna - City Center",
         dropoffLocation: "Trincomalee - Beach Area",
         totalPassengers: 30,
@@ -2929,8 +2977,8 @@ async function main() {
       data: {
         customerId: customer1.id,
         vehicleId: owner2Vehicles[0].id,
-        startDate: new Date("2026-05-20T08:00:00.000Z"),
-        endDate: new Date("2026-05-22T18:00:00.000Z"),
+        startDate: D("2026-05-20T08:00:00.000Z"),
+        endDate: D("2026-05-22T18:00:00.000Z"),
         pickupLocation: "Jaffna - City Center",
         dropoffLocation: "Jaffna - City Center",
         totalPassengers: 40,
@@ -2959,8 +3007,8 @@ async function main() {
       data: {
         customerId: customer3.id,
         vehicleId: owner3Vehicles[0].id,
-        startDate: new Date("2026-06-18T06:00:00.000Z"),
-        endDate: new Date("2026-06-20T18:00:00.000Z"),
+        startDate: D("2026-06-18T06:00:00.000Z"),
+        endDate: D("2026-06-20T18:00:00.000Z"),
         pickupLocation: "Kandy - City Center",
         dropoffLocation: "Ella - Railway Station",
         totalPassengers: 38,
@@ -2986,8 +3034,8 @@ async function main() {
       data: {
         customerId: customer2.id,
         vehicleId: owner3Vehicles[1].id,
-        startDate: new Date("2026-05-22T06:00:00.000Z"),
-        endDate: new Date("2026-05-24T20:00:00.000Z"),
+        startDate: D("2026-05-22T06:00:00.000Z"),
+        endDate: D("2026-05-24T20:00:00.000Z"),
         pickupLocation: "Kandy - Temple of the Tooth",
         dropoffLocation: "Nuwara Eliya - Victoria Park",
         totalPassengers: 12,
@@ -3013,8 +3061,8 @@ async function main() {
       data: {
         customerId: customer1.id,
         vehicleId: owner3Vehicles[2].id,
-        startDate: new Date("2026-06-01T06:00:00.000Z"),
-        endDate: new Date("2026-06-05T18:00:00.000Z"),
+        startDate: D("2026-06-01T06:00:00.000Z"),
+        endDate: D("2026-06-05T18:00:00.000Z"),
         pickupLocation: "Kandy - City Center",
         dropoffLocation: "Sigiriya - Rock Fortress",
         totalPassengers: 28,
@@ -3033,8 +3081,8 @@ async function main() {
       data: {
         customerId: customer1.id,
         vehicleId: owner4Vehicles[0].id,
-        startDate: new Date("2026-06-20T06:00:00.000Z"),
-        endDate: new Date("2026-06-22T18:00:00.000Z"),
+        startDate: D("2026-06-20T06:00:00.000Z"),
+        endDate: D("2026-06-22T18:00:00.000Z"),
         pickupLocation: "Batticaloa - Bus Stand",
         dropoffLocation: "Colombo - Fort",
         totalPassengers: 48,
@@ -3060,8 +3108,8 @@ async function main() {
       data: {
         customerId: customer3.id,
         vehicleId: owner4Vehicles[1].id,
-        startDate: new Date("2026-05-15T08:00:00.000Z"),
-        endDate: new Date("2026-05-17T18:00:00.000Z"),
+        startDate: D("2026-05-15T08:00:00.000Z"),
+        endDate: D("2026-05-17T18:00:00.000Z"),
         pickupLocation: "Batticaloa - City Center",
         dropoffLocation: "Arugam Bay - Beach",
         totalPassengers: 20,
@@ -3101,8 +3149,8 @@ async function main() {
     data: {
       customerId: customer4.id,
       vehicleId: owner1Vehicles[2]?.id,
-      startDate: new Date("2026-05-25T07:00:00.000Z"),
-      endDate: new Date("2026-05-25T19:00:00.000Z"),
+      startDate: D("2026-05-25T07:00:00.000Z"),
+      endDate: D("2026-05-25T19:00:00.000Z"),
       pickupLocation: "Negombo - Hotels Area",
       dropoffLocation: "Dambulla - Cave Temple",
       totalPassengers: 32,
@@ -3128,8 +3176,8 @@ async function main() {
     data: {
       customerId: customer5.id,
       vehicleId: owner2Vehicles[0]?.id,
-      startDate: new Date("2026-05-28T06:00:00.000Z"),
-      endDate: new Date("2026-05-30T18:00:00.000Z"),
+      startDate: D("2026-05-28T06:00:00.000Z"),
+      endDate: D("2026-05-30T18:00:00.000Z"),
       pickupLocation: "Matara - Bus Stand",
       dropoffLocation: "Colombo - Airport",
       totalPassengers: 28,
@@ -3155,8 +3203,8 @@ async function main() {
     data: {
       customerId: customer3.id,
       vehicleId: owner3Vehicles[1]?.id,
-      startDate: new Date("2026-05-20T08:00:00.000Z"),
-      endDate: new Date("2026-05-22T20:00:00.000Z"),
+      startDate: D("2026-05-20T08:00:00.000Z"),
+      endDate: D("2026-05-22T20:00:00.000Z"),
       pickupLocation: "Kandy - City Center",
       dropoffLocation: "Anuradhapura - Sacred City",
       totalPassengers: 35,
@@ -3182,8 +3230,8 @@ async function main() {
     data: {
       customerId: customer2.id,
       vehicleId: owner1Vehicles[1]?.id,
-      startDate: new Date("2026-05-10T06:00:00.000Z"),
-      endDate: new Date("2026-05-12T18:00:00.000Z"),
+      startDate: D("2026-05-10T06:00:00.000Z"),
+      endDate: D("2026-05-12T18:00:00.000Z"),
       pickupLocation: "Colombo - Wellawatte",
       dropoffLocation: "Galle - Fort Area",
       totalPassengers: 30,
@@ -3209,8 +3257,8 @@ async function main() {
     data: {
       customerId: customer4.id,
       vehicleId: owner3Vehicles[2]?.id,
-      startDate: new Date("2026-06-20T07:00:00.000Z"),
-      endDate: new Date("2026-06-22T19:00:00.000Z"),
+      startDate: D("2026-06-20T07:00:00.000Z"),
+      endDate: D("2026-06-22T19:00:00.000Z"),
       pickupLocation: "Negombo - Beach Hotels",
       dropoffLocation: "Ella - Railway Station",
       totalPassengers: 38,
@@ -3270,8 +3318,8 @@ async function main() {
     data: {
       customerId: customer6.id,
       vehicleId: owner2Vehicles[0]?.id,
-      startDate: new Date("2026-06-02T06:00:00.000Z"),
-      endDate: new Date("2026-06-03T18:00:00.000Z"),
+      startDate: D("2026-06-02T06:00:00.000Z"),
+      endDate: D("2026-06-03T18:00:00.000Z"),
       pickupLocation: "Colombo - Shangri-La Hotel",
       dropoffLocation: "Trincomalee - Uppuveli Beach",
       totalPassengers: 44,
@@ -3297,8 +3345,8 @@ async function main() {
     data: {
       customerId: customer7.id,
       vehicleId: owner1Vehicles[0]?.id,
-      startDate: new Date("2026-06-14T05:00:00.000Z"),
-      endDate: new Date("2026-06-14T22:00:00.000Z"),
+      startDate: D("2026-06-14T05:00:00.000Z"),
+      endDate: D("2026-06-14T22:00:00.000Z"),
       pickupLocation: "Kelaniya - Raja Maha Vihara",
       dropoffLocation: "Kataragama - Temple",
       totalPassengers: 50,
@@ -3324,8 +3372,8 @@ async function main() {
     data: {
       customerId: customer4.id,
       vehicleId: owner3Vehicles[1]?.id,
-      startDate: new Date("2026-06-15T07:00:00.000Z"),
-      endDate: new Date("2026-06-17T19:00:00.000Z"),
+      startDate: D("2026-06-15T07:00:00.000Z"),
+      endDate: D("2026-06-17T19:00:00.000Z"),
       pickupLocation: "Negombo - St. Mary's Church",
       dropoffLocation: "Negombo - St. Mary's Church",
       totalPassengers: 35,
@@ -3351,8 +3399,8 @@ async function main() {
     data: {
       customerId: customer6.id,
       vehicleId: owner3Vehicles[0]?.id,
-      startDate: new Date("2026-06-17T08:00:00.000Z"),
-      endDate: new Date("2026-06-17T20:00:00.000Z"),
+      startDate: D("2026-06-17T08:00:00.000Z"),
+      endDate: D("2026-06-17T20:00:00.000Z"),
       pickupLocation: "Panadura - Town",
       dropoffLocation: "Galle - Fort",
       totalPassengers: 38,
@@ -3368,8 +3416,8 @@ async function main() {
     data: {
       customerId: customer5.id,
       vehicleId: owner4Vehicles[0]?.id,
-      startDate: new Date("2026-06-18T06:00:00.000Z"),
-      endDate: new Date("2026-06-20T18:00:00.000Z"),
+      startDate: D("2026-06-18T06:00:00.000Z"),
+      endDate: D("2026-06-20T18:00:00.000Z"),
       pickupLocation: "Matara - Railway Station",
       dropoffLocation: "Arugam Bay - Beach",
       totalPassengers: 42,
@@ -3395,8 +3443,8 @@ async function main() {
     data: {
       customerId: customer7.id,
       vehicleId: owner2Vehicles[1]?.id,
-      startDate: new Date("2026-05-31T07:00:00.000Z"),
-      endDate: new Date("2026-06-01T19:00:00.000Z"),
+      startDate: D("2026-05-31T07:00:00.000Z"),
+      endDate: D("2026-06-01T19:00:00.000Z"),
       pickupLocation: "Gampaha - Town Center",
       dropoffLocation: "Polonnaruwa - Ancient City",
       totalPassengers: 32,
@@ -3422,8 +3470,8 @@ async function main() {
     data: {
       customerId: customer6.id,
       vehicleId: owner1Vehicles[1]?.id,
-      startDate: new Date("2026-05-30T08:00:00.000Z"),
-      endDate: new Date("2026-05-30T18:00:00.000Z"),
+      startDate: D("2026-05-30T08:00:00.000Z"),
+      endDate: D("2026-05-30T18:00:00.000Z"),
       pickupLocation: "Panadura - Beach Road",
       dropoffLocation: "Colombo - Bandaranaike Airport",
       totalPassengers: 28,
@@ -3449,8 +3497,8 @@ async function main() {
     data: {
       customerId: customer7.id,
       vehicleId: owner4Vehicles[1]?.id,
-      startDate: new Date("2026-06-16T09:00:00.000Z"),
-      endDate: new Date("2026-06-16T17:00:00.000Z"),
+      startDate: D("2026-06-16T09:00:00.000Z"),
+      endDate: D("2026-06-16T17:00:00.000Z"),
       pickupLocation: "Kelaniya - University",
       dropoffLocation: "Hikkaduwa - Beach",
       totalPassengers: 22,
@@ -3476,8 +3524,8 @@ async function main() {
     data: {
       customerId: customer1.id,
       vehicleId: owner1Vehicles[2]?.id,
-      startDate: new Date("2026-06-17T08:00:00.000Z"),
-      endDate: new Date("2026-06-17T20:00:00.000Z"),
+      startDate: D("2026-06-17T08:00:00.000Z"),
+      endDate: D("2026-06-17T20:00:00.000Z"),
       pickupLocation: "Colombo - Nugegoda",
       dropoffLocation: "Yala - National Park Entrance",
       totalPassengers: 25,
@@ -3503,8 +3551,8 @@ async function main() {
     data: {
       customerId: customer3.id,
       vehicleId: owner3Vehicles[2]?.id,
-      startDate: new Date("2026-06-01T06:00:00.000Z"),
-      endDate: new Date("2026-06-07T18:00:00.000Z"),
+      startDate: D("2026-06-01T06:00:00.000Z"),
+      endDate: D("2026-06-07T18:00:00.000Z"),
       pickupLocation: "Kandy - Queens Hotel",
       dropoffLocation: "Kandy - Queens Hotel",
       totalPassengers: 30,
@@ -3530,8 +3578,8 @@ async function main() {
     data: {
       customerId: customer4.id,
       vehicleId: owner2Vehicles[0]?.id,
-      startDate: new Date("2026-05-25T10:00:00.000Z"),
-      endDate: new Date("2026-05-25T18:00:00.000Z"),
+      startDate: D("2026-05-25T10:00:00.000Z"),
+      endDate: D("2026-05-25T18:00:00.000Z"),
       pickupLocation: "Negombo - Beach Hotels",
       dropoffLocation: "Sigiriya - Rock Fortress",
       totalPassengers: 30,
@@ -3577,8 +3625,8 @@ async function main() {
       data: {
         customerId: customer2.id,
         vehicleId: owner1Vehicles[0]!.id,
-        startDate: new Date(monthData.createdAt),
-        endDate: new Date(monthData.updatedAt),
+        startDate: D(monthData.createdAt),
+        endDate: D(monthData.updatedAt),
         pickupLocation: "Colombo - Fort",
         dropoffLocation: "Kandy - City Center",
         totalPassengers: 40,
@@ -3600,8 +3648,8 @@ async function main() {
     // Backdate both timestamps so the analytics queries bucket this into the correct month.
     await prisma.$executeRaw`
       UPDATE bookings
-      SET "createdAt" = ${new Date(monthData.createdAt)}::timestamptz,
-          "updatedAt" = ${new Date(monthData.updatedAt)}::timestamptz
+      SET "createdAt" = ${D(monthData.createdAt)}::timestamptz,
+          "updatedAt" = ${D(monthData.updatedAt)}::timestamptz
       WHERE "id" = ${analyticsBooking.id}
     `;
   }
@@ -3621,8 +3669,8 @@ async function main() {
       data: {
         customerId: customer3.id,
         vehicleId: owner1Vehicles[1]!.id,
-        startDate: new Date(monthData.createdAt),
-        endDate: new Date(monthData.updatedAt),
+        startDate: D(monthData.createdAt),
+        endDate: D(monthData.updatedAt),
         pickupLocation: "Galle - Fort",
         dropoffLocation: "Colombo - Airport",
         totalPassengers: 35,
@@ -3643,8 +3691,8 @@ async function main() {
     });
     await prisma.$executeRaw`
       UPDATE bookings
-      SET "createdAt" = ${new Date(monthData.createdAt)}::timestamptz,
-          "updatedAt" = ${new Date(monthData.updatedAt)}::timestamptz
+      SET "createdAt" = ${D(monthData.createdAt)}::timestamptz,
+          "updatedAt" = ${D(monthData.updatedAt)}::timestamptz
       WHERE "id" = ${analyticsBooking2.id}
     `;
   }
@@ -3925,59 +3973,89 @@ async function main() {
   console.log(`Created ${totalReviews} reviews total with demo data\n`);
 
   // ===========================================
-  // Driver Info on CONFIRMED/ONGOING Bookings (P2 — booking details page)
+  // Driver Roster + driver info on CONFIRMED/ONGOING bookings
+  // Real Driver records so they appear in the owner roster and are editable.
+  // The denormalized driverName/driverPhone fields are kept in sync for the
+  // booking-details UI, while driverId links the booking to the roster record.
   // ===========================================
-  console.log("Assigning driver info to CONFIRMED/ONGOING bookings...\n");
+  console.log("Creating driver rosters and assigning to bookings...\n");
 
-  await prisma.booking.updateMany({
-    where: {
-      status: { in: ["CONFIRMED", "ONGOING"] },
-      vehicle: { ownerId: owner1.id },
+  const driverRosters: {
+    owner: typeof owner1;
+    primaryLicense: string;
+    drivers: { name: string; phone: string; status: "ACTIVE" | "INACTIVE" }[];
+  }[] = [
+    {
+      owner: owner1,
+      primaryLicense: "B1234567",
+      drivers: [
+        { name: "Sunil Rathnayake", phone: "+94711234567", status: "ACTIVE" },
+        { name: "Nimal Fernando", phone: "+94771112233", status: "ACTIVE" },
+        { name: "Ranjan Wickrama", phone: "+94762223344", status: "INACTIVE" },
+      ],
     },
-    data: {
-      driverName: "Sunil Rathnayake",
-      driverPhone: "+94711234567",
-      driverLicense: "B1234567",
+    {
+      owner: owner2,
+      primaryLicense: "B2345678",
+      drivers: [
+        { name: "Arjunan Selvam", phone: "+94712345678", status: "ACTIVE" },
+        { name: "Kumaran Raj", phone: "+94773334455", status: "ACTIVE" },
+      ],
     },
-  });
+    {
+      owner: owner3,
+      primaryLicense: "B3456789",
+      drivers: [
+        { name: "Pradeep Gunasekara", phone: "+94713456789", status: "ACTIVE" },
+        { name: "Saman Kumara", phone: "+94774445566", status: "ACTIVE" },
+      ],
+    },
+    {
+      owner: owner4,
+      primaryLicense: "B4567890",
+      drivers: [
+        { name: "Fathima Hassan", phone: "+94714567890", status: "ACTIVE" },
+      ],
+    },
+  ];
 
-  await prisma.booking.updateMany({
-    where: {
-      status: { in: ["CONFIRMED", "ONGOING"] },
-      vehicle: { ownerId: owner2.id },
-    },
-    data: {
-      driverName: "Arjunan Selvam",
-      driverPhone: "+94712345678",
-      driverLicense: "B2345678",
-    },
-  });
+  let totalDrivers = 0;
+  for (const roster of driverRosters) {
+    let primaryDriver: { id: string; name: string; phone: string } | null = null;
+    for (const d of roster.drivers) {
+      const created = await prisma.driver.create({
+        data: {
+          ownerId: roster.owner.id,
+          name: d.name,
+          phone: d.phone,
+          status: d.status,
+        },
+      });
+      totalDrivers++;
+      if (!primaryDriver && d.status === "ACTIVE") {
+        primaryDriver = created;
+      }
+    }
 
-  await prisma.booking.updateMany({
-    where: {
-      status: { in: ["CONFIRMED", "ONGOING"] },
-      vehicle: { ownerId: owner3.id },
-    },
-    data: {
-      driverName: "Pradeep Gunasekara",
-      driverPhone: "+94713456789",
-      driverLicense: "B3456789",
-    },
-  });
+    if (primaryDriver) {
+      await prisma.booking.updateMany({
+        where: {
+          status: { in: ["CONFIRMED", "ONGOING"] },
+          vehicle: { ownerId: roster.owner.id },
+        },
+        data: {
+          driverId: primaryDriver.id,
+          driverName: primaryDriver.name,
+          driverPhone: primaryDriver.phone,
+          driverLicense: roster.primaryLicense,
+        },
+      });
+    }
+  }
 
-  await prisma.booking.updateMany({
-    where: {
-      status: { in: ["CONFIRMED", "ONGOING"] },
-      vehicle: { ownerId: owner4.id },
-    },
-    data: {
-      driverName: "Fathima Hassan",
-      driverPhone: "+94714567890",
-      driverLicense: "B4567890",
-    },
-  });
-
-  console.log("Driver info assigned to CONFIRMED/ONGOING bookings\n");
+  console.log(
+    `Created ${totalDrivers} drivers and linked them to CONFIRMED/ONGOING bookings\n`,
+  );
 
   // ===========================================
   // TripItinerary for Multi-Day Bookings (P2 — booking details itinerary tab)
@@ -3999,7 +4077,7 @@ async function main() {
         {
           bookingId: firstOwner1ConfirmedBooking.id,
           dayNumber: 1,
-          date: new Date("2026-02-26T00:00:00.000Z"),
+          date: D("2026-02-26T00:00:00.000Z"),
           startLocation: "Colombo - Fort Railway Station",
           endLocation: "Kandy - City Center",
           overnightStop: "Kandy",
@@ -4010,7 +4088,7 @@ async function main() {
         {
           bookingId: firstOwner1ConfirmedBooking.id,
           dayNumber: 2,
-          date: new Date("2026-02-27T00:00:00.000Z"),
+          date: D("2026-02-27T00:00:00.000Z"),
           startLocation: "Kandy",
           endLocation: "Nuwara Eliya - Grand Hotel",
           overnightStop: "Nuwara Eliya",
@@ -4021,7 +4099,7 @@ async function main() {
         {
           bookingId: firstOwner1ConfirmedBooking.id,
           dayNumber: 3,
-          date: new Date("2026-02-28T00:00:00.000Z"),
+          date: D("2026-02-28T00:00:00.000Z"),
           startLocation: "Nuwara Eliya - Grand Hotel",
           endLocation: "Colombo",
           description:
@@ -4047,7 +4125,7 @@ async function main() {
         {
           bookingId: firstOwner3ConfirmedBooking.id,
           dayNumber: 1,
-          date: new Date("2026-03-08T00:00:00.000Z"),
+          date: D("2026-03-08T00:00:00.000Z"),
           startLocation: "Kandy - City Center",
           endLocation: "Nuwara Eliya",
           overnightStop: "Nuwara Eliya",
@@ -4058,7 +4136,7 @@ async function main() {
         {
           bookingId: firstOwner3ConfirmedBooking.id,
           dayNumber: 2,
-          date: new Date("2026-03-09T00:00:00.000Z"),
+          date: D("2026-03-09T00:00:00.000Z"),
           startLocation: "Nuwara Eliya",
           endLocation: "Ella - Railway Station",
           overnightStop: "Ella",
@@ -4069,7 +4147,7 @@ async function main() {
         {
           bookingId: firstOwner3ConfirmedBooking.id,
           dayNumber: 3,
-          date: new Date("2026-03-10T00:00:00.000Z"),
+          date: D("2026-03-10T00:00:00.000Z"),
           startLocation: "Ella",
           endLocation: "Kandy - City Center",
           description:
@@ -4104,13 +4182,13 @@ async function main() {
   for (let i = 0; i < historicalMonths.length; i++) {
     const { yearMonth } = historicalMonths[i];
     const baseAmount = historicalAmounts[i];
-    const startDate = new Date(`${yearMonth}-10T06:00:00.000Z`);
-    const endDate = new Date(`${yearMonth}-11T18:00:00.000Z`);
+    const startDate = D(`${yearMonth}-10T06:00:00.000Z`);
+    const endDate = D(`${yearMonth}-11T18:00:00.000Z`);
 
     // Use mid-month timestamp so the booking falls clearly within the correct
     // monthly bucket for the analytics updatedAt/createdAt range queries.
-    const historicalDate = new Date(`${yearMonth}-15T12:00:00.000Z`);
-    const historicalCreatedAt = new Date(`${yearMonth}-05T08:00:00.000Z`);
+    const historicalDate = D(`${yearMonth}-15T12:00:00.000Z`);
+    const historicalCreatedAt = D(`${yearMonth}-05T08:00:00.000Z`);
 
     // Owner 1 historical booking
     if (owner1Vehicles[0]) {
@@ -4353,7 +4431,7 @@ async function main() {
       bankAccountNumber: "****4321",
       bankCode: "BOC",
       processedBy: admin.id,
-      processedAt: new Date("2026-02-05T10:00:00.000Z"),
+      processedAt: D("2026-02-05T10:00:00.000Z"),
       notes: "January 2026 settlement — processed on schedule",
     },
     {
@@ -4397,7 +4475,7 @@ async function main() {
       bankAccountNumber: "****8765",
       bankCode: "HNB",
       processedBy: admin.id,
-      processedAt: new Date("2026-02-05T10:00:00.000Z"),
+      processedAt: D("2026-02-05T10:00:00.000Z"),
     },
     {
       settlementCode: "SET-2026-005",
@@ -4425,7 +4503,7 @@ async function main() {
       bankAccountNumber: "****2109",
       bankCode: "Seylan",
       processedBy: admin.id,
-      processedAt: new Date("2026-02-05T10:00:00.000Z"),
+      processedAt: D("2026-02-05T10:00:00.000Z"),
     },
     {
       settlementCode: "SET-2026-007",
@@ -4453,7 +4531,7 @@ async function main() {
       bankAccountNumber: "****3344",
       bankCode: "NSB",
       processedBy: admin.id,
-      processedAt: new Date("2026-02-05T10:00:00.000Z"),
+      processedAt: D("2026-02-05T10:00:00.000Z"),
     },
     {
       settlementCode: "SET-2026-009",
@@ -5091,7 +5169,7 @@ async function main() {
     if (!booking.vehicle?.ownerId) continue;
 
     const template = messageTemplates[booking.status] ?? messageTemplates.CONFIRMED;
-    const now = Date.now();
+    const now = DEMO_NOW.getTime();
 
     const conversation = await prisma.conversation.create({
       data: {
@@ -5142,7 +5220,7 @@ async function main() {
   // ===========================================
   console.log("\n" + "=".repeat(60));
   console.log("Sri Lankan TraveNest Database Seed Completed!");
-  console.log("ENHANCED FOR OWNER PORTAL DEMO - May 2026");
+  console.log(`DATASET CENTERED ON DEMO DATE: ${DEMO_NOW.toISOString().slice(0, 10)}`);
   // ===========================================
   // Fetch OSRM Routes for Quotations and Bookings
   // ===========================================

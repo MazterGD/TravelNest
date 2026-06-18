@@ -34,6 +34,7 @@ import adminRoutes from "./modules/admin/admin.routes.js";
 import landingRoutes from "./modules/landing/landing.routes.js";
 import contentRoutes from "./modules/content/content.routes.js";
 import routingRoutes from "./modules/routing/routing.routes.js";
+import driverRoutes from "./modules/driver/driver.routes.js";
 
 const app: Express = express();
 
@@ -150,6 +151,7 @@ app.use(`${apiBase}/admin`, adminRoutes);
 app.use(`${apiBase}/landing`, landingRoutes);
 app.use(`${apiBase}/content`, contentRoutes);
 app.use(`${apiBase}/routing`, routingRoutes);
+app.use(`${apiBase}/drivers`, driverRoutes);
 
 // API documentation endpoint
 app.get(`${apiBase}`, (_req: Request, res: Response) => {

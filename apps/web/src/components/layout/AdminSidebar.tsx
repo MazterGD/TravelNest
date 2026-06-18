@@ -238,12 +238,12 @@ export function AdminSidebar({ locale }: AdminSidebarProps) {
           href: `/${locale}/admin/content`,
           icon: ClipboardList,
         },
-        {
-          id: "amenities",
-          label: t("items.amenities"),
-          href: `/${locale}/admin/amenities`,
-          icon: Package,
-        },
+        // {
+        //   id: "amenities",
+        //   label: t("items.amenities"),
+        //   href: `/${locale}/admin/amenities`,
+        //   icon: Package,
+        // },
       ],
     },
     {

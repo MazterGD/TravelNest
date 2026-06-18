@@ -18,6 +18,9 @@ export const ALLOWED_DOCUMENT_TYPES = [
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+export const VEHICLE_PHOTO_TAGS = ["EXTERIOR", "INTERIOR", "FRONT", "REAR", "SEATS", "OTHER"] as const;
+export type VehiclePhotoTagValue = (typeof VEHICLE_PHOTO_TAGS)[number];
+
 // Vehicle photo schema
 const vehiclePhotoSchema = z.object({
   url: z.string().url("Invalid URL"),
@@ -33,6 +36,7 @@ const vehiclePhotoSchema = z.object({
       `Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(", ")}`,
     ),
   isPrimary: z.boolean().optional(),
+  tag: z.enum(VEHICLE_PHOTO_TAGS).optional().default("EXTERIOR"),
 });
 
 // Vehicle document schema
@@ -172,6 +176,13 @@ export const getVehicleByIdSchema = z.object({
 export const deleteVehicleSchema = z.object({
   params: z.object({
     id: z.string().cuid("Invalid vehicle ID"),
+  }),
+});
+
+export const deletePhotoSchema = z.object({
+  params: z.object({
+    id: z.string().cuid("Invalid vehicle ID"),
+    photoId: z.string().cuid("Invalid photo ID"),
   }),
 });
 

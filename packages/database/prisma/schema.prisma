@@ -196,6 +196,11 @@ enum TripStatus {
   EXPIRED          // Trip end date passed with no acceptance
 }
 
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+}
+
 // Models
 model User {
   id            String     @id @default(cuid())
@@ -242,6 +247,7 @@ model User {
 
   // Relations
   vehicles      Vehicle[]
+  drivers       Driver[]
   documents     OwnerDocument[]
   bookings      Booking[]       @relation("CustomerBookings")
   quotationRequests Quotation[] @relation("CustomerQuotations")
@@ -419,6 +425,9 @@ model Vehicle {
   location        String
   latitude        Float?
   longitude       Float?
+  // Derived from latitude/longitude by a DB trigger for radius search (ST_DWithin).
+  // Maintained + GIST-indexed via raw SQL migration; Prisma never writes it.
+  geom            Unsupported("geography(Point, 4326)")?
   isAvailable     Boolean          @default(true)
   isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
@@ -466,17 +475,27 @@ model VehicleDocument {
   @@map("vehicle_documents")
 }
 
+enum VehiclePhotoTag {
+  EXTERIOR
+  INTERIOR
+  FRONT
+  REAR
+  SEATS
+  OTHER
+}
+
 // Vehicle photos (multiple photos per vehicle)
 model VehiclePhoto {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   vehicleId   String
-  url         String   // S3 URL or file path
+  url         String          // S3 URL or file path
   fileName    String
-  fileSize    Int      // in bytes
+  fileSize    Int             // in bytes
   mimeType    String
-  isPrimary   Boolean  @default(false) // Primary display photo
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
+  isPrimary   Boolean         @default(false) // Primary display photo
+  tag         VehiclePhotoTag @default(EXTERIOR)
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
 
   // Relations
   vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
@@ -516,7 +535,9 @@ model Booking {
   notes           String?
   cancelReason    String?
   
-  // Driver information
+  // Driver information — driverId links to the owner's Driver roster;
+  // driverName/Phone are denormalized for quick display without a join.
+  driverId        String?
   driverName      String?
   driverPhone     String?
   driverLicense   String?
@@ -531,6 +552,7 @@ model Booking {
   // Relations
   customer        User          @relation("CustomerBookings", fields: [customerId], references: [id], onDelete: Cascade)
   vehicle         Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver          Driver?       @relation(fields: [driverId], references: [id], onDelete: SetNull)
   tripPackage     TripPackage?  @relation(fields: [tripPackageId], references: [id], onDelete: SetNull)
   payment         Payment?
   review          Review?
@@ -541,11 +563,31 @@ model Booking {
 
   @@index([customerId])
   @@index([vehicleId])
+  @@index([driverId])
   @@index([status])
   @@index([tripPackageId])
   @@index([customerId, status, startDate])
   @@index([vehicleId, startDate, endDate])
+  @@index([driverId, startDate, endDate])
   @@map("bookings")
+}
+
+model Driver {
+  id        String       @id @default(cuid())
+  ownerId   String
+  name      String
+  phone     String
+  photoUrl  String?
+  status    DriverStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  owner     User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("drivers")
 }
 
 model TripPackage {

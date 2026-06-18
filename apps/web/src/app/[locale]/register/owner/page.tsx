@@ -43,6 +43,12 @@ import { cn } from "@/lib/utils/cn";
 import { localizePlaceName } from "@/lib/i18n/placeName";
 import type { OwnerRegistrationInput } from "@/types";
 
+type PhotoTag = "exterior" | "interior" | "front" | "rear" | "seats" | "other";
+
+const PHOTO_TAGS: PhotoTag[] = ["exterior", "interior", "front", "rear", "seats", "other"];
+
+type VehiclePhotoItem = { file: File; preview: string; tag: PhotoTag };
+
 // Vehicle type for the form
 interface VehicleData {
   registrationNumber: string;
@@ -58,7 +64,7 @@ interface VehicleData {
   pricePerDay: string;
   driverAllowance: string;
   amenities: string[];
-  photos: UploadedFile[]; // Vehicle photos (optional)
+  photos: VehiclePhotoItem[];
   documents: {
     license: UploadedFile | null;
     insurance: UploadedFile | null;
@@ -353,6 +359,9 @@ export default function OwnerRegistrationPage() {
           if (!v.seatingCapacity) errs[`vehicle_${i}_seatingCapacity`] = msg;
           if (!v.acType) errs[`vehicle_${i}_acType`] = msg;
           if (!v.color) errs[`vehicle_${i}_color`] = msg;
+          if (v.photos.length === 0) {
+            errs[`vehicle_${i}_photos`] = t("errors.requiredVehiclePhotos", { index: i + 1 });
+          }
           if (!v.documents.license || !v.documents.insurance || !v.documents.registrationCertificate) {
             errs[`vehicle_${i}_docs`] = t("errors.requiredVehicleDocs", { index: i + 1 });
           }
@@ -463,9 +472,18 @@ export default function OwnerRegistrationPage() {
   };
 
   // Add vehicle photos
-  const addVehiclePhoto = (vehicleIndex: number, file: UploadedFile) => {
+  const addVehiclePhoto = (vehicleIndex: number, file: File, preview: string) => {
     const updated = [...vehicles];
-    updated[vehicleIndex].photos = [...updated[vehicleIndex].photos, file];
+    updated[vehicleIndex].photos = [...updated[vehicleIndex].photos, { file, preview, tag: "exterior" as PhotoTag }];
+    setVehicles(updated);
+  };
+
+  // Update tag on an existing photo
+  const updateVehiclePhotoTag = (vehicleIndex: number, photoIndex: number, tag: PhotoTag) => {
+    const updated = [...vehicles];
+    updated[vehicleIndex].photos = updated[vehicleIndex].photos.map((p, i) =>
+      i === photoIndex ? { ...p, tag } : p,
+    );
     setVehicles(updated);
   };
 
@@ -540,6 +558,7 @@ export default function OwnerRegistrationPage() {
               fileSize: p.file.size,
               mimeType: p.file.type,
               isPrimary: idx === 0,
+              tag: p.tag.toUpperCase(),
               url: await uploadRegistrationFile(p.file, "vehicle-photos"),
             })),
           );
@@ -1804,37 +1823,64 @@ export default function OwnerRegistrationPage() {
                             <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                               <ImageUp className="text-primary" />
                               {t("vehicle.photosTitle")}
-                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full ml-2">
-                                {t("badges.optional")}
+                              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full ml-2">
+                                {t("badges.required")}
                               </span>
                             </h4>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {fieldErrors[`vehicle_${index}_photos`] && (
+                              <p className="mb-2 text-sm text-red-600">
+                                {fieldErrors[`vehicle_${index}_photos`]}
+                              </p>
+                            )}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                               {vehicle.photos.map((photo, photoIndex) => (
                                 <div
                                   key={photoIndex}
-                                  className="relative group aspect-video rounded-xl overflow-hidden border-2 border-gray-200"
+                                  className="relative rounded-xl border-2 border-gray-200 p-2"
                                 >
-                                  <img
-                                    src={photo.preview}
-                                    alt={t("vehicle.photoAlt", {
-                                      vehicleIndex: index + 1,
-                                      photoIndex: photoIndex + 1,
-                                    })}
-                                    className="w-full h-full object-cover"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      removeVehiclePhoto(index, photoIndex)
-                                    }
-                                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    ×
-                                  </button>
+                                  <div className="relative aspect-video overflow-hidden rounded-lg">
+                                    <img
+                                      src={photo.preview}
+                                      alt={t("vehicle.photoAlt", {
+                                        vehicleIndex: index + 1,
+                                        photoIndex: photoIndex + 1,
+                                      })}
+                                      className="w-full h-full object-cover"
+                                    />
+                                    {photoIndex === 0 && (
+                                      <span className="absolute left-1 top-1 rounded-lg bg-[var(--color-action-primary)] px-2 py-0.5 text-xs text-white">
+                                        Primary
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => removeVehiclePhoto(index, photoIndex)}
+                                      aria-label="Remove photo"
+                                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                  <div className="mt-2 flex flex-wrap gap-1">
+                                    {PHOTO_TAGS.map((tag) => (
+                                      <button
+                                        key={tag}
+                                        type="button"
+                                        onClick={() => updateVehiclePhotoTag(index, photoIndex, tag)}
+                                        className={`rounded-lg px-2 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-action-primary)] ${
+                                          photo.tag === tag
+                                            ? "bg-[var(--color-action-primary)] text-white"
+                                            : "border border-gray-200 bg-gray-50 text-gray-500 hover:border-[var(--color-action-primary)]/50"
+                                        }`}
+                                      >
+                                        {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
                               ))}
                               {vehicle.photos.length < 8 && (
-                                <label className="aspect-video border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                                <label className="aspect-video border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[var(--color-action-primary)] transition-colors">
                                   <Camera className="w-8 h-8 text-gray-400 mb-2" />
                                   <span className="text-sm text-gray-500">
                                     {t("vehicle.addPhoto")}
@@ -1846,12 +1892,8 @@ export default function OwnerRegistrationPage() {
                                     onChange={(e) => {
                                       const file = e.target.files?.[0];
                                       if (file) {
-                                        const preview =
-                                          URL.createObjectURL(file);
-                                        addVehiclePhoto(index, {
-                                          file,
-                                          preview,
-                                        });
+                                        addVehiclePhoto(index, file, URL.createObjectURL(file));
+                                        e.target.value = "";
                                       }
                                     }}
                                   />

@@ -10,6 +10,7 @@ import {
   Select,
   TextArea,
   FileUpload,
+  LocationAutocomplete,
 } from "@/components/ui";
 import type { UploadedFile } from "@/components/ui/FileUpload";
 import { useAuthStore } from "@/store";
@@ -40,6 +41,8 @@ interface FormData {
   pricePerDay: string;
   driverAllowance: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   gpsEnabled: boolean;
 }
 
@@ -100,6 +103,8 @@ export default function AddVehiclePage() {
     pricePerDay: "",
     driverAllowance: "",
     location: "",
+    latitude: null,
+    longitude: null,
     gpsEnabled: false,
   });
 
@@ -203,6 +208,8 @@ export default function AddVehiclePage() {
     pricePerDay: parseFloat(formData.pricePerDay),
     driverAllowance: parseFloat(formData.driverAllowance) || undefined,
     location: formData.location,
+    latitude: formData.latitude ?? undefined,
+    longitude: formData.longitude ?? undefined,
     description: formData.description || undefined,
     amenities: selectedAmenities,
     features: { gpsEnabled: formData.gpsEnabled },
@@ -223,6 +230,11 @@ export default function AddVehiclePage() {
     }
     if (currentStep === 1) {
       if (!formData.pricePerDay) errs.pricePerDay = t("errorRequired");
+    }
+    if (currentStep === 2) {
+      if (photos.length === 0) {
+        errs.photos = t("errorPhotosRequired");
+      }
     }
     if (currentStep === 3) {
       if (
@@ -293,6 +305,7 @@ export default function AddVehiclePage() {
           photos.map((item, index) => ({
             file: item.file,
             isPrimary: index === 0,
+            tag: item.tag.toUpperCase(),
           })),
         );
       }
@@ -497,15 +510,36 @@ export default function AddVehiclePage() {
                         placeholder={t("fieldConditionPlaceholder")}
                         error={errors.condition}
                       />
-                      <Input
-                        label={t("fieldLocation")}
-                        name="location"
-                        required
-                        value={formData.location}
-                        onChange={handleChange}
-                        placeholder={t("fieldLocationPlaceholder")}
-                        error={errors.location}
-                      />
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-foreground">
+                          {t("fieldLocation")}
+                        </label>
+                        <LocationAutocomplete
+                          placeholder={t("fieldLocationPlaceholder")}
+                          value={formData.location}
+                          onChange={(val) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              location: val,
+                              latitude: null,
+                              longitude: null,
+                            }))
+                          }
+                          onSelectLocation={(loc) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              location: loc.city || loc.displayName.split(",")[0],
+                              latitude: loc.lat,
+                              longitude: loc.lng,
+                            }))
+                          }
+                        />
+                        {errors.location && (
+                          <p className="mt-1.5 text-sm text-error">
+                            {errors.location}
+                          </p>
+                        )}
+                      </div>
                       <div className="md:col-span-2">
                         <TextArea
                           label={t("fieldDescription")}

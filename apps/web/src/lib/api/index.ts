@@ -190,6 +190,13 @@ export {
   type AdminVehiclesResponse,
   type AdminOwnerDocument,
 
+  // Driver
+  driverService,
+  type DriverSummary,
+  type DriverAvailability,
+  type CreateDriverInput,
+  type UpdateDriverInput,
+
   // Owner Registration
   ownerRegistrationService,
 
@@ -203,6 +210,7 @@ export {
   landingContentService,
   type LandingDataResponse,
   type LandingFeaturedVehicle,
+  type LandingPopularPackage,
   type LandingPopularRoute,
   type LandingTestimonial,
   type LandingStat,

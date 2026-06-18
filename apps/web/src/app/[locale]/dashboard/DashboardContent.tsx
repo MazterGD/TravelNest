@@ -282,7 +282,10 @@ export function DashboardContent({ locale }: DashboardPageProps) {
           .getActive()
           .then((response) => {
             if (controller.signal.aborted) return;
-            const trips = ((response as any)?.data?.trips ?? []) as TripDTO[];
+            // The API client already unwraps the `data` envelope; read trips
+            // from the top level and fall back to `.data` defensively.
+            const raw = (response as any)?.data ?? response;
+            const trips = (raw?.trips ?? []) as TripDTO[];
             setActiveTrips(trips);
           })
           .catch(() => {

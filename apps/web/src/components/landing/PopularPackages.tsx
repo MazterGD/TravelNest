@@ -1,26 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { MapPin, Calendar, Users, ChevronRight } from "lucide-react";
-import { tripPackageService } from "@/lib/api/services";
-import type { TripPackage } from "@/types";
+import type { LandingPopularPackage } from "@/lib/api/services";
 import { ImageWithFallback } from "./ImageWithFallback";
 import { CTAButton } from "@/components/ui";
 import { localizePlaceName } from "@/lib/i18n/placeName";
 
 interface PopularPackagesProps {
   packagesHref: string;
+  packages: LandingPopularPackage[];
 }
 
-export function PopularPackages({ packagesHref }: PopularPackagesProps) {
+export function PopularPackages({ packagesHref, packages }: PopularPackagesProps) {
   const t = useTranslations("landing.popularPackages");
   const tLocations = useTranslations("locations");
   const locale = useLocale();
-  const [packages, setPackages] = useState<TripPackage[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const getLocalizedPlace = (placeName: string) =>
     localizePlaceName(placeName, (key) => tLocations(key));
@@ -32,61 +28,7 @@ export function PopularPackages({ packagesHref }: PopularPackagesProps) {
       minimumFractionDigits: 0,
     }).format(amount);
 
-  useEffect(() => {
-    const fetchPopularPackages = async () => {
-      try {
-        setLoading(true);
-        const response = await tripPackageService.getAll({
-          limit: 3,
-          isActive: true,
-        });
-        const sortedPackages = response.packages
-          .slice(0, 3)
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-        setPackages(sortedPackages);
-      } catch (err) {
-        console.error("Failed to fetch popular packages:", err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load popular packages",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPopularPackages();
-  }, []);
-
-  if (loading) {
-    return (
-      <section className="bg-muted py-24">
-        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 text-center">
-            <h2 className="mb-3 text-[28px] font-bold leading-[36px] tracking-[-0.01em] text-foreground sm:text-[36px] sm:leading-[44px]">
-              {t("title")}
-            </h2>
-            <p className="mx-auto max-w-xl text-[16px] leading-[24px] text-muted-foreground sm:text-[18px] sm:leading-[28px]">
-              {t("subtitle")}
-            </p>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="h-64 animate-pulse bg-muted rounded-xl rounded-[20px] bg-border"
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error || packages.length === 0) return null;
+  if (packages.length === 0) return null;
 
   return (
     <section className="bg-muted py-24">

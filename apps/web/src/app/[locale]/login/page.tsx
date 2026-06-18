@@ -484,7 +484,7 @@ export default function LoginPage() {
                   {t("social.google")}
                 </span>
               </button>
-              <button
+              {/* <button
                 type="button"
                 onClick={() => handleOAuthLogin("facebook")}
                 className="flex items-center justify-center gap-2 py-2.5 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all"
@@ -493,7 +493,7 @@ export default function LoginPage() {
                 <span className="font-semibold text-sm text-gray-700">
                   {t("social.facebook")}
                 </span>
-              </button>
+              </button> */}
             </div>
 
             {/* Register Links */}
