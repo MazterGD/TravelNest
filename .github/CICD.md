@@ -43,6 +43,7 @@ This document describes the Continuous Integration and Continuous Deployment (CI
 | `typecheck` | TypeScript type validation | ~30s |
 | `test-api` | Migrate a PostGIS DB, check schema drift, run API tests with coverage | ~2 min |
 | `test-web` | Run web component/flow tests (jsdom) | ~1 min |
+| `e2e` | Seed a PostGIS DB, start the API + web production builds, run the Playwright smoke suite | ~5 min |
 | `build` | Build all packages | ~2 min |
 | `security` | `pnpm audit --prod --audit-level=high` gate (full audit reported, non-blocking) | ~30s |
 | `ci-status` | Final status gate | ~5s |
@@ -164,6 +165,17 @@ pnpm lint          # Linting
 pnpm typecheck     # TypeScript check
 pnpm test          # Run tests
 pnpm build         # Build all packages
+```
+
+The Playwright smoke suite (`apps/web/e2e`) runs against an API and web app that
+are already started over a seeded database:
+
+```bash
+pnpm db:migrate:deploy && pnpm db:seed   # use a throwaway database
+pnpm dev:api                              # terminal 1
+pnpm build:web && pnpm start:web          # terminal 2
+pnpm --filter @travenest/web exec playwright install chromium   # first run only
+pnpm --filter @travenest/web test:e2e     # E2E_BASE_URL defaults to http://localhost:3000
 ```
 
 ## Deployment Environments

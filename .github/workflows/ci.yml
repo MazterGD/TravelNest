@@ -222,6 +222,99 @@ jobs:
               run: pnpm --filter @travenest/web test
 
     # ===========================================================================
+    # E2E Smoke - Production builds of API + Web over a seeded database
+    # ===========================================================================
+    e2e:
+        name: E2E Smoke Tests
+        runs-on: ubuntu-latest
+        needs: setup
+        services:
+            postgres:
+                image: postgis/postgis:16-3.4-alpine
+                env:
+                    POSTGRES_USER: test
+                    POSTGRES_PASSWORD: test
+                    POSTGRES_DB: travenest_e2e
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        env:
+            DATABASE_URL: postgresql://test:test@localhost:5432/travenest_e2e
+            JWT_SECRET: test-jwt-secret-for-ci-pipeline
+            JWT_REFRESH_SECRET: test-refresh-secret-for-ci-pipeline
+            # Not "test": that mode turns CSRF checks off, and the smoke run
+            # should exercise them exactly as the browser client does.
+            NODE_ENV: development
+            APP_URL: http://localhost:3000
+            NEXT_PUBLIC_APP_URL: http://localhost:3000
+            NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Generate Prisma Client
+              run: pnpm db:generate
+
+            - name: Apply Database Migrations
+              run: pnpm db:migrate:deploy
+
+            - name: Seed Demo Data
+              run: pnpm db:seed
+
+            - name: Build API and Web
+              run: |
+                  pnpm build:api
+                  NODE_ENV=production pnpm build:web
+
+            - name: Install Playwright Browser
+              run: pnpm --filter @travenest/web exec playwright install --with-deps chromium
+
+            - name: Start API and Web
+              run: |
+                  pnpm start:api > api.log 2>&1 &
+                  pnpm start:web > web.log 2>&1 &
+                  for url in http://localhost:5000/health http://localhost:3000/en; do
+                    for i in $(seq 1 60); do
+                      curl -sf -o /dev/null "$url" && break
+                      sleep 2
+                    done
+                    curl -sf -o /dev/null "$url" || { cat api.log web.log; exit 1; }
+                  done
+
+            - name: Run Smoke Tests
+              run: pnpm --filter @travenest/web test:e2e
+
+            - name: Upload Playwright Report
+              uses: actions/upload-artifact@v4
+              if: failure()
+              with:
+                  name: playwright-report
+                  path: |
+                      apps/web/playwright-report/
+                      apps/web/test-results/
+                      api.log
+                      web.log
+                  retention-days: 7
+
+    # ===========================================================================
     # Build Check - Ensure All Packages Build Successfully
     # ===========================================================================
     build:
@@ -307,7 +400,7 @@ jobs:
     ci-status:
         name: CI Status Check
         runs-on: ubuntu-latest
-        needs: [lint, typecheck, test-api, test-web, build, security]
+        needs: [lint, typecheck, test-api, test-web, e2e, build, security]
         if: always()
         steps:
             - name: Check CI Status
@@ -316,6 +409,7 @@ jobs:
                      [[ "${{ needs.typecheck.result }}" != "success" ]] || \
                      [[ "${{ needs.test-api.result }}" != "success" ]] || \
                      [[ "${{ needs.test-web.result }}" != "success" ]] || \
+                     [[ "${{ needs.e2e.result }}" != "success" ]] || \
                      [[ "${{ needs.build.result }}" != "success" ]] || \
                      [[ "${{ needs.security.result }}" != "success" ]]; then
                     echo "CI checks failed!"
@@ -323,6 +417,7 @@ jobs:
                     echo "TypeCheck: ${{ needs.typecheck.result }}"
                     echo "API Tests: ${{ needs.test-api.result }}"
                     echo "Web Tests: ${{ needs.test-web.result }}"
+                    echo "E2E Smoke: ${{ needs.e2e.result }}"
                     echo "Build: ${{ needs.build.result }}"
                     echo "Security: ${{ needs.security.result }}"
                     exit 1
