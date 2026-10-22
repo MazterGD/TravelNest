@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { type Request, type Response, type NextFunction } from "express";
 import * as authService from "./auth.service.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
@@ -206,6 +207,45 @@ export const resetPassword = asyncHandler(
   },
 );
 
+// The OAuth state is bound to the browser that started the flow through this
+// short-lived cookie, so a callback URL produced in someone else's browser
+// cannot sign the victim into the attacker's account (login CSRF).
+const OAUTH_NONCE_COOKIE = "oauthNonce";
+
+const issueOAuthNonce = (res: Response) => {
+  const nonce = crypto.randomBytes(16).toString("hex");
+  res.cookie(OAUTH_NONCE_COOKIE, nonce, {
+    ...authCookieOptions(),
+    httpOnly: true,
+    maxAge: 10 * 60 * 1000,
+  });
+  return nonce;
+};
+
+const readCallbackState = (
+  req: Request,
+  res: Response,
+  provider: "google" | "facebook",
+): { valid: boolean; returnTo: string } => {
+  const state = req.query.state;
+  const nonce = req.cookies?.[OAUTH_NONCE_COOKIE];
+  res.clearCookie(OAUTH_NONCE_COOKIE, { ...authCookieOptions(), httpOnly: true });
+
+  if (typeof state !== "string" || !state || typeof nonce !== "string") {
+    return { valid: false, returnTo: getDefaultReturnTo() };
+  }
+
+  try {
+    const parsed = authService.verifyOAuthStateToken(state);
+    if (parsed.provider !== provider || parsed.nonce !== nonce) {
+      return { valid: false, returnTo: getDefaultReturnTo() };
+    }
+    return { valid: true, returnTo: parsed.returnTo };
+  } catch {
+    return { valid: false, returnTo: getDefaultReturnTo() };
+  }
+};
+
 // OAuth (Google/Facebook) Start
 export const startGoogleOAuth = asyncHandler(
   async (req: Request, res: Response) => {
@@ -213,6 +253,7 @@ export const startGoogleOAuth = asyncHandler(
     const state = authService.createOAuthStateToken({
       provider: "google",
       returnTo,
+      nonce: issueOAuthNonce(res),
     });
     const authUrl = authService.getOAuthAuthorizationUrl("google", state);
     return res.redirect(authUrl);
@@ -225,6 +266,7 @@ export const startFacebookOAuth = asyncHandler(
     const state = authService.createOAuthStateToken({
       provider: "facebook",
       returnTo,
+      nonce: issueOAuthNonce(res),
     });
     const authUrl = authService.getOAuthAuthorizationUrl("facebook", state);
     return res.redirect(authUrl);
@@ -235,25 +277,13 @@ export const startFacebookOAuth = asyncHandler(
 export const handleGoogleCallback = asyncHandler(
   async (req: Request, res: Response) => {
     const code = req.query.code as string | undefined;
-    const state = req.query.state as string | undefined;
     const providerError = req.query.error as string | undefined;
 
-    let returnTo = getDefaultReturnTo();
-
-    if (state) {
-      try {
-        const parsedState = authService.verifyOAuthStateToken(state);
-        if (parsedState.provider !== "google") {
-          return res.redirect(
-            buildReturnToWithParams(returnTo, { error: "INVALID_STATE" }),
-          );
-        }
-        returnTo = parsedState.returnTo;
-      } catch {
-        return res.redirect(
-          buildReturnToWithParams(returnTo, { error: "INVALID_STATE" }),
-        );
-      }
+    const { valid, returnTo } = readCallbackState(req, res, "google");
+    if (!valid) {
+      return res.redirect(
+        buildReturnToWithParams(returnTo, { error: "INVALID_STATE" }),
+      );
     }
 
     if (providerError) {
@@ -281,10 +311,7 @@ export const handleGoogleCallback = asyncHandler(
       setCSRFToken(res);
 
       return res.redirect(
-        buildReturnToWithParams(returnTo, {
-          accessToken: result.accessToken,
-          provider: "google",
-        }),
+        buildReturnToWithParams(returnTo, { provider: "google" }),
       );
     } catch {
       return res.redirect(
@@ -297,25 +324,13 @@ export const handleGoogleCallback = asyncHandler(
 export const handleFacebookCallback = asyncHandler(
   async (req: Request, res: Response) => {
     const code = req.query.code as string | undefined;
-    const state = req.query.state as string | undefined;
     const providerError = req.query.error as string | undefined;
 
-    let returnTo = getDefaultReturnTo();
-
-    if (state) {
-      try {
-        const parsedState = authService.verifyOAuthStateToken(state);
-        if (parsedState.provider !== "facebook") {
-          return res.redirect(
-            buildReturnToWithParams(returnTo, { error: "INVALID_STATE" }),
-          );
-        }
-        returnTo = parsedState.returnTo;
-      } catch {
-        return res.redirect(
-          buildReturnToWithParams(returnTo, { error: "INVALID_STATE" }),
-        );
-      }
+    const { valid, returnTo } = readCallbackState(req, res, "facebook");
+    if (!valid) {
+      return res.redirect(
+        buildReturnToWithParams(returnTo, { error: "INVALID_STATE" }),
+      );
     }
 
     if (providerError) {
@@ -343,10 +358,7 @@ export const handleFacebookCallback = asyncHandler(
       setCSRFToken(res);
 
       return res.redirect(
-        buildReturnToWithParams(returnTo, {
-          accessToken: result.accessToken,
-          provider: "facebook",
-        }),
+        buildReturnToWithParams(returnTo, { provider: "facebook" }),
       );
     } catch {
       return res.redirect(

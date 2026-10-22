@@ -46,6 +46,7 @@ export type OAuthProvider = "google" | "facebook";
 interface OAuthStatePayload {
   provider: OAuthProvider;
   returnTo: string;
+  nonce: string;
 }
 
 interface OAuthProfile {
@@ -902,6 +903,7 @@ export const getGoogleProfileFromCode = async (code: string) => {
 
   const profile = (await profileResponse.json()) as {
     email?: string;
+    email_verified?: boolean;
     given_name?: string;
     family_name?: string;
     picture?: string;
@@ -909,6 +911,12 @@ export const getGoogleProfileFromCode = async (code: string) => {
 
   if (!profile.email) {
     throw ApiError.badRequest("Google account did not return an email");
+  }
+
+  // The email is used to find and sign in to an existing account, so it must
+  // be one Google has verified the user owns.
+  if (profile.email_verified !== true) {
+    throw ApiError.badRequest("Google account email is not verified");
   }
 
   return {

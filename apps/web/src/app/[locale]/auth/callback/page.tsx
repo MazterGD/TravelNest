@@ -22,7 +22,6 @@ export default function OAuthCallbackPage() {
 
   useEffect(() => {
     const errorCode = searchParams.get("error");
-    const accessToken = searchParams.get("accessToken");
 
     if (errorCode) {
       setError(
@@ -33,13 +32,15 @@ export default function OAuthCallbackPage() {
       return;
     }
 
-    if (!accessToken) {
-      setError(t("errors.missingToken"));
-      return;
-    }
-
     const finalizeLogin = async () => {
       try {
+        // The API set the refresh cookie on the OAuth callback; exchange it
+        // for an access token instead of reading one from the URL.
+        const { accessToken } = await authService.refreshToken();
+        if (!accessToken) {
+          setError(t("errors.missingToken"));
+          return;
+        }
         setToken(accessToken);
         const response = await authService.me();
         login(response.user, accessToken);
