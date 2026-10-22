@@ -47,12 +47,12 @@ yarn-error.log*
 next-env.d.ts
 
 # PWA files
-/public/sw.js
-/public/workbox-*.js
-/public/worker-*.js
-/public/sw.js.map
-/public/workbox-*.js.map
-/public/worker-*.js.map
+apps/web/public/sw.js
+apps/web/public/workbox-*.js
+apps/web/public/worker-*.js
+apps/web/public/sw.js.map
+apps/web/public/workbox-*.js.map
+apps/web/public/worker-*.js.map
 
 # Prisma
 packages/database/prisma/*.db
@@ -72,3 +72,5 @@ logs/
 *.log
 
 docs/
+.10x/
+.claude/
