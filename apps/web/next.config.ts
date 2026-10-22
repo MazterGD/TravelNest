@@ -25,9 +25,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    optimizePackageImports: ["react-icons"],
-  },
 };
 
 export default withPWA(withNextIntl(nextConfig));

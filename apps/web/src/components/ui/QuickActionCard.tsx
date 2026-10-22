@@ -51,13 +51,13 @@ const variantStyles = {
  * />
  * ```
  *
- * @example With React Icons
+ * @example With a Lucide icon
  * ```tsx
- * import { FaPlus } from "react-icons/fa";
+ * import { Plus } from "lucide-react";
  *
  * <QuickActionCard
  *   label="Add Vehicle"
- *   icon={FaPlus}
+ *   icon={Plus}
  *   variant="success"
  *   onClick={handleAdd}
  * />

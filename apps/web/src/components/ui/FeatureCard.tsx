@@ -27,18 +27,18 @@ interface FeatureCardProps {
  * <FeatureCard
  *   title="Transparent Pricing"
  *   description="No hidden fees or surprises"
- *   icon={<FaMoneyBillWave />}
+ *   icon={<Banknote />}
  * />
  * ```
  *
- * @example With React Icons
+ * @example With a Lucide icon
  * ```tsx
- * import { FaShieldAlt } from "react-icons/fa";
+ * import { ShieldCheck } from "lucide-react";
  *
  * <FeatureCard
  *   title="Verified Owners"
  *   description="All vehicle owners are verified"
- *   icon={FaShieldAlt}
+ *   icon={ShieldCheck}
  *   variant="elevated"
  * />
  * ```

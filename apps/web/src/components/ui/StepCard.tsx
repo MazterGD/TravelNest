@@ -31,19 +31,19 @@ interface StepCardProps {
  *   stepNumber={1}
  *   title="Search"
  *   description="Find vehicles that match your needs"
- *   icon={<FaSearch />}
+ *   icon={<Search />}
  * />
  * ```
  *
- * @example With React Icons
+ * @example With a Lucide icon
  * ```tsx
- * import { FaSearch } from "react-icons/fa";
+ * import { Search } from "lucide-react";
  *
  * <StepCard
  *   stepNumber={1}
  *   title="Search"
  *   description="Find vehicles"
- *   icon={FaSearch}
+ *   icon={Search}
  *   variant="secondary"
  *   showConnector
  * />
