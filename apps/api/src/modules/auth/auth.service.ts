@@ -468,7 +468,7 @@ export const sendOtpCode = async (data: SendOtpInput) => {
 
     if (!user) {
       console.log(
-        `[OTP:LOGIN] No user found for "${identifier}"`,
+        `[OTP:LOGIN] No user found for "${maskIdentifier(identifier)}"`,
       );
       throw ApiError.notFound(
         "No account found with this email. Please register first.",
@@ -480,7 +480,7 @@ export const sendOtpCode = async (data: SendOtpInput) => {
       user.status !== UserStatus.PENDING_VERIFICATION
     ) {
       console.log(
-        `[OTP:LOGIN] User "${identifier}" exists but status is "${user.status}"`,
+        `[OTP:LOGIN] User "${maskIdentifier(identifier)}" exists but status is "${user.status}"`,
       );
       throw ApiError.forbidden(
         user.status === UserStatus.SUSPENDED
@@ -529,8 +529,10 @@ export const sendOtpCode = async (data: SendOtpInput) => {
     );
   }
 
-  // Always log the OTP to the terminal for debugging
-  console.log(`[OTP:${data.purpose}] ${identifier} -> ${code}`);
+  // Development convenience only: the code is a credential.
+  if (config.env === "development") {
+    console.log(`[OTP:${data.purpose}] ${identifier} -> ${code}`);
+  }
 
   return {
     sent: true,
@@ -789,8 +791,9 @@ export const generatePasswordResetToken = async (email: string) => {
 
   // In development, surface the working link so the flow is testable without
   // a configured inbox. Never logged outside development — it carries the token.
-  // Always log the password reset token to the terminal for debugging
-  console.log(`[PASSWORD_RESET] ${email} -> Reset URL: ${resetUrl}`);
+  if (config.env === "development") {
+    console.log(`[PASSWORD_RESET] ${email} -> Reset URL: ${resetUrl}`);
+  }
 
   return { message: "If the email exists, a reset link will be sent" };
 };
