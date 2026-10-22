@@ -82,7 +82,7 @@ export const getAllVehicles = async (req: Request, res: Response) => {
  */
 export const getVehicleById = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const vehicle = await vehicleService.getVehicleById(String(id));
+  const vehicle = await vehicleService.getVehicleById(String(id), req.user);
 
   return ResponseHelper.success(res, { vehicle });
 };

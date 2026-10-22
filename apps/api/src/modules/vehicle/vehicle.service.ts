@@ -391,7 +391,10 @@ export const getAllVehicles = async (filters: {
 /**
  * Get vehicle by ID with full details
  */
-export const getVehicleById = async (id: string) => {
+export const getVehicleById = async (
+  id: string,
+  viewer?: { id: string; role: string },
+) => {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id },
     include: {
@@ -444,8 +447,17 @@ export const getVehicleById = async (id: string) => {
         vehicle.reviews.length
       : 0;
 
+  // Verification documents and the owner's email are private to the owner
+  // and admins; this endpoint is public.
+  const canSeePrivate =
+    !!viewer && (viewer.role === "ADMIN" || viewer.id === vehicle.ownerId);
+  const { documents, ...publicVehicle } = vehicle;
+  const { email: _ownerEmail, ...publicOwner } = vehicle.owner;
+
   return {
-    ...vehicle,
+    ...publicVehicle,
+    owner: canSeePrivate ? vehicle.owner : publicOwner,
+    ...(canSeePrivate && { documents }),
     averageRating,
     reviewCount: vehicle.reviews.length,
     totalBookings: vehicle._count.bookings,
