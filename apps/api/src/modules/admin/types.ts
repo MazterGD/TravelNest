@@ -26,7 +26,12 @@ export const escapeCsvCell = (value: unknown): string => {
     return "";
   }
 
-  const normalized = String(value).replace(/\r?\n|\r/g, " ");
+  const text = String(value);
+  // Spreadsheets execute cells starting with = + - @ (formula injection via
+  // user-controlled names, addresses or user agents); numbers stay numeric.
+  const isNumeric = typeof value === "number" || /^-?\d+(\.\d+)?$/.test(text);
+  const safe = !isNumeric && /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  const normalized = safe.replace(/\r?\n|\r/g, " ");
   const escaped = normalized.replace(/"/g, '""');
   return `"${escaped}"`;
 };
