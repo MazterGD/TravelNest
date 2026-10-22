@@ -12,6 +12,13 @@ import { ApiError } from "./errorHandler.js";
 const CSRF_HEADER = "x-csrf-token";
 const CSRF_COOKIE = "csrf-token";
 
+// timingSafeEqual throws on length mismatch, which would surface as a 500.
+const tokensMatch = (a: string, b: string): boolean => {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
+};
+
 /**
  * Generate a CSRF token
  */
@@ -66,12 +73,9 @@ export const csrfProtection = (
     throw ApiError.forbidden("CSRF token missing from header");
   }
 
-  // Timing-safe comparison to prevent timing attacks
   if (
-    !crypto.timingSafeEqual(
-      Buffer.from(tokenFromHeader),
-      Buffer.from(tokenFromCookie),
-    )
+    typeof tokenFromHeader !== "string" ||
+    !tokensMatch(tokenFromHeader, tokenFromCookie)
   ) {
     throw ApiError.forbidden("Invalid CSRF token");
   }
@@ -108,20 +112,9 @@ export const csrfProtectionOptional = (
     return next();
   }
 
-  try {
-    if (
-      !crypto.timingSafeEqual(
-        Buffer.from(tokenFromHeader),
-        Buffer.from(tokenFromCookie),
-      )
-    ) {
-      console.warn(
-        `[CSRF Warning] Invalid CSRF token for ${req.method} ${req.path}`,
-      );
-    }
-  } catch (error) {
+  if (!tokensMatch(String(tokenFromHeader), String(tokenFromCookie))) {
     console.warn(
-      `[CSRF Warning] CSRF token comparison failed for ${req.method} ${req.path}`,
+      `[CSRF Warning] Invalid CSRF token for ${req.method} ${req.path}`,
     );
   }
 

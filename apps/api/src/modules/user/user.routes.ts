@@ -44,6 +44,7 @@ router.get("/profile", authenticate, asyncHandler(userController.getProfile));
 router.patch(
   "/profile/personal",
   authenticate,
+  csrfProtection,
   validate(updatePersonalInfoSchema),
   asyncHandler(userController.updatePersonalInfo),
 );
@@ -56,6 +57,7 @@ router.patch(
 router.patch(
   "/profile/address",
   authenticate,
+  csrfProtection,
   validate(updateAddressSchema),
   asyncHandler(userController.updateAddress),
 );
@@ -68,6 +70,7 @@ router.patch(
 router.post(
   "/change-password",
   authenticate,
+  csrfProtection,
   validate(changePasswordSchema),
   asyncHandler(userController.changePassword),
 );
@@ -105,6 +108,7 @@ router.delete(
 router.delete(
   "/account",
   authenticate,
+  csrfProtection,
   asyncHandler(userController.deleteAccount),
 );
 

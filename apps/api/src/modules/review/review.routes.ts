@@ -82,6 +82,7 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
+  csrfProtection,
   asyncHandler(reviewController.deleteReview),
 );
 

@@ -46,6 +46,7 @@ router.get(
 router.patch(
   "/:id/verify",
   authenticate,
+  csrfProtection,
   authorize("admin"),
   asyncHandler(ownerController.verifyOwner),
 );
@@ -58,6 +59,7 @@ router.patch(
 router.patch(
   "/profile/personal",
   authenticate,
+  csrfProtection,
   authorize("owner"),
   validate(updatePersonalInfoSchema),
   asyncHandler(ownerController.updatePersonalInfo),
@@ -71,6 +73,7 @@ router.patch(
 router.patch(
   "/profile/address",
   authenticate,
+  csrfProtection,
   authorize("owner"),
   validate(updateAddressSchema),
   asyncHandler(ownerController.updateAddress),

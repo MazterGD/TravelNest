@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate, isAdmin } from "../../middleware/auth.js";
+import { csrfProtection } from "../../middleware/csrf.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
 import { validate } from "../../middleware/validate.js";
 import * as adminController from "./admin.controller.js";
@@ -29,7 +30,7 @@ import { createAdminSchema } from "./users/users.schemas.js";
 
 const router = Router();
 
-router.use(authenticate, isAdmin);
+router.use(authenticate, isAdmin, csrfProtection);
 
 router.get("/health", asyncHandler(adminController.health));
 router.post(
