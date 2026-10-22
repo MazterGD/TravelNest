@@ -49,7 +49,7 @@ Before outputting any code, produce a brief alignment statement (2–5 sentences
 > "This task renders a `BusCard` component as defined in `TravelNest-Design-System.md §5.6`. I am using `--radius-card` (20px), `--color-action-primary` for the CTA button, the `text-heading-md` type token for the route title, and `spring-smooth` for the card hover lift. No new design tokens or components are introduced."
 
 ### Step 4 — Confirm Roadmap Boundary
-If your task involves a roadmap feature (e.g., Redis caching, Pino logging, Sentry, private storage with signed URLs, `DISPUTED` booking status, `payment_splits` ledger, scheduled-report automation), you must explicitly state that this is a roadmap item and confirm the user has authorized its implementation before writing any code.
+If your task involves a roadmap feature (e.g., Redis caching, Pino logging, Sentry, `DISPUTED` booking status, `payment_splits` ledger, scheduled-report automation), you must explicitly state that this is a roadmap item and confirm the user has authorized its implementation before writing any code.
 
 ---
 
@@ -118,7 +118,7 @@ Every output that touches an API endpoint, middleware, or data mutation must sat
 3. **CSRF protection** (double-submit cookie via `middleware/csrf.ts`) must remain on all mutating routes. Do not remove or bypass it.
 4. **All financial state transitions** (payment status changes, booking status changes, settlement mutations) must be wrapped in a Prisma `$transaction()` call. No multi-step financial mutation may be non-atomic.
 5. **PayHere webhook handler** must verify the MD5 signature before mutating any booking or payment record. Do not remove or weaken this check.
-6. **Supabase Storage** uploads go through `apps/api/src/utils/storage.ts`. The current implementation returns public URLs for everything — this is a documented gap (`architecture.md § Known Gaps`). Do not add new public exposure for sensitive files (owner documents, receipts); the target is a private bucket with server-generated signed URLs.
+6. **Supabase Storage** uploads go through `apps/api/src/utils/storage.ts`. Sensitive files (owner/vehicle documents, receipts) must use `uploadPrivateBuffer` (private bucket, signed URLs; ADR-001); only photos and avatars use the public bucket.
 7. **Settlement and owner bank account fields** must remain encrypted via `packages/database/src/settlementBankEncryption.ts`. Do not store raw bank account strings.
 8. **Rate limiting** must remain configured on auth routes (10 req / 15 min) and globally (100 req / 15 min). It is enforced only when `NODE_ENV=production`; do not remove the production enforcement or raise limits without explicit user instruction.
 9. **Do not log PII** (user passwords, OTP values, bank account details, NIC numbers, payment card data) at any log level. (The existing OTP console print in `auth.service.ts` is a known gap to be restricted to development.)
@@ -241,7 +241,6 @@ If the user requests implementation of any of the following, you must pause, lab
 
 - Redis caching, Redis rate-limit store, Socket.IO Redis adapter
 - Pino structured logging; Sentry error tracking
-- Private Supabase bucket + signed URLs for owner documents and receipts
 - `DISPUTED` booking status (requires schema migration)
 - Per-transaction `payment_splits` ledger records
 - Automatic execution of `ScheduledReport` definitions

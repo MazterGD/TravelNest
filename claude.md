@@ -57,7 +57,8 @@ After loading all three documents, you should have indexed the following key fac
 - Routing: self-hosted OSRM (Docker, `OSRM_BASE_URL`); route geometry persisted in PostGIS
 - Email: Brevo SMTP via nodemailer (`modules/notification/email.service.ts`)
 - Caching: none today. Redis (search 5min, OSRM 24h, rate-limiter store, Socket.IO adapter) is **roadmap**
-- File storage: Supabase Storage `travenest` bucket via `apps/api/src/utils/storage.ts`. Currently returns public URLs for all uploads; private bucket + signed URLs for documents/receipts is an **open security gap**
+- File storage: Supabase Storage via `apps/api/src/utils/storage.ts` — public `travenest` bucket for photos/avatars; owner/vehicle documents and receipts go to the private bucket as `storage://private/...` references, served only as signed URLs (ADR-001). Never store sensitive files publicly
+- Deletion: user/admin deletes are soft (`isRemoved`/`removedAt`, ADR-006); the shared Prisma client hides removed rows unless a query opts in with `isRemoved: undefined`
 - Observability: Morgan + `console` today. Pino and Sentry (free Developer tier) are **roadmap**
 - Security: Helmet + CSRF (double-submit cookie) + CORS credentials + rate limiting (production-only, in-memory)
 - Hosting (planned, free tiers): web on Vercel Hobby; API + OSRM on an Oracle Cloud Always Free VM; Postgres+PostGIS on Supabase/Neon
@@ -93,7 +94,6 @@ After loading all three documents, you should have indexed the following key fac
 **Roadmap (not yet implemented — require confirmation before touching)**
 - Redis caching / Redis rate-limit store / Socket.IO Redis adapter
 - Pino structured logging; Sentry error tracking
-- Private storage with signed URLs for owner documents and payment receipts
 - `DISPUTED` booking status (schema migration required)
 - Email templates beyond OTP, password reset, booking-confirmed and payment-received
 - Automatic execution of scheduled admin reports
