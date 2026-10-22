@@ -1,5 +1,6 @@
 import { prisma } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { lockVehicleForBooking } from "../../utils/locks.js";
 
 export interface TripPackageFilters {
   startLocation?: string;
@@ -407,20 +408,40 @@ export const bookTripPackage = async (
 
   const endDate = addDays(startDate, Math.max(tripPackage.durationDays - 1, 0));
 
-  const booking = await prisma.booking.create({
-    data: {
-      customerId,
-      vehicleId: tripPackage.vehicleId,
-      tripPackageId: tripPackage.id,
-      startDate,
-      endDate,
-      pickupLocation: tripPackage.startLocation,
-      dropoffLocation: tripPackage.endLocation,
-      totalPassengers: input.passengerCount,
-      totalAmount: tripPackage.price,
-      status: "PENDING",
-      notes: input.notes,
-    } as any,
+  const booking = await prisma.$transaction(async (tx) => {
+    await lockVehicleForBooking(tx, tripPackage.vehicleId);
+
+    const conflictingBooking = await tx.booking.findFirst({
+      where: {
+        vehicleId: tripPackage.vehicleId,
+        status: { in: ["PENDING", "CONFIRMED", "ONGOING"] },
+        startDate: { lte: endDate },
+        endDate: { gte: startDate },
+      },
+      select: { id: true },
+    });
+
+    if (conflictingBooking) {
+      throw ApiError.conflict(
+        "This vehicle is already booked for the selected dates. Please choose another date.",
+      );
+    }
+
+    return tx.booking.create({
+      data: {
+        customerId,
+        vehicleId: tripPackage.vehicleId,
+        tripPackageId: tripPackage.id,
+        startDate,
+        endDate,
+        pickupLocation: tripPackage.startLocation,
+        dropoffLocation: tripPackage.endLocation,
+        totalPassengers: input.passengerCount,
+        totalAmount: tripPackage.price,
+        status: "PENDING",
+        notes: input.notes,
+      } as any,
+    });
   });
 
   return booking;

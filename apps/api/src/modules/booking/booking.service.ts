@@ -714,6 +714,16 @@ export const cancelBooking = async (
   const refundAmount =
     paidAmount > 0 ? Math.round((paidAmount * refundPercent) / 100) : 0;
 
+  // Claim the cancellation first so a concurrent cancel cannot also trigger a
+  // gateway refund (ADR-004).
+  const claimed = await prisma.booking.updateMany({
+    where: { id: bookingId, status: booking.status },
+    data: { status: "CANCELLED", cancelReason: reason },
+  });
+  if (claimed.count !== 1) {
+    throw ApiError.conflict("This booking was just updated. Please refresh.");
+  }
+
   // Execute a real gateway refund for card payments when PayHere is configured;
   // otherwise the computed refund is recorded for the admin payout to honour.
   if (
@@ -723,11 +733,19 @@ export const cancelBooking = async (
     config.payhere.appId &&
     config.payhere.appSecret
   ) {
-    await executePayHereRefund(
-      booking.payment.payherePaymentId,
-      refundAmount,
-      reason || "Booking cancelled",
-    );
+    try {
+      await executePayHereRefund(
+        booking.payment.payherePaymentId,
+        refundAmount,
+        reason || "Booking cancelled",
+      );
+    } catch (error) {
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { status: booking.status, cancelReason: null },
+      });
+      throw error;
+    }
   }
 
   const updatedBooking = await prisma.$transaction(async (tx) => {

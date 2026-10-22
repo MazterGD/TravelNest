@@ -2,6 +2,7 @@ import { prisma } from "@travenest/database";
 import type { Prisma } from "@travenest/database";
 import type { QuotationStatus, VehicleType } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { lockVehicleForBooking } from "../../utils/locks.js";
 import { config } from "../../config/index.js";
 import { getVehicleTypePricing } from "../admin/settings/settings.service.js";
 import { dispatchNotification } from "../notification/notification.service.js";
@@ -1147,6 +1148,19 @@ export const respondToQuotation = async (
     // Use transaction to ensure atomicity - availability check, quotation update, and booking creation
     // all succeed or fail together. This prevents TOCTOU race conditions.
     const result = await prisma.$transaction(async (tx) => {
+      await lockVehicleForBooking(tx, quotation.vehicleId!);
+
+      // Claim the quotation so a concurrent accept of the same quote fails.
+      const claimed = await tx.quotation.updateMany({
+        where: { id: quotationId, status: { in: ["SENT", "VIEWED"] } },
+        data: { status: "ACCEPTED" },
+      });
+      if (claimed.count !== 1) {
+        throw ApiError.conflict(
+          "This quotation has already been responded to. Please refresh.",
+        );
+      }
+
       // Check vehicle availability INSIDE the transaction to prevent race conditions
       const conflictingBooking = await tx.booking.findFirst({
         where: {
