@@ -43,13 +43,13 @@ Determine which of the following applies to the user's request:
 Before outputting any code, produce a brief alignment statement (2–5 sentences) that explicitly maps your proposed solution to the architecture and, for frontend work, to the design system. Name the specific module, service class, controller, data model, or design system component your output touches. If you cannot name one, stop and ask the user for clarification.
 
 **Example alignment statement (backend):**
-> "This task touches the `QuotationService` and the `quotations` Prisma model. The `expires_at` logic I am adding is consistent with the `validity_period` field described in `architecture.md`. No new libraries are introduced. No schema migration is required."
+> "This task touches `modules/quotation/quotation.service.ts` and the `Quotation` Prisma model. The expiry logic I am adding uses the existing `validUntil` / `validityDays` fields described in `architecture.md`. No new libraries are introduced. No schema migration is required."
 
 **Example alignment statement (frontend):**
 > "This task renders a `BusCard` component as defined in `TravelNest-Design-System.md §5.6`. I am using `--radius-card` (20px), `--color-action-primary` for the CTA button, the `text-heading-md` type token for the route title, and `spring-smooth` for the card hover lift. No new design tokens or components are introduced."
 
 ### Step 4 — Confirm Roadmap Boundary
-If your task involves a roadmap feature (e.g., Twilio SMS, Distance Matrix API auto-pricing, `DISPUTED` booking status, 6-dimension reviews, in-platform `messages` table, WebSocket real-time delivery), you must explicitly state that this is a roadmap item and confirm the user has authorized its implementation before writing any code.
+If your task involves a roadmap feature (e.g., Redis caching, Pino logging, Sentry, private storage with signed URLs, `DISPUTED` booking status, `payment_splits` ledger, scheduled-report automation), you must explicitly state that this is a roadmap item and confirm the user has authorized its implementation before writing any code.
 
 ---
 
@@ -74,32 +74,41 @@ You must use only the technologies listed in `architecture.md`. Specifically:
 | Styling | Tailwind CSS 4 | CSS Modules, styled-components, Emotion |
 | Animation | `motion/react` | Framer Motion (separate package), CSS keyframes for spring interactions |
 | Icons | `lucide-react` | Heroicons, Font Awesome, custom SVGs not in Lucide |
-| Auth | JWT + bcrypt + Passport.js | NextAuth, Auth.js, Clerk, Firebase Auth |
-| File Storage | Supabase Storage | AWS S3, Cloudinary, UploadThing |
+| Database | PostgreSQL 16 + PostGIS | MySQL, MongoDB, SQLite |
+| Auth | JWT cookies + bcryptjs + email OTP + hand-rolled Google/Facebook OAuth (`modules/auth`) | Passport.js, NextAuth, Auth.js, Clerk, Firebase Auth |
+| File Storage | Supabase Storage (`apps/api/src/utils/storage.ts`) | AWS S3, Cloudinary, UploadThing |
 | Payment | PayHere | Stripe, PayPal, Razorpay |
-| Validation | Zod | Joi, Yup, class-validator |
-| Logging | Pino | Winston, Bunyan, console.log in production paths |
-| Error Tracking | Sentry | Datadog, Rollbar, Bugsnag |
-| Caching | Redis | Memcached, in-process LRU cache for shared state |
+| Validation | Zod (`middleware/validate.ts`) | Joi, Yup, class-validator, express-validator (installed but unused) |
+| Email | Brevo SMTP via nodemailer | SendGrid, AWS SES, Resend |
+| Realtime | Socket.IO (`apps/api/src/realtime/socket.ts`) | Pusher, Ably, raw `ws` |
+| Routing / distance | Self-hosted OSRM | Google Maps / Distance Matrix |
+| Maps / geocoding | Leaflet + OpenStreetMap tiles, Nominatim | Google Maps, Mapbox |
+| Client state | zustand | Redux, MobX |
+| Background jobs | In-process `setInterval` in `apps/api/src/jobs/` | BullMQ, node-cron, external schedulers |
+| Logging | Morgan + `console` with `[module]` prefix (Pino is roadmap) | Winston, Bunyan |
+| Error Tracking | None yet — Sentry Developer free tier is roadmap | Datadog, Rollbar, Bugsnag |
+| Caching | None yet — Redis is roadmap | Memcached, in-process LRU cache for shared state |
 
 **Do not introduce any new npm package without explicitly asking the user first and receiving confirmation.** State the package name, its purpose, and which existing tool it would supplement or replace.
 
 ### 3.3 Database Schema Rules
 - **Do not alter the Prisma schema or generate a migration unless explicitly commanded by the user.**
 - When a schema change is required, describe the exact model change, the migration impact, and any data-backfill requirements before executing.
-- Respect all canonical enum values. The implemented enums are:
-  - `vehicle_type`: `ORDINARY | SEMI_LUXURY | LUXURY_AC`
-  - `booking_status`: `PENDING | CONFIRMED | ONGOING | COMPLETED | CANCELLED` (note: `DISPUTED` is roadmap — do not add it without a migration command)
-  - `quotation.status`: `PENDING | SENT | VIEWED | ACCEPTED | REJECTED | EXPIRED`
-  - `user_type`: `customer | owner | admin`
-  - `payment_method`: `credit_card | debit_card | bank_transfer | cash | other`
-  - `payment_status`: `pending | processing | completed | failed | refunded | cancelled`
-  - `admin_role`: `SUPER_ADMIN | MODERATOR | FINANCE_ADMIN | SUPPORT_ADMIN`
-  - `notification_channel`: `in_app | email | sms | push`
-  - `dispute_status`: `OPEN | INVESTIGATING | RESOLVED | CLOSED | ESCALATED`
-  - `document_verification_status`: `pending | approved | rejected | suspended`
-- Do not add columns to `reviews` for sub-dimension ratings (vehicle condition, punctuality, etc.) without a migration command. This is an explicit roadmap schema change.
-- Do not create the `messages` table for in-platform customer ↔ owner messaging. It is roadmap and unimplemented.
+- Respect all canonical enum values (source: `packages/database/prisma/schema.prisma`). Key enums:
+  - `VehicleType`: `ORDINARY | SEMI_LUXURY | LUXURY_AC`
+  - `BookingStatus`: `PENDING | CONFIRMED | ONGOING | COMPLETED | CANCELLED` (note: `DISPUTED` is roadmap — do not add it without a migration command)
+  - `QuotationStatus`: `PENDING | SENT | VIEWED | ACCEPTED | REJECTED | EXPIRED`
+  - `TripStatus`: `PLANNING | AWAITING_QUOTES | CONFIRMED | COMPLETED | CANCELLED | EXPIRED`
+  - `UserRole`: `CUSTOMER | VEHICLE_OWNER | ADMIN`; `UserStatus`: `ACTIVE | INACTIVE | SUSPENDED | PENDING_VERIFICATION`
+  - `AdminRole`: `SUPER_ADMIN | MODERATOR | FINANCE_ADMIN | SUPPORT_ADMIN`
+  - `PaymentStatus`: `PENDING | PROCESSING | COMPLETED | FAILED | REFUNDED` (`Payment.method` is a free string: card / bank transfer / cash)
+  - `DocumentType`: `NIC | DRIVING_LICENSE | INSURANCE | REGISTRATION_CERTIFICATE | PROFILE_PHOTO | VEHICLE_PHOTO`; `DocumentStatus`: `PENDING | VERIFIED | REJECTED`
+  - `DisputeType`: `BOOKING_QUALITY_ISSUE | CANCELLATION_DISPUTE | PAYMENT_ISSUE | VEHICLE_CONDITION | BEHAVIOR_COMPLAINT | SERVICE_NOT_PROVIDED | OTHER`; `DisputeStatus`: `OPEN | INVESTIGATING | RESOLVED | CLOSED | ESCALATED`; `DisputePriority`: `LOW | MEDIUM | HIGH | URGENT`
+  - `SettlementStatus`: `PENDING | PROCESSING | COMPLETED | FAILED | CANCELLED`; `CommissionType`: `PERCENTAGE | FIXED | TIERED`
+  - `PlatformNotificationChannel`: `IN_APP | EMAIL | SMS` (SMS has no provider — out of scope)
+  - `DriverStatus`: `ACTIVE | INACTIVE`; `VehiclePhotoTag`: `EXTERIOR | INTERIOR | FRONT | REAR | SEATS | OTHER`
+- Already implemented — do not re-create: review sub-ratings (6 dimensions), `Conversation`/`Message` messaging tables, `Driver`, `OwnerBankAccount`, `Trip`, PostGIS itinerary tables.
+- PostGIS objects (extension, `vehicles.geom` trigger, GIST indexes) must be created in raw-SQL migrations. Never rely on `prisma db push` for them.
 
 ### 3.4 Security Rules — Non-Negotiable
 Every output that touches an API endpoint, middleware, or data mutation must satisfy all of the following:
@@ -109,32 +118,29 @@ Every output that touches an API endpoint, middleware, or data mutation must sat
 3. **CSRF protection** (double-submit cookie via `middleware/csrf.ts`) must remain on all mutating routes. Do not remove or bypass it.
 4. **All financial state transitions** (payment status changes, booking status changes, settlement mutations) must be wrapped in a Prisma `$transaction()` call. No multi-step financial mutation may be non-atomic.
 5. **PayHere webhook handler** must verify the MD5 signature before mutating any booking or payment record. Do not remove or weaken this check.
-6. **Supabase Storage** assets must never be accessed via direct public bucket URLs. All asset access must go through server-side presigned URL generation (`StorageService`).
-7. **Settlement bank account fields** must remain encrypted via `packages/database/src/settlementBankEncryption.ts`. Do not store raw bank account strings.
-8. **Rate limiting** must remain active on all auth routes (10 req / 15 min) and globally (100 req / 15 min). Do not disable or raise limits without explicit user instruction.
-9. **Do not log PII** (user passwords, OTP values, bank account details, NIC numbers, payment card data) at any log level.
+6. **Supabase Storage** uploads go through `apps/api/src/utils/storage.ts`. The current implementation returns public URLs for everything — this is a documented gap (`architecture.md § Known Gaps`). Do not add new public exposure for sensitive files (owner documents, receipts); the target is a private bucket with server-generated signed URLs.
+7. **Settlement and owner bank account fields** must remain encrypted via `packages/database/src/settlementBankEncryption.ts`. Do not store raw bank account strings.
+8. **Rate limiting** must remain configured on auth routes (10 req / 15 min) and globally (100 req / 15 min). It is enforced only when `NODE_ENV=production`; do not remove the production enforcement or raise limits without explicit user instruction.
+9. **Do not log PII** (user passwords, OTP values, bank account details, NIC numbers, payment card data) at any log level. (The existing OTP console print in `auth.service.ts` is a known gap to be restricted to development.)
 
 ### 3.5 Service Layer Contracts
-Each domain operation must be implemented in the appropriate service class, not in controllers or route handlers directly. The canonical service classes are:
+Each domain operation must be implemented in the appropriate module service, not in controllers or route handlers directly. Services are function-based modules (`export const fn = async (...)`), one per domain: `modules/<domain>/<domain>.service.ts` — `auth`, `user`, `owner`, `vehicle` (incl. radius search), `driver`, `trip`, `quotation`, `booking`, `trip-package`, `payment` (+ `settlement.service.ts`), `review`, `dispute`, `message`, `notification` (+ `email.service.ts`), `routing` (OSRM), `landing`, `content`, and the admin sub-modules under `modules/admin/`. Shared storage helpers live in `apps/api/src/utils/storage.ts`.
 
-`AuthenticationService`, `PaymentService`, `NotificationService`, `GeocodingService`, `StorageService`, `SearchService`, `QuotationService`, `BookingService`
+Controllers expose HTTP endpoints and delegate to services. Business logic does not belong in controllers. Route handlers do not contain direct Prisma queries.
 
-Controllers expose HTTP endpoints and delegate to service classes. Business logic does not belong in controllers. Route handlers do not contain direct Prisma queries.
-
-### 3.6 Redis Caching Conventions
-When writing or reading from Redis, use the key patterns defined in `architecture.md`:
+### 3.6 Caching (Roadmap)
+There is **no cache layer today**. Redis is a roadmap item and must not be introduced without user approval. When it is authorized, use the key patterns in `architecture.md § Scalability`:
 
 | Target | Key Pattern | TTL |
 |---|---|---|
-| Maps distance results | `maps:dist:{origin_hash}:{dest_hash}` | 24 hours |
+| OSRM route results | `osrm:route:{coords_hash}` | 24 hours |
 | Vehicle search results | `search:{filter_hash}:{page}` | 5 minutes |
 | Rate limiter counters | `rl:{ip}:{route}` | 15 minutes |
-| OTP attempt counters | `otp:attempts:{userId}` | Per OTP TTL |
 
-Do not invent new key patterns without documenting them and confirming with the user.
+Do not invent new key patterns without documenting them and confirming with the user. Note that quotation routes are already persisted in PostGIS (`itinerary_routes`), so views must read stored geometry rather than re-calling OSRM.
 
 ### 3.7 Internationalization
-The frontend supports three locales: `en`, `si`, `ta`. All user-facing strings must be sourced from locale JSON files via `next-intl`. Do not hardcode English strings into JSX output unless instructed.
+The frontend supports three locales: `en`, `si`, `ta` (files in `apps/web/src/i18n/locales/`). All user-facing strings must be sourced from locale JSON files via `next-intl`, with keys added to all three locales. Do not hardcode English strings into JSX output unless instructed. Exception: the admin portal is English-only (no language switcher in admin chrome).
 
 ### 3.8 Design System Rules — UI/UX
 
@@ -233,28 +239,27 @@ Keep business-critical flows (checkout, payment confirmation, dispute resolution
 ### 4.1 Roadmap Features
 If the user requests implementation of any of the following, you must pause, label the feature as **Roadmap — Not Yet Implemented**, and ask for explicit confirmation before writing any code:
 
-- Twilio SMS delivery (OTP or notifications)
-- Google Maps Distance Matrix API for automated quotation base-cost computation
+- Redis caching, Redis rate-limit store, Socket.IO Redis adapter
+- Pino structured logging; Sentry error tracking
+- Private Supabase bucket + signed URLs for owner documents and receipts
 - `DISPUTED` booking status (requires schema migration)
-- 6-dimension review sub-ratings (requires schema migration)
-- In-platform customer ↔ owner `messages` table (requires schema migration and real-time layer)
-- WebSocket / long-polling real-time notification delivery
-- Automated time-based cancellation policy enforcement (refund calculation on cancel)
 - Per-transaction `payment_splits` ledger records
-- HTTP → HTTPS redirect at Nginx reverse proxy level
-- Transactional email templates via SMTP/nodemailer (nodemailer is configured; zero templates exist)
-- Health check endpoint `GET /health` (not yet confirmed in codebase)
-- CI/CD pipeline configuration
+- Automatic execution of `ScheduledReport` definitions
+- Email templates beyond OTP, password reset, booking-confirmed and payment-received
+- Production deployment (Vercel + Oracle Cloud VM + Caddy) and activating the CD deploy steps
 - Dark mode (explicitly deferred to post-v1.0 per design system)
 - Storybook component documentation (referenced in design system governance but not yet established)
+
+The following were roadmap in earlier revisions and are now **implemented** — extend them, do not rebuild them: booking-scoped messaging + Socket.IO delivery, 6-dimension reviews, time-based refund policy, OSRM-based quotation pre-fill, `GET /health`, CI workflows, transactional emails for OTP/reset/booking/payment, driver roster.
 
 ### 4.2 Out-of-Scope Requests
 If the user asks you to build any of the following, you must refuse and cite `context.md § Out-of-Scope`:
 
 - Native Android or iOS applications
 - Scheduled intercity passenger seat ticketing
-- Physical fleet operations (maintenance scheduling, driver rostering, fuel logistics)
+- Physical fleet operations (maintenance scheduling, fuel logistics). Note: the owner driver roster and per-booking driver assignment are in scope and implemented.
 - Platform-managed GPS tracking
+- SMS delivery of any kind (Twilio was dropped; OTP is email-only)
 
 ### 4.3 Contradictory Architecture or Design Requests
 If the user asks you to:
@@ -276,7 +281,7 @@ If you are uncertain whether a proposed implementation is consistent with `conte
 - Every file you create or modify must be TypeScript (`.ts` / `.tsx`). No plain `.js` files in `apps/` or `packages/`.
 - All new API endpoints must have a corresponding Zod schema in the module's `*.schemas.ts` file before the route is registered.
 - Error responses must use the project's established error-handling middleware pattern. Do not invent new error response shapes.
-- Do not add `console.log` statements to production code paths. Use `Pino` logger instances.
+- Do not add stray `console.log` debugging to production code paths. Follow the existing logging convention (`console.info` / `console.warn` / `console.error` with a `[module]` prefix, never PII). Do not install Pino without user approval — it is a roadmap item.
 - Do not leave TODO comments in code you commit. Either implement the item or document it in `context.md` as a roadmap item.
 - Mobile-first responsive design is mandatory for all frontend output. Design for 375px viewport first; scale up with `sm:` / `md:` / `lg:` breakpoints.
 - All new frontend components must use the design token set from `@theme` — no hardcoded hex values, no arbitrary Tailwind color classes, no inline `style={{}}` for values expressible with tokens.

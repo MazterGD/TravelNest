@@ -1,209 +1,246 @@
 # TraveNest
 
-**Sri Lanka's Premier Vehicle Rental Marketplace**
+**Sri Lanka's multi-vendor bus charter marketplace.**
 
-TraveNest is a web-based vehicle rental marketplace platform designed to connect vehicle owners with customers seeking transportation services across Sri Lanka.
+TraveNest connects independent bus owners with groups who need a bus: schools, religious organisations, companies and event planners. Customers plan a trip, collect itemised quotations from verified owners, compare them, then book and pay online. Owners manage their fleet, drivers, quotations and earnings. Admins run verification, disputes, payouts and site content.
 
-## Project Architecture
+It is a mobile-first Progressive Web App available in English, Sinhala and Tamil.
 
-This is a **monorepo** managed with `pnpm` workspaces:
+> Full documentation: [`context.md`](context.md) (scope and features), [`architecture.md`](architecture.md) (technical design), [`TravelNest-Design-System.md`](TravelNest-Design-System.md) (UI rules).
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 16 (React 19), Tailwind CSS 4, `motion`, `lucide-react`, `next-intl`, `zustand`, Leaflet + OpenStreetMap, PWA via `@ducanh2912/next-pwa` |
+| Backend | Express 4 modular monolith, Prisma 6, Zod, Socket.IO, JWT cookies, Helmet, CSRF, `express-rate-limit` |
+| Database | PostgreSQL 16 + **PostGIS** |
+| Routing | OSRM (self-hosted Docker) |
+| Payments | PayHere (card), bank transfer, cash |
+| Email | Brevo SMTP via `nodemailer` |
+| Storage | Supabase Storage |
+| Testing | Vitest (API: Vitest + Supertest; web: Testing Library) |
+
+Every external service has a free-forever tier. See `architecture.md § Infrastructure & DevOps`.
+
+## Repository Layout
 
 ```
 travenest/
 ├── apps/
-│   ├── web/                 # Next.js 16 frontend (@travenest/web)
-│   └── api/                 # Express.js backend API (@travenest/api)
+│   ├── web/              # Next.js 16 frontend          (@travenest/web)
+│   └── api/              # Express API + Socket.IO       (@travenest/api)
+│       └── scripts/      # PayHere webhook simulator
 ├── packages/
-│   ├── database/            # Prisma ORM & database schema (@travenest/database)
-│   └── shared-types/        # Shared TypeScript types (@travenest/shared-types)
-└── package.json             # Root package.json with workspace commands
+│   ├── database/         # Prisma schema, migrations, seed, backfills (@travenest/database)
+│   └── shared-types/     # Shared TypeScript types       (@travenest/shared-types)
+├── docs/                 # Portal architecture notes and review reports
+└── .github/workflows/    # CI (ci.yml, pr.yml) and CD (cd.yml)
 ```
 
-## Quick Start for New Developers 🚀
+---
 
-Welcome! If you're a new developer joining the project, follow these steps to get the environment running locally.
+## Getting Started
 
 ### 1. Prerequisites
 
-- **Node.js**: v18.0.0 or higher
-- **Package Manager**: `pnpm` (Install via `npm install -g pnpm`)
-- **Database**: PostgreSQL (Ensure you have a local instance running or a cloud DB connection string)
-- **External Accounts**: Google Maps API Key, PayHere account, Twilio, AWS S3 (for full functionality)
+- **Node.js** 20 (≥ 18 supported) and **pnpm** 10 (`npm install -g pnpm`)
+- **PostgreSQL 16 with the PostGIS extension** (local install, Docker `postgis/postgis:16-3.4`, or a free Supabase/Neon database)
+- **Docker**, to run OSRM for route and distance calculation
+- Optional, for full functionality: a Supabase project (storage), a Brevo account (email), PayHere sandbox merchant credentials, and Google/Facebook OAuth apps
 
-### 2. Installation & Setup
-
-Clone the repository and install all dependencies from the root directory:
+### 2. Install
 
 ```bash
 git clone https://github.com/MazterGD/TraveNest.git
 cd TraveNest
-
-# Install dependencies for all apps and packages
 pnpm install
 ```
 
-### 3. Environment Variables
+### 3. Environment variables
 
-Set up your local environment variables. From the root directory:
-```bash
-# For the Express API
-cp apps/api/.env.example apps/api/.env
+There are no `.env.example` files. Create the files below yourself.
 
-# For the Next.js Web App
-cp apps/web/.env.example apps/web/.env.local
-```
-_Make sure to open these files and update them with your actual local credentials, particularly `DATABASE_URL` for PostgreSQL._
+- **`/.env`** (repository root): the API reads this file as well as `apps/api/.env`, and the database scripts use it. Most variables go here.
+- **`apps/web/.env.local`**: public variables for the frontend.
 
-### 4. Database Initialization & Seeding
-
-We use **Prisma** as our ORM. All database commands should be executed from the **root** of the project:
+Minimum for local development:
 
 ```bash
-# 1. Push the database schema to your local PostgreSQL instance to create the tables
-pnpm db:push
-
-# 2. Generate the Prisma Client (TypeScript types based on your schema)
-pnpm db:generate
-
-# 3. Seed the database with initial/dummy data to help you test
-pnpm db:seed
+# /.env
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/travenest"
+JWT_SECRET="change-me"
+JWT_REFRESH_SECRET="change-me-too"
+APP_URL="http://localhost:3000"
+CORS_ORIGIN="http://localhost:3000"
+OSRM_BASE_URL="http://127.0.0.1:5001"
 ```
-
-### 5. Starting the Development Servers
-
-You can start the frontend and backend simultaneously, or individually. Run these from the **root** directory:
 
 ```bash
-# Start both the Web Frontend (Next.js) and the API Backend (Express)
-pnpm dev
-
-# Alternatively, start them individually:
-pnpm dev:web   # Starts only the Next.js frontend on port 3000
-pnpm dev:api   # Starts only the Express API on port 5000
+# apps/web/.env.local
+NEXT_PUBLIC_API_URL="http://localhost:5000/api/v1"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+# Optional: lets the How It Works page load its images from the Supabase bucket
+NEXT_PUBLIC_SUPABASE_URL="..."
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY="..."
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+<details>
+<summary>All supported variables</summary>
+
+| Group | Variables |
+|---|---|
+| Server | `PORT` (5000), `API_VERSION` (v1), `APP_URL`, `API_BASE_URL`, `CORS_ORIGIN`, `NODE_ENV` |
+| Auth | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRY`, `JWT_REFRESH_EXPIRY`, `OAUTH_STATE_SECRET` |
+| OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`, `FACEBOOK_REDIRECT_URI` |
+| Email (Brevo) | `SMTP_HOST` (`smtp-relay.brevo.com`), `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` |
+| PayHere | `PAYHERE_MERCHANT_ID`, `PAYHERE_MERCHANT_SECRET`, `PAYHERE_APP_ID`, `PAYHERE_APP_SECRET`, `PAYHERE_MODE` (`sandbox`/`live`), `PAYHERE_NOTIFY_URL`, `PAYHERE_RETURN_URL`, `PAYHERE_CANCEL_URL` |
+| Bank transfer | `BANK_NAME`, `BANK_ACCOUNT_NAME`, `BANK_ACCOUNT_NUMBER`, `BANK_BRANCH`, `BANK_REFERENCE_HINT` |
+| Storage | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, `SUPABASE_BUCKET` (`travenest`), `MAX_FILE_SIZE` |
+| Encryption | `SETTLEMENT_BANK_ENCRYPTION_KEY` (falls back to `BANK_DATA_ENCRYPTION_KEY`, then `JWT_SECRET`) |
+| Routing | `OSRM_BASE_URL`, `OSRM_TIMEOUT_MS` |
+| Rate limits (production only) | `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS`, `AUTH_RATE_LIMIT_WINDOW_MS`, `AUTH_RATE_LIMIT_MAX_REQUESTS` |
+| Seed | `SEED_DEMO_DATE` |
+
+</details>
+
+Without SMTP settings, emails are skipped and OTP codes are printed to the API console instead. Without Supabase settings, file uploads return an error.
+
+### 4. Run OSRM (routing engine)
+
+Run this once to build the Sri Lanka road graph, then start the server on port 5001:
+
+```bash
+mkdir osrm-data && cd osrm-data
+curl -O https://download.geofabrik.de/asia/sri-lanka-latest.osm.pbf
+docker run -t -v "${PWD}:/data" ghcr.io/project-osrm/osrm-backend osrm-extract -p /opt/car.lua /data/sri-lanka-latest.osm.pbf
+docker run -t -v "${PWD}:/data" ghcr.io/project-osrm/osrm-backend osrm-partition /data/sri-lanka-latest.osrm
+docker run -t -v "${PWD}:/data" ghcr.io/project-osrm/osrm-backend osrm-customize /data/sri-lanka-latest.osrm
+docker run -d --name osrm -p 5001:5000 -v "${PWD}:/data" ghcr.io/project-osrm/osrm-backend osrm-routed --algorithm mld /data/sri-lanka-latest.osrm
+```
+
+### 5. Database
+
+Run these from the repository root:
+
+```bash
+pnpm db:migrate:deploy   # apply all migrations (enables PostGIS, triggers, spatial indexes)
+pnpm db:generate         # generate the Prisma client
+pnpm db:seed             # demo data; optional demo anchor date: pnpm db:seed 2026-06-03
+```
+
+> Use migrations, not `pnpm db:push`. The PostGIS extension, the `vehicles.geom` trigger and the GIST indexes live in raw-SQL migrations, and `db push` does not create them.
+
+Seeded logins:
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@travenest.lk` | `admin@123` |
+| Owner (verified) | `nuwan.perera@gmail.com` | `owner@123` |
+| Owner (pending approval) | `kasun.fernando@outlook.com` | `owner@123` |
+| Customer | `dilshan.jayawardena@gmail.com` | `customer@123` |
+
+### 6. Start the dev servers
+
+```bash
+pnpm dev        # web + api
+pnpm dev:web    # Next.js on http://localhost:3000
+pnpm dev:api    # Express on http://localhost:5000 (REST /api/v1, WebSocket /socket.io, GET /health)
+```
+
+### 7. Testing card payments locally
+
+PayHere cannot deliver webhooks to `localhost`. Either expose the API with ngrok and set `PAYHERE_NOTIFY_URL`, or complete a payment with the simulator, which sends a correctly signed webhook:
+
+```bash
+pnpm --filter @travenest/api payhere:simulate <bookingId>
+```
 
 ---
 
-## 🛠 Database Management: How to Add or Update Tables
+## Database Changes
 
-If you are tasked with adding a new feature that requires database changes (e.g., adding a new table or modifying an existing one), here is the standard workflow:
+1. Edit `packages/database/prisma/schema.prisma`.
+2. Create a migration: `pnpm db:migrate` (`prisma migrate dev`). Commit the generated folder under `prisma/migrations/`.
+3. Regenerate the client: `pnpm db:generate`. Stop the dev servers first on Windows, because the running API locks the Prisma engine DLL.
+4. If the change needs seed data, update `packages/database/src/seed.ts`.
+5. Inspect the data with `pnpm db:studio`.
 
-### Step 1: Modify the Prisma Schema
-Navigate to our central database package:
-```
-packages/database/prisma/schema.prisma
-```
-Open this file and define your new `model`, or add/remove columns from an existing model following Prisma syntax.
+Maintenance scripts (all idempotent):
 
-### Step 2: Generate Updated Typings
-Once your schema is updated, you must rebuild the Prisma Client so your TypeScript code recognizes the changes. Run from the root:
 ```bash
-pnpm db:generate
+pnpm db:backfill:content
+pnpm --filter @travenest/database backfill:vehicle-coordinates
+pnpm --filter @travenest/database backfill:osrm-routes
+pnpm --filter @travenest/database backfill:settlement-bank-encryption
 ```
-
-### Step 3: Apply Changes to the Database
-To apply your definitions to the actual PostgreSQL database:
-- **During Local Prototyping**: Run `pnpm db:push` from the root. This forces the local database schema to match your Prisma schema rapidly.
-- **For Production/Team Sharing**: Run `pnpm db:migrate` to create a formal SQL migration history file.
-
-### Step 4: Add Seed Data (Optional)
-If your new table needs initial test data, navigate to:
-```
-packages/database/src/seed.ts
-```
-Add records for your new model, then run `pnpm db:seed` from the root.
-
-### Step 5: View Your Data
-To visually inspect your database tables and records via GUI:
-```bash
-pnpm db:studio
-```
-This opens Prisma Studio.
 
 ---
 
-## 💻 Workspace Command Reference
-
-Here is a cheat sheet for `pnpm` workspace commands run from the root:
+## Command Reference
 
 | Command | Description |
 |---|---|
-| `pnpm install` | Installs dependencies across all workspaces |
-| `pnpm dev` | Starts all development servers (web & api) |
-| `pnpm dev:web` | Starts only the Next.js frontend |
-| `pnpm dev:api` | Starts only the Express backend |
-| `pnpm build` | Builds all workspaces for production |
-| `pnpm typecheck` | Runs TypeScript typechecking without emitting files |
-| `pnpm lint` | Runs ESLint and style checks |
-| `pnpm clean` | Removes all `node_modules`, `.next`, and `dist` folders |
+| `pnpm dev` / `dev:web` / `dev:api` | Start development servers |
+| `pnpm build` / `build:web` / `build:api` | Production builds |
+| `pnpm start` / `start:web` / `start:api` | Run production builds |
+| `pnpm lint` | ESLint across workspaces |
+| `pnpm typecheck` | `tsc --noEmit` across workspaces |
+| `pnpm test` / `test:watch` / `test:coverage` | API test suite (Vitest + Supertest) |
+| `pnpm --filter @travenest/web test` | Web test suite |
+| `pnpm ci` | lint + typecheck + test + build |
+| `pnpm clean` | Remove `node_modules`, `.next`, `dist` |
+| `pnpm db:generate` / `db:migrate` / `db:migrate:deploy` / `db:push` / `db:seed` / `db:studio` | Prisma commands |
 
-**Database Shortcuts:**
-| Command | Description |
-|---|---|
-| `pnpm db:generate` | Generates Prisma Client (`prisma generate`) |
-| `pnpm db:push` | Pushes schema without migrations (`prisma db push`) |
-| `pnpm db:migrate` | Runs dev migrations (`prisma migrate dev`) |
-| `pnpm db:seed` | Seeds the database |
-| `pnpm db:studio` | Opens Prisma Studio |
+> API tests run against the database in `DATABASE_URL`. Set test-only environment variables in `apps/api/tests/setup.ts`.
 
 ---
 
 ## Features
 
-### For Customers
+### Customers
+- Plan a trip once, then request quotations from several buses under it
+- Search with nearby-city matching (10 / 20 / 30 km, then district), maps and route preview
+- Compare itemised quotations side by side; accepting one reserves the bus
+- Pay by PayHere card, bank transfer (receipt upload) or cash; time-based refunds
+- Fixed-price trip packages that can be booked directly
+- Real-time chat with the owner, notifications, disputes, and reviews with six rating dimensions
+- Printable invoices and booking documents
+- English, Sinhala and Tamil
 
-- Advanced search with filters (capacity, amenities, price, location)
-- Standardized quotation requests with transparent cost breakdowns
-- Multi-vendor comparison
-- Secure online booking and payment
-- Multilingual support (English, Sinhala, Tamil)
-- Rating and review system
+### Bus Owners
+- Self-registration with document verification and a pending-approval tracker
+- Fleet management (photos, documents, availability calendar) on platform-set base rates
+- Driver roster with per-booking assignment
+- Quotation form pre-filled from route distance and platform rates
+- Trip packages, analytics, earnings and settlement history, payout bank account
 
-### For Bus Owners
-
-- Self-registration with document verification
-- Fleet management and availability calendars
-- Automated quotation generation
-- Performance analytics
-- Direct customer communication
-
-### For Admins
-
-- Owner verification and approval workflows
-- Dispute resolution
-- Platform analytics and reporting
-- System management
-
-## 🎨 Styling & Design
-
-The project uses:
-
-- **Tailwind CSS** for styling
-- **Custom CSS variables** for theming
-- **HSL color system** for consistent color management
-- **Responsive design** with mobile-first approach
-
-### Brand Colors
-
-- **Primary:** Deep Blue (#00476B) - Main brand color, trust and reliability
-- **Secondary:** Muted Blue (#2F6280) - Secondary actions and text
-- **Accent:** Light Blue (#6ACAF0) - Interactive elements and highlights
-- **Muted:** Soft Cyan (#C9E9F8) - Backgrounds and subtle elements
-- **Card:** Very Light Blue (#DAF3FB) - Card backgrounds
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-For questions or support, please contact [support@travenest.lk](mailto:support@travenest.lk)
+### Admins
+- Owner, vehicle and document verification
+- User, booking, dispute and review management
+- Commission rules and owner settlements
+- Reports exported as CSV, PDF or Excel; audit log
+- CMS for pages, FAQs, testimonials, amenities and landing content
+- Platform settings: pricing, booking window, refund policy, maintenance mode; broadcast notifications
 
 ---
 
-**Built with ❤️ for Sri Lanka**
+## Design
+
+The UI follows [`TravelNest-Design-System.md`](TravelNest-Design-System.md): the Inter typeface, `#20B0E9` (`--color-action-primary`) for interactive elements only, a neutral slate palette for everything else, an 8px spacing scale, three radius levels (20 / 12 / 8 px), `motion/react` spring animations and WCAG AA accessibility. Dark mode is deferred to after v1.0.
+
+---
+
+## Deployment
+
+The planned free-tier deployment is the web app on **Vercel Hobby**, and the API plus OSRM on an **Oracle Cloud Always Free VM** (PM2 or Docker, with Caddy for TLS). The database is a free Postgres with PostGIS (Supabase or Neon). The API must stay a single long-running instance because it hosts Socket.IO and in-process background jobs. CI runs on GitHub Actions; the CD deploy step is still a placeholder. See `architecture.md § Deployment Topology`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+## Contact
+
+[support@travenest.lk](mailto:support@travenest.lk)

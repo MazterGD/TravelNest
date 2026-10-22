@@ -1,133 +1,152 @@
 # System Overview
 
-TravelNest operates as a **modular monolith** — a single deployable backend application with internally separated domain modules — fronted by a Next.js PWA. The architectural choice reflects the project's solo-developer constraint and cost-optimization requirement while retaining the ability to extract modules into independent services if scale demands it.
+TravelNest operates as a **modular monolith**: a single deployable Express backend with internally separated domain modules, fronted by a Next.js PWA. The choice reflects the solo-developer constraint and a **zero-cost (free-forever tier) infrastructure requirement**, while keeping the option of extracting modules into independent services later.
 
-The codebase is organized as a **pnpm monorepo** with the following workspace structure:
+The codebase is a **pnpm monorepo** (pnpm 10, Node.js ≥ 18; CI runs Node 20):
 
 ```
 /
 ├── apps/
-│   ├── api/          — Node.js/Express backend (modular monolith)
+│   ├── api/          — Node.js/Express backend (modular monolith) + Socket.IO server
 │   └── web/          — Next.js 16 PWA (customer, owner, admin portals)
 └── packages/
-    ├── database/     — Prisma schema, migrations, seed scripts
+    ├── database/     — Prisma schema, migrations, seed + backfill scripts, bank-field encryption
     └── shared-types/ — TypeScript type definitions shared across apps
 ```
-
-Because the frontend and backend share code via `packages/`, they cannot be independently deployed to platforms that build only one app per repository root without additional monorepo build configuration. The hosting platform must support monorepo co-deployment or multi-service deployment from a single repository. **[Undecided — see Infrastructure & DevOps.]**
 
 **End-to-end request lifecycle:**
 
 ```
-User (Browser/PWA)
+User (Browser / installed PWA)
     ↓ HTTPS
-Next.js Frontend (SSR/SSG + PWA)
-    ↓ REST API calls (JSON)
-Nginx Reverse Proxy (entry-point routing)   ← planned; no nginx.conf in repo yet
+Next.js 16 Frontend (App Router, next-intl locale routing, Workbox service worker)
+    ↓ REST (JSON, cookie auth + CSRF header)        ↓ WebSocket (Socket.IO, same JWT)
+Node.js/Express Backend — Modular Monolith  (/api/v1/*, /socket.io, /health)
+    ├── Auth            (password + Email OTP login, JWT access/refresh, Google/Facebook OAuth)
+    ├── User / Owner    (profiles, owner onboarding & documents, owner analytics & earnings)
+    ├── Vehicle         (fleet CRUD, photos/documents, availability, PostGIS radius search)
+    ├── Driver          (owner driver roster, booking assignment)
+    ├── Trip            (customer trip planning; parents the quotation pipeline)
+    ├── Quotation       (request → owner pricing → accept)
+    ├── Booking         (reserve → pay → confirm → ongoing → complete / cancel)
+    ├── Trip Package    (fixed-price packages, direct booking)
+    ├── Payment         (PayHere + bank transfer + cash, refunds, settlement accrual)
+    ├── Review / Dispute / Message / Notification
+    ├── Routing         (OSRM route calculation)
+    ├── Landing / Content (CMS-driven public content, contact form, route estimate)
+    └── Admin           (verification, users, bookings, disputes, finance, CMS, reports, settings, audit)
     ↓
-Node.js/Express Backend — Modular Monolith
-    ├── Auth Module        (JWT, Email OTP, OAuth via Passport.js)
-    ├── Trip Module        (customer trip planning; parents the quotation pipeline)
-    ├── Booking & Quotation Module
-    ├── Vehicle & Fleet Module
-    ├── Trip Package Module
-    ├── Payment Handler    (PayHere + bank transfer + cash)
-    ├── Notification Handler (Brevo transactional email via nodemailer)
-    ├── Admin Module       (verification, disputes, settlements, CMS)
-    └── Analytics Module   (owner analytics, platform analytics)
-    ↓
-PostgreSQL 16+ (via Prisma ORM)
-    ↓
-Redis (self-hosted — Docker)     (caching layer — see Caching Strategy)
+PostgreSQL 16 + PostGIS (via Prisma ORM)
 
-External Service Calls (outbound from backend):
-    ├── OSRM Public API      → Road-based distance computation, route display
-    ├── PayHere API          → Payment processing, MD5-signed webhook callbacks
-    ├── Brevo SMTP           → Transactional email: OTP, booking confirmation, notifications
-    ├── Supabase Storage     → Vehicle/review photos, owner documents, payment receipts
-    └── OAuth Providers      → Google, Facebook (Passport.js)
+In-process background jobs (setInterval): bookingLifecycle (15 min), notificationRetention (daily)
 
-Observability:
-    ├── Pino                 → Structured JSON logging (Node.js backend)
-    └── GlitchTip (Docker)   → Error tracking and alerting (Sentry-SDK-compatible, self-hosted)
+External services (outbound from backend):
+    ├── OSRM (self-hosted Docker)  → Route geometry, distance/duration
+    ├── PayHere API                → Checkout, MD5-signed webhook, merchant refund API
+    ├── Brevo SMTP (nodemailer)    → OTP, password reset, booking/payment notification emails
+    ├── Supabase Storage           → Vehicle photos, documents, avatars, payment receipts
+    └── Google / Facebook OAuth    → Direct OAuth 2.0 (no Passport.js)
+
+External services (called directly from the browser):
+    ├── OpenStreetMap tiles        → Leaflet maps
+    └── Nominatim (OSM)            → Location autocomplete / geocoding
+
+Observability (current): Morgan HTTP access logs + console
 ```
 
-The frontend serves three distinct portal contexts from a single Next.js application: Customer-facing marketplace, Bus Owner dashboard, and Admin back-office dashboard (84 routes total).
+The frontend serves three portal contexts from one Next.js application: the customer marketplace (`/dashboard/*` plus public pages), the bus owner portal (`/owner/*`), and the admin back office (`/admin/*`). There are **89 page routes** in total, all under the `[locale]` segment (`en` / `si` / `ta`).
 
 ---
 
 ## Technology Stack
 
-### Frontend
+### Frontend (`apps/web`)
 
 | Component | Technology | Notes |
 |---|---|---|
-| Framework | Next.js 16 (React 19) | SSR/SSG for SEO and initial load performance; PWA support via Service Workers |
-| Styling | Tailwind CSS 4 | Utility-first; enforces mobile-first design constraints |
-| Icons | Lucide React | |
-| PWA Layer | Service Workers + manifest.json | Offline capability; installable on mobile without native app; installable icons included |
-| Internationalization | next-intl + locale JSON files | EN / SI / TA language support |
-| Hosting | [Undecided — see Infrastructure & DevOps] | |
+| Framework | Next.js 16 (React 19.2), App Router, Turbopack dev | Locale routing via `src/proxy.ts` (next-intl middleware, `localePrefix: "always"`) |
+| Styling | Tailwind CSS 4 (`@tailwindcss/postcss`) | Design tokens in `globals.css` per `TravelNest-Design-System.md` |
+| Animation | `motion` (`motion/react`) | Spring tokens per design system |
+| Icons | `lucide-react` | |
+| State | `zustand` (auth, booking, quotation stores) | |
+| HTTP client | `axios` (`src/lib/api/client.ts`) | Client unwraps `response.data` envelope |
+| Realtime client | `socket.io-client` | Chat and notification stream |
+| Maps | `leaflet` + `react-leaflet` with OpenStreetMap tiles | Free; no API key |
+| Geocoding | Nominatim (OSM) public API | `LocationAutocomplete`, `InteractiveMap` |
+| Charts | `recharts` | Owner and admin analytics |
+| PWA | `@ducanh2912/next-pwa` (Workbox) + `public/manifest.json` | Disabled in development |
+| i18n | `next-intl` 4, JSON files in `src/i18n/locales/{en,si,ta}` | |
+| Printable documents | Browser print of generated HTML (`lib/utils/pdfUtils.ts`) | Invoices, quotations, booking documents |
+| Tests | Vitest + Testing Library + jsdom | `src/__tests__` |
 
-### Backend
+### Backend (`apps/api`)
 
 | Component | Technology | Notes |
 |---|---|---|
-| Runtime | Node.js | Non-blocking I/O; consistent JS stack with frontend |
-| Framework | Express.js | Lightweight; modular middleware composition |
-| Architecture | Modular Monolith | Single deployable unit; domain separation without microservice operational overhead |
-| ORM | Prisma | Type-safe database access; 18 migrations (Jan–Apr 2026) |
-| Authentication | JWT (JSON Web Tokens) + token versioning | Stateless session management; `tokenVersion` field on User forces all tokens invalid on password change |
-| OAuth | Passport.js | Google and Facebook strategy; OAuth state secret protection |
-| Password Security | bcrypt | Industry-standard adaptive hashing |
-| Input Validation | Zod | Schema validation across all API endpoints |
-| Security Middleware | Helmet + CSRF (double-submit cookie) + CORS with credentials | See Security section for full detail |
-| Rate Limiting | express-rate-limit | Global (100 req / 15 min) + stricter auth routes (10 req / 15 min) |
-| Caching | Redis client (`ioredis`) | OSRM response cache, search result cache, rate-limiter store; self-hosted via Docker |
-| API Protocol | REST (primary); GraphQL flagged as optional | REST is simpler for the defined use case scope |
-| Real-time | Socket.IO (`socket.io` server + `socket.io-client`) | Mounted on the same HTTP server as Express at path `/socket.io`. Used by the messaging module (`Conversation` rooms `conversation:<id>` and per-user inbox rooms `user:<id>`). Handshake authenticates the same JWT used by REST (cookie or `auth.token`), re-validated against `tokenVersion`. Booking-status push and notification delivery remain on the roadmap. |
+| Runtime | Node.js (ESM, `tsx` in dev, `tsc` build) | |
+| Framework | Express 4 | |
+| ORM | Prisma 6 | 42 models, 27 enums, 31 migrations (Jan–Jul 2026) |
+| Authentication | JWT (`jsonwebtoken`) access + refresh tokens with `tokenVersion` | Tokens in cookies; refresh rotation |
+| OAuth | Hand-rolled OAuth 2.0 code flow for Google and Facebook | JWT-signed `state` (`OAUTH_STATE_SECRET`); **no Passport.js** |
+| Password hashing | `bcryptjs` | Account lockout via `failedLoginAttempts` / `lockedUntil` |
+| Validation | Zod via `middleware/validate.ts` | Applied on most modules; see Known Gaps |
+| Sanitization | `xss` | User-supplied text in auth/profile flows |
+| Security middleware | Helmet (CSP), CORS with credentials, double-submit CSRF, `express-rate-limit` | See Security |
+| Uploads | `multer` (memory storage) → Supabase Storage | 5 MB default limit |
+| Email | `nodemailer` over Brevo SMTP relay | No-op when SMTP is unconfigured |
+| Realtime | Socket.IO 4 on the same HTTP server (`/socket.io`) | Rooms `user:<id>` and `conversation:<id>` |
+| Reports | `exceljs` (Excel), `pdfkit` (PDF), CSV | Admin report exports |
+| Logging | `morgan` (`dev` / `combined`) + `console` | Pino is a roadmap item |
+| Tests | Vitest + Supertest | 254 tests; run against the dev database |
 
 ### Database
 
 | Component | Technology | Notes |
 |---|---|---|
-| Primary Store | PostgreSQL 16+ | Relational; strong ACID guarantees for financial transactions |
-| ORM | Prisma | Managed via `packages/database`; seed scripts included |
-| Schema | 30+ models | See Data Flow & Core Entities section |
-| Backup | Automated daily backups via `pg_dump` cron | Dumps stored to persistent volume or object storage |
+| Primary store | PostgreSQL 16 | ACID guarantees for financial transitions |
+| Spatial | **PostGIS** extension | `vehicles.geom` (trigger-maintained, GIST-indexed) for radius search; `itinerary_stops` / `itinerary_routes` geometry |
+| Migrations | Prisma Migrate | PostGIS extension, triggers and GIST indexes live in raw-SQL migrations, so use `migrate deploy`, not `db push` |
+| Seed | `packages/database/src/seed.ts` | Date-parameterised (`pnpm db:seed 2026-06-03` or `SEED_DEMO_DATE`) |
+| Backfills | `backfill:content`, `backfill:vehicle-coordinates`, `backfill:osrm-routes`, `backfill:settlement-bank-encryption` | Idempotent maintenance scripts |
 
-### Infrastructure & DevOps
+### Infrastructure & DevOps (all free-forever tiers)
 
-| Component | Technology | Notes |
+| Component | Choice | Notes |
 |---|---|---|
-| Hosting | **Undecided** — Oracle Cloud Always Free (4 ARM cores, 24 GB RAM), a managed VPS, or a monorepo-compatible PaaS (Railway, Render) are the candidate options. Decision pending. | Must support pnpm monorepo multi-app build and continuous process (no cold-start spin-down) |
-| File Storage | Supabase Storage (`@supabase/supabase-js`) | `travenest` bucket; private access via presigned URLs; covers vehicle photos, owner documents, review photos, payment receipts |
-| Caching | Redis OSS — **self-hosted via Docker** | `redis:7-alpine` image; co-located with backend; data persisted via Docker volume |
-| Observability — Logging | Pino | Structured JSON logs from Node.js backend |
-| Observability — Errors | GlitchTip — **self-hosted via Docker** | Sentry-SDK-compatible; no client SDK change required; only `SENTRY_DSN` env var points to self-hosted instance |
-| Reverse Proxy / TLS | Nginx + Let's Encrypt (Certbot) | Planned; terminates TLS, routes to Next.js and API processes; no `nginx.conf` in repo yet |
-| CI/CD | [Requires Clarification — pipeline not yet defined] | |
+| Web hosting | **Vercel Hobby** | Root directory `apps/web`; Hobby is non-commercial use only (fine for the academic deliverable; Pro needed for a commercial launch) |
+| API hosting | **Oracle Cloud Always Free VM** (Ampere A1) | Long-running Node process (PM2 or Docker); needed for Socket.IO and in-process jobs, which serverless (Vercel) cannot host |
+| Routing engine | **OSRM, self-hosted via Docker** on the same VM | Sri Lanka OSM extract; `OSRM_BASE_URL` (dev default `http://127.0.0.1:5001`) |
+| Reverse proxy / TLS | Caddy (automatic Let's Encrypt) on the VM | Planned; not in repo |
+| Database | Managed free Postgres with PostGIS (Supabase or Neon) | Supabase free projects pause after 7 days inactive; Neon scales to zero |
+| File storage | Supabase Storage, `travenest` bucket | See Security for current URL model |
+| Email | Brevo free tier (300 emails/day) | |
+| CI | GitHub Actions (`.github/workflows/ci.yml`, `pr.yml`) | Lint, typecheck, tests, build. Known issue: the test DB uses plain `postgres:16-alpine` + `db:push`, which cannot create the PostGIS schema; switch to a PostGIS image + `db:migrate:deploy` |
+| CD | `.github/workflows/cd.yml` | Validation job is active; deploy steps are commented-out placeholders |
+| Error tracking | Sentry Developer (free) | **Roadmap**; no SDK installed yet |
 
 ---
 
-## Deployment & Containerization
+## Deployment Topology (planned)
 
-All self-hosted infrastructure components are managed as Docker containers. The following services run via Docker on the production host:
+```
+                 ┌──────────────────────────┐
+  Browser ──────▶│ Vercel (apps/web)        │  app.<domain>
+     │           └──────────────────────────┘
+     │           ┌──────────────────────────────────────────────┐
+     └──────────▶│ Oracle Always Free VM                        │  api.<domain>
+                 │  Caddy (TLS) → Node API :5000 (PM2)          │
+                 │               └─▶ OSRM container :5001       │
+                 └──────────────────────────────────────────────┘
+                          │                         │
+                 Supabase/Neon Postgres+PostGIS   Supabase Storage
+```
 
-| Service | Docker Image | Persistence | Notes |
-|---|---|---|---|
-| Redis | `redis:7-alpine` | Docker named volume (`redis_data`) | Append-only file (AOF) persistence enabled to survive container restarts |
-| GlitchTip | `glitchtip/glitchtip` | Docker named volume + shared PostgreSQL schema or dedicated DB | Requires `SECRET_KEY`, `DATABASE_URL`, `DEFAULT_FROM_EMAIL` env vars; exposes port `8000` internally |
-| Nginx | `nginx:alpine` | Config bind-mounted from host | Terminates TLS via Certbot; proxies `/api/*` to Express, `/*` to Next.js |
-
-**Orchestration:** Docker Compose is the recommended orchestration layer for managing the service stack on a single host. A `docker-compose.yml` at the repository root should define all self-hosted services (Redis, GlitchTip, Nginx) alongside volume and network declarations.
-
-**The Node.js API (`apps/api`) and Next.js frontend (`apps/web`) are run as host processes** managed by PM2 (or equivalent) rather than Docker containers, to take advantage of the pnpm monorepo build pipeline and `packages/` shared code. Containerizing these apps would require a multi-stage Dockerfile that replicates the monorepo workspace resolution — acceptable as a future hardening step.
-
-**GlitchTip Integration Detail:**
-- The existing Sentry SDK in `apps/api` and `apps/web` requires no code change.
-- Only the `SENTRY_DSN` environment variable value changes to point to the self-hosted GlitchTip instance (e.g., `http://glitchtip:8000/api/<project-id>/`).
-- GlitchTip shares the PostgreSQL instance (separate schema or separate database) to avoid introducing an additional database engine.
+Deployment notes:
+- **Same-site domains are strongly recommended.** Auth cookies are `SameSite=None; Secure` in production, but browsers increasingly block third-party cookies. Serving web and API from subdomains of one registrable domain (for example `app.` and `api.`) keeps the refresh and CSRF cookies first-party. Plain `*.vercel.app` + a different API host is fragile.
+- **Oracle Always Free caveats:** the A1 allowance was reportedly reduced in 2026 (to about 2 OCPU / 12 GB), which is still sufficient for the API and the Sri Lanka OSRM graph. Instances idle for 7 days (95th-percentile CPU, network and memory under 20%) are eligible for reclamation.
+- **Background jobs** run in-process, so the API must run as a **single instance**. Scaling out requires pinning jobs to one instance and moving Socket.IO to a shared adapter.
+- **PayHere webhooks** need a public HTTPS `PAYHERE_NOTIFY_URL`. Locally, use ngrok or the simulator (`pnpm --filter @travenest/api payhere:simulate <bookingId>`).
+- `GET /health` returns `{ status, timestamp, uptime }` for liveness checks.
 
 ---
 
@@ -135,227 +154,187 @@ All self-hosted infrastructure components are managed as Docker containers. The 
 
 ### Primary Domain Entities
 
-The PostgreSQL schema (managed via Prisma) contains 30+ models organized across seven domain clusters:
+The Prisma schema (`packages/database/prisma/schema.prisma`) has 42 models. Table names are snake_case via `@@map`.
 
 **Identity & Access**
-- `users` — base identity record; `user_type` enum: `customer | owner | admin`
-- `customers` — customer profile extension; `organization_type` enum: `school | religious | corporate | event_planner | individual`
-- `bus_owners` — owner profile; `verification_status` lifecycle: `pending → approved | rejected | suspended`
-- `OtpToken` — Email OTP token store with expiry enforcement and max-attempt limiting; OTP codes are delivered via Brevo transactional email
-- `AdminRole` — admin sub-role assignment: `SUPER_ADMIN | MODERATOR | FINANCE_ADMIN | SUPPORT_ADMIN`
-- `AdminPermission` — granular permission records per admin user, enforced at route level
+- `User` (`users`): single identity table for all roles. `role`: `CUSTOMER | VEHICLE_OWNER | ADMIN`; `adminRole`: `SUPER_ADMIN | MODERATOR | FINANCE_ADMIN | SUPPORT_ADMIN`; `status`: `ACTIVE | INACTIVE | SUSPENDED | PENDING_VERIFICATION`. Owner business fields (`businessName`, `businessRegNumber`, `tinNumber`) and verification fields (`verifiedAt`, `rejectionReason`) live on the user row. Security fields: `tokenVersion`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`.
+- `AdminPermission`: granular permission strings per admin, enforced by `requireAdminPermission()`.
+- `OtpToken`: hashed OTP codes (`LOGIN | REGISTRATION | PHONE_VERIFICATION`) with expiry and attempt counting.
+- `PasswordResetToken`: hashed single-use reset tokens.
+- `AuditLog`: actor-based audit trail (`actorId`, `actorRole`, `action`, `entityType/Id`, `changes`, IP, user agent, status).
 
 **Fleet & Inventory**
-- `vehicles` — core listing entity; `vehicle_type` enum (implemented): `ORDINARY | SEMI_LUXURY | LUXURY_AC`; pricing fields: `base_price_per_km`, `base_price_per_day`, `driver_allowance_per_day`
-- `vehicle_photos` — Supabase Storage URL references; `is_primary` flag; `photo_type` enum: `exterior | interior | seats | dashboard | other`
-- `amenities` + `vehicle_amenities` — normalized M:N amenity mapping
-- `vehicle_availability` — date-range blocking calendar
-- `owner_documents` + `vehicle_documents` — document store with `verification_status` per document
-
-**Trip Packages**
-- `TripPackage` — owner-defined fixed-price packages: route, vehicle, schedule, all-inclusive price; bookable directly by customers bypassing the quotation flow
+- `Vehicle`: `type`: `ORDINARY | SEMI_LUXURY | LUXURY_AC`; `acType` (`full-ac | ac | non-ac`); seats, fuel, transmission; `amenities String[]`; pricing (`pricePerDay`, `pricePerKm`, `fuelCostPerKm`, `driverAllowance`, minimums); `latitude/longitude` plus trigger-derived PostGIS `geom`; `isActive` / `isAvailable`.
+- `VehiclePhoto`: `tag`: `EXTERIOR | INTERIOR | FRONT | REAR | SEATS | OTHER`, `isPrimary`, `sortOrder`.
+- `VehicleDocument` / `OwnerDocument`: `type`: `NIC | DRIVING_LICENSE | INSURANCE | REGISTRATION_CERTIFICATE | PROFILE_PHOTO | VEHICLE_PHOTO`; `status`: `PENDING | VERIFIED | REJECTED`; per-document admin review.
+- `VehicleAvailability`: date-range blocks (owner-blocked or booking-blocked).
+- `Amenity`: admin-managed amenity catalogue (vehicles store amenity codes as an array, not a join table).
+- `Driver`: owner driver roster (`ACTIVE | INACTIVE`); assigned to bookings via `Booking.driverId`.
 
 **Trip & Quotation Pipeline**
-- `trips` — customer-planned trip plan; trip-level fields stored once (pickup/dropoff with coordinates, date range, start time, passenger count, vehicle-type preference, AC flag, special requests, intermediate stops as JSON, OSRM-derived distance/duration estimates); `status` enum: `PLANNING | AWAITING_QUOTES | CONFIRMED | COMPLETED | CANCELLED | EXPIRED`. Single source of truth for trip details; multiple vehicle quotations attach to one trip via `Quotation.tripId`.
-- `quotations` — both the customer's per-vehicle request and the owner's response live in this single table. Each row carries a `tripId` (nullable for legacy rows; required for new requests). Owner response columns: full cost breakdown stored as discrete columns plus a `customItems` JSON field; `validity_period` with `expires_at` enforcement; `status` enum: `PENDING | SENT | VIEWED | ACCEPTED | REJECTED | EXPIRED`. The original `quotation_requests` concept described in earlier revisions is realised by the `Quotation` rows with `status = PENDING` plus their parent `Trip`.
-- `itinerary_stops` / `itinerary_routes` — PostGIS-backed ordered stops and OSRM-cached route geometry, keyed on `quotationId`. Trip-level itinerary captured as JSON on `trips.itineraryStops` / `trips.itineraryRoute` to avoid duplicating PostGIS tables for the trip-level snapshot.
+- `Trip` (`trips`): `tripCode` (`TRP-YYYY-NNN`); pickup/dropoff with city, district and coordinates; dates, round-trip flag, passengers, vehicle-type preference, `needsAC`; OSRM estimates; itinerary JSON. `status`: `PLANNING | AWAITING_QUOTES | CONFIRMED | COMPLETED | CANCELLED | EXPIRED`.
+- `Quotation` (`quotations`): request and owner response in one row; `quotationId` (`QUO-YYYY-NNN`), `tripId`; cost breakdown (`vehicleRentalCost`, `driverCost`, `fuelCost`, `tollCharges`, `permitFees`, `customItems`, `subtotal`, `tax`, `totalAmount`); `validUntil`. `status`: `PENDING | SENT | VIEWED | ACCEPTED | REJECTED | EXPIRED`.
+- `ItineraryStop` / `ItineraryRoute`: PostGIS point and linestring geometry per quotation (OSRM route stored, not recomputed on view).
 
 **Transaction**
-- `bookings` — transaction record created the moment a customer accepts a quotation; `booking_status` enum (implemented): `PENDING` (reserved, awaiting payment) `| CONFIRMED` (payment completed) `| ONGOING | COMPLETED | CANCELLED`. Carries a nullable `quotationId` foreign key back to the accepted `Quotation` (legacy rows encode the `QUO-` code in `notes` and are resolved via that fallback). *Roadmap:* `DISPUTED` as an additional status.
-- `booking_itinerary` — immutable snapshot of itinerary at time of booking
-- `bookings` (driver fields) — `driver_name`, `driver_license`, `driver_contact` stored directly on the booking record
-- `payments` — payment record; `payment_method` enum: `credit_card | debit_card | bank_transfer | cash | other`; `payment_status` lifecycle: `pending → processing → completed | failed | refunded | cancelled`
-- `payment_receipts` — uploaded receipt documents for bank transfer and cash payments (Supabase Storage URLs)
-- `Settlement` + `SettlementBooking` — admin-managed batch payout model; `Settlement` groups multiple `SettlementBooking` line items for bulk owner disbursement; bank account details encrypted at rest via `settlementBankEncryption.ts`. *Note: per-transaction automatic `payment_splits` ledger entries (owner | platform | driver) are a roadmap item for a finer-grained audit trail.*
+- `Booking`: `status`: `PENDING | CONFIRMED | ONGOING | COMPLETED | CANCELLED`; `quotationId` FK (nullable; legacy rows resolve via `QUO-` code in `notes`); optional `tripPackageId`; driver fields (`driverId`, plus denormalized `driverName`, `driverPhone`, `driverLicense`).
+- `TripItinerary`: per-day itinerary for multi-day bookings.
+- `TripPackage`: owner fixed-price packages, bookable directly.
+- `Payment`: one per booking; `status`: `PENDING | PROCESSING | COMPLETED | FAILED | REFUNDED`; `method` string (card / bank transfer / cash); PayHere ids; bank-receipt fields inline (`bankReceiptUrl`, name, size, mime, timestamp); `refundAmount`, `refundReason`.
+- `Settlement` + `SettlementBooking`: owner payout ledger (`PENDING | PROCESSING | COMPLETED | FAILED | CANCELLED`). Paid bookings accrue automatically into the owner's open settlement; cancellation or refund unwinds the line.
+- `OwnerBankAccount`: owner payout account, `accountNumber` encrypted at rest.
+- `CommissionRule`: `PERCENTAGE | FIXED | TIERED` with effective date ranges.
 
 **Trust & Communication**
-- `reviews` — aggregate star rating (1–5) + free-text; booking-linked for verified flag. *Roadmap:* sub-dimension columns (vehicle condition, driver behavior, punctuality, cleanliness, value for money).
-- `conversations` + `messages` — in-platform customer ↔ owner messaging. `Conversation.bookingId` is `@unique` (1-to-1 with `Booking`); the owner is derived through `Booking → Vehicle → ownerId` rather than denormalized on the conversation. `Message` carries `senderId`, `content`, `readAt`, plus `(conversationId, createdAt)` index for thread paging. `Conversation.lastMessageAt` is denormalized for efficient list sorting.
-- `DisputeMessage` — structured message thread scoped to a dispute; accessible to involved parties and admin
-- `notifications` — multi-channel delivery log: `in_app | email | push`; `delivery_status`: `pending | sent | delivered | failed`
-- `disputes` — dispute lifecycle: `OPEN → INVESTIGATING → RESOLVED | CLOSED | ESCALATED`; `priority`: `low | medium | high | urgent`
+- `Review`: overall `rating` (1–5) plus **six optional sub-ratings** (vehicle condition, driver behaviour, punctuality, cleanliness, value for money), `isRecommended`, `ownerResponse`; one per booking.
+- `Conversation` (unique per booking) + `Message` (`readAt`): booking-scoped customer ↔ owner chat.
+- `Dispute`: `type`: `BOOKING_QUALITY_ISSUE | CANCELLATION_DISPUTE | PAYMENT_ISSUE | VEHICLE_CONDITION | BEHAVIOR_COMPLAINT | SERVICE_NOT_PROVIDED | OTHER`; `priority`: `LOW | MEDIUM | HIGH | URGENT`; `status`: `OPEN | INVESTIGATING | RESOLVED | CLOSED | ESCALATED`; evidence URLs; resolution fields.
+- `DisputeMessage`: thread with `isInternalNote` for admin-only notes.
+- `Notification`: in-app notification records (`type`, `category`, `data`, `isRead`).
+- `PlatformNotification`: admin broadcast notifications (`IN_APP | EMAIL | SMS` channel enum; `DRAFT | SCHEDULED | SENT | FAILED | CANCELLED`) with resend lineage.
 
-**Platform Operations**
-- `system_settings` / `PlatformConfig` / `PlatformSettings` — runtime key-value configuration stores (two overlapping stores exist; consolidation is a housekeeping item)
-- `audit_logs` — immutable action log (create / update / delete / login / logout / payment / booking events) with old/new value snapshots, IP address, user agent
-- `analytics_events` — behavioral event stream: device type, session ID, page URL, event category
-- `commission_rules` — configurable commission engine: `percentage | fixed | tiered` modes with booking amount brackets and effective date ranges
-- `ScheduledReport` + `ScheduledReportRun` — configurable report schedule definitions and their execution history
-- `Testimonial`, `PopularRoute`, `TrustedPartner`, `PlatformStat` — CMS-managed landing page content models
-- `ContactMessage` — persisted contact form submissions with admin visibility
+**Platform Operations & CMS**
+- `PlatformSettings`: JSON groups (`general`, `notification`, `payment`, `booking`, `security`, `map`, `pricing`), `maintenanceMode`. `bookingSettings` holds `autoCancelUnpaidHours` and the refund policy; `pricingSettings` holds platform base rates per vehicle type.
+- `PlatformConfig`: key/value JSON store used by the landing/contact content (overlaps with `PlatformSettings`; consolidation is a housekeeping item).
+- `ContentPage` (slugged pages: privacy, terms, refund policy, etc.), `Faq`, `Testimonial`, `PopularRoute`, `TrustedPartner`, `PlatformStat`.
+- `ContactMessage`: contact form submissions with `referenceId` and reply tracking.
+- `ScheduledReport` + `ScheduledReportRun`: report definitions (`USERS | BOOKINGS | FINANCIAL | OPERATIONS | AUDIT | DISPUTES | VERIFICATIONS | SYSTEM`; `CSV | PDF | EXCEL`) and run history.
 
 ### Core Data Flow: Trip-to-Booking
 
 ```
 1. Customer plans a Trip
-   → Customer fills the trip form (pickup, dropoff, dates, passengers, stops)
-   → Trip created with status = PLANNING; OSRM-derived distance/duration cached on row
-   → Redis checked for cached OSRM result keyed by coordinate pair before any outbound call
+   → Pickup/dropoff picked via Nominatim autocomplete; route computed by OSRM
+     (POST /routing/calculate or /landing/route-estimate)
+   → Trip created (PLANNING) with distance/duration estimates and itinerary JSON
 
 2. Customer requests Quotations for the Trip
-   → For each vehicle the customer adds, a Quotation row is created with status = PENDING
-     and tripId = <Trip.id>
-   → Trip status flips from PLANNING → AWAITING_QUOTES on first attached quotation
-   → If the customer reaches the new-quotation form with an active trip in flight, the
-     UI prompts them to attach to the existing trip (pre-filling all trip fields) or
-     start a new one — no implicit defaulting
+   → One Quotation (PENDING) per vehicle, tripId set; Trip → AWAITING_QUOTES
+   → If an active trip exists, the UI asks: attach to it or start a new trip
 
-3. System surfaces the request to eligible owners
-   (filtered by base_location, availability, vehicle_type_preference)
-   → Redis: eligible owner set cached to avoid redundant DB queries on re-render
+3. Owner prices the Quotation
+   → Form pre-fills from platform pricing: rental = vehicle.pricePerKm × trip distance,
+     fuel = fuelCostPerKm × distance, plus driver cost and toll defaults
+   → Owner adjusts line items / custom items, sets validity → SENT (validUntil set)
+   → Customer opening it → VIEWED
 
-4. Owner generates Quotation (manual pricing — current)
-   → Owner enters: vehicle_rental_cost, driver_cost, fuel_cost, toll_charges, permit_fees, other_charges
-   → [Roadmap: OSRM distance pre-populates base cost via (Distance × rate/km) + driver_allowance]
-   → AI Pricing Suggestions endpoint consulted as optional hint
-   → Quotation stored with expires_at = created_at + validity_period
+4. Customer compares and accepts one Quotation
+   → Booking created as PENDING (a reserve holding the vehicle's dates), quotationId FK set
+   → Sibling quotations under the Trip are auto-rejected; Trip → CONFIRMED
+   → No owner re-confirmation step
 
-5. Customer compares Quotations under the Trip → accepts one → Booking auto-created
-   → Accepting the quotation is the single action that creates the Booking, with
-     status: PENDING — a reserve that holds the vehicle's dates. The owner does NOT
-     re-confirm; price and availability were committed when the quotation was sent.
-   → The sibling quotations under the same Trip are auto-rejected
-   → Trip status flips AWAITING_QUOTES → CONFIRMED on quotation acceptance
-   → Booking carries a quotationId FK back to the accepted quotation
-   → Customer is routed to the booking to pay (PayHere / bank transfer / cash)
+5. Payment
+   → PayHere: checkout → MD5-signed webhook verified → Payment COMPLETED
+   → Bank transfer: receipt upload → PROCESSING → admin/owner confirms → COMPLETED
+   → Cash: recorded for on-site settlement
+   → On completion, in one $transaction: Booking PENDING → CONFIRMED,
+     VehicleAvailability block created, settlement line accrued (idempotent)
+   → Notifications created (in-app + Socket.IO push; booking_confirmed and
+     payment_received are also emailed via Brevo)
 
-6. Payment completed → Booking confirmed (atomic cascade)
-   → PayHere: MD5-signed webhook callback received and verified → payment_status: completed
-   → On completion, in a single $transaction: booking_status PENDING → CONFIRMED AND
-     vehicle_availability blocked for the booking date range (owner calendar and booking
-     ledger stay in sync). Idempotent, so webhook retries are safe.
-   → Bank transfer / Cash: receipt uploaded → PROCESSING → admin/owner confirmation
-     applies the same completion cascade
-   → [Roadmap: per-transaction payment_splits records created for owner | platform | driver]
-   → In-app Notification records created for both parties
-   → [Roadmap: Transactional email dispatched via Brevo SMTP (nodemailer) to both owner and customer]
-   → Digital invoice generated
+6. Trip execution
+   → Owner assigns a Driver from the roster, starts the trip (ONGOING), completes it
+   → Customer can review (overall + six sub-ratings), message the owner, or raise a dispute
 
-7. Trip lifecycle & background sweeps (see Background Jobs)
-   → Owner starts the trip within its window → booking_status ONGOING → COMPLETED
-   → A PENDING reserve left unpaid past the configured window (autoCancelUnpaidHours,
-     default 24h) is released by a background sweep: booking_status → CANCELLED and the
-     parent Trip returns to AWAITING_QUOTES (cash / bank-receipt reserves are exempt)
-   → The same sweep expires stale SENT/VIEWED quotations (past validUntil) and
-     PLANNING/AWAITING_QUOTES trips (past end date)
-   → Paid bookings become eligible for the admin batch Settlement / SettlementBooking payout
+7. Cancellation
+   → Unpaid reserve: hold released
+   → Paid: refund % from the configurable policy (refundFullHours / refundPartialHours /
+     refundPartialPercent); PayHere merchant refund API when configured, otherwise
+     the amount is recorded for admin payout; settlement line unwound
 ```
 
-### Service Layer Architecture
+### Background Jobs
 
-Nine service classes implement the domain logic, each implementing a corresponding interface:
+In-process `setInterval` timers (unref'd), registered in `src/index.ts`:
 
-- `TripService` — customer trip CRUD, status lifecycle transitions (PLANNING → AWAITING_QUOTES → CONFIRMED / CANCELLED / EXPIRED), and the active-trips lookup that drives the New Quotation attach-to-trip prompt
-- `AuthenticationService` — JWT lifecycle, Email OTP generation/verification (delivered via Brevo), OAuth callback handling
-- `PaymentService` — PayHere integration (MD5 signing), bank transfer / cash confirmation, refund processing, commission calculation
-- `NotificationService` — multi-channel dispatch: in-app notification records (implemented); transactional email via Brevo SMTP/nodemailer (roadmap templates)
-- `GeocodingService` — OSRM public API wrapper (route display, distance computation; Distance Matrix / Table Service for auto-pricing is roadmap); Redis cache layer for OSRM responses
-- `StorageService` — Supabase Storage presigned URL generation, file upload/delete
-- `SearchService` — vehicle search with multi-parameter filter chain (capacity, amenities, price, location, district, date range, sort, pagination)
-- `QuotationService` — quotation generation, pricing calculation, AI suggestions endpoint, comparison result construction
-- `BookingService` — booking state machine management (PENDING → CONFIRMED → ONGOING → COMPLETED / CANCELLED)
+| Job | Cadence | Responsibility |
+|---|---|---|
+| `bookingLifecycle` | every 15 min (first run ~90 s after boot) | Cancel unpaid `PENDING` reserves older than `autoCancelUnpaidHours` (default 24 h; cash and receipt-uploaded reserves exempt) and return the trip to `AWAITING_QUOTES`; expire `SENT`/`VIEWED` quotations past `validUntil`; expire stale `PLANNING`/`AWAITING_QUOTES` trips |
+| `notificationRetention` | daily | Purge read notifications older than 90 days |
 
-Controllers expose REST endpoints per domain:
-`AuthController`, `VehicleController`, `BookingController`, `PaymentController`, `ReviewController`, `AdminController`, `AnalyticsController`, `TripPackageController`
+Quotation and trip expiry is also applied lazily on read. Scheduled-report definitions exist, but **no job executes them automatically**; reports run on demand from the admin portal.
+
+### Module Layout
+
+Each module in `apps/api/src/modules/<domain>/` follows `<domain>.routes.ts` → `<domain>.controller.ts` → `<domain>.service.ts`, with Zod schemas in `<domain>.schemas.ts`. The admin module is split into sub-modules: `amenities`, `analytics`, `audit`, `bookings`, `content`, `dashboard`, `disputes`, `faqs`, `financial` (settlements, commissions), `notifications`, `profile`, `reports`, `reviews`, `settings`, `testimonials`, `users`, `vehicles`, `verifications`.
+
+REST base path: `/api/v1`. Mounted routers: `auth`, `users`, `vehicles`, `bookings`, `quotations`, `trips`, `reviews`, `disputes`, `payments`, `notifications`, `messages`, `owner`, `packages`, `uploads`, `admin`, `landing`, `content`, `routing`, `drivers`.
 
 ---
 
 ## Integration Points
 
-| Service | Provider | Integration Method | Status |
+| Service | Provider | Method | Status |
 |---|---|---|---|
-| Routing & Distance | OSRM (public API — `router.project-osrm.org`) | REST HTTP — `/route/v1/driving/`, `/table/v1/driving/` | Implemented for route display; Table Service for auto-pricing is roadmap |
-| Payment Gateway | PayHere (LK) | REST API + MD5-signed webhook callback | Implemented (sandbox + live) |
-| Transactional Email / OTP | Brevo SMTP | SMTP via nodemailer (`smtp-relay.brevo.com:587`) | Configured; transactional email templates are roadmap; free tier: 300 emails/day |
-| File Storage | Supabase Storage | `@supabase/supabase-js` SDK | Implemented; `travenest` bucket; private access via presigned URLs |
-| OAuth | Google + Facebook | Passport.js strategy (OAuth 2.0) | Implemented |
-| Error Tracking | GlitchTip (self-hosted, Docker) | Sentry SDK DSN pointed to self-hosted instance | Self-hosted; no SDK change from prior Sentry integration |
+| Routing & distance | OSRM, **self-hosted Docker** | HTTP via `axios`: `/trip/v1/driving` (API routing module), `/route/v1/driving` (seed and backfill scripts); geometry persisted to PostGIS | Implemented |
+| Maps | OpenStreetMap tiles | Leaflet in the browser | Implemented |
+| Geocoding | Nominatim (OSM public API) | Browser `fetch` | Implemented (public usage policy: ≤1 req/s, no heavy use) |
+| Payments | PayHere (LK) | Checkout + MD5-verified webhook (`POST /payments/webhook`) + merchant API OAuth + refund API | Implemented (sandbox and live) |
+| Email | Brevo SMTP relay | `nodemailer` | Implemented: OTP, password reset, booking-confirmed and payment-received emails |
+| File storage | Supabase Storage | `@supabase/supabase-js` with publishable key | Implemented (public object URLs; see Security) |
+| OAuth | Google, Facebook | Direct OAuth 2.0 code exchange (`fetch`) | Implemented |
+| Error tracking | Sentry (Developer free tier) | `@sentry/*` SDKs | Roadmap |
 
-**PayHere Webhook Dependency:** The backend exposes `/payments/webhook`. PayHere's webhook payload is verified via MD5 hash before any booking status mutation. Failure or delay in webhook delivery creates a window where payment is processed but booking remains unconfirmed — requiring retry logic and dead-letter handling as a hardening item.
+**Free-tier rationale:** paid or time-limited tools were replaced with free-forever options. Google Maps became OSRM + Leaflet/OSM + Nominatim, AWS S3 became Supabase Storage, Twilio SMS was dropped in favour of email OTP via Brevo, Passport.js became a direct OAuth implementation, and self-hosted Redis/GlitchTip were deferred.
 
-**OSRM Public API Usage Note:** The public OSRM demo server (`router.project-osrm.org`) is provided for testing and low-volume use. It has no formal SLA and imposes rate limits on heavy traffic. Redis caching of all OSRM responses (keyed by coordinate pair, TTL 24 hours) is mandatory to stay within acceptable request volumes. If request volume exceeds the public API's tolerance, a self-hosted OSRM instance processing the Sri Lanka OSM PBF extract (~50 MB, ~512 MB RAM) is the zero-cost fallback.
-
-**Brevo Email Volume:** The Brevo free tier allows 300 transactional emails per day with no expiry. This is sufficient for early production (OTP delivery, booking confirmations, notifications). If daily volume exceeds 300, the Brevo Starter plan ($25/month for 20,000 emails/month) is the upgrade path.
+**PayHere webhook dependency:** if webhook delivery fails, a card payment can stay `PROCESSING`. Retry and reconciliation handling is a hardening item.
 
 ---
 
 ## Security & Scalability Considerations
 
-### Security
+### Security (implemented)
 
-**Authentication & Session Management**
-- JWT tokens with refresh token rotation. `tokenVersion` field on the `User` model is incremented on password change, immediately invalidating all previously issued tokens for that user without a token blocklist.
-- **Email OTP** tokens generated server-side with expiry enforcement and max-attempt limiting (`OtpToken` model). OTP codes are delivered exclusively via Brevo transactional email through the `nodemailer` SMTP transport. No SMS channel is used.
-- Passwords hashed with bcrypt.
-- OAuth 2.0 (Google, Facebook) via Passport.js; OAuth state parameter validated to prevent CSRF on the callback.
+**Authentication & sessions**
+- JWT access and refresh tokens in cookies (`SameSite=None; Secure` in production, `Lax` in development); refresh rotation. `tokenVersion` is checked on every request and socket handshake; incrementing it on password change invalidates all sessions.
+- Password login with bcrypt and account lockout; passwordless email OTP login (hashed codes, expiry, attempt limits).
+- OAuth `state` is a signed JWT, validated on callback.
 
-**Transport Security**
-- TLS 1.2+ enforced on all client-server communication via Nginx + Let's Encrypt (Certbot).
-- HTTPS-only; HTTP redirected at Nginx reverse proxy level.
+**Request hardening**
+- Helmet with an explicit CSP; CORS restricted to `CORS_ORIGIN` with credentials.
+- **CSRF:** double-submit cookie (`csrf-token` cookie + `x-csrf-token` header, timing-safe compare) on mutating routes in the public, customer and owner modules. Skipped when `NODE_ENV=test`.
+- **Rate limiting:** global 100 req / 15 min and auth 10 req / 15 min per IP, **enforced only when `NODE_ENV=production`**, using the in-memory store.
+- RBAC: `authenticate`, `isCustomer`, `isVehicleOwner`, `isAdmin`, plus `requireAdminRole()` / `requireAdminPermission()` for admin sub-roles.
+- Audit logging middleware records every authenticated mutation under `/api/v1`.
 
-**Request-Level Hardening (Implemented)**
-- **CSRF:** Double-submit cookie pattern implemented via `middleware/csrf.ts` on all mutating routes.
-- **Helmet:** Security response headers applied globally (X-Frame-Options, CSP, HSTS, etc.).
-- **CORS:** Configured with `credentials: true`; origin whitelist enforced.
-- **Rate Limiting:** Global limit of 100 requests / 15 minutes per IP; stricter auth-route limit of 10 requests / 15 minutes per IP (`express-rate-limit` backed by self-hosted Redis).
-- **Input Validation:** Zod schema validation applied across all API endpoints before business logic execution.
-- **RBAC Middleware:** Route-level guards — `isCustomer`, `isVehicleOwner`, `isAdmin`, and admin sub-role checks — enforce access control per endpoint.
+**Data integrity**
+- Payment completion, booking confirmation, availability blocking and settlement accrual run in a single Prisma `$transaction()` and are idempotent for webhook retries.
+- PayHere webhook MD5 signature verified before any state change.
+- Owner bank account numbers and settlement bank fields encrypted at rest (`packages/database/src/settlementBankEncryption.ts`; key from `SETTLEMENT_BANK_ENCRYPTION_KEY`, else `BANK_DATA_ENCRYPTION_KEY`, else derived from `JWT_SECRET`, so set an explicit key in production).
 
-**Data Integrity**
-- All financial state transitions (payment status, booking status) must be atomic database transactions to prevent race conditions (e.g., double-booking, split payment inconsistency).
-- Audit log (`audit_logs` table) captures all mutating operations with old/new value snapshots, IP address, and user agent — satisfies non-repudiation requirement for dispute resolution.
-- **PayHere Webhook Signature:** MD5 hash verification implemented before any payment or booking state is mutated on webhook receipt.
+### Known Gaps (open security and hardening items)
 
-**Data Privacy & Encryption**
-- PII handling must comply with applicable Sri Lankan data protection obligations.
-- Supabase Storage bucket is private; all asset URLs are time-limited presigned URLs generated server-side — raw bucket is not publicly accessible.
-- **Settlement Bank Field Encryption:** Owner bank account details stored in settlement records are encrypted at rest via `packages/database/src/settlementBankEncryption.ts`.
+| Gap | Current behaviour | Target |
+|---|---|---|
+| **Storage privacy** | Uploads use the publishable key and return **public** object URLs for all files, including owner NIC, licence and insurance documents and payment receipts | Private bucket for documents/receipts; server-generated short-lived signed URLs; public bucket only for vehicle photos and avatars |
+| CSRF coverage | `/admin/*` routes and `POST /uploads/registration` have no CSRF middleware | Apply `csrfProtection` to all mutating routes |
+| Validation coverage | `booking.routes.ts` has no Zod schemas (validated ad hoc in services) | Add `booking.schemas.ts` |
+| OTP logging | OTP codes are always printed to the console | Log only in development |
+| Rate limiter store | In-memory; resets on restart; not shared across instances | Redis store (roadmap) |
+| Logging | Morgan + `console`; no structured logs or PII redaction policy | Pino (roadmap) |
+| Error tracking | None | Sentry Developer free tier (roadmap) |
+| Unused dependency | `express-validator` installed but unused | Remove |
 
 ### Scalability
 
-**Current Architecture Constraints**
-- **Modular monolith** is appropriate for the current load target (500 concurrent users). Vertical scaling (larger instance) is the primary scaling lever before architectural decomposition is warranted.
-- **PostgreSQL** is the single point of contention at scale. Read replicas should be introduced before write throughput becomes a bottleneck. Connection pooling (PgBouncer) is recommended from initial deployment.
-- **Next.js SSG** pages for static content (homepage, listing pages) reduce backend load; Supabase Storage scales independently.
+- The modular monolith on one VM targets the stated 500 concurrent users. Vertical scaling is the first lever.
+- Horizontal scaling is blocked by in-process jobs and the single-instance Socket.IO adapter. Both need a shared backend (Redis adapter, distributed scheduler) first.
+- PostgreSQL is the main contention point; use the provider's connection pooler (Supabase pooler or Neon pooled URL) in production.
 
-**Horizontal Scaling Path**
-The modular monolith design — with domain separation across Auth, Booking, Vehicle, Payment, Notification, and Admin modules — allows extraction of high-load modules (e.g., Notification, Search) into independent services if load targets exceed single-instance capacity. This path is not required for the stated 500-user concurrent target.
+**Caching (roadmap, not implemented).** There is currently no application cache. Search queries hit Postgres directly. OSRM results for quotations are persisted in `itinerary_routes`, so route detail pages read stored geometry rather than calling OSRM again. Planned Redis usage:
 
-**Performance Targets**
-- Initial content load: < 2 seconds on 4G networks
-- Concurrent user capacity: ≥ 500 (peak season)
-- Uptime SLA: ≥ 99.9%
-
-**Caching Strategy (Self-Hosted Redis via Docker)**
-
-Redis OSS (`redis:7-alpine`) is the application-level caching layer, running as a Docker container with AOF persistence enabled.
-
-| Cache Target | Key Pattern | TTL | Rationale |
-|---|---|---|---|
-| OSRM distance / route results | `osrm:dist:{origin_hash}:{dest_hash}` | 24 hours | Prevents redundant outbound calls to the public OSRM API; mandatory given the absence of a formal SLA on the public endpoint |
-| Vehicle search results | `search:{filter_hash}:{page}` | 5 minutes | Reduces DB load on high-traffic listing pages |
-| Rate limiter counters | `rl:{ip}:{route}` | Per window (15 min) | Backing store for `express-rate-limit` |
-| OTP attempt counters | `otp:attempts:{userId}` | Per OTP TTL | Enforces max-attempt policy without a synchronous DB write per attempt |
-
-Redis is also usable as the backing store for WebSocket session state when real-time notification delivery is implemented. The current Socket.IO server is single-instance (in-memory adapter); migrating to the Redis adapter is required before scaling the API horizontally.
-
-**Database Indexing**
-Critical indexes required on high-query paths: `vehicles(owner_id, is_active, vehicle_type)`, `vehicle_availability(vehicle_id, start_date, end_date)`, `quotation_requests(customer_id, status)`, `bookings(customer_id, owner_id, booking_status)`, `payments(booking_id, payment_status)`.
-
-**Background Jobs**
-
-Time-based transitions run as in-process scheduled sweeps (plain `setInterval`, timers `unref`'d — no external cron/scheduler dependency, matching the single-instance host-process model). Two jobs are registered at server start:
-
-| Job | Cadence | Responsibility |
+| Cache target | Key pattern | TTL |
 |---|---|---|
-| `notificationRetention` | daily | Purge read notifications older than the retention window |
-| `bookingLifecycle` | every 15 min | (1) Release unpaid `PENDING` reserves past `autoCancelUnpaidHours` → `CANCELLED`, returning the parent trip to `AWAITING_QUOTES` (cash / bank-receipt reserves exempt); (2) expire stale `SENT`/`VIEWED` quotations past `validUntil` and `PLANNING`/`AWAITING_QUOTES` trips past their end date |
+| OSRM route results | `osrm:route:{coords_hash}` | 24 h |
+| Vehicle search results | `search:{filter_hash}:{page}` | 5 min |
+| Rate-limiter counters | `rl:{ip}:{route}` | 15 min window |
+| Socket.IO adapter | — | — |
 
-Quotation/trip expiry is still additionally applied lazily on read as a fast-path; the sweep guarantees eventual consistency without requiring a record to be opened. If the API is scaled horizontally, these jobs must be pinned to a single instance (or moved to a distributed scheduler) to avoid duplicate runs.
+**Indexes in place:** `bookings(customerId, status, startDate)`, `bookings(vehicleId, startDate, endDate)`, `bookings(driverId, startDate, endDate)`, `quotations(tripId)`, `quotations(validUntil)`, `trips(customerId, status)`, GIST on `vehicles.geom`, plus per-FK indexes.
 
-**Observability**
+**Performance targets:** initial content < 2 s on 4G; ≥ 500 concurrent users; ≥ 99.9% uptime (best effort on free tiers).
 
-- **Structured Logging (Pino):** All backend modules emit structured JSON logs via Pino. Log levels (debug / info / warn / error) are environment-controlled. Logs are collected by the hosting platform's log aggregation pipeline or written to stdout for Docker log driver capture.
-- **Error Tracking (GlitchTip — self-hosted Docker):** GlitchTip runs as a Docker container (`glitchtip/glitchtip`) on the production host. The existing Sentry SDK in both `apps/api` and `apps/web` requires no code change — only the `SENTRY_DSN` environment variable is updated to point to the self-hosted GlitchTip instance. Unhandled exceptions, rejected promises, and explicit `captureException()` calls are routed to GlitchTip with environment tagging (development / staging / production). GlitchTip stores error event data in PostgreSQL (shared instance, dedicated schema).
-- **Health Check Endpoint:** A `GET /health` endpoint should be exposed for hosting platform readiness and liveness probes. [Requires Clarification — not yet confirmed in codebase]
-- **Metrics:** Application-level metrics (request throughput, error rate, response time) are derived from GlitchTip performance monitoring and hosting platform native metrics. A dedicated metrics stack (Prometheus + Grafana) is not required at current scale.
+### Observability
+
+- **Current:** Morgan access logs (`dev` format locally, `combined` otherwise), `console` output for jobs and services, `GET /health`, `GET /api/v1/admin/health`.
+- **Roadmap:** Pino structured JSON logging with redaction; Sentry Developer free tier (1 user, ~5k errors/month) for both apps.

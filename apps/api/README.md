@@ -1,137 +1,75 @@
-# TraveNest API
+# TraveNest API (`@travenest/api`)
 
-Express.js backend API for the TraveNest vehicle rental management system.
+Express 4 modular-monolith backend for the TraveNest bus charter marketplace. It serves the REST API at `/api/v1`, a Socket.IO server at `/socket.io`, and `GET /health`.
 
-## Quick Start
+For setup (environment variables, PostGIS, OSRM, seeding), see the [root README](../../README.md). For design, see [`architecture.md`](../../architecture.md).
+
+## Commands
+
+Run from the repository root:
 
 ```bash
-# From the root directory
-npm install
-npm run dev:api
-
-# Or from this directory
-npm run dev
+pnpm dev:api                                    # tsx watch on http://localhost:5000
+pnpm build:api && pnpm start:api                # production build / run
+pnpm test                                       # Vitest + Supertest suite (uses DATABASE_URL)
+pnpm --filter @travenest/api lint
+pnpm --filter @travenest/api payhere:simulate <bookingId>   # complete a PayHere payment locally
 ```
 
-## Project Structure
+## Structure
 
 ```
 apps/api/
+├── scripts/simulatePayhereWebhook.ts   # signed PayHere webhook simulator
 ├── src/
-│   ├── index.ts           # Server entry point
-│   ├── app.ts             # Express app configuration
-│   ├── config/            # Environment configuration
-│   ├── middleware/        # Express middleware (auth, validation, error handling)
-│   └── modules/           # Feature modules
-│       ├── auth/          # Authentication (register, login, tokens)
-│       ├── user/          # User management
-│       ├── vehicle/       # Vehicle CRUD & search
-│       ├── booking/       # Booking management
-│       ├── quotation/     # Custom quotation requests
-│       ├── review/        # Reviews & ratings
-│       ├── payment/       # PayHere payment integration
-│       └── notification/  # User notifications
-├── .env.example           # Environment variables template
-├── package.json
-└── tsconfig.json
+│   ├── index.ts        # server start, Socket.IO init, background jobs
+│   ├── app.ts          # Express app: Helmet, CORS, rate limits, Morgan, routers
+│   ├── config/         # env-driven config (loads apps/api/.env and root .env)
+│   ├── middleware/     # auth (JWT + roles), csrf, validate (Zod), errorHandler, auditLogger
+│   ├── jobs/           # bookingLifecycle (15 min), notificationRetention (daily)
+│   ├── realtime/       # Socket.IO server (rooms user:<id>, conversation:<id>)
+│   ├── utils/          # response helpers, Supabase storage helpers
+│   └── modules/        # <domain>.routes / .controller / .service / .schemas
+│       ├── auth  user  owner  vehicle  driver
+│       ├── trip  quotation  booking  trip-package  payment
+│       ├── review  dispute  message  notification
+│       ├── routing  landing  content  uploads
+│       └── admin/      # amenities analytics audit bookings content dashboard disputes faqs
+│                       # financial notifications profile reports reviews settings
+│                       # testimonials users vehicles verifications
+└── tests/              # Vitest suites; env set in tests/setup.ts
 ```
 
-## API Endpoints
+## Routers (`/api/v1/...`)
 
-### Authentication
-
-| Method | Endpoint                       | Description               |
-| ------ | ------------------------------ | ------------------------- |
-| POST   | `/api/v1/auth/register`        | Register new user         |
-| POST   | `/api/v1/auth/login`           | Login user                |
-| POST   | `/api/v1/auth/refresh-token`   | Refresh access token      |
-| POST   | `/api/v1/auth/logout`          | Logout user               |
-| GET    | `/api/v1/auth/me`              | Get current user          |
-| PUT    | `/api/v1/auth/change-password` | Change password           |
-| POST   | `/api/v1/auth/forgot-password` | Request password reset    |
-| POST   | `/api/v1/auth/reset-password`  | Reset password with token |
-
-### Vehicles
-
-| Method | Endpoint                            | Description                  |
-| ------ | ----------------------------------- | ---------------------------- |
-| GET    | `/api/v1/vehicles`                  | List vehicles (with filters) |
-| GET    | `/api/v1/vehicles/:id`              | Get vehicle by ID            |
-| GET    | `/api/v1/vehicles/:id/availability` | Check vehicle availability   |
-| POST   | `/api/v1/vehicles`                  | Create vehicle (owner)       |
-| PUT    | `/api/v1/vehicles/:id`              | Update vehicle (owner)       |
-| DELETE | `/api/v1/vehicles/:id`              | Delete vehicle (owner)       |
-
-### Bookings
-
-| Method | Endpoint                        | Description              |
-| ------ | ------------------------------- | ------------------------ |
-| GET    | `/api/v1/bookings/my-bookings`  | Get customer's bookings  |
-| POST   | `/api/v1/bookings`              | Create booking           |
-| GET    | `/api/v1/bookings/:id`          | Get booking details      |
-| PATCH  | `/api/v1/bookings/:id/cancel`   | Cancel booking           |
-| PATCH  | `/api/v1/bookings/:id/confirm`  | Confirm booking (owner)  |
-| PATCH  | `/api/v1/bookings/:id/complete` | Complete booking (owner) |
-
-### Quotations
-
-| Method | Endpoint                         | Description                  |
-| ------ | -------------------------------- | ---------------------------- |
-| GET    | `/api/v1/quotations/my-requests` | Get customer's quotations    |
-| POST   | `/api/v1/quotations`             | Create quotation request     |
-| PATCH  | `/api/v1/quotations/:id/respond` | Respond to quotation (owner) |
-| PATCH  | `/api/v1/quotations/:id/accept`  | Accept quotation             |
-
-### Reviews & Payments
-
-| Method | Endpoint                         | Description                   |
-| ------ | -------------------------------- | ----------------------------- |
-| GET    | `/api/v1/reviews/vehicle/:id`    | Get vehicle reviews           |
-| POST   | `/api/v1/reviews`                | Create review                 |
-| POST   | `/api/v1/payments/create-intent` | Create PayHere payment intent |
-
-## Environment Variables
-
-Copy `.env.example` to `.env` and configure:
-
-```env
-NODE_ENV=development
-PORT=5000
-DATABASE_URL=postgresql://...
-JWT_SECRET=your-secret
-PAYHERE_MERCHANT_ID=your_merchant_id
-PAYHERE_MERCHANT_SECRET=your_merchant_secret
-```
-
-## Database
-
-This API uses Prisma with PostgreSQL. Run migrations:
-
-```bash
-# From root directory
-npm run db:migrate    # Run migrations
-npm run db:push       # Push schema changes
-npm run db:seed       # Seed demo data
-npm run db:studio     # Open Prisma Studio
-```
+| Prefix | Covers |
+|---|---|
+| `/auth` | CSRF token, register, password login, email OTP send/verify, refresh, logout, me, forgot/reset/change password, Google and Facebook OAuth |
+| `/users` | Profile, address, avatar, change password, delete account, customer dashboard stats |
+| `/owner` | Owner registration, profile, documents, dashboard, analytics, reviews, earnings, settlements, bank account |
+| `/vehicles` | Search (PostGIS radius tiers), detail, similar vehicles, pricing config, owner fleet CRUD, photos, documents, availability, activation requests |
+| `/drivers` | Owner driver roster, available drivers, assign/unassign to a booking |
+| `/trips` | Customer trips: create, list, active, update, cancel |
+| `/quotations` | Customer requests, owner inbox/sent, send, respond (accept/reject), pricing suggestions |
+| `/bookings` | Create from quotation, customer/owner lists, cancel, start, complete, driver, itinerary |
+| `/packages` | Trip packages: public list/detail, owner CRUD, direct booking |
+| `/payments` | PayHere intent/confirm, webhook (MD5-verified), bank details, receipt upload, refund |
+| `/reviews` | Vehicle reviews, customer reviews, pending reviews, owner summary and response |
+| `/disputes` | Raise, list, detail, message |
+| `/messages` | Booking conversations, messages, read receipts, unread count |
+| `/notifications` | List, unread count, mark read, delete |
+| `/routing` | OSRM route calculation |
+| `/landing`, `/content` | Public CMS content, config, stats, contact form, route estimate, content pages |
+| `/uploads` | Registration document upload |
+| `/admin` | All admin sub-modules (requires `ADMIN` plus sub-role/permission guards) |
 
 ## Authentication
 
-The API uses JWT tokens:
+- On login, the access and refresh JWTs are set as **cookies** (`accessToken`, refresh cookie). The middleware also accepts `Authorization: Bearer <token>`.
+- Access tokens default to 1 h and refresh tokens to 30 d (`JWT_ACCESS_EXPIRY`, `JWT_REFRESH_EXPIRY`). `tokenVersion` invalidates all sessions after a password change.
+- Mutating requests on protected modules need the `x-csrf-token` header to match the `csrf-token` cookie (get one from `GET /auth/csrf-token`).
+- Rate limits (100 / 15 min global, 10 / 15 min on auth routes) apply only when `NODE_ENV=production`.
 
-- **Access Token**: Short-lived (7 days), sent in Authorization header
-- **Refresh Token**: Long-lived (30 days), stored in HTTP-only cookie
+## Responses
 
-```typescript
-// Request header
-Authorization: Bearer<access_token>;
-```
-
-## Scripts
-
-| Script          | Description                              |
-| --------------- | ---------------------------------------- |
-| `npm run dev`   | Start development server with hot reload |
-| `npm run build` | Build for production                     |
-| `npm run start` | Start production server                  |
-| `npm run lint`  | Run ESLint                               |
+Success responses use `{ success: true, data, ... }` (`utils/response.ts`). Errors go through `middleware/errorHandler.ts` (`ApiError`) and return `{ success: false, error: { code, message } }`.

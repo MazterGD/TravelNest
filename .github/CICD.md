@@ -2,7 +2,11 @@
 
 ## Overview
 
-This document describes the Continuous Integration and Continuous Deployment (CI/CD) pipelines for the TraveNest vehicle rental platform.
+This document describes the Continuous Integration and Continuous Deployment (CI/CD) pipelines for the TraveNest bus charter marketplace.
+
+> **Current status:** CI (`ci.yml`) and PR (`pr.yml`) checks run. In CD (`cd.yml`), only the `validate` job is active; the deploy, migrate and health-check steps are commented-out placeholders. The planned target is the web app on **Vercel Hobby**, and the API + OSRM on an **Oracle Cloud Always Free VM** (see `architecture.md § Deployment Topology`).
+>
+> **Known issue: PostGIS.** All three workflows start a plain `postgres:16-alpine` service and run `pnpm db:push`. The schema uses PostGIS types (`geography`/`geometry`), and the extension, trigger and GIST indexes are created only by raw-SQL migrations. The test database steps should use a PostGIS image (for example `postgis/postgis:16-3.4-alpine`) and `pnpm db:migrate:deploy` instead of `db:push`.
 
 ## Pipeline Structure
 
@@ -94,18 +98,17 @@ Configure these secrets in your GitHub repository settings:
 | `VERCEL_ORG_ID`     | Vercel organization ID |
 | `VERCEL_PROJECT_ID` | Vercel project ID      |
 
-#### Railway (API)
+#### Oracle Cloud VM (API + OSRM)
 
-| Secret          | Description       |
-| --------------- | ----------------- |
-| `RAILWAY_TOKEN` | Railway API token |
+Deployment is over SSH: pull, `pnpm install --frozen-lockfile`, `pnpm build:api`, `pnpm db:migrate:deploy`, then `pm2 reload`.
 
-#### AWS
+| Secret            | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| `VM_HOST`         | Public IP or hostname of the VM                |
+| `VM_USER`         | SSH user (for example `ubuntu`)                |
+| `VM_SSH_KEY`      | Private key for the deploy user                |
 
-| Secret                  | Description    |
-| ----------------------- | -------------- |
-| `AWS_ACCESS_KEY_ID`     | AWS access key |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key |
+API runtime secrets (`JWT_*`, `PAYHERE_*`, `SMTP_*`, Supabase, encryption key) live in the VM's `.env` file, not in GitHub.
 
 ### Optional
 
@@ -122,7 +125,6 @@ Configure these variables in your GitHub repository settings:
 | ------------ | ------------------------- | --------------------------- |
 | `API_URL`    | Production API URL        | `https://api.travenest.com` |
 | `WEB_URL`    | Production Web URL        | `https://travenest.com`     |
-| `AWS_REGION` | AWS region (if using AWS) | `us-east-1`                 |
 
 ## Branch Protection Rules
 
@@ -187,8 +189,9 @@ git push origin main
 After deployment, monitor:
 
 - API health endpoint: `GET /health`
-- Application logs in hosting provider dashboard
-- Error tracking (if configured)
+- API logs: `pm2 logs` on the VM (Morgan access logs + console output)
+- Web logs: Vercel dashboard
+- Error tracking: not configured yet (Sentry Developer free tier is a roadmap item)
 
 ## Troubleshooting
 

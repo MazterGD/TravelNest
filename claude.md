@@ -39,8 +39,9 @@ After loading all three documents, you should have indexed the following key fac
 
 **Domain & Scope (from `context.md`)**
 - Platform type: Multi-vendor bus charter marketplace (Sri Lanka)
-- User roles: `customer`, `owner` (bus owner), `admin` (4 sub-roles: `SUPER_ADMIN`, `MODERATOR`, `FINANCE_ADMIN`, `SUPPORT_ADMIN`)
-- Primary workflow: QuotationRequest → Quotation → Booking → Payment → Completion
+- User roles (`UserRole` enum): `CUSTOMER`, `VEHICLE_OWNER`, `ADMIN` (admin sub-roles: `SUPER_ADMIN`, `MODERATOR`, `FINANCE_ADMIN`, `SUPPORT_ADMIN`)
+- Primary workflow: Trip → Quotation request → Owner-priced Quotation → Accept (Booking `PENDING` reserve) → Payment (`CONFIRMED`) → `ONGOING` → `COMPLETED`
+- Pricing: base rates are platform-set per vehicle type (admin settings); owners set only the driver allowance; quotation form pre-fills from OSRM distance × rates
 - Vehicle taxonomy (implemented): `ORDINARY | SEMI_LUXURY | LUXURY_AC`
 - Booking states (implemented): `PENDING | CONFIRMED | ONGOING | COMPLETED | CANCELLED`
 - Payment methods: PayHere (primary), bank transfer, cash
@@ -49,14 +50,17 @@ After loading all three documents, you should have indexed the following key fac
 
 **Architecture (from `architecture.md`)**
 - Monorepo: pnpm workspaces — `apps/api`, `apps/web`, `packages/database`, `packages/shared-types`
-- Backend: Node.js + Express.js modular monolith, Prisma ORM, PostgreSQL 16+
-- Frontend: Next.js 16 (React 19), Tailwind CSS 4
-- Auth: JWT + tokenVersion, bcrypt, Passport.js (Google + Facebook OAuth)
-- Validation: Zod on every endpoint — no exceptions
-- Caching: Redis (search results 5min, Maps distance 24h, rate-limiter, OTP counters)
-- File storage: Supabase Storage — `travenest` bucket, presigned URLs only (no direct public access)
-- Observability: Pino (backend logging) + Sentry (both apps)
-- Security: Helmet + CSRF (double-submit cookie) + CORS credentials + rate limiting
+- Backend: Node.js + Express.js modular monolith, Prisma ORM, PostgreSQL 16 + PostGIS, Socket.IO (chat + notification push), in-process `setInterval` jobs (`apps/api/src/jobs/`)
+- Frontend: Next.js 16 (React 19), Tailwind CSS 4, `zustand`, Leaflet + OpenStreetMap tiles, Nominatim geocoding, `@ducanh2912/next-pwa`
+- Auth: JWT cookies + refresh rotation + tokenVersion, bcryptjs, email OTP login, hand-rolled Google + Facebook OAuth (no Passport.js)
+- Validation: Zod via `middleware/validate.ts` on every endpoint (booking module still lacks schemas — known gap)
+- Routing: self-hosted OSRM (Docker, `OSRM_BASE_URL`); route geometry persisted in PostGIS
+- Email: Brevo SMTP via nodemailer (`modules/notification/email.service.ts`)
+- Caching: none today. Redis (search 5min, OSRM 24h, rate-limiter store, Socket.IO adapter) is **roadmap**
+- File storage: Supabase Storage `travenest` bucket via `apps/api/src/utils/storage.ts`. Currently returns public URLs for all uploads; private bucket + signed URLs for documents/receipts is an **open security gap**
+- Observability: Morgan + `console` today. Pino and Sentry (free Developer tier) are **roadmap**
+- Security: Helmet + CSRF (double-submit cookie) + CORS credentials + rate limiting (production-only, in-memory)
+- Hosting (planned, free tiers): web on Vercel Hobby; API + OSRM on an Oracle Cloud Always Free VM; Postgres+PostGIS on Supabase/Neon
 - Payment webhook: PayHere MD5 signature verification is mandatory before any state mutation
 - Financial atomicity: All payment/booking state transitions must use Prisma `$transaction()`
 - Bank encryption: `packages/database/src/settlementBankEncryption.ts` — do not bypass
@@ -87,16 +91,20 @@ After loading all three documents, you should have indexed the following key fac
 - Components: 40+ canonical components defined in §5. Do not reinvent — use the inventory.
 
 **Roadmap (not yet implemented — require confirmation before touching)**
-- Twilio SMS, SMTP transactional email templates, Distance Matrix auto-pricing
+- Redis caching / Redis rate-limit store / Socket.IO Redis adapter
+- Pino structured logging; Sentry error tracking
+- Private storage with signed URLs for owner documents and payment receipts
 - `DISPUTED` booking status (schema migration required)
-- 6-dimension review ratings (schema migration required)
-- `messages` table for in-platform messaging (schema migration + real-time layer required)
-- WebSocket / long-polling real-time delivery
-- Automated cancellation refund policy enforcement
+- Email templates beyond OTP, password reset, booking-confirmed and payment-received
+- Automatic execution of scheduled admin reports
 - `payment_splits` per-transaction ledger
-- Nginx configuration, CI/CD pipeline, `GET /health` endpoint
+- Production deployment (Vercel + Oracle VM, Caddy TLS) and an active CD deploy step
 - Dark mode (explicitly deferred to post-v1.0 per design system)
 - Storybook component documentation
+
+**Already implemented (do NOT treat as roadmap):** booking-scoped messaging (`Conversation`/`Message`) and Socket.IO delivery, 6-dimension reviews, disputes, time-based refund policy, driver roster (`Driver`), settlement auto-accrual, owner bank accounts, OSRM distance pre-fill of quotations, PostGIS radius search, `GET /health`, CI workflows.
+
+**Out of scope:** SMS (Twilio dropped — email OTP only), native apps, seat ticketing, platform GPS tracking.
 
 ---
 
@@ -130,7 +138,7 @@ ARCHITECTURE & DESIGN ALIGNMENT CHECK
    - Delegates to service class (not controller)?
    - Prisma for DB access?
    - Zod for validation on all inputs?
-   - Pino for logging (no console.log)?
+   - Logging follows the current convention (`console` with a `[module]` prefix; Pino is roadmap — do not add it without approval) and never logs PII/OTPs?
    - New dependencies introduced? → [ ] YES (must ask user) / [ ] NO
 
 4. STACK COMPLIANCE (Frontend)
@@ -183,16 +191,18 @@ ARCHITECTURE & DESIGN ALIGNMENT CHECK
    - Mutating route protected by CSRF middleware?
    - Financial state change wrapped in $transaction()?
    - PayHere webhook: MD5 verification present?
-   - Supabase assets: using StorageService presigned URLs only?
+   - Supabase uploads go through utils/storage.ts? No NEW public exposure of
+     sensitive files (documents, receipts) — private + signed URLs is the target?
    - No PII in logs?
 
 7. DATA MODEL INTEGRITY
-   - Enum values used match the canonical enums in architecture.md?
+   - Enum values used match the canonical enums in architecture.md / schema.prisma?
    - Schema change required? → [ ] YES (must confirm migration with user) / [ ] NO
-   - Roadmap schema additions (DISPUTED status, 6-dim reviews, messages table) avoided?
+   - PostGIS objects (extension, triggers, GIST indexes) done via raw-SQL migration?
+   - Roadmap schema additions (DISPUTED status, payment_splits) avoided?
 
-8. REDIS CACHING
-   - Applicable cache target? → [ ] YES (key pattern, TTL matches architecture.md table) / [ ] NO
+8. CACHING
+   - No cache layer exists today; Redis is roadmap. Adding one? → must ask user first.
 
 9. SIDE EFFECTS
    - Does this change affect the booking state machine?
@@ -224,7 +234,7 @@ You must refuse to implement a request — firmly but respectfully — when any 
 | Request would modify the Prisma schema without explicit migration authorization | Pause and ask |
 | Request would introduce a new npm dependency | Pause and ask |
 | Request would remove or weaken a security control (CSRF, RBAC, rate limiting, MD5 webhook) | Refuse unless user explicitly overrides with documented justification |
-| Request would make Supabase bucket publicly accessible | Refuse — data privacy violation |
+| Request would expose sensitive files (owner documents, payment receipts) through public URLs in new code | Refuse — data privacy violation (existing public URLs are a documented gap in `architecture.md § Known Gaps`) |
 | Request would log PII at any log level | Refuse |
 | Request uses a color not in the design token set | Refuse — cite `TravelNest-Design-System.md §2` |
 | Request uses a font other than Inter | Refuse — cite `TravelNest-Design-System.md §3` |
@@ -296,7 +306,7 @@ Every new API endpoint must have, in order:
 3. CSRF middleware on mutating routes (POST / PUT / PATCH / DELETE)
 4. Controller method that delegates to the service — no business logic in the controller
 5. Service method that contains the business logic with Prisma queries
-6. Pino logger calls (not `console.log`) at appropriate severity levels
+6. Logging via the current convention (`console.info` / `console.warn` / `console.error` with a `[module]` prefix, no PII); Pino adoption is a roadmap item requiring user approval
 
 ### 5.3 Financial Operations
 All operations that mutate `payments`, `bookings`, `settlements`, or `commission_rules` must use `prisma.$transaction()`. No exceptions. State the transaction boundary explicitly in your `<thinking>` step.
@@ -344,6 +354,6 @@ const prefersReducedMotion = useReducedMotion();
 Write no comments by default. The single exception: a one-line comment when the *why* is non-obvious — a hidden invariant, a security constraint, a concentric-radii calculation, or a workaround for a specific external service behavior. Never comment *what* the code does; only *why* it does it in a non-obvious way.
 
 ### 5.6 Error Handling
-Use the project's established error-handling middleware for backend errors. Do not invent new error response shapes. Errors from external services (PayHere, Supabase, Google Maps) must be caught, logged via Pino, and re-surfaced as structured API errors — never as unhandled promise rejections.
+Use the project's established error-handling middleware for backend errors. Do not invent new error response shapes. Errors from external services (PayHere, Supabase, OSRM, Brevo, OAuth providers) must be caught, logged (without PII), and re-surfaced as structured API errors — never as unhandled promise rejections.
 
 User-facing error messages in the UI must follow the design system copywriting framework: **Problem + Explanation + Next Step**. Display them via the `AlertBanner` or `ToastNotification` components from the design system inventory — do not create bespoke error display patterns.

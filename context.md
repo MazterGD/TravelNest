@@ -54,25 +54,25 @@ Characteristic: Require a low-friction onboarding and fleet management workflow.
 **Objectives:**
 
 1. Build a responsive PWA (mobile-first) eliminating the need for native app development in the initial phase.
-2. Implement a verified owner onboarding pipeline including document validation (NIC, business registration, insurance, route permits).
-3. Deliver a standardized, all-inclusive quotation engine with transparent cost itemization (vehicle rental + driver allowance + fuel + tolls + permits + agency fee).
-4. Provide advanced multi-parameter search and filtering (capacity, AC type, amenities, geographic coverage, price range, rating).
-5. Integrate end-to-end booking and payment processing (advance payment via PayHere, digital invoice generation).
+2. Implement a verified owner onboarding pipeline with per-document admin review (NIC, driving licence, insurance, vehicle registration certificate, profile and vehicle photos).
+3. Deliver a standardized, all-inclusive quotation engine with transparent cost itemization (vehicle rental + driver cost + fuel + tolls + permits + custom items + tax), pre-filled from platform-set rates and road distance.
+4. Provide multi-parameter search and filtering (location with nearby-city radius matching, dates, capacity, vehicle type, AC type, amenities, price range, rating).
+5. Integrate end-to-end booking and payment processing (PayHere card payments, bank transfer, cash; refunds; printable invoices).
 6. Support trilingual interfaces: English, Sinhala, Tamil.
-7. Deploy on a cost-optimized, self-hosted infrastructure model with defined observability and security baselines.
+7. Run on **free-forever infrastructure tiers** (Vercel Hobby, Oracle Cloud Always Free, free Postgres, Supabase Storage, Brevo, self-hosted OSRM) with defined security baselines.
 
 **Success Metrics (KPIs):**
 
 | Category | Metric | Target |
 |---|---|---|
-| Supply Growth | Verified bus owner registrations | [Requires Clarification — target number not defined] |
+| Supply Growth | Verified bus owner registrations | [Requires Clarification: target number not defined] |
 | Demand Growth | Customer quotation requests per month | [Requires Clarification] |
 | Transaction | Completed bookings per month | [Requires Clarification] |
 | Quality | Average platform review rating | ≥ 4.0 / 5.0 |
 | Performance | Page load time on 4G | < 2 seconds (initial content) |
-| Reliability | Platform uptime | ≥ 99.9% |
+| Reliability | Platform uptime | ≥ 99.9% (best effort on free tiers) |
 | Concurrency | Concurrent users supported | ≥ 500 (peak season) |
-| Business | Platform commission revenue | [Requires Clarification — volume targets not defined] |
+| Business | Platform commission revenue | [Requires Clarification: volume targets not defined] |
 | Trust | Owner document verification turnaround | [Requires Clarification] |
 
 *Note: Quantitative business targets (user acquisition, GMV, conversion rates) are not defined in the source documents.*
@@ -81,107 +81,130 @@ Characteristic: Require a low-friction onboarding and fleet management workflow.
 
 ## Scope & Core Features
 
+Status markers: features below are **implemented** unless marked *Roadmap*.
+
 **In-Scope (MVP):**
 
 **Authentication & User Management**
-- Email-based registration with **Email OTP verification** as the primary identity verification channel, delivered via Brevo transactional email. Users must provide a valid email address to register; OTP generation and token storage are implemented server-side with expiry enforcement and max-attempt limiting.
-- OAuth Login via Google and Facebook (implemented via Passport.js with OAuth state secret protection; callback page at `/auth/callback`)
-- JWT-based session management with refresh token rotation and token-version invalidation (forced logout on password change via `tokenVersion` on the User record)
-- Role-based access control: Customer, Bus Owner, Admin (with 4 sub-roles — see Target Audience)
-- Password recovery via email link; trilingual language switcher (EN / SI / TA via next-intl)
+- Email + password registration and login, with account lockout after repeated failed attempts.
+- **Passwordless Email OTP login** and OTP-verified registration. Codes are hashed, time-limited and attempt-limited, and delivered by Brevo transactional email.
+- Google and Facebook OAuth via a direct OAuth 2.0 implementation (signed `state`; callback page `/auth/callback`). Passport.js is not used.
+- JWT session cookies with refresh-token rotation and `tokenVersion` invalidation (password change logs out all sessions).
+- Password reset via emailed single-use link; change password; delete account; avatar upload.
+- Role-based access control: Customer, Bus Owner, Admin (4 sub-roles plus granular permissions).
+- Trilingual language switcher (EN / SI / TA) on public, customer and owner surfaces. The admin portal is English-only.
 
 **Owner Onboarding & Fleet Management**
-- Self-registration with document submission (license, insurance, permit, registration, tax)
-- Admin-controlled verification workflow (Approve / Reject / Suspend)
-- Owner Pending Approval page: real-time document and verification status tracker visible to the owner post-registration, prior to approval
-- Vehicle listing creation: capacity (16–50+ seats), vehicle type (see taxonomy below), AC type, amenities, photos (Supabase Storage), base location, operating areas
-- Availability calendar management (date blocking)
+- Self-registration with business details and document uploads.
+- Admin verification: approve, reject or request resubmission per owner, plus approve/reject per document.
+- Owner Pending Approval page showing document and verification status before approval.
+- Vehicle listings: type (see taxonomy), AC type (`full-ac | ac | non-ac`), seats, brand/model/year, fuel, transmission, amenities from an admin-managed catalogue, tagged photos (exterior / interior / front / rear / seats / other), documents, base location with coordinates.
+- Vehicle activation: owners submit a vehicle for review (`request-activation`) and can withdraw it; admins approve or reject vehicles and their documents.
+- **Platform-set pricing:** base rates (per day, per km, fuel cost per km) are set by admins per vehicle type in platform settings. Owners set only the driver allowance. `LUXURY_AC` vehicles are always `full-ac`.
+- Availability calendar with manual date blocking; confirmed bookings block dates automatically.
+- **Driver roster:** owners add, edit and deactivate drivers (name, phone, photo) and assign an available driver to each booking.
 
-> **Vehicle Type Taxonomy (Implemented):** The codebase uses a 3-value enum: `ORDINARY` (covering standard and mini-bus capacity range), `SEMI_LUXURY`, and `LUXURY_AC`. The original 4-type design (`mini_bus / standard_bus / luxury_bus / semi_luxury_bus`) from the SRS serves as a reference for future taxonomy refinement if a more granular split is required.
+> **Vehicle Type Taxonomy:** `ORDINARY` (standard and mini-bus range), `SEMI_LUXURY`, `LUXURY_AC`. The SRS's original 4-type split remains a reference for future refinement.
 
 **Search & Discovery**
-- Multi-parameter search: pickup/destination (district), dates, passenger count, vehicle type, AC type, amenities, price range, rating, sort order, pagination
-- **OSRM** (Open Source Routing Machine) integration for road-based distance computation and route display, consuming the public OSRM API endpoint (*Distance Matrix via OSRM Table Service for automated base cost computation is a roadmap item — see Quotation System*)
-- Itinerary builder with intermediate stop support
+- Search by pickup/destination, dates, passenger count, vehicle type, AC type, amenities, price range, rating and sort order, with pagination.
+- **Progressive nearby-city matching** using PostGIS: exact location first, then vehicles within 10 / 20 / 30 km, then the same district. The result shows which tier matched.
+- Location autocomplete and interactive maps using OpenStreetMap (Nominatim geocoding, Leaflet maps).
+- Road distance, duration and route geometry from a self-hosted **OSRM** instance; routes for quotations are stored in PostGIS and redrawn from storage.
+- Vehicle detail pages with photo gallery, reviews and similar vehicles.
 
 **Trip Package Module**
-- Owner-created fixed-price trip packages defining a pre-set route, vehicle, schedule, and all-inclusive price
-- Customers can discover and book packages directly without going through the quotation workflow, reducing friction for common routes
-- Packages are managed via the owner portal; customers browse via a dedicated public-facing packages listing
+- Owners create fixed-price packages (route, vehicle, duration, passenger range, all-inclusive price).
+- Customers browse packages publicly and book them directly, skipping the quotation workflow.
 
 **Trip Planning Module**
-- Customers plan a **Trip** once — pickup, dropoff, dates, passengers, vehicle-type preference, AC requirement, intermediate stops, special requests, and OSRM-derived distance/duration estimates — then request as many vehicle quotations under that trip as they wish.
-- Trip lifecycle: `PLANNING → AWAITING_QUOTES → CONFIRMED → COMPLETED`, with `CANCELLED` and `EXPIRED` terminal branches. A trip auto-expires if its end date passes with no acceptance.
-- Quotations are first-class children of a Trip: every `Quotation` row carries a `tripId`, so customers view received quotations grouped by their trip (rather than the prior frontend-side string-key grouping by pickup/dropoff/date).
-- When a customer requests a quotation while an active trip is in flight, the New Quotation flow surfaces a chooser modal — attach to the existing trip (details auto-populate from the trip record) or start a new trip. Customers who arrive directly at a vehicle quotation create an implicit trip from the form they fill in.
-- The Customer Dashboard surfaces the active trip as a primary CTA card with the platform's interactive blue when no upcoming booking exists, falling back to a "Plan your first trip" empty state when there are neither bookings nor trips.
-- Trip management UI lives under the customer portal at `/dashboard/trips` (list), `/dashboard/trips/new` (plan), and `/dashboard/trips/[id]` (detail with attached quotations and route map). The legacy flat `/dashboard/quotations` route redirects to the trip list; per-quotation detail (`/dashboard/quotations/[id]`) remains linked from the trip detail page.
+- Customers plan a **Trip** once: pickup, dropoff, dates, start time, round-trip flag, passengers, vehicle-type preference, AC requirement, intermediate stops, special requests, and OSRM distance/duration estimates. They can then request as many vehicle quotations under that trip as they like.
+- Trip lifecycle: `PLANNING → AWAITING_QUOTES → CONFIRMED → COMPLETED`, with `CANCELLED` and `EXPIRED` branches. Trips expire automatically when the end date passes with no acceptance.
+- When requesting a quotation while an active trip exists, the customer chooses to attach to it or start a new trip.
+- The customer dashboard shows the active trip as the primary call to action when there is no upcoming booking.
+- UI: `/dashboard/trips` (list), `/dashboard/trips/new`, `/dashboard/trips/[id]` (attached quotations and route map).
 
 **Quotation System**
-- *Current implementation:* Owners manually enter itemized pricing components (vehicle rental, driver cost, fuel, toll charges, permit fees, other charges) in response to a customer's quotation request. The system stores and displays a full cost breakdown per line item. Quotation requests are attached to a customer-owned `Trip` (see Trip Planning Module).
-- *Roadmap:* Automated base-cost computation using `(Distance × rate/km) + driver allowance`, with distance sourced from the **OSRM Table Service API**, pre-populating the owner's quotation form. Results are cached in Redis keyed by origin/destination coordinate pair to eliminate redundant API calls.
-- AI Pricing Suggestions: an AI-assisted endpoint provides pricing hints to owners when generating a quotation, based on route and vehicle parameters (implemented; surfacing in UI is a roadmap item)
-- Multi-quotation comparison view
-- Quotation validity period with `expires_at` enforcement
-- Full status lifecycle: `PENDING → SENT → VIEWED → ACCEPTED / REJECTED / EXPIRED`
+- Owners respond to requests with an itemized quotation: vehicle rental, driver cost, fuel, tolls, permit fees, custom line items, tax, total, notes and validity period.
+- **Auto pre-fill:** the owner's quotation form pre-computes vehicle rental (`platform per-km rate × OSRM trip distance`), fuel (`fuel cost per km × distance`), driver cost and toll defaults. The owner can adjust before sending.
+- Side-by-side quotation comparison for customers (`/dashboard/quotations/compare`).
+- Validity enforced via `validUntil`; stale quotations expire automatically.
+- Lifecycle: `PENDING → SENT → VIEWED → ACCEPTED / REJECTED / EXPIRED`.
+- A rule-based pricing-suggestions endpoint exists (`GET /quotations/:id/pricing-suggestions`, based on configured Sri Lankan rate ranges). It is not AI-based and is not currently used by the UI.
 
 **Booking & Payment**
-- Booking workflow: Quotation acceptance → booking auto-created (reserved) → customer payment → confirmation. Accepting a quotation is the single action that creates the booking; the **owner does not re-confirm** it — the price and availability were already committed when the owner sent the quotation. Accepting one quotation **auto-rejects the sibling quotations** under the same trip.
-- Booking status lifecycle (implemented): `PENDING` (reserved on acceptance — holds the vehicle's dates while awaiting customer payment) → `CONFIRMED` (payment completed) → `ONGOING` → `COMPLETED / CANCELLED`
-- Unpaid reserves are released automatically after a configurable window (`autoCancelUnpaidHours`, default 24h) by a background sweep: the booking is set to `CANCELLED` and the parent trip returns to `AWAITING_QUOTES` so the customer can request fresh quotations. Cash and bank-transfer (receipt-uploaded) reserves are exempt from auto-release.
-- On payment completion the booking is advanced to `CONFIRMED` and the vehicle's `vehicle_availability` calendar is blocked for the booking date range in the same transaction, keeping the owner calendar and booking ledger in sync.
-- *Roadmap:* `DISPUTED` as a distinct booking status (requires a schema migration; disputes currently exist as a separate entity linked to a booking, not as a booking state)
-- Driver information tracking: assigned driver name, license number, and contact stored against a booking record
+- Accepting a quotation creates the booking as a `PENDING` reserve that holds the vehicle's dates. The owner does not re-confirm. Sibling quotations under the same trip are auto-rejected.
+- Booking lifecycle: `PENDING` (reserved, awaiting payment) → `CONFIRMED` (paid) → `ONGOING` (owner starts trip) → `COMPLETED`, or `CANCELLED`.
+- Unpaid reserves are released after `autoCancelUnpaidHours` (default 24 h; admin-configurable) and the trip returns to `AWAITING_QUOTES`. Cash and receipt-uploaded bank-transfer reserves are exempt.
+- On payment completion, the booking is confirmed, the vehicle calendar is blocked, and the owner's settlement is credited in one database transaction.
 - Payment methods:
-  - PayHere (credit/debit card) — primary online gateway with MD5 signature verification and sandbox/live switching
-  - Bank transfer — owner manually confirms receipt; customer uploads transfer confirmation document
-  - Cash — recorded for on-site settlement scenarios
-- Refund processing: full and partial refunds supported
-- Advance payment with digital receipt and invoice generation
-- Automatic availability calendar update on booking confirmation
-- **Email notifications** to both parties via Brevo transactional email (*in-app notification records are implemented; transactional email templates are a roadmap item*)
-- Time-based cancellation refund policy (**implemented**, configurable via admin → platform settings): **100% refund** when cancelled at least `refundFullHours` before trip start (default 336h / 14 days), **`refundPartialPercent`%** (default 50%) when cancelled at least `refundPartialHours` before start (default 168h / 7 days), otherwise **0%**. For paid card bookings the refund is executed via PayHere when the gateway is configured; otherwise the computed refund amount is recorded on the payment for the admin payout to honour. Unpaid (PENDING reserve) cancellations simply release the hold.
+  - PayHere card payments (MD5-verified webhook; sandbox/live switch; local webhook simulator for development).
+  - Bank transfer: platform bank details shown; customer uploads a receipt; confirmed by admin/owner.
+  - Cash: recorded for on-site settlement.
+- Time-based refund policy (admin-configurable): 100% refund at least `refundFullHours` before start (default 14 days), `refundPartialPercent`% (default 50%) at least `refundPartialHours` before start (default 7 days), otherwise 0%. Paid card bookings are refunded via the PayHere refund API when configured; otherwise the amount is recorded for admin payout. Admins can also cancel with refund.
+- Per-day itinerary for multi-day bookings.
+- Driver details (assigned roster driver, phone, licence) shown on the booking.
+- Printable booking documents and invoices (browser print to PDF).
+- *Roadmap:* `DISPUTED` as a booking status (disputes are a separate entity today).
+
+**Notifications**
+- In-app notifications with categories (Bookings, Payments, Quotations, Reviews, System), unread counts, mark-read and delete. They are pushed in real time over Socket.IO.
+- Email copies via Brevo for the highest-value events: **booking confirmed** and **payment received**. OTP and password-reset emails are also sent.
+- Read notifications are purged after 90 days.
+- Admin broadcast notifications to a role or specific users, with resend and delivery analytics.
+- *Roadmap:* email templates for the remaining event types.
 
 **Review & Trust**
-- *Current implementation:* Single aggregate star rating (1–5) with free-text review, linked to a completed booking (verified flag enforced)
-- *Roadmap:* 6-dimension rating breakdown — overall, vehicle condition, driver behavior, punctuality, cleanliness, value for money — requires a schema migration to add sub-dimension columns to the Review model
-- Owner response to reviews
-- Rating aggregation per vehicle
+- Verified reviews (one per completed booking): overall star rating plus **six optional sub-ratings** (vehicle condition, driver behaviour, punctuality, cleanliness, value for money), title, comment and "would recommend".
+- Owner public response to reviews; per-vehicle and per-owner rating summaries.
+- Admin review moderation.
 
 **In-platform Messaging**
-- *Implemented:* Booking-scoped customer ↔ owner messaging. One `Conversation` per `Booking` (1-to-1, enforced by unique constraint) with a `Message` thread. Customers can chat with the assigned bus owner about pickup details, driver contact, and trip logistics; owners use the same thread on their side. Real-time delivery via Socket.IO (see `architecture.md`).
-- *Implemented:* Dispute Messaging Thread — structured communication within a dispute via `DisputeMessage`, accessible to involved parties and the assigned admin.
+- Booking-scoped customer ↔ owner chat: one conversation per booking, real-time delivery and read receipts over Socket.IO, unread counts.
+- Dispute message threads, with admin-only internal notes.
 
 **Dispute Resolution**
-- Customer-initiated dispute workflow: types include cancellation, refund, service quality, pricing, vehicle condition
-- Dispute lifecycle: `OPEN → INVESTIGATING → RESOLVED / CLOSED / ESCALATED`
-- Admin dispute assignment with priority levels (low / medium / high / urgent)
-- Structured in-dispute messaging thread (DisputeMessage) for multi-party communication
+- Customers and owners can raise disputes on a booking. Types: booking quality issue, cancellation dispute, payment issue, vehicle condition, behaviour complaint, service not provided, other. Evidence attachments supported.
+- Lifecycle: `OPEN → INVESTIGATING → RESOLVED / CLOSED / ESCALATED`; priority `LOW / MEDIUM / HIGH / URGENT`.
+- Admin assignment, priority and status changes, messaging and resolution (with resolution type and amount).
+
+**Owner Portal**
+- Dashboard (stats, revenue chart, recent reviews).
+- Analytics: revenue trends, booking trends, per-vehicle utilization and booking history. Scoped to the owner's own fleet.
+- **Earnings:** summary, transaction list and settlement history; payout bank account management (account number encrypted at rest).
+- Quotation inbox, sent quotations, bookings, packages, drivers, fleet, messages, notifications, reviews, disputes, profile and settings.
 
 **Admin Dashboard**
-- Owner registration approval queue and document verification (insurance, permits, license)
-- User management: suspend, reinstate, delete
-- Dispute lifecycle management with internal messaging thread
-- Commission rules configuration: `percentage / fixed / tiered` modes with booking amount brackets
-- **Settlement & Payout System:** Admin-managed batch payout workflow. `Settlement` records group multiple `SettlementBooking` line items for bulk owner disbursement; accessible under the Financial Management section of the admin portal. Bank account details are encrypted at rest.
-- **Scheduled Report Generation:** Configurable report schedules (`ScheduledReport`) with full run history (`ScheduledReportRun`); exports in CSV, PDF, and Excel formats.
-- **Marketing Content Management (CMS):** Database-driven management of landing page content — testimonials, popular routes, trusted partners, platform statistics — all editable via the admin portal without a code deployment.
-- Platform Config key-value stores (`PlatformConfig` and `PlatformSettings`) for runtime platform behaviour adjustment.
-- Immutable audit log with export.
-- Analytics: revenue charts, user growth, booking trends.
-- Admin sub-role and permission management.
+- Dashboard with revenue/user/booking charts, activity feed and pending actions.
+- Owner and vehicle verification queues with per-document review and verification history.
+- User management: view activity, suspend/reinstate, reset password, delete, export; create admins (super admin only).
+- Booking management: status overrides, cancel with refund, export.
+- Dispute management, review moderation.
+- Finance: commission rules (`PERCENTAGE / FIXED / TIERED`) and owner settlements. Paid bookings accrue automatically into the owner's pending settlement; admins process payouts.
+- Reports: definitions for users, bookings, financial, operations, audit, disputes, verifications and system data, exported as CSV, PDF or Excel. Reports run on demand; *Roadmap:* automatic execution of scheduled reports.
+- CMS: content pages (privacy, terms, refund policy, etc.), FAQs, testimonials (with approval), amenities catalogue, popular routes, trusted partners, platform stats.
+- Platform settings: general, notification, payment, booking (auto-cancel window, refund policy), security, map, vehicle pricing, maintenance mode.
+- Immutable audit log for every authenticated mutation (all roles), with export.
+- Admin sub-role and permission management; admin profile and activity.
 
-**Owner Analytics Dashboard**
-- Owner-facing analytics portal: revenue trends, booking trends, vehicle utilization rates.
-- Scoped strictly to the authenticated owner's own fleet and booking history; independent of the admin analytics module.
-
-**Platform Operations**
-- Contact Form: public-facing contact submissions are persisted to a `ContactMessage` table with admin visibility.
-- CMS-driven landing page: featured vehicles, popular routes/packages, testimonials, trust indicators, and platform stats are managed via the admin CMS rather than hardcoded in the application.
+**Public Site**
+- CMS-driven landing page (featured vehicles, popular routes, packages, testimonials, partners, stats), about, how it works, FAQ, contact form (stored with a reference ID), privacy, terms, refund policy.
+- Public vehicle search, vehicle detail and package pages.
 
 **Out-of-Scope (Current Phase):**
-- Native Android/iOS application development
-- Scheduled intercity passenger seat ticketing
-- Physical fleet operations (maintenance, driver scheduling, fuel logistics)
-- GPS tracking (optional/owner-provided only; not platform-managed)
-- SMS notifications (removed; all notification delivery is via email and in-app channels)
+- Native Android/iOS applications.
+- Scheduled intercity passenger seat ticketing.
+- Physical fleet operations (maintenance, fuel logistics).
+- Platform-managed GPS tracking.
+- SMS notifications and SMS OTP. All delivery is in-app and email. The `PHONE_VERIFICATION` OTP purpose and `SMS` broadcast channel exist in the schema but are not wired to any provider.
+- Dark mode (deferred to post-v1.0 per the design system).
+
+**Roadmap (not yet implemented):**
+- Redis caching (search results, OSRM responses), Redis-backed rate limiting and Socket.IO adapter.
+- Pino structured logging; Sentry (free Developer tier) error tracking.
+- Private storage with signed URLs for owner documents and payment receipts.
+- `DISPUTED` booking status.
+- Automatic execution of scheduled reports.
+- Email templates for all notification types.
+- Production deployment (Vercel + Oracle Cloud VM) and an active CD deploy step.
+- Storybook component documentation.
