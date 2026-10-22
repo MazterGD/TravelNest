@@ -14,6 +14,7 @@ import {
 import { Lock, Bell, Globe } from "lucide-react";
 import { authService, ApiError } from "@/lib/api";
 import { LOCALE_LABELS } from "@/constants";
+import { AccountDangerZone } from "@/components/features/account/AccountDangerZone";
 
 const ring =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2";
@@ -268,6 +269,10 @@ export default function OwnerSettingsPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <AccountDangerZone locale={currentLocale} />
       </div>
     </div>
   );

@@ -5,13 +5,13 @@ import { useTranslations } from "next-intl";
 import {
   Camera,
   CheckCircle2,
-  FileX,
   ShieldCheck,
   Trash2,
   User,
   LoaderCircle,
 } from "lucide-react";
-import { Button, Input, Modal, TextArea } from "@/components/ui";
+import { Button, Input } from "@/components/ui";
+import { AccountDangerZone } from "@/components/features/account/AccountDangerZone";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuthStore } from "@/store";
 import { userService, ApiError } from "@/lib/api";
@@ -47,12 +47,6 @@ export function ProfilePageContent({
     phone: "",
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [isDataDeletionOpen, setIsDataDeletionOpen] = useState(false);
-  const [dataDeletionReason, setDataDeletionReason] = useState("");
-  const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
-  const [dataDeletionError, setDataDeletionError] = useState<string | null>(
-    null,
-  );
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -246,33 +240,6 @@ export function ProfilePageContent({
     .toUpperCase()
     .slice(0, 2);
 
-  const closeDataDeletion = () => {
-    if (isRequestingDeletion) return;
-    setIsDataDeletionOpen(false);
-    setDataDeletionReason("");
-    setDataDeletionError(null);
-  };
-
-  const handleRequestDataDeletion = async () => {
-    setIsRequestingDeletion(true);
-    setDataDeletionError(null);
-    try {
-      const reason = dataDeletionReason.trim();
-      const result = await userService.requestDataDeletion(reason || undefined);
-      setIsDataDeletionOpen(false);
-      setDataDeletionReason("");
-      setError(null);
-      setSuccessMessage(
-        t("dataDeletionRequested", { reference: result.reference }),
-      );
-    } catch (err) {
-      setDataDeletionError(
-        err instanceof ApiError ? err.message : t("dataDeletionFailed"),
-      );
-    } finally {
-      setIsRequestingDeletion(false);
-    }
-  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8 space-y-8">
@@ -556,99 +523,7 @@ export function ProfilePageContent({
       </section>
 
       {/* ── Danger zone ───────────────────────────────────────────────────── */}
-      <section
-        className="rounded-[20px] border border-[var(--color-error-border)] bg-[var(--color-bg-base)]"
-        aria-labelledby="danger-heading"
-      >
-        <div className="border-b border-[var(--color-error-border)] px-6 py-4">
-          <h2
-            id="danger-heading"
-            className="text-sm font-semibold text-[var(--color-error-text)]"
-          >
-            {t("dangerZone")}
-          </h2>
-        </div>
-        <div className="flex items-center justify-between px-6 py-4">
-          <div>
-            <p className="text-sm font-medium text-[var(--color-text-primary)]">
-              {t("deleteAccount")}
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
-              {t("deleteAccountDescription")}
-            </p>
-          </div>
-          <button
-            type="button"
-            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--color-error-border)] px-3 text-sm font-medium text-[var(--color-error-text)] transition-colors hover:bg-[var(--color-error-bg)] ${focusRing}`}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-            {t("delete")}
-          </button>
-        </div>
-        <div className="flex items-center justify-between gap-4 border-t border-[var(--color-error-border)] px-6 py-4">
-          <div>
-            <p className="text-sm font-medium text-[var(--color-text-primary)]">
-              {t("dataDeletionTitle")}
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
-              {t("dataDeletionDescription")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsDataDeletionOpen(true)}
-            className={`inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl border border-[var(--color-error-border)] px-3 text-sm font-medium text-[var(--color-error-text)] transition-colors hover:bg-[var(--color-error-bg)] ${focusRing}`}
-          >
-            <FileX className="h-4 w-4" aria-hidden="true" />
-            {t("dataDeletionAction")}
-          </button>
-        </div>
-      </section>
-
-      <Modal
-        isOpen={isDataDeletionOpen}
-        onClose={closeDataDeletion}
-        title={t("dataDeletionTitle")}
-        size="md"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {t("dataDeletionExplanation")}
-          </p>
-          <TextArea
-            id="data-deletion-reason"
-            label={t("dataDeletionReasonLabel")}
-            placeholder={t("dataDeletionReasonPlaceholder")}
-            value={dataDeletionReason}
-            maxLength={1000}
-            onChange={(e) => setDataDeletionReason(e.target.value)}
-            helperText={`${dataDeletionReason.length}/1000`}
-          />
-          {dataDeletionError && (
-            <div
-              role="alert"
-              className="rounded-xl border border-[var(--color-error-border)] bg-[var(--color-error-bg)] p-3 text-sm text-[var(--color-error-text)]"
-            >
-              {dataDeletionError}
-            </div>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={closeDataDeletion}
-              disabled={isRequestingDeletion}
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              isLoading={isRequestingDeletion}
-              onClick={() => void handleRequestDataDeletion()}
-            >
-              {t("dataDeletionSubmit")}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <AccountDangerZone locale={_locale} />
     </div>
   );
 }
