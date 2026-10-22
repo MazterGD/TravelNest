@@ -13,3 +13,16 @@ export const lockVehicleForBooking = async (
 ): Promise<void> => {
   await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${vehicleId}))`;
 };
+
+/**
+ * Serialise changes to one owner's settlements until the surrounding
+ * transaction ends, so a booking is never accrued into a settlement that is
+ * being paid out at the same moment.
+ */
+export const lockOwnerSettlements = async (
+  tx: RawQueryClient,
+  ownerId: string,
+): Promise<void> => {
+  const key = `settlement:${ownerId}`;
+  await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${key}))`;
+};

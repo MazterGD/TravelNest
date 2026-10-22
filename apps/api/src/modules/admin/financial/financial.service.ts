@@ -8,6 +8,7 @@ import {
 } from "@travenest/database";
 import { ApiError } from "../../../middleware/errorHandler.js";
 import { recordAuditLog } from "../audit/audit.service.js";
+import { lockOwnerSettlements } from "../../../utils/locks.js";
 import { parsePagination } from "../types.js";
 import type {
   CreateCommissionRuleInput,
@@ -216,6 +217,15 @@ export const getSettlementDetails = async (settlementId: string) => {
   return sanitizeSettlementBankFields(settlement);
 };
 
+// Payouts move forward only; COMPLETED and CANCELLED settlements are final.
+const ALLOWED_SETTLEMENT_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ["PROCESSING", "COMPLETED", "FAILED", "CANCELLED"],
+  PROCESSING: ["COMPLETED", "FAILED", "CANCELLED"],
+  FAILED: ["PROCESSING", "COMPLETED", "CANCELLED"],
+  COMPLETED: [],
+  CANCELLED: [],
+};
+
 export const processSettlement = async (
   adminId: string,
   settlementId: string,
@@ -243,7 +253,27 @@ export const processSettlement = async (
     throw new ApiError(400, "Settlement has already been completed");
   }
 
+  if (!ALLOWED_SETTLEMENT_TRANSITIONS[settlement.status]?.includes(nextStatus)) {
+    throw new ApiError(
+      400,
+      `A settlement cannot move from ${settlement.status} to ${nextStatus}`,
+    );
+  }
+
   const processed = await prisma.$transaction(async (tx) => {
+    // Same lock as settlement accrual, then claim the transition so two
+    // concurrent requests cannot both pay out (ADR-004).
+    await lockOwnerSettlements(tx, settlement.ownerId);
+    const claimed = await tx.settlement.updateMany({
+      where: { id: settlement.id, status: settlement.status },
+      data: { status: nextStatus },
+    });
+    if (claimed.count !== 1) {
+      throw ApiError.conflict(
+        "This settlement was just updated. Please refresh.",
+      );
+    }
+
     const updated = await tx.settlement.update({
       where: { id: settlement.id },
       data: {

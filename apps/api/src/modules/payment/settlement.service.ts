@@ -1,4 +1,5 @@
 import prisma from "@travenest/database";
+import { lockOwnerSettlements } from "../../utils/locks.js";
 
 /**
  * Interactive-transaction client type for the project's *extended* Prisma client
@@ -81,6 +82,28 @@ const recomputeSettlementTotals = async (
 };
 
 /**
+ * Return the settlement only if it is still PENDING, read after taking the
+ * owner's settlement lock so a concurrent payout cannot slip in between.
+ */
+const lockPendingSettlement = async (
+  tx: TxClient,
+  settlementId: string,
+): Promise<{ id: string } | null> => {
+  const owner = await tx.settlement.findUnique({
+    where: { id: settlementId },
+    select: { ownerId: true },
+  });
+  if (!owner) return null;
+
+  await lockOwnerSettlements(tx, owner.ownerId);
+
+  return tx.settlement.findFirst({
+    where: { id: settlementId, status: "PENDING" },
+    select: { id: true },
+  });
+};
+
+/**
  * Accrue a paid booking into its owner's open (PENDING) settlement for the
  * current period, creating that settlement batch on first accrual. Idempotent —
  * a booking is only ever added once (an existing SettlementBooking short-
@@ -107,6 +130,7 @@ export const accrueSettlementForBooking = async (
   if (!booking) return;
 
   const ownerId = booking.vehicle.ownerId;
+  await lockOwnerSettlements(tx, ownerId);
   const rate = await getConfiguredCommissionRate();
   const gross = booking.totalAmount;
   const commission = Math.round(gross * rate);
@@ -173,11 +197,8 @@ export const reduceSettlementForBooking = async (
   });
   if (!line || retainedAmount >= line.amount) return;
 
-  const settlement = await tx.settlement.findUnique({
-    where: { id: line.settlementId },
-    select: { id: true, status: true },
-  });
-  if (!settlement || settlement.status !== "PENDING") return;
+  const settlement = await lockPendingSettlement(tx, line.settlementId);
+  if (!settlement) return;
 
   const rate = await getConfiguredCommissionRate();
   const commission = Math.round(retainedAmount * rate);
@@ -208,11 +229,8 @@ export const removeSettlementForBooking = async (
   });
   if (!line) return;
 
-  const settlement = await tx.settlement.findUnique({
-    where: { id: line.settlementId },
-    select: { id: true, status: true },
-  });
-  if (!settlement || settlement.status !== "PENDING") return;
+  const settlement = await lockPendingSettlement(tx, line.settlementId);
+  if (!settlement) return;
 
   await tx.settlementBooking.delete({ where: { id: line.id } });
   await recomputeSettlementTotals(tx, settlement.id);
