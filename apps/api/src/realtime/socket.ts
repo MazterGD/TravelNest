@@ -120,6 +120,18 @@ export const initSocketServer = (httpServer: HttpServer): SocketServer => {
       methods: ["GET", "POST"],
     },
     path: "/socket.io",
+    // The cors option only sets headers; WebSocket upgrades are not subject to
+    // CORS, so a page on another site could otherwise connect with the
+    // victim's cookies. Browsers always send Origin; non-browser clients
+    // cannot ride a user's cookies.
+    allowRequest: (req, callback) => {
+      const origin = req.headers.origin;
+      const allowed = !origin || origin === config.corsOrigin;
+      if (!allowed) {
+        logSocketEvent("warn", "handshake:rejected", { origin });
+      }
+      callback(null, allowed);
+    },
   });
 
   io.use(authenticateSocket);

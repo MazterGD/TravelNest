@@ -13,7 +13,7 @@ export const calculateRoute = async (
   req: Request,
   res: Response,
 ): Promise<Response> => {
-  const result = await routingService.calculateRoute(req.body);
+  const result = await routingService.calculateRoute(req.body, req.user);
 
   return ResponseHelper.success(
     res,

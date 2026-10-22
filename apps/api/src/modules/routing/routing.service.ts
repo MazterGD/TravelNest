@@ -103,8 +103,40 @@ const toOsrmCoordinateString = (waypoints: CoordinateInput[]): string =>
  */
 export const calculateRoute = async (
   input: CalculateRouteInput,
+  actor?: { id: string; role: string },
 ): Promise<RouteCalculationResult> => {
   const { waypoints, quotationId } = input;
+
+  if (quotationId) {
+    // Verify the quotation exists and belongs to the caller
+    const quotation = await prisma.quotation.findUnique({
+      where: { id: quotationId },
+      select: {
+        id: true,
+        status: true,
+        customerId: true,
+        vehicle: { select: { ownerId: true } },
+      },
+    });
+
+    if (!quotation) {
+      throw ApiError.notFound("Quotation not found");
+    }
+
+    const isParty =
+      actor?.role === "ADMIN" ||
+      actor?.id === quotation.customerId ||
+      (!!actor && actor.id === quotation.vehicle?.ownerId);
+    if (!isParty) {
+      throw ApiError.forbidden("Not authorized to update this quotation");
+    }
+
+    // The stored route feeds pricing and booking maps; freeze it once the
+    // customer has decided.
+    if (!["PENDING", "SENT", "VIEWED"].includes(quotation.status)) {
+      throw ApiError.badRequest("This quotation's route can no longer change");
+    }
+  }
 
   // ------------------------------------------------------------------
   // 1. Build the OSRM request URL
@@ -176,16 +208,6 @@ export const calculateRoute = async (
   let persisted = false;
 
   if (quotationId) {
-    // Verify the quotation exists
-    const quotation = await prisma.quotation.findUnique({
-      where: { id: quotationId },
-      select: { id: true },
-    });
-
-    if (!quotation) {
-      throw ApiError.notFound("Quotation not found");
-    }
-
     // Build the GeoJSON for the full route
     const routeGeoJson = JSON.stringify(geometry);
 
