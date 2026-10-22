@@ -1,7 +1,12 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { UserRole, type User } from "@/types";
-import { readAuthRaw, writeAuthRaw, clearAuthRaw } from "@/lib/auth-storage";
+import {
+  readAuthRaw,
+  writeAuthRaw,
+  clearAuthRaw,
+  setAccessToken,
+} from "@/lib/auth-storage";
 
 interface AuthState {
   user: User | null;
@@ -36,22 +41,29 @@ export const useAuthStore = create<AuthState>()(
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
 
-      setToken: (token) => set({ token }),
+      setToken: (token) => {
+        setAccessToken(token);
+        set({ token });
+      },
 
-      login: (user, token) =>
+      login: (user, token) => {
+        setAccessToken(token);
         set({
           user,
           token,
           isAuthenticated: true,
           isLoading: false,
-        }),
+        });
+      },
 
-      logout: () =>
+      logout: () => {
+        setAccessToken(null);
         set({
           user: null,
           token: null,
           isAuthenticated: false,
-        }),
+        });
+      },
 
       setLoading: (isLoading) => set({ isLoading }),
 
@@ -77,9 +89,9 @@ export const useAuthStore = create<AuthState>()(
         setItem: (_name, value) => writeAuthRaw(value),
         removeItem: () => clearAuthRaw(),
       })),
+      // The access token is deliberately not persisted (memory only).
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {

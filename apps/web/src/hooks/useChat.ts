@@ -8,6 +8,7 @@ import {
   type ConversationSummary,
 } from "@/lib/api";
 import { useAuthStore } from "@/store";
+import { getAccessToken } from "@/lib/auth-storage";
 
 const SOCKET_BASE_URL = (() => {
   const apiUrl =
@@ -19,16 +20,11 @@ const SOCKET_BASE_URL = (() => {
 const CONVERSATION_PAGE_SIZE = 6;
 const MESSAGE_PAGE_SIZE = 30;
 
-const getStoredAccessToken = (): string | null => {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("travenest-auth");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { state?: { token?: string } };
-    return parsed.state?.token ?? null;
-  } catch {
-    return null;
-  }
+// The access token is held in memory (see lib/auth-storage); passing a
+// callback lets every reconnect pick up the latest refreshed token.
+const socketAuth = (cb: (data: object) => void) => {
+  const token = getAccessToken();
+  cb(token ? { token } : {});
 };
 
 interface ConversationUpdatedPayload {
@@ -215,11 +211,10 @@ export function useChat(options: UseChatOptions = {}): UseChatState {
   }, [loadConversations, unreadOnly]);
 
   useEffect(() => {
-    const token = getStoredAccessToken();
     const socket = io(SOCKET_BASE_URL, {
       withCredentials: true,
       transports: ["websocket", "polling"],
-      auth: token ? { token } : undefined,
+      auth: socketAuth,
     });
 
     socketRef.current = socket;

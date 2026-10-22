@@ -57,3 +57,26 @@ export function setRemembered(remember: boolean): void {
 }
 
 export const AUTH_STORAGE_KEY = AUTH_KEY;
+
+// The access token is kept in memory only, never in web storage, so script
+// injected into the page cannot lift a long-lived copy of it. After a reload
+// it is re-issued from the httpOnly refresh cookie.
+let accessToken: string | null = null;
+
+export function getAccessToken(): string | null {
+  return accessToken;
+}
+
+export function setAccessToken(token: string | null): void {
+  accessToken = token;
+}
+
+/** Whether a signed-in session was persisted (user info, not the token). */
+export function hasPersistedSession(): boolean {
+  try {
+    const raw = readAuthRaw();
+    return raw ? JSON.parse(raw)?.state?.isAuthenticated === true : false;
+  } catch {
+    return false;
+  }
+}

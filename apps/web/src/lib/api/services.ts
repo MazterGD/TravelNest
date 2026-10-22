@@ -4,7 +4,6 @@
  */
 
 import { api, ApiError } from "./client";
-import { readAuthRaw } from "@/lib/auth-storage";
 import type {
   User,
   Vehicle,
@@ -1706,24 +1705,6 @@ export const searchService = {
 const ADMIN_API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
-const getStoredAuthToken = (): string | null => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  try {
-    const stored = readAuthRaw();
-    if (!stored) {
-      return null;
-    }
-
-    const parsed = JSON.parse(stored);
-    return parsed?.state?.token ?? null;
-  } catch {
-    return null;
-  }
-};
-
 const downloadAdminCsv = async (
   endpoint: string,
   filename: string,
@@ -1733,12 +1714,13 @@ const downloadAdminCsv = async (
     body?: string;
   },
 ) => {
-  const token = getStoredAuthToken();
+  const method = init?.method ?? "GET";
+  const authHeaders = await api.authHeaders(method);
   const response = await fetch(`${ADMIN_API_BASE_URL}${endpoint}`, {
-    method: init?.method ?? "GET",
+    method,
     headers: {
       ...(init?.headers ?? {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...authHeaders,
     },
     ...(init?.body ? { body: init.body } : {}),
     credentials: "include",

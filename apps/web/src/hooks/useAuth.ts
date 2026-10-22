@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store";
 import { authService, userService, ApiError, api } from "@/lib/api";
+import { clearAuthRaw, hasPersistedSession } from "@/lib/auth-storage";
 import type { User } from "@/types";
 import type {
   LoginInput,
@@ -40,6 +41,7 @@ export function useAuth() {
     logout: setLogout,
     setLoading,
     setUser,
+    setToken,
   } = useAuthStore();
 
   // Check auth status on mount and handle auth errors globally
@@ -49,36 +51,21 @@ export function useAuth() {
 
     const initializeAuth = async () => {
       try {
-        const storedAuth = localStorage.getItem("travenest-auth");
-        if (storedAuth) {
-          const parsed = JSON.parse(storedAuth);
-          if (parsed?.state?.token) {
-            // Validate token with backend
-            try {
-              const response = await authService.me();
-              setLogin(response.user, parsed.state.token);
-              // Start automatic token refresh
-              api.startTokenRefresh();
-            } catch (error) {
-              // Token invalid/expired - try refresh
-              if (error instanceof ApiError && error.isAuthError()) {
-                try {
-                  const refreshResponse = await authService.refreshToken();
-                  // Re-fetch user with new token
-                  setLogin(parsed.state.user, refreshResponse.accessToken);
-                  // Start automatic token refresh
-                  api.startTokenRefresh();
-                } catch {
-                  // Refresh failed - clear auth
-                  setLogout();
-                  localStorage.removeItem("travenest-auth");
-                  api.stopTokenRefresh();
-                }
-              } else {
-                setLogout();
-                api.stopTokenRefresh();
-              }
-            }
+        // The access token lives in memory only; a persisted session is
+        // resumed by exchanging the httpOnly refresh cookie for a new token.
+        if (hasPersistedSession()) {
+          try {
+            const { accessToken } = await authService.refreshToken();
+            setToken(accessToken);
+            const response = await authService.me();
+            setLogin(response.user, accessToken);
+            // Start automatic token refresh
+            api.startTokenRefresh();
+          } catch {
+            // Refresh failed - clear auth
+            setLogout();
+            clearAuthRaw();
+            api.stopTokenRefresh();
           }
         }
       } catch {
@@ -94,7 +81,7 @@ export function useAuth() {
     // Listen for auth errors from API client
     const handleAuthError = () => {
       setLogout();
-      localStorage.removeItem("travenest-auth");
+      clearAuthRaw();
       api.stopTokenRefresh();
       router.push(`/${locale}/login?session=expired`);
     };
@@ -106,7 +93,7 @@ export function useAuth() {
       window.removeEventListener("auth:error", handleAuthError);
       api.stopTokenRefresh();
     };
-  }, [setLogin, setLogout, setLoading, router]);
+  }, [setLogin, setLogout, setLoading, setToken, router]);
 
   /**
    * Login with email and password
@@ -188,7 +175,11 @@ export function useAuth() {
       // Ignore logout errors
     } finally {
       setLogout();
-      localStorage.removeItem("travenest-auth");
+      clearAuthRaw();
+      // Older service workers cached API responses here; drop them on logout.
+      if (typeof caches !== "undefined") {
+        void caches.delete("cross-origin");
+      }
       router.push("/");
     }
   }, [setLogout, router]);

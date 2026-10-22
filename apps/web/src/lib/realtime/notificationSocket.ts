@@ -1,4 +1,5 @@
 import { io, type Socket } from "socket.io-client";
+import { getAccessToken } from "@/lib/auth-storage";
 
 // socket.io is mounted on the bare HTTP server, not under /api/v1.
 const SOCKET_BASE_URL = (() => {
@@ -7,16 +8,11 @@ const SOCKET_BASE_URL = (() => {
   return apiUrl.replace(/\/api\/v\d+\/?$/, "");
 })();
 
-const getStoredAccessToken = (): string | null => {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("travenest-auth");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { state?: { token?: string } };
-    return parsed.state?.token ?? null;
-  } catch {
-    return null;
-  }
+// The access token is held in memory (see lib/auth-storage); passing a
+// callback lets every reconnect pick up the latest refreshed token.
+const socketAuth = (cb: (data: object) => void) => {
+  const token = getAccessToken();
+  cb(token ? { token } : {});
 };
 
 type Listener = () => void;
@@ -33,11 +29,10 @@ const handleNotification = (): void => {
 
 const ensureSocket = (): void => {
   if (socket) return;
-  const token = getStoredAccessToken();
   socket = io(SOCKET_BASE_URL, {
     withCredentials: true,
     transports: ["websocket", "polling"],
-    auth: token ? { token } : undefined,
+    auth: socketAuth,
   });
   socket.on("notification:new", handleNotification);
 };

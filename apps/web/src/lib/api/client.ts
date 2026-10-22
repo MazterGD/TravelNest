@@ -3,7 +3,12 @@
  * Industry-standard HTTP client with interceptors, error handling, and token refresh
  */
 
-import { readAuthRaw, writeAuthRaw, clearAuthRaw } from "@/lib/auth-storage";
+import {
+  clearAuthRaw,
+  getAccessToken,
+  hasPersistedSession,
+  setAccessToken,
+} from "@/lib/auth-storage";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -89,15 +94,26 @@ export class ApiError extends Error {
  * Token refresh state management
  */
 let isRefreshing = false;
-let refreshSubscribers: Array<(token: string) => void> = [];
+type RefreshSubscriber = {
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+};
+let refreshSubscribers: RefreshSubscriber[] = [];
 let refreshIntervalId: NodeJS.Timeout | null = null;
+let csrfToken: string | null = null;
 
-const subscribeTokenRefresh = (callback: (token: string) => void) => {
-  refreshSubscribers.push(callback);
+const subscribeTokenRefresh = (subscriber: RefreshSubscriber) => {
+  refreshSubscribers.push(subscriber);
 };
 
 const onTokenRefreshed = (token: string) => {
-  refreshSubscribers.forEach((callback) => callback(token));
+  refreshSubscribers.forEach((subscriber) => subscriber.resolve(token));
+  refreshSubscribers = [];
+};
+
+// Requests waiting on a refresh must fail too, not hang forever.
+const onTokenRefreshFailed = (error: unknown) => {
+  refreshSubscribers.forEach((subscriber) => subscriber.reject(error));
   refreshSubscribers = [];
 };
 
@@ -119,45 +135,40 @@ class ApiClient {
   }
 
   /**
-   * Get authentication token from storage
+   * Get the in-memory access token
    */
   private getAuthToken(): string | null {
     if (typeof window === "undefined") return null;
-
-    try {
-      const stored = readAuthRaw();
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed.state?.token || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
+    return getAccessToken();
   }
 
   /**
-   * Set authentication token in storage
+   * Keep a refreshed access token in memory
    */
   private setAuthToken(token: string): void {
-    if (typeof window === "undefined") return;
-
-    try {
-      const stored = readAuthRaw();
-      const parsed = stored ? JSON.parse(stored) : { state: {} };
-      parsed.state.token = token;
-      writeAuthRaw(JSON.stringify(parsed));
-    } catch {
-      // Ignore storage errors
-    }
+    setAccessToken(token);
   }
 
   /**
-   * Clear authentication token from storage
+   * Clear the access token and the persisted session
    */
   private clearAuthToken(): void {
     if (typeof window === "undefined") return;
+    setAccessToken(null);
     clearAuthRaw();
+  }
+
+  /**
+   * After a reload the access token is gone (memory only); get a new one
+   * from the refresh cookie before an authenticated request.
+   */
+  private async ensureAuthToken(): Promise<void> {
+    if (this.getAuthToken() || !hasPersistedSession()) return;
+    try {
+      await this.handleTokenRefresh();
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent("auth:error", { detail: { error } }));
+    }
   }
 
   /**
@@ -292,8 +303,8 @@ class ApiClient {
    */
   private async handleTokenRefresh(): Promise<string> {
     if (isRefreshing) {
-      return new Promise((resolve) => {
-        subscribeTokenRefresh((token: string) => resolve(token));
+      return new Promise((resolve, reject) => {
+        subscribeTokenRefresh({ resolve, reject });
       });
     }
 
@@ -303,6 +314,9 @@ class ApiClient {
       const newToken = await this.refreshAccessToken();
       onTokenRefreshed(newToken);
       return newToken;
+    } catch (error) {
+      onTokenRefreshFailed(error);
+      throw error;
     } finally {
       isRefreshing = false;
     }
@@ -321,7 +335,51 @@ class ApiClient {
         return decodeURIComponent(value);
       }
     }
-    return null;
+    // The API cookie is not readable from this origin: use the token the API
+    // handed out (see resolveCSRFToken).
+    return csrfToken;
+  }
+
+  /**
+   * CSRF token for a mutating request. When the API's cookie cannot be read
+   * from this origin (web and API on different hosts), fetch one from the API,
+   * which also sets the matching cookie.
+   */
+  private async resolveCSRFToken(): Promise<string | null> {
+    const existing = this.getCSRFToken();
+    if (existing || typeof window === "undefined") return existing;
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/csrf-token`, {
+        credentials: "include",
+      });
+      const data = await response.json();
+      csrfToken = data?.data?.csrfToken ?? null;
+    } catch {
+      csrfToken = null;
+    }
+    return csrfToken;
+  }
+
+  /**
+   * Auth and CSRF headers for requests made outside this client (e.g. file
+   * downloads that need the raw response).
+   */
+  public async authHeaders(
+    method: HttpMethod = "GET",
+  ): Promise<Record<string, string>> {
+    await this.ensureAuthToken();
+    const headers: Record<string, string> = {};
+    const token = this.getAuthToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    if (method !== "GET") {
+      const csrf = await this.resolveCSRFToken();
+      if (csrf) {
+        headers["x-csrf-token"] = csrf;
+      }
+    }
+    return headers;
   }
 
   /**
@@ -355,6 +413,9 @@ class ApiClient {
     } = config;
 
     // Build headers
+    if (!skipAuth) {
+      await this.ensureAuthToken();
+    }
     const token = skipAuth ? null : this.getAuthToken();
     const requestHeaders: Record<string, string> = {
       ...this.defaultHeaders,
@@ -367,9 +428,9 @@ class ApiClient {
 
     // Add CSRF token for state-changing methods
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-      const csrfToken = this.getCSRFToken();
-      if (csrfToken) {
-        requestHeaders["x-csrf-token"] = csrfToken;
+      const token = await this.resolveCSRFToken();
+      if (token) {
+        requestHeaders["x-csrf-token"] = token;
       }
     }
 
@@ -425,6 +486,17 @@ class ApiClient {
         error.details,
         responseData.meta,
       );
+
+      // A cached CSRF token goes stale when the API rotates it (login,
+      // refresh); fetch a fresh one and retry once.
+      if (
+        response.status === 403 &&
+        /csrf/i.test(apiError.message) &&
+        retryCount === 0
+      ) {
+        csrfToken = null;
+        return this.request<T>(endpoint, config, retryCount + 1);
+      }
 
       // Handle token expiration with automatic refresh
       if (
@@ -523,6 +595,9 @@ class ApiClient {
     formData: FormData,
     config?: Omit<RequestConfig, "method" | "body" | "headers">,
   ): Promise<T> {
+    if (!config?.skipAuth) {
+      await this.ensureAuthToken();
+    }
     const token = this.getAuthToken();
     const requestHeaders: Record<string, string> = {};
 
@@ -530,7 +605,7 @@ class ApiClient {
       requestHeaders["Authorization"] = `Bearer ${token}`;
     }
 
-    const csrfToken = this.getCSRFToken();
+    const csrfToken = await this.resolveCSRFToken();
     if (csrfToken) {
       requestHeaders["x-csrf-token"] = csrfToken;
     }
