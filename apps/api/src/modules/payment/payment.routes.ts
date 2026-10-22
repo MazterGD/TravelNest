@@ -8,7 +8,6 @@ import * as paymentController from "./payment.controller.js";
 import {
   confirmPaymentSchema,
   createPaymentIntentSchema,
-  refundPaymentSchema,
   uploadReceiptSchema,
 } from "./payment.schemas.js";
 import { config } from "../../config/index.js";
@@ -81,14 +80,5 @@ router.post(
 
 // PayHere webhook
 router.post("/webhook", asyncHandler(paymentController.payhereWebhook));
-
-// Refund payment
-router.post(
-  "/:id/refund",
-  authenticate,
-  csrfProtection,
-  validate(refundPaymentSchema),
-  asyncHandler(paymentController.refundPayment),
-);
 
 export default router;

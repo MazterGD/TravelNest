@@ -1403,12 +1403,10 @@ export const paymentService = {
   createPaymentIntent: (
     bookingId: string,
     method: "CARD" | "BANK_TRANSFER" | "CASH",
-    amount?: number,
   ) =>
     api.post<PaymentIntent>(`/payments/create-intent`, {
       bookingId,
       method,
-      amount,
     }),
 
   /**
@@ -1463,15 +1461,6 @@ export const paymentService = {
       };
     }>(`/payments/my-payments${query}`);
   },
-
-  /**
-   * Request a refund
-   */
-  requestRefund: (paymentId: string, reason: string, amount?: number) =>
-    api.post<MessageResponse>(`/payments/${paymentId}/refund`, {
-      reason,
-      amount,
-    }),
 
   /**
    * Fetch bank transfer details

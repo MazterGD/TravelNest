@@ -140,6 +140,93 @@ describe("Payment API", () => {
     paymentId = response.body.data.payment.id;
   });
 
+  it("charges the booking total even if the client sends an amount", async () => {
+    const response = await request(app)
+      .post(`${API_BASE}/payments/create-intent`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ bookingId, method: "CARD", amount: 1 });
+
+    expect(response.status).toBe(201);
+    expect(response.body.data.payment.amount).toBe(50000);
+    expect(response.body.data.payhere.payload.amount).toBe("50000.00");
+  });
+
+  const sendWebhook = (overrides: {
+    merchantId?: string;
+    amount?: string;
+    currency?: string;
+    secret?: string;
+  }) => {
+    const merchantId =
+      overrides.merchantId ?? process.env.PAYHERE_MERCHANT_ID ?? "";
+    const amount = overrides.amount ?? "50000.00";
+    const currency = overrides.currency ?? "LKR";
+    const signature = buildPayHereSignature(
+      merchantId,
+      paymentId,
+      amount,
+      currency,
+      overrides.secret ?? process.env.PAYHERE_MERCHANT_SECRET ?? "",
+    );
+
+    return request(app).post(`${API_BASE}/payments/webhook`).send({
+      merchant_id: merchantId,
+      order_id: paymentId,
+      payment_id: "PH-ATTACK",
+      payhere_amount: amount,
+      payhere_currency: currency,
+      status_code: "2",
+      md5sig: signature,
+      method: "VISA",
+    });
+  };
+
+  const expectPaymentNotCompleted = async () => {
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+    expect(payment?.status).not.toBe("COMPLETED");
+    expect(booking?.status).toBe("PENDING");
+  };
+
+  it("rejects a signed webhook whose amount is lower than the booking total", async () => {
+    const response = await sendWebhook({ amount: "1.00" });
+
+    expect(response.status).toBe(400);
+    await expectPaymentNotCompleted();
+  });
+
+  it("rejects a signed webhook for a different merchant or currency", async () => {
+    expect((await sendWebhook({ merchantId: "OTHER_MERCHANT" })).status).toBe(
+      400,
+    );
+    expect((await sendWebhook({ currency: "USD" })).status).toBe(400);
+    await expectPaymentNotCompleted();
+  });
+
+  it("rejects a webhook with an invalid signature", async () => {
+    const response = await sendWebhook({ secret: "WRONG_SECRET" });
+
+    expect(response.status).toBe(403);
+    await expectPaymentNotCompleted();
+  });
+
+  it("refuses webhooks while no merchant secret is configured", async () => {
+    const payhere = config.payhere as { merchantSecret: string };
+    const original = payhere.merchantSecret;
+    payhere.merchantSecret = "";
+    try {
+      const response = await sendWebhook({ secret: "" });
+      expect(response.status).toBe(500);
+    } finally {
+      payhere.merchantSecret = original;
+    }
+    await expectPaymentNotCompleted();
+  });
+
   it("processes PayHere webhook and completes payment", async () => {
     const amount = "50000.00";
     const signature = buildPayHereSignature(
@@ -168,14 +255,17 @@ describe("Payment API", () => {
     expect(response.body.data.payment.status).toBe("completed");
   });
 
-  it("refunds a completed payment", async () => {
+  it("does not let a customer refund their own payment directly", async () => {
     const response = await request(app)
       .post(`${API_BASE}/payments/${paymentId}/refund`)
       .set("Authorization", `Bearer ${authToken}`)
       .send({ reason: "Customer requested refund" });
 
-    expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-    expect(response.body.data.payment.status).toBe("refunded");
+    expect(response.status).toBe(404);
+
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    expect(payment?.status).toBe("COMPLETED");
   });
 });

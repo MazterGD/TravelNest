@@ -153,7 +153,6 @@ export const createPaymentIntent = async (
   userId: string,
   bookingId: string,
   method: PaymentMethod,
-  amount?: number,
 ): Promise<PaymentIntentResult> => {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -184,10 +183,10 @@ export const createPaymentIntent = async (
     throw ApiError.badRequest("Cannot pay for a closed booking");
   }
 
-  const totalAmount = booking.totalAmount;
-  const normalizedAmount = amount ? Number(amount) : totalAmount;
+  // Always charge the full booking total; the amount is never client-supplied.
+  const normalizedAmount = booking.totalAmount;
 
-  if (normalizedAmount <= 0 || normalizedAmount > totalAmount) {
+  if (!(normalizedAmount > 0)) {
     throw ApiError.badRequest("Invalid payment amount");
   }
 
@@ -376,51 +375,6 @@ export const executePayHereRefund = async (
   }
 };
 
-export const refundPayment = async (
-  userId: string,
-  paymentId: string,
-  amount: number | undefined,
-  reason: string,
-) => {
-  const payment = await prisma.payment.findUnique({
-    where: { id: paymentId },
-    include: { booking: true },
-  });
-
-  if (!payment) {
-    throw ApiError.notFound("Payment not found");
-  }
-
-  if (payment.userId !== userId) {
-    throw ApiError.forbidden("Not authorized to refund this payment");
-  }
-
-  if (payment.status !== "COMPLETED") {
-    throw ApiError.badRequest("Only completed payments can be refunded");
-  }
-
-  const refundAmount = amount ?? payment.amount;
-
-  if (refundAmount <= 0 || refundAmount > payment.amount) {
-    throw ApiError.badRequest("Invalid refund amount");
-  }
-
-  if (payment.method === "CARD" && payment.payherePaymentId) {
-    await executePayHereRefund(payment.payherePaymentId, refundAmount, reason);
-  }
-
-  const updated = await prisma.payment.update({
-    where: { id: paymentId },
-    data: {
-      status: "REFUNDED",
-      refundAmount,
-      refundReason: reason,
-    },
-  });
-
-  return toPaymentResponse(updated);
-};
-
 export const uploadBankReceipt = async (
   userId: string,
   paymentId: string,
@@ -543,9 +497,16 @@ export const handlePayHereWebhook = async (payload: PayHereWebhookPayload) => {
     throw ApiError.badRequest("Invalid PayHere payload");
   }
 
-  const merchantId = payload.merchant_id || config.payhere.merchantId;
-  const amount = payload.payhere_amount || "0.00";
-  const currency = payload.payhere_currency || "LKR";
+  // Without a merchant secret the signature would be md5 of an empty secret,
+  // which anyone can compute.
+  if (!config.payhere.merchantId || !config.payhere.merchantSecret) {
+    console.error("[payment] PayHere webhook received but gateway is not configured");
+    throw ApiError.internal("Payment gateway is not configured");
+  }
+
+  const merchantId = payload.merchant_id || "";
+  const amount = payload.payhere_amount || "";
+  const currency = payload.payhere_currency || "";
 
   const expectedHash = buildPayHereHash(
     merchantId,
@@ -555,7 +516,14 @@ export const handlePayHereWebhook = async (payload: PayHereWebhookPayload) => {
     config.payhere.merchantSecret,
   );
 
-  if (expectedHash !== payload.md5sig) {
+  const signatureValid =
+    expectedHash.length === payload.md5sig.length &&
+    crypto.timingSafeEqual(
+      Buffer.from(expectedHash),
+      Buffer.from(payload.md5sig.toUpperCase()),
+    );
+
+  if (!signatureValid) {
     throw ApiError.forbidden("Invalid PayHere signature");
   }
 
@@ -568,6 +536,19 @@ export const handlePayHereWebhook = async (payload: PayHereWebhookPayload) => {
 
   if (!payment) {
     throw ApiError.notFound("Payment not found");
+  }
+
+  // A valid signature only proves PayHere sent these values; they must also
+  // match what we asked the customer to pay.
+  if (
+    merchantId !== config.payhere.merchantId ||
+    currency !== payment.currency ||
+    amount !== formatAmount(payment.amount)
+  ) {
+    console.warn(
+      `[payment] PayHere webhook mismatch for payment ${payment.id}; ignoring`,
+    );
+    throw ApiError.badRequest("PayHere payment details do not match");
   }
 
   if (payment.status === "COMPLETED" && nextStatus === "COMPLETED") {

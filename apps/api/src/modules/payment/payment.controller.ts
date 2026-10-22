@@ -5,10 +5,9 @@ import { ApiError } from "../../middleware/errorHandler.js";
 import * as paymentService from "./payment.service.js";
 
 export const createPaymentIntent = async (req: Request, res: Response) => {
-  const { bookingId, method, amount } = req.body as {
+  const { bookingId, method } = req.body as {
     bookingId: string;
     method: paymentService.PaymentMethod;
-    amount?: number;
   };
 
   const userId = req.user!.id;
@@ -17,7 +16,6 @@ export const createPaymentIntent = async (req: Request, res: Response) => {
     userId,
     bookingId,
     method,
-    amount,
   );
 
   return ResponseHelper.created(res, result, "Payment intent created");
@@ -50,25 +48,6 @@ export const getMyPayments = async (req: Request, res: Response) => {
   const result = await paymentService.getMyPayments(userId, page, limit);
 
   return ResponseHelper.success(res, result);
-};
-
-export const refundPayment = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const paymentId = Array.isArray(id) ? id[0] : id;
-  const { amount, reason } = req.body as {
-    amount?: number;
-    reason: string;
-  };
-  const userId = req.user!.id;
-
-  const payment = await paymentService.refundPayment(
-    userId,
-    paymentId,
-    amount,
-    reason,
-  );
-
-  return ResponseHelper.success(res, { payment }, "Refund processed");
 };
 
 export const uploadReceipt = async (req: Request, res: Response) => {
