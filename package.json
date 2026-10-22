@@ -28,11 +28,17 @@
     "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
-    "rimraf": "^5.0.5",
-    "typescript": "^5.7.0"
+    "rimraf": "^5.0.10",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "overrides": {
+      "deepmerge-ts": "^8.0.0",
+      "eslint-plugin-react-hooks": "7.0.1"
+    }
+  }
 }
