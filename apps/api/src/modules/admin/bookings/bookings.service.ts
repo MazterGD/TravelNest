@@ -1,8 +1,15 @@
 import { prisma } from "@travenest/database";
 import { ApiError } from "../../../middleware/errorHandler.js";
 import { recordAuditLog } from "../audit/audit.service.js";
-import { executePayHereRefund } from "../../payment/payment.service.js";
-import { removeSettlementForBooking } from "../../payment/settlement.service.js";
+import {
+  applyPaymentCompletion,
+  completeOfflinePayment,
+  executePayHereRefund,
+} from "../../payment/payment.service.js";
+import {
+  reduceSettlementForBooking,
+  removeSettlementForBooking,
+} from "../../payment/settlement.service.js";
 import { buildCsv, parsePagination } from "../types.js";
 import type {
   BookingStatusUpdateInput,
@@ -221,16 +228,31 @@ export const getBookingDetails = async (bookingId: string) => {
   return booking;
 };
 
+// Lifecycle moves an admin may make by hand. CONFIRMED is reached only through
+// a completed payment and COMPLETED/CANCELLED are final.
+const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ["CONFIRMED", "CANCELLED"],
+  CONFIRMED: ["ONGOING", "CANCELLED"],
+  ONGOING: ["COMPLETED", "CANCELLED"],
+  COMPLETED: [],
+  CANCELLED: [],
+};
+
+const PAYMENT_CONFIRMING_ROLES = ["SUPER_ADMIN", "FINANCE_ADMIN"];
+
 export const updateBookingStatus = async (
   adminId: string,
   bookingId: string,
   payload: BookingStatusUpdateInput,
+  adminRole?: string,
 ) => {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     select: {
       id: true,
       status: true,
+      vehicleId: true,
+      payment: { select: { status: true, method: true } },
     },
   });
 
@@ -238,15 +260,72 @@ export const updateBookingStatus = async (
     throw new ApiError(404, "Booking not found");
   }
 
-  const updated = await prisma.booking.update({
+  if (!ALLOWED_STATUS_TRANSITIONS[booking.status]?.includes(payload.status)) {
+    throw new ApiError(
+      400,
+      `A booking cannot move from ${booking.status} to ${payload.status}`,
+    );
+  }
+
+  const paymentCompleted = booking.payment?.status === "COMPLETED";
+
+  if (payload.status === "CANCELLED" && paymentCompleted) {
+    throw new ApiError(
+      400,
+      "This booking has been paid. Use cancel with refund instead.",
+    );
+  }
+
+  if (payload.status === "CONFIRMED") {
+    // Confirming means the money is in: either it already completed, or a
+    // finance admin is confirming a received bank transfer or cash (ADR-002).
+    if (paymentCompleted) {
+      await applyPaymentCompletion(bookingId);
+    } else {
+      const method = booking.payment?.method;
+      if (method !== "BANK_TRANSFER" && method !== "CASH") {
+        throw new ApiError(
+          400,
+          "This booking has no payment that can be confirmed yet.",
+        );
+      }
+      if (!adminRole || !PAYMENT_CONFIRMING_ROLES.includes(adminRole)) {
+        throw ApiError.forbidden("Only finance admins can confirm payments");
+      }
+      await completeOfflinePayment(bookingId, method);
+    }
+  } else {
+    await prisma.$transaction(async (tx) => {
+      const claimed = await tx.booking.updateMany({
+        where: { id: bookingId, status: booking.status },
+        data: {
+          status: payload.status,
+          cancelReason:
+            payload.status === "CANCELLED"
+              ? payload.reason ?? "Cancelled by admin"
+              : null,
+        },
+      });
+      if (claimed.count !== 1) {
+        throw ApiError.conflict(
+          "This booking was just updated. Please refresh.",
+        );
+      }
+
+      if (payload.status === "CANCELLED") {
+        await tx.vehicleAvailability.deleteMany({
+          where: {
+            vehicleId: booking.vehicleId,
+            reason: `Booking ${bookingId}`,
+          },
+        });
+        await removeSettlementForBooking(tx, bookingId);
+      }
+    });
+  }
+
+  const updated = await prisma.booking.findUniqueOrThrow({
     where: { id: bookingId },
-    data: {
-      status: payload.status,
-      cancelReason:
-        payload.status === "CANCELLED"
-          ? payload.reason ?? "Cancelled by admin"
-          : null,
-    },
     select: {
       id: true,
       status: true,
@@ -300,11 +379,28 @@ export const cancelBookingWithRefund = async (
     throw new ApiError(400, "Booking is already cancelled");
   }
 
-  const paidAmount = booking.payment?.amount ?? 0;
+  // Only money actually received can be refunded.
+  const paidAmount =
+    booking.payment?.status === "COMPLETED" ? booking.payment.amount : 0;
   const refundAmount = payload.refundAmount ?? paidAmount;
 
-  if (paidAmount > 0 && refundAmount > paidAmount) {
-    throw new ApiError(400, "Refund amount cannot exceed paid amount");
+  if (refundAmount > paidAmount) {
+    throw new ApiError(
+      400,
+      paidAmount > 0
+        ? "Refund amount cannot exceed paid amount"
+        : "This booking has no completed payment to refund",
+    );
+  }
+
+  // Claim the cancellation before any gateway refund so two concurrent
+  // requests cannot refund twice (ADR-004).
+  const claimed = await prisma.booking.updateMany({
+    where: { id: bookingId, status: booking.status },
+    data: { status: "CANCELLED", cancelReason: payload.refundReason },
+  });
+  if (claimed.count !== 1) {
+    throw ApiError.conflict("This booking was just updated. Please refresh.");
   }
 
   // For completed card payments, return the funds through PayHere BEFORE
@@ -317,11 +413,19 @@ export const cancelBookingWithRefund = async (
     Boolean(booking.payment.payherePaymentId);
 
   if (refundedViaPayHere) {
-    await executePayHereRefund(
-      booking.payment!.payherePaymentId!,
-      refundAmount,
-      payload.refundReason,
-    );
+    try {
+      await executePayHereRefund(
+        booking.payment!.payherePaymentId!,
+        refundAmount,
+        payload.refundReason,
+      );
+    } catch (error) {
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { status: booking.status, cancelReason: booking.cancelReason },
+      });
+      throw error;
+    }
   }
 
   const result = await prisma.$transaction(async (tx) => {
@@ -347,7 +451,7 @@ export const cancelBookingWithRefund = async (
       updatedAt: Date;
     } | null = null;
 
-    if (booking.payment) {
+    if (booking.payment && paidAmount > 0) {
       updatedPayment = await tx.payment.update({
         where: { id: booking.payment.id },
         data: {
@@ -382,12 +486,12 @@ export const cancelBookingWithRefund = async (
       });
     }
 
-    // Free the vehicle's dates and unwind the settlement ledger so the owner is
-    // not paid out for this cancelled/refunded booking.
+    // Free the vehicle's dates; the owner keeps any share that is not refunded
+    // (ADR-005), otherwise the settlement line is removed.
     await tx.vehicleAvailability.deleteMany({
       where: { vehicleId: booking.vehicleId, reason: `Booking ${bookingId}` },
     });
-    await removeSettlementForBooking(tx, bookingId);
+    await reduceSettlementForBooking(tx, bookingId, paidAmount - refundAmount);
 
     return {
       booking: updatedBooking,
@@ -406,7 +510,7 @@ export const cancelBookingWithRefund = async (
       refundAmount,
       refundReason: payload.refundReason,
       previousPaymentStatus: booking.payment?.status,
-      newPaymentStatus: booking.payment ? "REFUNDED" : undefined,
+      newPaymentStatus: paidAmount > 0 ? "REFUNDED" : undefined,
       refundedViaPayHere,
     },
     `Booking cancelled with refund ${

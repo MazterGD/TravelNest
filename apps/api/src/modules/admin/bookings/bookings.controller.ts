@@ -76,6 +76,7 @@ export const patchBookingStatus = async (
       adminId,
       normalizeParam(req.params.bookingId),
       req.body,
+      req.adminRole,
     );
 
     return ResponseHelper.success(res, updated, "Booking status updated successfully");
