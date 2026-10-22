@@ -14,7 +14,8 @@ type UserListFilters = {
 };
 
 const buildUserWhere = (filters: UserListFilters) => {
-  const where: Record<string, unknown> = {};
+  // Admin views include soft-removed rows, flagged for the UI (ADR-006).
+  const where: Record<string, unknown> = { isRemoved: undefined };
 
   if (filters.role) {
     where.role = filters.role;
@@ -64,6 +65,8 @@ export const getUsers = async (
         status: true,
         adminRole: true,
         isVerified: true,
+        isRemoved: true,
+        removedAt: true,
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -89,9 +92,11 @@ export const getUsers = async (
 export const getUserDetails = async (userId: string) => {
   const [user, ownerBookingCount] = await Promise.all([
     prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: userId, isRemoved: undefined },
       select: {
         id: true,
+        isRemoved: true,
+        removedAt: true,
         email: true,
         firstName: true,
         lastName: true,
@@ -433,6 +438,7 @@ export const exportUsersCsv = async (filters: UserListFilters) => {
       status: true,
       adminRole: true,
       isVerified: true,
+      isRemoved: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -448,6 +454,7 @@ export const exportUsersCsv = async (filters: UserListFilters) => {
     user.status,
     user.adminRole ?? "",
     user.isVerified ? "yes" : "no",
+    user.isRemoved ? "yes" : "no",
     user.createdAt.toISOString(),
     user.updatedAt.toISOString(),
   ]);
@@ -463,6 +470,7 @@ export const exportUsersCsv = async (filters: UserListFilters) => {
       "status",
       "adminRole",
       "isVerified",
+      "removed",
       "createdAt",
       "updatedAt",
     ],

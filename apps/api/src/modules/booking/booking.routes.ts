@@ -110,6 +110,7 @@ router.get(
               lastName: true,
               email: true,
               phone: true,
+              isRemoved: true,
             },
           },
           vehicle: {
@@ -145,10 +146,12 @@ router.get(
     const transformedBookings = bookings.map((booking) => ({
       id: booking.id,
       bookingRef: `BK-${booking.id.slice(0, 8).toUpperCase()}`,
+      // Removed customers (ADR-006) keep their name on past trips, not contacts
       customer: {
         name: `${booking.customer.firstName} ${booking.customer.lastName}`,
-        phone: booking.customer.phone || "",
-        email: booking.customer.email,
+        phone: booking.customer.isRemoved ? "" : booking.customer.phone || "",
+        email: booking.customer.isRemoved ? "" : booking.customer.email,
+        isRemoved: booking.customer.isRemoved,
       },
       vehicle: {
         registration: booking.vehicle.licensePlate,

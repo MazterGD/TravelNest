@@ -108,6 +108,7 @@ export const getBookings = async (
             lastName: true,
             email: true,
             phone: true,
+            isRemoved: true,
           },
         },
         vehicle: {
@@ -116,12 +117,14 @@ export const getBookings = async (
             name: true,
             licensePlate: true,
             type: true,
+            isRemoved: true,
             owner: {
               select: {
                 id: true,
                 firstName: true,
                 lastName: true,
                 email: true,
+                isRemoved: true,
               },
             },
           },
@@ -162,6 +165,7 @@ export const getBookingDetails = async (bookingId: string) => {
           email: true,
           phone: true,
           status: true,
+          isRemoved: true,
         },
       },
       vehicle: {
@@ -172,6 +176,7 @@ export const getBookingDetails = async (bookingId: string) => {
           type: true,
           brand: true,
           model: true,
+          isRemoved: true,
           owner: {
             select: {
               id: true,
@@ -179,6 +184,7 @@ export const getBookingDetails = async (bookingId: string) => {
               lastName: true,
               email: true,
               phone: true,
+              isRemoved: true,
             },
           },
         },

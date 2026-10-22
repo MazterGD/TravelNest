@@ -13,7 +13,8 @@ type TestimonialFilters = {
 const buildTestimonialWhere = (
   filters: TestimonialFilters,
 ): Prisma.TestimonialWhereInput => {
-  const where: Prisma.TestimonialWhereInput = {};
+  // Admin views include soft-removed rows, flagged for the UI (ADR-006).
+  const where: Prisma.TestimonialWhereInput = { isRemoved: undefined };
 
   if (!filters.includeInactive) {
     where.isActive = true;

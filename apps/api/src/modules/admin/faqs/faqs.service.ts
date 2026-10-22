@@ -12,7 +12,8 @@ type FaqFilters = {
 };
 
 const buildFaqWhere = (filters: FaqFilters): Prisma.FaqWhereInput => {
-  const where: Prisma.FaqWhereInput = {};
+  // Admin views include soft-removed rows, flagged for the UI (ADR-006).
+  const where: Prisma.FaqWhereInput = { isRemoved: undefined };
 
   if (filters.category) {
     where.category = filters.category;

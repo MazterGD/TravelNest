@@ -11,7 +11,8 @@ export const getAllAdminVehicles = async (filters: {
   const { page, limit, search, type, isActive, ownerId } = filters;
   const skip = (page - 1) * limit;
 
-  const where: any = {};
+  // Admin views include soft-removed rows, flagged for the UI (ADR-006).
+  const where: any = { isRemoved: undefined };
 
   if (isActive !== undefined) {
     where.isActive = isActive;

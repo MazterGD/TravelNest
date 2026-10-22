@@ -15,6 +15,7 @@ import {
   bookingRequestedToOwner,
   driverAssignedToCustomer,
 } from "../notification/notification.events.js";
+import { stripRemovedSuffix } from "../../utils/softDelete.js";
 
 /**
  * Time-based cancellation refund policy. Values are configurable by admins via
@@ -137,12 +138,14 @@ export const getCustomerBookings = async (
             model: true,
             seats: true,
             images: true,
+            isRemoved: true,
             owner: {
               select: {
                 id: true,
                 firstName: true,
                 lastName: true,
                 phone: true,
+                isRemoved: true,
               },
             },
           },
@@ -195,8 +198,13 @@ export const getCustomerBookings = async (
     vehicleName: booking.vehicle.name,
     vehicleType: booking.vehicle.type,
     vehicleImage: booking.vehicle.images[0] || null,
+    vehicleRemoved: booking.vehicle.isRemoved,
     ownerName: `${booking.vehicle.owner.firstName} ${booking.vehicle.owner.lastName}`,
-    ownerPhone: booking.vehicle.owner.phone || "",
+    // A removed operator keeps their name on past trips but not their contact
+    ownerPhone: booking.vehicle.owner.isRemoved
+      ? ""
+      : booking.vehicle.owner.phone || "",
+    ownerRemoved: booking.vehicle.owner.isRemoved,
     hasReview: !!booking.review,
     createdAt: booking.createdAt.toISOString(),
     updatedAt: booking.updatedAt.toISOString(),
@@ -232,6 +240,7 @@ export const getBookingById = async (
           lastName: true,
           email: true,
           phone: true,
+          isRemoved: true,
         },
       },
       vehicle: {
@@ -239,6 +248,7 @@ export const getBookingById = async (
           id: true,
           name: true,
           licensePlate: true,
+          isRemoved: true,
           type: true,
           brand: true,
           model: true,
@@ -261,6 +271,7 @@ export const getBookingById = async (
               email: true,
               avatar: true,
               createdAt: true,
+              isRemoved: true,
             },
           },
         },
@@ -571,16 +582,19 @@ export const getBookingById = async (
   return {
     id: booking.id,
     bookingRef: `BK-${booking.id.slice(0, 8).toUpperCase()}`,
+    // Removed accounts (ADR-006) keep their name on past trips, not contacts.
     customer: {
       id: booking.customer.id,
       name: `${booking.customer.firstName} ${booking.customer.lastName}`,
-      phone: booking.customer.phone || "",
-      email: booking.customer.email,
+      phone: booking.customer.isRemoved ? "" : booking.customer.phone || "",
+      email: booking.customer.isRemoved ? "" : booking.customer.email,
+      isRemoved: booking.customer.isRemoved,
     },
     vehicle: {
       id: booking.vehicle.id,
       name: booking.vehicle.name,
-      registration: booking.vehicle.licensePlate,
+      registration: stripRemovedSuffix(booking.vehicle.licensePlate),
+      isRemoved: booking.vehicle.isRemoved,
       type: booking.vehicle.type,
       brand: booking.vehicle.brand,
       model: booking.vehicle.model,
@@ -598,8 +612,11 @@ export const getBookingById = async (
     owner: {
       id: booking.vehicle.owner.id,
       name: `${booking.vehicle.owner.firstName} ${booking.vehicle.owner.lastName}`,
-      phone: booking.vehicle.owner.phone || "",
-      email: booking.vehicle.owner.email,
+      phone: booking.vehicle.owner.isRemoved
+        ? ""
+        : booking.vehicle.owner.phone || "",
+      email: booking.vehicle.owner.isRemoved ? "" : booking.vehicle.owner.email,
+      isRemoved: booking.vehicle.owner.isRemoved,
       avatar: booking.vehicle.owner.avatar || null,
       memberSince: booking.vehicle.owner.createdAt.toISOString(),
       rating: ownerReviewAgg._avg.rating

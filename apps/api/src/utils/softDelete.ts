@@ -18,6 +18,10 @@ export const removalStamp = () => ({ isRemoved: true, removedAt: new Date() });
 export const withRemovedSuffix = (value: string, id: string) =>
   `${value}#removed-${id}`;
 
+/** The original value of a unique field freed by withRemovedSuffix. */
+export const stripRemovedSuffix = (value: string) =>
+  value.replace(/#removed-[^#]*$/, "");
+
 const assertNothingPending = (pending: Record<string, number>) => {
   const labels: Record<string, string> = {
     bookings: "active bookings",

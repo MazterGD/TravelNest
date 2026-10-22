@@ -25,7 +25,8 @@ const FLAGGED_KEYWORDS = [
 ];
 
 const buildModerationWhere = (filters: ModerationFilters): Prisma.ReviewWhereInput => {
-  const where: Prisma.ReviewWhereInput = {};
+  // Admin views include soft-removed rows, flagged for the UI (ADR-006).
+  const where: Prisma.ReviewWhereInput = { isRemoved: undefined };
 
   if (filters.search) {
     where.OR = [
