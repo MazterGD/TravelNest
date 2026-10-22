@@ -19,7 +19,6 @@ on:
 
 env:
     NODE_VERSION: "20"
-    PNPM_VERSION: "9.15.0"
 
 jobs:
     # ===========================================================================
@@ -29,13 +28,21 @@ jobs:
         name: PR Information
         runs-on: ubuntu-latest
         steps:
+            # PR-controlled values go through env vars, never inline ${{ }} in the
+            # script, so a crafted title or branch name cannot inject shell commands.
             - name: PR Details
+              env:
+                  PR_NUMBER: ${{ github.event.pull_request.number }}
+                  PR_TITLE: ${{ github.event.pull_request.title }}
+                  PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+                  HEAD_REF: ${{ github.head_ref }}
+                  BASE_REF: ${{ github.base_ref }}
               run: |
                   echo "## Pull Request Details" >> $GITHUB_STEP_SUMMARY
-                  echo "- **PR Number:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
-                  echo "- **Title:** ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
-                  echo "- **Author:** @${{ github.event.pull_request.user.login }}" >> $GITHUB_STEP_SUMMARY
-                  echo "- **Branch:** ${{ github.head_ref }} → ${{ github.base_ref }}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **PR Number:** #${PR_NUMBER}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Title:** ${PR_TITLE}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Author:** @${PR_AUTHOR}" >> $GITHUB_STEP_SUMMARY
+                  echo "- **Branch:** ${HEAD_REF} → ${BASE_REF}" >> $GITHUB_STEP_SUMMARY
 
     # ===========================================================================
     # Full Test Suite - Regression Prevention
@@ -45,7 +52,7 @@ jobs:
         runs-on: ubuntu-latest
         services:
             postgres:
-                image: postgres:16-alpine
+                image: postgis/postgis:16-3.4-alpine
                 env:
                     POSTGRES_USER: test
                     POSTGRES_PASSWORD: test
@@ -72,8 +79,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -87,8 +92,8 @@ jobs:
             - name: Generate Prisma Client
               run: pnpm db:generate
 
-            - name: Push Database Schema
-              run: pnpm db:push
+            - name: Apply Database Migrations
+              run: pnpm db:migrate:deploy
 
             - name: Run Linting
               run: pnpm lint
@@ -98,6 +103,9 @@ jobs:
 
             - name: Run API Tests with Coverage
               run: pnpm --filter @travenest/api test:coverage
+
+            - name: Run Web Tests
+              run: pnpm --filter @travenest/web test
 
             - name: Upload Coverage to Codecov
               uses: codecov/codecov-action@v4

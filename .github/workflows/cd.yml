@@ -31,7 +31,6 @@ concurrency:
 
 env:
     NODE_VERSION: "20"
-    PNPM_VERSION: "9.15.0"
 
 jobs:
     # ===========================================================================
@@ -42,7 +41,7 @@ jobs:
         runs-on: ubuntu-latest
         services:
             postgres:
-                image: postgres:16-alpine
+                image: postgis/postgis:16-3.4-alpine
                 env:
                     POSTGRES_USER: test
                     POSTGRES_PASSWORD: test
@@ -67,8 +66,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -82,8 +79,8 @@ jobs:
             - name: Generate Prisma Client
               run: pnpm db:generate
 
-            - name: Push Database Schema (Test)
-              run: pnpm db:push
+            - name: Apply Database Migrations (Test)
+              run: pnpm db:migrate:deploy
 
             - name: Run Linting
               run: pnpm lint
@@ -115,8 +112,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -224,8 +219,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -302,8 +295,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4

@@ -6,7 +6,7 @@ This document describes the Continuous Integration and Continuous Deployment (CI
 
 > **Current status:** CI (`ci.yml`) and PR (`pr.yml`) checks run. In CD (`cd.yml`), only the `validate` job is active; the deploy, migrate and health-check steps are commented-out placeholders. The planned target is the web app on **Vercel Hobby**, and the API + OSRM on an **Oracle Cloud Always Free VM** (see `architecture.md § Deployment Topology`).
 >
-> **Known issue: PostGIS.** All three workflows start a plain `postgres:16-alpine` service and run `pnpm db:push`. The schema uses PostGIS types (`geography`/`geometry`), and the extension, trigger and GIST indexes are created only by raw-SQL migrations. The test database steps should use a PostGIS image (for example `postgis/postgis:16-3.4-alpine`) and `pnpm db:migrate:deploy` instead of `db:push`.
+> **Test database:** workflows start a `postgis/postgis:16-3.4-alpine` service and run `pnpm db:migrate:deploy` (PostGIS extension, triggers and GIST indexes live in raw-SQL migrations, so `db push` is never used). CI also fails if `schema.prisma` drifts from the migrations. The pnpm version comes from the root `packageManager` field.
 
 ## Pipeline Structure
 
@@ -41,9 +41,10 @@ This document describes the Continuous Integration and Continuous Deployment (CI
 | `setup` | Install and cache dependencies | ~1 min |
 | `lint` | Run ESLint on all packages | ~30s |
 | `typecheck` | TypeScript type validation | ~30s |
-| `test-api` | Run API tests with PostgreSQL | ~2 min |
+| `test-api` | Migrate a PostGIS DB, check schema drift, run API tests with coverage | ~2 min |
+| `test-web` | Run web component/flow tests (jsdom) | ~1 min |
 | `build` | Build all packages | ~2 min |
-| `security` | Security vulnerability audit | ~30s |
+| `security` | `pnpm audit --prod --audit-level=high` gate (full audit reported, non-blocking) | ~30s |
 | `ci-status` | Final status gate | ~5s |
 
 ### 2. PR Pipeline (`pr.yml`)
@@ -75,6 +76,12 @@ This document describes the Continuous Integration and Continuous Deployment (CI
 | `migrate-database` | Run Prisma migrations |
 | `health-check` | Post-deployment verification |
 | `notify` | Send deployment notifications |
+
+### 4. CodeQL (`codeql.yml`)
+
+**Triggers:** Pushes to `main`/`staging`, pull requests to `main`/`develop`, weekly schedule, manual dispatch
+
+**Purpose:** GitHub CodeQL static security analysis (`security-extended` queries) for the TypeScript/JavaScript sources. Findings appear under *Security → Code scanning*.
 
 ## Required Secrets
 

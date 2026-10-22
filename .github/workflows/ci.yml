@@ -28,7 +28,6 @@ concurrency:
 
 env:
     NODE_VERSION: "20"
-    PNPM_VERSION: "9.15.0"
 
 jobs:
     # ===========================================================================
@@ -45,8 +44,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -84,8 +81,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -112,8 +107,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -146,7 +139,7 @@ jobs:
         services:
             # PostgreSQL service for integration tests
             postgres:
-                image: postgres:16-alpine
+                image: postgis/postgis:16-3.4-alpine
                 env:
                     POSTGRES_USER: test
                     POSTGRES_PASSWORD: test
@@ -171,8 +164,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -186,11 +177,12 @@ jobs:
             - name: Generate Prisma Client
               run: pnpm db:generate
 
-            - name: Push Database Schema
-              run: pnpm db:push
+            - name: Apply Database Migrations
+              run: pnpm db:migrate:deploy
 
-            - name: Run API Tests
-              run: pnpm --filter @travenest/api test
+            - name: Check Prisma Schema Matches Migrations
+              working-directory: packages/database
+              run: pnpm exec prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
 
             - name: Run API Tests with Coverage
               run: pnpm --filter @travenest/api test:coverage
@@ -202,6 +194,32 @@ jobs:
                   name: api-coverage-report
                   path: apps/api/coverage/
                   retention-days: 7
+
+    # ===========================================================================
+    # Web Tests - Frontend Component & Flow Tests
+    # ===========================================================================
+    test-web:
+        name: Web Tests
+        runs-on: ubuntu-latest
+        needs: setup
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Run Web Tests
+              run: pnpm --filter @travenest/web test
 
     # ===========================================================================
     # Build Check - Ensure All Packages Build Successfully
@@ -216,8 +234,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -267,8 +283,6 @@ jobs:
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
-              with:
-                  version: ${{ env.PNPM_VERSION }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -279,9 +293,13 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
-            - name: Run Security Audit
+            # Blocks on high/critical advisories in shipped (production) dependencies.
+            - name: Run Security Audit (production dependencies)
+              run: pnpm audit --prod --audit-level=high
+
+            - name: Report Security Audit (all dependencies)
               run: pnpm audit --audit-level=high
-              continue-on-error: true # Don't fail on audit warnings
+              continue-on-error: true
 
     # ===========================================================================
     # Final Status Check - All Tests Must Pass
@@ -289,7 +307,7 @@ jobs:
     ci-status:
         name: CI Status Check
         runs-on: ubuntu-latest
-        needs: [lint, typecheck, test-api, build, security]
+        needs: [lint, typecheck, test-api, test-web, build, security]
         if: always()
         steps:
             - name: Check CI Status
@@ -297,12 +315,16 @@ jobs:
                   if [[ "${{ needs.lint.result }}" != "success" ]] || \
                      [[ "${{ needs.typecheck.result }}" != "success" ]] || \
                      [[ "${{ needs.test-api.result }}" != "success" ]] || \
-                     [[ "${{ needs.build.result }}" != "success" ]]; then
+                     [[ "${{ needs.test-web.result }}" != "success" ]] || \
+                     [[ "${{ needs.build.result }}" != "success" ]] || \
+                     [[ "${{ needs.security.result }}" != "success" ]]; then
                     echo "CI checks failed!"
                     echo "Lint: ${{ needs.lint.result }}"
                     echo "TypeCheck: ${{ needs.typecheck.result }}"
                     echo "API Tests: ${{ needs.test-api.result }}"
+                    echo "Web Tests: ${{ needs.test-web.result }}"
                     echo "Build: ${{ needs.build.result }}"
+                    echo "Security: ${{ needs.security.result }}"
                     exit 1
                   fi
                   echo "All CI checks passed!"
