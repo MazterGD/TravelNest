@@ -394,11 +394,6 @@ export const userService = {
   deleteAvatar: () => api.delete<User>("/users/avatar"),
 
   /**
-   * Get user by ID (admin only)
-   */
-  getById: (id: string) => api.get<User>(`/users/${id}`),
-
-  /**
    * Delete user account
    */
   deleteAccount: () => api.delete<{ message: string }>("/users/account"),
