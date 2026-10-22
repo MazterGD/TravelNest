@@ -34,17 +34,55 @@ const testOwnerData = {
     postalCode: "10100",
     baseLocation: "Colombo",
   },
+  ownerDocuments: [
+    {
+      type: "NIC",
+      fileName: "nic.pdf",
+      fileSize: 1024,
+      mimeType: "application/pdf",
+      url: "https://example.com/docs/nic.pdf",
+    },
+    {
+      type: "PROFILE_PHOTO",
+      fileName: "photo.jpg",
+      fileSize: 2048,
+      mimeType: "image/jpeg",
+      url: "https://example.com/docs/photo.jpg",
+    },
+  ],
   vehicles: [
     {
       registrationNumber: "PROF-TEST-001",
-      vehicleType: "luxury",
+      vehicleType: "LUXURY_AC",
       make: "Ashok Leyland",
       model: "Viking",
       year: 2022,
       seatingCapacity: 45,
-      acType: "full-ac",
+      acType: "FULL_AC",
       photos: [],
-      documents: [],
+      documents: [
+        {
+          type: "DRIVING_LICENSE",
+          fileName: "license.pdf",
+          fileSize: 1024,
+          mimeType: "application/pdf",
+          url: "https://example.com/docs/license.pdf",
+        },
+        {
+          type: "INSURANCE",
+          fileName: "insurance.pdf",
+          fileSize: 1024,
+          mimeType: "application/pdf",
+          url: "https://example.com/docs/insurance.pdf",
+        },
+        {
+          type: "REGISTRATION_CERTIFICATE",
+          fileName: "cr.pdf",
+          fileSize: 1024,
+          mimeType: "application/pdf",
+          url: "https://example.com/docs/cr.pdf",
+        },
+      ],
     },
   ],
 };
@@ -70,7 +108,6 @@ async function cleanupTestData() {
       });
       await prisma.vehicle.deleteMany({ where: { ownerId: user.id } });
       await prisma.ownerDocument.deleteMany({ where: { ownerId: user.id } });
-      await prisma.businessProfile.deleteMany({ where: { ownerId: user.id } });
     }
   }
 
@@ -336,82 +373,9 @@ describe("PATCH /owner/profile/address - Update Address", () => {
   });
 });
 
-// ============================================
-// 4. UPDATE BUSINESS PROFILE TESTS
-// ============================================
-describe("PATCH /owner/profile/business - Update Business Profile", () => {
-  beforeEach(async () => {
-    await cleanupTestData();
-    const registerResponse = await request(app)
-      .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
-
-    ownerToken = registerResponse.body.data.accessToken;
-    ownerId = registerResponse.body.data.user.id;
-  });
-
-  afterEach(async () => {
-    await cleanupTestData();
-  });
-
-  it("should create business profile if not exists", async () => {
-    const response = await request(app)
-      .patch(`${API_BASE}/owner/profile/business`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({
-        businessName: "New Bus Company",
-        businessType: "private-limited",
-        registrationNumber: "PV12345",
-        taxId: "TIN123456",
-      });
-
-    expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-
-    // Verify business profile was created
-    const businessProfile = await prisma.businessProfile.findFirst({
-      where: { ownerId },
-    });
-    expect(businessProfile).not.toBeNull();
-    expect(businessProfile!.businessName).toBe("New Bus Company");
-  });
-
-  it("should update existing business profile", async () => {
-    // First create a business profile
-    await prisma.businessProfile.create({
-      data: {
-        ownerId,
-        businessName: "Old Name",
-        businessType: "sole-proprietorship",
-      },
-    });
-
-    const response = await request(app)
-      .patch(`${API_BASE}/owner/profile/business`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({
-        businessName: "Updated Name",
-        businessType: "private-limited",
-      });
-
-    expect(response.status).toBe(200);
-
-    const businessProfile = await prisma.businessProfile.findFirst({
-      where: { ownerId },
-    });
-    expect(businessProfile!.businessName).toBe("Updated Name");
-    expect(businessProfile!.businessType).toBe("private-limited");
-  });
-
-  it("should reject business name less than 2 characters", async () => {
-    const response = await request(app)
-      .patch(`${API_BASE}/owner/profile/business`)
-      .set("Authorization", `Bearer ${ownerToken}`)
-      .send({ businessName: "A" });
-
-    expect([400, 422]).toContain(response.status);
-  });
-});
+// NOTE: The PATCH /owner/profile/business endpoint was removed — business info
+// is now captured at registration and stored on the User record, so the old
+// "Update Business Profile" suite was deleted with it.
 
 // ============================================
 // 5. DASHBOARD STATS TESTS

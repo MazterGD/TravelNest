@@ -20,7 +20,7 @@ const ROUTE_KEYS: Array<{ match: RegExp; key: string }> = [
   { match: /\/admin\/financial(?:\/|$)/, key: "financial" },
   { match: /\/admin\/settings(?:\/|$)/, key: "settings" },
   { match: /\/admin\/content(?:\/|$)/, key: "content" },
-  { match: /\/admin\/amenities(?:\/|$)/, key: "amenities" },
+  // { match: /\/admin\/amenities(?:\/|$)/, key: "amenities" },
   { match: /\/admin\/notifications(?:\/|$)/, key: "notifications" },
   { match: /\/admin\/audit-logs(?:\/|$)/, key: "auditLogs" },
   { match: /\/admin\/reports(?:\/|$)/, key: "reports" },

@@ -21,6 +21,7 @@ import {
 } from "@/lib/api/services";
 import { ArrowLeft, MapPin, Calendar, Users, Star, Phone, XCircle, Download, ReceiptText, Map, MessageSquare, Check, Clock, CheckCircle2, CreditCard, UserCheck, PlayCircle, Flag, Ban } from 'lucide-react';
 import dynamic from "next/dynamic";
+import { printAsPDF, buildInvoiceHTML } from "@/lib/utils/pdfUtils";
 
 const InteractiveMap = dynamic(
   () => import("@/components/ui/InteractiveMap"),
@@ -338,6 +339,28 @@ export default function BookingDetailsContent({
     } finally {
       setRatingLoading(false);
     }
+  };
+
+  const handleDownloadInvoice = () => {
+    if (!booking) return;
+    const html = buildInvoiceHTML({
+      bookingRef: booking.bookingRef,
+      status: booking.status,
+      createdAt: booking.createdAt,
+      customer: booking.customer,
+      trip: booking.trip,
+      vehicle: booking.vehicle,
+      owner: { name: booking.owner.name, phone: booking.owner.phone },
+      driver: booking.driver,
+      payment: booking.payment,
+      notes: booking.notes,
+    });
+    printAsPDF(html, `TraveNest Invoice – ${booking.bookingRef}`);
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!booking?.payment?.receiptUrl) return;
+    window.open(booking.payment.receiptUrl, '_blank', 'noopener,noreferrer');
   };
 
   if (guardLoading || loading) {
@@ -929,12 +952,22 @@ export default function BookingDetailsContent({
 
               {/* Download Buttons */}
               <div className="space-y-2">
-                <Button variant="outline" className="w-full" size="sm">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  size="sm"
+                  onClick={handleDownloadInvoice}
+                >
                   <Download className="mr-2" />
                   {t("downloadInvoice")}
                 </Button>
                 {booking.payment.receiptUrl && (
-                  <Button variant="outline" className="w-full" size="sm">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    size="sm"
+                    onClick={handleDownloadReceipt}
+                  >
                     <ReceiptText className="mr-2" />
                     {t("downloadReceipt")}
                   </Button>

@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import request from "supertest";
+import crypto from "crypto";
 import { prisma } from "./setup";
 import app from "../src/app";
 
@@ -22,6 +23,7 @@ let vehicleId: string;
 let quotationId: string;
 let quotationDbId: string;
 let bookingId: string;
+let paymentId: string;
 
 // Test users
 const testCustomer = {
@@ -45,10 +47,49 @@ const testOwner = {
       registrationNumber: "HP-1234",
       make: "Ashok Leyland",
       model: "Viking",
-      vehicleType: "luxury",
+      vehicleType: "LUXURY_AC",
       year: 2022,
       seatingCapacity: 45,
-      acType: "full-ac",
+      acType: "FULL_AC",
+      documents: [
+        {
+          type: "DRIVING_LICENSE",
+          fileName: "license.png",
+          fileSize: 1024,
+          mimeType: "image/png",
+          url: "https://example.com/docs/license.png",
+        },
+        {
+          type: "INSURANCE",
+          fileName: "insurance.png",
+          fileSize: 1024,
+          mimeType: "image/png",
+          url: "https://example.com/docs/insurance.png",
+        },
+        {
+          type: "REGISTRATION_CERTIFICATE",
+          fileName: "registration.png",
+          fileSize: 1024,
+          mimeType: "image/png",
+          url: "https://example.com/docs/registration.png",
+        },
+      ],
+    },
+  ],
+  ownerDocuments: [
+    {
+      type: "NIC",
+      fileName: "nic.png",
+      fileSize: 1024,
+      mimeType: "image/png",
+      url: "https://example.com/docs/nic.png",
+    },
+    {
+      type: "PROFILE_PHOTO",
+      fileName: "profile.png",
+      fileSize: 1024,
+      mimeType: "image/png",
+      url: "https://example.com/docs/profile.png",
     },
   ],
   address: {
@@ -542,10 +583,76 @@ describe("8. Customer Views & Accepts Quotation", () => {
     expect(response.body.success).toBe(true);
     expect(response.body.data.quotation.status).toBe("ACCEPTED");
 
-    // TC-006-10: Booking should be automatically created
+    // TC-006-10: Booking should be automatically created as a PENDING reserve
     expect(response.body.data.quotation.booking).toBeDefined();
     expect(response.body.data.quotation.booking.id).toBeDefined();
+    expect(response.body.data.quotation.booking.status).toBe("PENDING");
     bookingId = response.body.data.quotation.booking.id;
+  });
+});
+
+// ============================================
+// 8B. CUSTOMER PAYS FOR BOOKING
+// ============================================
+
+describe("8B. Customer Pays for Booking", () => {
+  it("should create a payment intent for the reserved booking", async () => {
+    if (!bookingId) {
+      console.log("Skipping - no booking created");
+      return;
+    }
+
+    const response = await request(app)
+      .post(`${API_BASE}/payments/create-intent`)
+      .set("Authorization", `Bearer ${customerToken}`)
+      .send({ bookingId, method: "CARD" });
+
+    expect(response.status).toBe(201);
+    expect(response.body.success).toBe(true);
+    paymentId = response.body.data.payment.id;
+  });
+
+  it("should confirm the booking once the PayHere webhook completes payment", async () => {
+    if (!paymentId) {
+      console.log("Skipping - no payment intent created");
+      return;
+    }
+
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    const amount = payment!.amount.toFixed(2);
+    const merchantId = process.env.PAYHERE_MERCHANT_ID || "";
+    const secret = process.env.PAYHERE_MERCHANT_SECRET || "";
+    const hashedSecret = crypto
+      .createHash("md5")
+      .update(secret)
+      .digest("hex")
+      .toUpperCase();
+    const md5sig = crypto
+      .createHash("md5")
+      .update(`${merchantId}${paymentId}${amount}LKR${hashedSecret}`)
+      .digest("hex")
+      .toUpperCase();
+
+    const response = await request(app)
+      .post(`${API_BASE}/payments/webhook`)
+      .send({
+        merchant_id: merchantId,
+        order_id: paymentId,
+        payhere_amount: amount,
+        payhere_currency: "LKR",
+        status_code: "2",
+        md5sig,
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.payment.status).toBe("completed");
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+    expect(booking?.status).toBe("CONFIRMED");
   });
 });
 

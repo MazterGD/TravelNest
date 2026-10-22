@@ -10,11 +10,13 @@ import {
   Select,
   TextArea,
   FileUpload,
+  LocationAutocomplete,
 } from "@/components/ui";
 import type { UploadedFile, ExistingFile } from "@/components/ui/FileUpload";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { vehicleService, landingContentService, ApiError } from "@/lib/api";
+import type { VehiclePricingByType } from "@/lib/api";
 import { ArrowLeft, CheckCircle, Upload, X, Plus } from "lucide-react";
 
 type FormSection = "basic" | "pricing" | "photos" | "documents" | "amenities";
@@ -31,6 +33,7 @@ interface ExistingPhoto {
   fileName: string;
   isPrimary: boolean;
   sortOrder: number;
+  tag?: string;
 }
 
 interface FormData {
@@ -45,10 +48,10 @@ interface FormData {
   acType: string;
   condition: string;
   description: string;
-  pricePerKm: string;
-  pricePerDay: string;
   driverAllowance: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   gpsEnabled: boolean;
 }
 
@@ -74,6 +77,8 @@ export default function EditVehiclePage() {
   const [customAmenities, setCustomAmenities] = useState<string[]>([]);
   const [customAmenityInput, setCustomAmenityInput] = useState("");
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [deletedPhotoIds, setDeletedPhotoIds] = useState<string[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
   const [documents, setDocuments] = useState<{
     license: UploadedFile | null;
     insurance: UploadedFile | null;
@@ -112,12 +117,15 @@ export default function EditVehiclePage() {
     acType: "",
     condition: "",
     description: "",
-    pricePerKm: "",
-    pricePerDay: "",
     driverAllowance: "",
     location: "",
+    latitude: null,
+    longitude: null,
     gpsEnabled: false,
   });
+  const [typePricing, setTypePricing] = useState<VehiclePricingByType | null>(
+    null,
+  );
 
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
@@ -155,10 +163,10 @@ export default function EditVehiclePage() {
           acType: vehicle.acType || "",
           condition: vehicle.condition || "",
           description: vehicle.description || "",
-          pricePerKm: vehicle.pricePerKm?.toString() || "",
-          pricePerDay: vehicle.pricePerDay?.toString() || "",
           driverAllowance: vehicle.driverAllowance?.toString() || "",
           location: vehicle.location || "",
+          latitude: vehicle.latitude ?? null,
+          longitude: vehicle.longitude ?? null,
           gpsEnabled:
             (vehicle.features as Record<string, boolean>)?.gpsEnabled ?? false,
         });
@@ -201,6 +209,7 @@ export default function EditVehiclePage() {
               fileName: p.fileName,
               isPrimary: p.isPrimary || false,
               sortOrder: p.sortOrder || 0,
+              tag: p.tag,
             })),
           );
         }
@@ -243,6 +252,15 @@ export default function EditVehiclePage() {
     fetchConfig();
   }, []);
 
+  useEffect(() => {
+    vehicleService
+      .getTypePricing()
+      .then((res) => setTypePricing(res?.pricing ?? null))
+      .catch(() => {
+        // Reference pricing is non-critical for the form to function.
+      });
+  }, []);
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -250,14 +268,24 @@ export default function EditVehiclePage() {
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
+    setIsDirty(true);
     setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value });
+    setIsDirty(true);
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      // A LUXURY_AC bus is always fully air-conditioned — lock the AC type.
+      if (name === "type" && value === "LUXURY_AC") {
+        next.acType = "full-ac";
+      }
+      return next;
+    });
   };
 
   const toggleAmenity = (id: string) => {
+    setIsDirty(true);
     setSelectedAmenities((prev) =>
       prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id],
     );
@@ -266,13 +294,21 @@ export default function EditVehiclePage() {
   const handleAddCustomAmenity = () => {
     const trimmed = customAmenityInput.trim();
     if (!trimmed || customAmenities.includes(trimmed)) return;
+    setIsDirty(true);
     setCustomAmenities((prev) => [...prev, trimmed]);
     setSelectedAmenities((prev) => [...prev, trimmed]);
     setCustomAmenityInput("");
   };
 
   const updatePhotoTag = (index: number, tag: PhotoTag) => {
+    setIsDirty(true);
     setPhotos((prev) => prev.map((p, i) => (i === index ? { ...p, tag } : p)));
+  };
+
+  const removeExistingPhoto = (photoId: string) => {
+    setIsDirty(true);
+    setExistingPhotos((prev) => prev.filter((p) => p.id !== photoId));
+    setDeletedPhotoIds((prev) => [...prev, photoId]);
   };
 
   const sections = [
@@ -302,14 +338,12 @@ export default function EditVehiclePage() {
         condition:
           (formData.condition as "excellent" | "good" | "fair") || undefined,
         description: formData.description || undefined,
-        pricePerDay: parseFloat(formData.pricePerDay),
-        pricePerKm: formData.pricePerKm
-          ? parseFloat(formData.pricePerKm)
-          : undefined,
         driverAllowance: formData.driverAllowance
           ? parseFloat(formData.driverAllowance)
           : undefined,
         location: formData.location,
+        latitude: formData.latitude ?? undefined,
+        longitude: formData.longitude ?? undefined,
         amenities: selectedAmenities,
         features: { gpsEnabled: formData.gpsEnabled },
       };
@@ -340,12 +374,29 @@ export default function EditVehiclePage() {
         await vehicleService.uploadDocuments(vehicleId, docsToUpload);
       }
 
+      if (existingPhotos.length === 0 && photos.length === 0) {
+        setError(t("errorPhotosRequired"));
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Delete staged photo removals
+      if (deletedPhotoIds.length > 0) {
+        await Promise.all(
+          deletedPhotoIds.map((photoId) =>
+            vehicleService.deletePhoto(vehicleId, photoId),
+          ),
+        );
+        setDeletedPhotoIds([]);
+      }
+
       if (photos.length > 0) {
         await vehicleService.uploadPhotos(
           vehicleId,
           photos.map((item, index) => ({
             file: item.file,
-            isPrimary: index === 0,
+            isPrimary: existingPhotos.length === 0 && index === 0,
+            tag: item.tag.toUpperCase(),
           })),
         );
       }
@@ -502,6 +553,7 @@ export default function EditVehiclePage() {
                         onChange={(v) => handleSelectChange("acType", v)}
                         options={acTypeOptions}
                         placeholder={t("fieldAcTypePlaceholder")}
+                        disabled={formData.type === "LUXURY_AC"}
                       />
                       <Select
                         label={t("fieldCondition")}
@@ -512,14 +564,34 @@ export default function EditVehiclePage() {
                         options={conditionOptions}
                         placeholder={t("fieldConditionPlaceholder")}
                       />
-                      <Input
-                        label={t("fieldLocation")}
-                        name="location"
-                        required
-                        value={formData.location}
-                        onChange={handleChange}
-                        placeholder={t("fieldLocationPlaceholder")}
-                      />
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-foreground">
+                          {t("fieldLocation")}
+                        </label>
+                        <LocationAutocomplete
+                          placeholder={t("fieldLocationPlaceholder")}
+                          value={formData.location}
+                          onChange={(val) => {
+                            setIsDirty(true);
+                            setFormData((prev) => ({
+                              ...prev,
+                              location: val,
+                              latitude: null,
+                              longitude: null,
+                            }));
+                          }}
+                          onSelectLocation={(loc) => {
+                            setIsDirty(true);
+                            setFormData((prev) => ({
+                              ...prev,
+                              location:
+                                loc.city || loc.displayName.split(",")[0],
+                              latitude: loc.lat,
+                              longitude: loc.lng,
+                            }));
+                          }}
+                        />
+                      </div>
                       <div className="md:col-span-2">
                         <TextArea
                           label={t("fieldDescription")}
@@ -546,27 +618,42 @@ export default function EditVehiclePage() {
                         {t("pricingSubtitleEdit")}
                       </p>
                     </div>
+                    <div className="rounded-lg border border-border bg-muted p-5">
+                      <p className="text-sm text-muted-foreground">
+                        {t("platformPricingNote")}
+                      </p>
+                      {formData.type && typePricing ? (
+                        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                          {(
+                            [
+                              ["fieldPricePerDay", "pricePerDay"],
+                              ["fieldPricePerKm", "pricePerKm"],
+                              ["fieldFuelCostPerKm", "fuelCostPerKm"],
+                            ] as const
+                          ).map(([labelKey, field]) => (
+                            <div
+                              key={field}
+                              className="rounded-lg border border-border bg-background p-4"
+                            >
+                              <p className="text-xs text-muted-foreground">
+                                {t(labelKey)}
+                              </p>
+                              <p className="mt-1 text-body-lg font-semibold text-foreground">
+                                LKR{" "}
+                                {typePricing[
+                                  formData.type as keyof VehiclePricingByType
+                                ][field].toLocaleString()}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-sm text-muted-foreground">
+                          {t("platformPriceSelectType")}
+                        </p>
+                      )}
+                    </div>
                     <div className="grid gap-5 md:grid-cols-2">
-                      <Input
-                        label={t("fieldPricePerKm")}
-                        name="pricePerKm"
-                        type="number"
-                        required
-                        value={formData.pricePerKm}
-                        onChange={handleChange}
-                        placeholder="85"
-                        helperText={t("fieldPricePerKmHelp")}
-                      />
-                      <Input
-                        label={t("fieldPricePerDay")}
-                        name="pricePerDay"
-                        type="number"
-                        required
-                        value={formData.pricePerDay}
-                        onChange={handleChange}
-                        placeholder="25000"
-                        helperText={t("fieldPricePerDayHelp")}
-                      />
                       <Input
                         label={t("fieldDriverAllowance")}
                         name="driverAllowance"
@@ -577,43 +664,6 @@ export default function EditVehiclePage() {
                         helperText={t("fieldDriverAllowanceHelp")}
                       />
                     </div>
-                    {formData.pricePerKm && formData.pricePerDay && (
-                      <div className="rounded-lg border border-border bg-muted p-5">
-                        <div className="mb-3 text-sm font-medium text-foreground">
-                          {t("sampleCalcTitle")}
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>{t("sampleCalcDistance")}</span>
-                            <span>
-                              LKR{" "}
-                              {(
-                                parseFloat(formData.pricePerKm) * 150
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>{t("sampleCalcRental")}</span>
-                            <span>
-                              LKR{" "}
-                              {parseFloat(
-                                formData.pricePerDay,
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between border-t border-border pt-2 font-medium text-foreground">
-                            <span>{t("sampleCalcTotal")}</span>
-                            <span>
-                              LKR{" "}
-                              {(
-                                parseFloat(formData.pricePerKm) * 150 +
-                                parseFloat(formData.pricePerDay)
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -628,6 +678,12 @@ export default function EditVehiclePage() {
                         {t("photosSubtitleEdit")}
                       </p>
                     </div>
+
+                    {existingPhotos.length === 0 && photos.length === 0 && (
+                      <div className="rounded-xl border border-[var(--color-error-border)] bg-[var(--color-error-bg)] p-3 text-sm text-error-foreground">
+                        {t("errorPhotosRequired")}
+                      </div>
+                    )}
 
                     {/* Existing photos from server */}
                     {existingPhotos.length > 0 && (
@@ -647,9 +703,22 @@ export default function EditVehiclePage() {
                                 alt={photo.fileName}
                                 className="aspect-video w-full rounded-lg object-cover"
                               />
+                              <button
+                                type="button"
+                                aria-label="Remove photo"
+                                onClick={() => removeExistingPhoto(photo.id)}
+                                className="absolute -right-2 -top-2 rounded-full bg-[var(--color-error-bg)] p-1.5 text-error-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
                               {photo.isPrimary && (
                                 <span className="absolute left-1 top-1 rounded-lg bg-[var(--color-action-primary)] px-2 py-0.5 text-xs text-white">
                                   {t("photoPrimary")}
+                                </span>
+                              )}
+                              {photo.tag && (
+                                <span className="absolute bottom-3 left-3 rounded-lg border border-[var(--color-border-default)] bg-white/90 px-2 py-0.5 text-xs font-medium text-[var(--color-text-secondary)]">
+                                  {photo.tag.charAt(0).toUpperCase() + photo.tag.slice(1).toLowerCase()}
                                 </span>
                               )}
                             </div>
@@ -686,7 +755,9 @@ export default function EditVehiclePage() {
                                 file,
                                 tag: "exterior" as PhotoTag,
                               }));
+                              setIsDirty(true);
                               setPhotos((prev) => [...prev, ...newPhotos]);
+                              e.target.value = "";
                             }
                           }}
                           className="hidden"
@@ -711,11 +782,12 @@ export default function EditVehiclePage() {
                               <button
                                 type="button"
                                 aria-label="Remove photo"
-                                onClick={() =>
+                                onClick={() => {
+                                  setIsDirty(true);
                                   setPhotos((prev) =>
                                     prev.filter((_, i) => i !== index),
-                                  )
-                                }
+                                  );
+                                }}
                                 className="absolute -right-2 -top-2 rounded-full bg-[var(--color-error-bg)] p-1.5 text-error-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               >
                                 <X className="h-3 w-3" />
@@ -765,18 +837,20 @@ export default function EditVehiclePage() {
                         label={t("docLicense")}
                         value={documents.license}
                         existingFile={existingDocuments.license}
-                        onChange={(file) =>
-                          setDocuments({ ...documents, license: file })
-                        }
+                        onChange={(file) => {
+                          setIsDirty(true);
+                          setDocuments({ ...documents, license: file });
+                        }}
                         helpText={t("docLicenseHelp")}
                       />
                       <FileUpload
                         label={t("docInsurance")}
                         value={documents.insurance}
                         existingFile={existingDocuments.insurance}
-                        onChange={(file) =>
-                          setDocuments({ ...documents, insurance: file })
-                        }
+                        onChange={(file) => {
+                          setIsDirty(true);
+                          setDocuments({ ...documents, insurance: file });
+                        }}
                         helpText={t("docInsuranceHelp")}
                       />
                       <div className="md:col-span-2">
@@ -784,12 +858,13 @@ export default function EditVehiclePage() {
                           label={t("docRegistration")}
                           value={documents.registrationCertificate}
                           existingFile={existingDocuments.registrationCertificate}
-                          onChange={(file) =>
+                          onChange={(file) => {
+                            setIsDirty(true);
                             setDocuments({
                               ...documents,
                               registrationCertificate: file,
-                            })
-                          }
+                            });
+                          }}
                           helpText={t("docRegistrationHelp")}
                         />
                       </div>
@@ -909,7 +984,7 @@ export default function EditVehiclePage() {
                   </Link>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !isDirty || (existingPhotos.length === 0 && photos.length === 0)}
                     className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {isSubmitting ? (

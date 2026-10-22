@@ -133,6 +133,9 @@ export {
   type AdminCommissionType,
   type AdminPlatformSettings,
   type AdminPlatformSettingsUpdateInput,
+  type VehiclePricingByType,
+  type VehicleTypePricing,
+  type VehicleTypeKey,
   type AdminContentPage,
   type AdminContentPageQuery,
   type AdminContentPageResponse,
@@ -190,6 +193,13 @@ export {
   type AdminVehiclesResponse,
   type AdminOwnerDocument,
 
+  // Driver
+  driverService,
+  type DriverSummary,
+  type DriverAvailability,
+  type CreateDriverInput,
+  type UpdateDriverInput,
+
   // Owner Registration
   ownerRegistrationService,
 
@@ -203,6 +213,7 @@ export {
   landingContentService,
   type LandingDataResponse,
   type LandingFeaturedVehicle,
+  type LandingPopularPackage,
   type LandingPopularRoute,
   type LandingTestimonial,
   type LandingStat,

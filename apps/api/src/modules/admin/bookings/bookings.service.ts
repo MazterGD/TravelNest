@@ -2,6 +2,7 @@ import { prisma } from "@travenest/database";
 import { ApiError } from "../../../middleware/errorHandler.js";
 import { recordAuditLog } from "../audit/audit.service.js";
 import { executePayHereRefund } from "../../payment/payment.service.js";
+import { removeSettlementForBooking } from "../../payment/settlement.service.js";
 import { buildCsv, parsePagination } from "../types.js";
 import type {
   BookingStatusUpdateInput,
@@ -380,6 +381,13 @@ export const cancelBookingWithRefund = async (
         },
       });
     }
+
+    // Free the vehicle's dates and unwind the settlement ledger so the owner is
+    // not paid out for this cancelled/refunded booking.
+    await tx.vehicleAvailability.deleteMany({
+      where: { vehicleId: booking.vehicleId, reason: `Booking ${bookingId}` },
+    });
+    await removeSettlementForBooking(tx, bookingId);
 
     return {
       booking: updatedBooking,

@@ -118,18 +118,29 @@ export function NewQuotationPageContent({
     }
   }, [searchParams, router, locale]);
 
-  // Look up active trips on mount. If exactly one exists and the URL didn't
-  // already attach a trip, show the chooser modal.
+  // Load the customer's selectable trips once on mount. The chooser modal and
+  // the persistent attachment banner both read from this list, so it must load
+  // independent of whether the prompt has already been resolved (e.g. a trip
+  // pre-attached via the URL still needs the list for the "Change" affordance).
   useEffect(() => {
-    if (tripPromptResolved) return;
     let cancelled = false;
     (async () => {
       try {
         const response = await tripService.getActive();
-        const trips = ((response as any)?.data?.trips ?? []) as TripDTO[];
+        // The API client already unwraps the `data` envelope, so the trips live
+        // at the top level; fall back to `.data` only for defensiveness.
+        const raw = (response as any)?.data ?? response;
+        const all = (raw?.trips ?? []) as TripDTO[];
+        // Only trips whose dates haven't passed are assignable to a new quote.
+        const now = Date.now();
+        const upcoming = all.filter(
+          (trip) => new Date(trip.endDate).getTime() >= now,
+        );
         if (cancelled) return;
-        setActiveTrips(trips);
-        if (trips.length === 0) {
+        setActiveTrips(upcoming);
+        // Nothing to choose from and no trip pre-attached → skip the prompt and
+        // let the backend auto-create a trip from the form on submit.
+        if (upcoming.length === 0) {
           setTripPromptResolved(true);
         }
       } catch (error) {
@@ -140,7 +151,7 @@ export function NewQuotationPageContent({
     return () => {
       cancelled = true;
     };
-  }, [tripPromptResolved]);
+  }, []);
 
   // When the user picks an existing trip from the chooser, pre-fill the form
   // so they don't have to retype anything.
@@ -194,6 +205,12 @@ export function NewQuotationPageContent({
   const startFreshTrip = () => {
     setSelectedTripId(null);
     setTripPromptResolved(true);
+  };
+
+  // Re-open the chooser so the customer can attach to (or detach from) a trip
+  // after the initial prompt was dismissed.
+  const reopenTripChooser = () => {
+    setTripPromptResolved(false);
   };
 
   // Form state
@@ -470,6 +487,10 @@ export function NewQuotationPageContent({
   const showTripPrompt =
     !tripPromptResolved && activeTrips.length > 0 && !!vehicleId;
 
+  const attachedTrip = selectedTripId
+    ? (activeTrips.find((trip) => trip.id === selectedTripId) ?? null)
+    : null;
+
   return (
     <>
       {/* Trip-attachment chooser. Shown when the customer has at least one
@@ -533,7 +554,10 @@ export function NewQuotationPageContent({
                 );
               })}
             </ul>
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-between">
+            <p className="mt-5 text-xs text-[var(--color-text-tertiary)]">
+              {t("tripPrompt.orCreate")}
+            </p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-between">
               <button
                 type="button"
                 onClick={startFreshTrip}
@@ -636,6 +660,37 @@ export function NewQuotationPageContent({
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Form */}
             <div className="space-y-6 lg:col-span-2">
+              {/* Trip attachment status. Surfaces which trip this quote will be
+                  attached to (or that a new one will be auto-created) and lets
+                  the customer change that choice. */}
+              {tripPromptResolved && (
+                <div className="flex flex-col gap-3 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <Route className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-action-primary)]" />
+                    <p className="text-sm text-[var(--color-text-primary)]">
+                      {selectedTripId
+                        ? attachedTrip
+                          ? t("tripAttachment.attached", {
+                              trip: attachedTrip.title || attachedTrip.tripCode,
+                            })
+                          : t("tripAttachment.attachedGeneric")
+                        : t("tripAttachment.willCreate")}
+                    </p>
+                  </div>
+                  {activeTrips.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={reopenTripChooser}
+                      className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-base)] px-4 py-2 text-sm font-medium text-[var(--color-action-primary)] transition-colors hover:bg-[var(--color-bg-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
+                    >
+                      {selectedTripId
+                        ? t("tripAttachment.change")
+                        : t("tripAttachment.choose")}
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Trip Type Toggle */}
               <div className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] p-6">
                 <div className="flex gap-4">

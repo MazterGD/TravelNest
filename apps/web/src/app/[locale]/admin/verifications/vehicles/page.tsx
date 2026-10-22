@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   AlertTriangle,
+  Camera,
   CheckCircle2,
   Eye,
   ExternalLink,
@@ -396,6 +397,56 @@ export default function AdminVehicleVerificationsPage() {
     </div>
   );
 
+  const photosPanel = selectedVehicle && (
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--color-text-secondary)]">
+        {selectedVehicle.photos.length === 0
+          ? "The owner has not uploaded any vehicle photos yet."
+          : `${selectedVehicle.photos.length} photo${selectedVehicle.photos.length !== 1 ? "s" : ""} uploaded. Click any photo to view at full size. The primary photo is used as the listing thumbnail.`}
+      </p>
+      {selectedVehicle.photos.length === 0 ? (
+        <EmptyState
+          icon={<EmptySearchIcon />}
+          title="No photos uploaded"
+          description="The owner has not submitted any vehicle photos. Consider requesting them before approving."
+        />
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {selectedVehicle.photos.map((photo, index) => (
+            <a
+              key={photo.id}
+              href={photo.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`View vehicle photo ${index + 1}${photo.isPrimary ? " (primary listing photo)" : ""} in a new tab`}
+              className="group relative block overflow-hidden rounded-xl border border-[var(--color-border-default)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-primary)] focus-visible:ring-offset-2"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.url}
+                alt={`Vehicle photo ${index + 1}`}
+                className="aspect-video w-full object-cover transition-transform duration-200 group-hover:scale-105"
+              />
+              {photo.isPrimary && (
+                <span className="absolute left-2 top-2">
+                  <Badge size="sm" variant="info">Primary</Badge>
+                </span>
+              )}
+              {photo.tag && (
+                <span className="absolute bottom-2 left-2 rounded-lg bg-black/60 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                  {photo.tag.charAt(0).toUpperCase() + photo.tag.slice(1).toLowerCase()}
+                </span>
+              )}
+              <div className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-black/40 via-transparent to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                <ExternalLink className="h-4 w-4 text-white" aria-hidden="true" />
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   const historyPanel = (
     <div className="space-y-3">
       <p className="text-sm text-[var(--color-text-secondary)]">
@@ -445,6 +496,13 @@ export default function AdminVehicleVerificationsPage() {
       label: "Overview",
       icon: <UserCog className="h-4 w-4" />,
       content: overviewPanel,
+    },
+    {
+      id: "photos",
+      label: "Photos",
+      icon: <Camera className="h-4 w-4" />,
+      badge: selectedVehicle?.photos.length || undefined,
+      content: photosPanel,
     },
     {
       id: "documents",

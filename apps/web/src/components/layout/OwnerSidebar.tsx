@@ -24,6 +24,7 @@ import {
   ShieldAlert,
   Star,
   User,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAuthStore } from "@/store";
@@ -196,6 +197,12 @@ export function OwnerSidebar({ locale }: OwnerSidebarProps) {
           icon: Bus,
         },
         {
+          id: "drivers",
+          label: t("items.drivers"),
+          href: `/${locale}/owner/drivers`,
+          icon: UserCheck,
+        },
+        {
           id: "packages",
           label: t("items.packages"),
           href: `/${locale}/owner/packages`,
@@ -291,6 +298,7 @@ export function OwnerSidebar({ locale }: OwnerSidebarProps) {
       findItem("messages"),
       findItem("notifications"),
       findItem("sent-quotes"),
+      findItem("drivers"),
       findItem("packages"),
       findItem("analytics"),
       findItem("earnings"),

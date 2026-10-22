@@ -6,7 +6,7 @@ import Link from "next/link";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner, Badge, Button, Card } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
-import { quotationService, bookingService } from "@/lib/api/services";
+import { quotationService } from "@/lib/api/services";
 import { ArrowLeft, Calendar, MapPin, Users, Clock, Phone, Mail, Bus, Snowflake, CheckCircle, Banknote } from 'lucide-react';
 
 interface BookingConfirmPageContentProps {
@@ -33,7 +33,6 @@ interface QuotationDetails {
   driverCost: number;
   fuelCost: number;
   tollCharges: number;
-  permitFees: number;
   subtotal: number;
   tax: number;
   totalAmount: number;
@@ -112,12 +111,21 @@ export default function BookingConfirmPageContent({
       setCreating(true);
       setError(null);
 
-      const response = await bookingService.createFromQuotation(quotationId);
+      // Accepting the quotation is what creates the (PENDING) booking — the
+      // exact same backend path as the quotation detail page. The customer then
+      // pays from the booking detail page to confirm it.
+      const response = await quotationService.respondToQuotation(quotationId, {
+        status: "ACCEPTED",
+      });
       const data = response as any;
-      const bookingId = data.booking?.id || data.id;
+      const bookingId = data.quotation?.booking?.id ?? data.booking?.id;
 
-      // Redirect to booking details page
-      router.push(`/${locale}/dashboard/bookings/${bookingId}`);
+      // Redirect to booking details page (or the list if the id is unavailable)
+      router.push(
+        bookingId
+          ? `/${locale}/dashboard/bookings/${bookingId}`
+          : `/${locale}/dashboard/bookings`,
+      );
     } catch (err: any) {
       console.error("Error creating booking:", err);
       setError(err.message || "Failed to create booking");
@@ -357,14 +365,6 @@ export default function BookingConfirmPageContent({
                   </span>
                 </div>
               )}
-              {quotation.permitFees > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Permit Fees</span>
-                  <span className="font-medium">
-                    Rs. {quotation.permitFees.toLocaleString()}
-                  </span>
-                </div>
-              )}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Tax</span>
                 <span className="font-medium">
@@ -411,7 +411,7 @@ export default function BookingConfirmPageContent({
               </Button>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            {/* <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <div className="flex items-start gap-2">
                 <Banknote className="text-[#20B0E9] mt-1" />
                 <div className="text-sm text-gray-700">
@@ -423,7 +423,7 @@ export default function BookingConfirmPageContent({
                   </p>
                 </div>
               </div>
-            </div>
+            </div> */}
           </Card>
         </div>
       </div>

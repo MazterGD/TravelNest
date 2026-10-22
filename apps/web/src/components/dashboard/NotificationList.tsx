@@ -318,7 +318,7 @@ export function NotificationList({
             {t("listTitle")}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
-            {settingsHref && (
+            {/*{settingsHref && (
               <Link
                 href={settingsHref}
                 className="inline-flex items-center gap-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-action-primary)] px-3 h-11 min-w-[44px] rounded-md border border-[var(--color-border-default)] hover:border-[var(--color-action-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)] focus-visible:ring-offset-2"
@@ -326,7 +326,7 @@ export function NotificationList({
                 <Settings className="w-4 h-4" aria-hidden="true" />
                 <span className="hidden sm:inline">{t("settingsLink")}</span>
               </Link>
-            )}
+            )}*/}
             {hasUnread && (
               <button
                 type="button"

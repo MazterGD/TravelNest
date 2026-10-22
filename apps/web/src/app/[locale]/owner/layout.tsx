@@ -30,6 +30,20 @@ const ROUTE_KEYS: Array<{ match: RegExp; key: string }> = [
 
 export default function OwnerLayout({ children }: OwnerLayoutProps) {
   const pathname = usePathname();
+
+  // Unverified owners are funnelled here after registration. The page renders
+  // its own full-screen shell and must bypass the owner workspace guard, which
+  // would otherwise block it (and redirect it to itself) for !isVerified users.
+  const isPendingApproval = /\/owner\/pending-approval(?:\/|$)/.test(pathname);
+  if (isPendingApproval) {
+    return <>{children}</>;
+  }
+
+  return <OwnerWorkspaceShell>{children}</OwnerWorkspaceShell>;
+}
+
+function OwnerWorkspaceShell({ children }: OwnerLayoutProps) {
+  const pathname = usePathname();
   const params = useParams();
   const locale = (params.locale as string) || "en";
   const t = useTranslations("ownerNav");

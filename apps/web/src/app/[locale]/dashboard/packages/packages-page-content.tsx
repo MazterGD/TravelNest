@@ -312,28 +312,6 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
         </div>
       )}
 
-      {isLoading ? (
-        <div className="rounded-lg border border-border bg-background p-8 text-center">
-          {t("loading")}
-        </div>
-      ) : filteredPackages.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {filteredPackages.map((pkg) => (
-            <TripPackageCard
-              key={pkg.id}
-              tripPackage={pkg}
-              isSelected={selectedIds.includes(pkg.id)}
-              onToggleCompare={toggleCompare}
-              onBook={openBookingModal}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-lg border border-border bg-background p-8 text-center text-sm text-muted-foreground">
-          {t("empty")}
-        </div>
-      )}
-
       {selectedPackages.length >= 2 && (
         <Card className="p-6">
           <div className="flex items-center justify-between">
@@ -427,6 +405,28 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
             </table>
           </div>
         </Card>
+      )}
+
+      {isLoading ? (
+        <div className="rounded-lg border border-border bg-background p-8 text-center">
+          {t("loading")}
+        </div>
+      ) : filteredPackages.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {filteredPackages.map((pkg) => (
+            <TripPackageCard
+              key={pkg.id}
+              tripPackage={pkg}
+              isSelected={selectedIds.includes(pkg.id)}
+              onToggleCompare={toggleCompare}
+              onBook={openBookingModal}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border bg-background p-8 text-center text-sm text-muted-foreground">
+          {t("empty")}
+        </div>
       )}
 
       <Modal

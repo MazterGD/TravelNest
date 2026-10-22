@@ -126,13 +126,19 @@ export function QuotationDetailPageContent({
     setIsSubmittingAction(true);
     setActionError(null);
     try {
-      await quotationService.respondToQuotation(requestId, {
+      const response = await quotationService.respondToQuotation(requestId, {
         status: "ACCEPTED",
       });
       setConfirmAccept(false);
-      // Acceptance creates a booking; route the customer to the bookings list
-      // so they can review and pay.
-      router.push(`/${locale}/dashboard/bookings`);
+      // Acceptance creates a PENDING booking; route the customer straight to it
+      // so they can pay and confirm it.
+      const data = response as any;
+      const bookingId = data.quotation?.booking?.id ?? data.booking?.id;
+      router.push(
+        bookingId
+          ? `/${locale}/dashboard/bookings/${bookingId}`
+          : `/${locale}/dashboard/bookings`,
+      );
     } catch (err) {
       if (err instanceof ApiError) {
         setActionError(err.message);
@@ -503,9 +509,6 @@ export function QuotationDetailPageContent({
                   <BreakdownRow label={t("fuelCost")} amount={quotation.fuelCost} locale={locale} />
                   {quotation.tollCharges ? (
                     <BreakdownRow label={t("tollCharges")} amount={quotation.tollCharges} locale={locale} />
-                  ) : null}
-                  {quotation.permitFees ? (
-                    <BreakdownRow label={t("permitFees")} amount={quotation.permitFees} locale={locale} />
                   ) : null}
                   {customItems.map((item, idx) => (
                     <BreakdownRow

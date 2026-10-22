@@ -1,5 +1,11 @@
 import prisma from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { config } from "../../config/index.js";
+import { executePayHereRefund } from "../payment/payment.service.js";
+import {
+  getConfiguredCommissionRate,
+  removeSettlementForBooking,
+} from "../payment/settlement.service.js";
 import { dispatchNotification } from "../notification/notification.service.js";
 import {
   bookingCancelledToOwner,
@@ -7,6 +13,56 @@ import {
   bookingRequestedToOwner,
   driverAssignedToCustomer,
 } from "../notification/notification.events.js";
+
+/**
+ * Time-based cancellation refund policy. Values are configurable by admins via
+ * platform settings (booking settings); these are the fallback defaults.
+ */
+interface RefundPolicy {
+  fullRefundHours: number;
+  partialRefundHours: number;
+  partialRefundPercent: number;
+}
+
+const DEFAULT_REFUND_POLICY: RefundPolicy = {
+  fullRefundHours: 336, // >= 14 days before start -> 100%
+  partialRefundHours: 168, // >= 7 days before start -> partial %
+  partialRefundPercent: 50, // otherwise 0%
+};
+
+const getRefundPolicy = async (): Promise<RefundPolicy> => {
+  const settings = await prisma.platformSettings.findFirst({
+    orderBy: { createdAt: "asc" },
+    select: { bookingSettings: true },
+  });
+  const bs = settings?.bookingSettings as Record<string, unknown> | null | undefined;
+  const num = (value: unknown, fallback: number): number =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0
+      ? value
+      : fallback;
+  return {
+    fullRefundHours: num(bs?.refundFullHours, DEFAULT_REFUND_POLICY.fullRefundHours),
+    partialRefundHours: num(
+      bs?.refundPartialHours,
+      DEFAULT_REFUND_POLICY.partialRefundHours,
+    ),
+    partialRefundPercent: num(
+      bs?.refundPartialPercent,
+      DEFAULT_REFUND_POLICY.partialRefundPercent,
+    ),
+  };
+};
+
+const computeRefundPercent = (
+  policy: RefundPolicy,
+  hoursUntilStart: number,
+): number => {
+  if (hoursUntilStart >= policy.fullRefundHours) return 100;
+  if (hoursUntilStart >= policy.partialRefundHours) {
+    return policy.partialRefundPercent;
+  }
+  return 0;
+};
 
 export interface BookingQuery {
   status?: string;
@@ -17,43 +73,6 @@ export interface BookingQuery {
   vehicleType?: string;
   sort?: string;
 }
-
-const getConfiguredCommissionRate = async (): Promise<number> => {
-  const activePercentageRule = await prisma.commissionRule.findFirst({
-    where: {
-      isActive: true,
-      type: "PERCENTAGE",
-      percentage: { not: null },
-    },
-    orderBy: [{ createdAt: "desc" }],
-    select: { percentage: true },
-  });
-
-  if (activePercentageRule && activePercentageRule.percentage !== null) {
-    return activePercentageRule.percentage / 100;
-  }
-
-  const settings = await prisma.platformSettings.findFirst({
-    orderBy: { createdAt: "asc" },
-    select: { paymentSettings: true },
-  });
-
-  const paymentSettings = settings?.paymentSettings as
-    | Record<string, unknown>
-    | null
-    | undefined;
-  const configuredRate =
-    typeof paymentSettings?.commissionRate === "number"
-      ? paymentSettings.commissionRate
-      : null;
-
-  if (configuredRate !== null && configuredRate >= 0) {
-    return configuredRate;
-  }
-
-  // Default platform commission is 10% when no rule or setting has been configured.
-  return 0.1;
-};
 
 /**
  * Get customer's bookings
@@ -298,10 +317,17 @@ export const getBookingById = async (
   let dropoffLatitude: number | null = null;
   let dropoffLongitude: number | null = null;
 
+  // Prefer the direct FK; fall back to the QUO- code embedded in notes for
+  // legacy bookings created before the foreign key existed.
   const quotationIdMatch = booking.notes?.match(/(QUO-[\w-]+)/);
-  if (quotationIdMatch) {
+  const quotationWhere = booking.quotationId
+    ? { id: booking.quotationId }
+    : quotationIdMatch
+      ? { quotationId: quotationIdMatch[1] }
+      : null;
+  if (quotationWhere) {
     const quotation = await prisma.quotation.findUnique({
-      where: { quotationId: quotationIdMatch[1] },
+      where: quotationWhere,
       select: {
         id: true,
         tripId: true,
@@ -598,6 +624,7 @@ export const getBookingById = async (
     },
     driver: booking.driverName
       ? {
+          id: booking.driverId,
           name: booking.driverName,
           phone: booking.driverPhone,
           license: booking.driverLicense,
@@ -640,9 +667,19 @@ export const cancelBooking = async (
     select: {
       id: true,
       customerId: true,
+      vehicleId: true,
       status: true,
       startDate: true,
       vehicle: { select: { ownerId: true } },
+      payment: {
+        select: {
+          id: true,
+          status: true,
+          amount: true,
+          method: true,
+          payherePaymentId: true,
+        },
+      },
     },
   });
 
@@ -654,7 +691,7 @@ export const cancelBooking = async (
     throw ApiError.forbidden("Not authorized to cancel this booking");
   }
 
-  // Check if booking can be cancelled
+  // Ongoing / completed / already-cancelled bookings can no longer be cancelled.
   const nonCancellableStatuses = ["ONGOING", "COMPLETED", "CANCELLED"];
   if (nonCancellableStatuses.includes(booking.status)) {
     throw ApiError.badRequest(
@@ -662,31 +699,76 @@ export const cancelBooking = async (
     );
   }
 
-  // Check if booking is too close to start date (e.g., within 24 hours)
+  // Time-based refund policy. A paid booking is refunded per how far ahead of
+  // the trip the customer cancels; an unpaid PENDING reserve simply releases.
   const now = new Date();
-  const startDate = new Date(booking.startDate);
   const hoursUntilStart =
-    (startDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+    (new Date(booking.startDate).getTime() - now.getTime()) / (1000 * 60 * 60);
+  const policy = await getRefundPolicy();
+  const refundPercent = computeRefundPercent(policy, hoursUntilStart);
 
-  if (hoursUntilStart < 24) {
-    throw ApiError.badRequest(
-      "Bookings cannot be cancelled within 24 hours of start time. Please contact support.",
+  const paidAmount =
+    booking.payment && booking.payment.status === "COMPLETED"
+      ? booking.payment.amount
+      : 0;
+  const refundAmount =
+    paidAmount > 0 ? Math.round((paidAmount * refundPercent) / 100) : 0;
+
+  // Execute a real gateway refund for card payments when PayHere is configured;
+  // otherwise the computed refund is recorded for the admin payout to honour.
+  if (
+    refundAmount > 0 &&
+    booking.payment?.method === "CARD" &&
+    booking.payment.payherePaymentId &&
+    config.payhere.appId &&
+    config.payhere.appSecret
+  ) {
+    await executePayHereRefund(
+      booking.payment.payherePaymentId,
+      refundAmount,
+      reason || "Booking cancelled",
     );
   }
 
-  const updatedBooking = await prisma.booking.update({
-    where: { id: bookingId },
-    data: {
-      status: "CANCELLED",
-      cancelReason: reason,
-    },
+  const updatedBooking = await prisma.$transaction(async (tx) => {
+    if (refundAmount > 0 && booking.payment) {
+      await tx.payment.update({
+        where: { id: booking.payment.id },
+        data: {
+          status: "REFUNDED",
+          refundAmount,
+          refundReason: reason || "Booking cancelled",
+        },
+      });
+    }
+
+    // Release the availability block created when the booking was paid.
+    await tx.vehicleAvailability.deleteMany({
+      where: { vehicleId: booking.vehicleId, reason: `Booking ${bookingId}` },
+    });
+
+    // Remove the booking from any un-processed settlement ledger so the owner
+    // is not paid out for a cancelled/refunded booking.
+    await removeSettlementForBooking(tx, bookingId);
+
+    return tx.booking.update({
+      where: { id: bookingId },
+      data: { status: "CANCELLED", cancelReason: reason },
+    });
   });
 
   dispatchNotification(
     bookingCancelledToOwner(booking.vehicle.ownerId, { bookingId }),
   );
 
-  return updatedBooking;
+  return {
+    ...updatedBooking,
+    refund: {
+      policyPercent: refundPercent,
+      amount: refundAmount,
+      currency: "LKR",
+    },
+  };
 };
 
 /**
@@ -769,11 +851,13 @@ export const createBookingFromQuotation = async (
       );
     }
 
-    // Create the booking
+    // Create the booking as a PENDING reserve, mirroring the accept flow so
+    // both entry points produce identical bookings (FK + QUO- reference).
     return tx.booking.create({
       data: {
         customerId,
         vehicleId: quotation.vehicleId!,
+        quotationId: quotation.id,
         startDate: quotation.startDate,
         endDate: quotation.endDate,
         pickupLocation: quotation.pickupLocation,
@@ -781,7 +865,7 @@ export const createBookingFromQuotation = async (
         totalPassengers: quotation.passengerCount,
         totalAmount: quotation.totalAmount || 0,
         status: "PENDING",
-        notes: quotation.specialRequests,
+        notes: `Booking created from quotation ${quotation.quotationId}. ${quotation.specialRequests || ""}`,
         // Include trip details from quotation
         estimatedDistance: quotation.estimatedDistance,
         estimatedDuration: quotation.estimatedDuration,

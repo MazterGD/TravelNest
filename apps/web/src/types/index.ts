@@ -278,12 +278,23 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+/** Which radius tier a coordinate-based vehicle search resolved to. */
+export type SearchMatchTier =
+  | "exact"
+  | "10km"
+  | "20km"
+  | "30km"
+  | "district"
+  | "none";
+
 export interface PaginatedResponse<T> {
   quotations?: T[];
   vehicles?: T[];
   bookings?: T[];
   users?: T[];
   data?: T[];
+  /** Present on coordinate-based vehicle search to explain radius expansion. */
+  matchTier?: SearchMatchTier;
   pagination: {
     page: number;
     limit: number;

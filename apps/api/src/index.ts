@@ -9,6 +9,7 @@ import app from "./app.js";
 import { config } from "./config/index.js";
 import { initSocketServer } from "./realtime/socket.js";
 import { startNotificationRetentionJob } from "./jobs/notificationRetention.js";
+import { startBookingLifecycleJobs } from "./jobs/bookingLifecycle.js";
 
 const startServer = async () => {
   try {
@@ -29,6 +30,7 @@ Realtime: ws://localhost:${config.port}/socket.io
 
     initSocketServer(server);
     startNotificationRetentionJob();
+    startBookingLifecycleJobs();
 
     server.on("error", (error: NodeJS.ErrnoException) => {
       if (error.code === "EADDRINUSE") {

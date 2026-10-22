@@ -5,6 +5,10 @@ import xss from "xss";
 import prisma from "@travenest/database";
 import { config } from "../../config/index.js";
 import { ApiError } from "../../middleware/errorHandler.js";
+import {
+  sendOtpEmail,
+  sendPasswordResetEmail,
+} from "../notification/email.service.js";
 import type {
   RegisterInput,
   LoginInput,
@@ -456,16 +460,27 @@ export const sendOtpCode = async (data: SendOtpInput) => {
           where: { phone: identifier },
         });
 
+    if (!user) {
+      console.log(
+        `[OTP:LOGIN] No user found for "${identifier}"`,
+      );
+      throw ApiError.notFound(
+        "No account found with this email. Please register first.",
+      );
+    }
+
     if (
-      !user ||
-      (user.status !== UserStatus.ACTIVE &&
-        user.status !== UserStatus.PENDING_VERIFICATION)
+      user.status !== UserStatus.ACTIVE &&
+      user.status !== UserStatus.PENDING_VERIFICATION
     ) {
-      return {
-        sent: true,
-        destination: maskIdentifier(identifier),
-        expiresInSeconds: OTP_EXPIRY_MS / 1000,
-      };
+      console.log(
+        `[OTP:LOGIN] User "${identifier}" exists but status is "${user.status}"`,
+      );
+      throw ApiError.forbidden(
+        user.status === UserStatus.SUSPENDED
+          ? "Your account has been suspended."
+          : "Your account is not active.",
+      );
     }
   }
 
@@ -497,9 +512,19 @@ export const sendOtpCode = async (data: SendOtpInput) => {
     },
   });
 
-  if (config.env === "development") {
-    console.log(`[OTP:${data.purpose}] ${identifier} -> ${code}`);
+  // Email-identifier OTPs go out over Brevo SMTP. Phone OTPs await the
+  // (roadmap) SMS channel, so for now they rely on the dev console fallback.
+  if (isEmail) {
+    await sendOtpEmail(
+      identifier.toLowerCase(),
+      code,
+      data.purpose,
+      OTP_EXPIRY_MS / 60000,
+    );
   }
+
+  // Always log the OTP to the terminal for debugging
+  console.log(`[OTP:${data.purpose}] ${identifier} -> ${code}`);
 
   return {
     sent: true,
@@ -750,15 +775,14 @@ export const generatePasswordResetToken = async (email: string) => {
     },
   });
 
-  // TODO: Send email with rawToken (not hashedToken)
-  // In development, log a masked token for debugging
-  if (config.env === "development") {
-    const maskedToken = `${rawToken.substring(0, 8)}...${rawToken.substring(rawToken.length - 8)}`;
-    console.log(
-      `Password reset requested for ${email}. Token (masked): ${maskedToken}`,
-    );
-    console.log(`Reset URL: ${config.appUrl}/reset-password?token=<token>`);
-  }
+  // Send the reset link over email with the raw (un-hashed) token.
+  const resetUrl = `${config.appUrl}/en/reset-password?token=${rawToken}`;
+  await sendPasswordResetEmail(user.email, resetUrl, 60);
+
+  // In development, surface the working link so the flow is testable without
+  // a configured inbox. Never logged outside development — it carries the token.
+  // Always log the password reset token to the terminal for debugging
+  console.log(`[PASSWORD_RESET] ${email} -> Reset URL: ${resetUrl}`);
 
   return { message: "If the email exists, a reset link will be sent" };
 };

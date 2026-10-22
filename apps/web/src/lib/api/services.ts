@@ -93,12 +93,24 @@ export interface LandingFeaturedVehicle {
   reviewsCount: number;
 }
 
+export interface LandingPopularPackage {
+  id: string;
+  startLocation: string;
+  endLocation: string;
+  durationDays: number;
+  price: number;
+  minPassengers: number;
+  maxPassengers: number;
+  bookingCount: number;
+}
+
 export interface LandingDataResponse {
   stats: LandingStat[];
   popularRoutes: LandingPopularRoute[];
   testimonials: LandingTestimonial[];
   trustedPartners: LandingTrustedPartner[];
   featuredVehicles: LandingFeaturedVehicle[];
+  popularPackages: LandingPopularPackage[];
 }
 
 export interface LandingPublicOption {
@@ -412,6 +424,14 @@ export interface VehicleSearchParams extends PaginationParams {
   type?: string;
   location?: string;
   district?: string;
+  /** Searched location coordinates — enables progressive radius (nearby-city) expansion. */
+  lat?: number;
+  lng?: number;
+  /** Second endpoint (one-way trip destination) — matches buses near either end. */
+  lat2?: number;
+  lng2?: number;
+  location2?: string;
+  district2?: string;
   acType?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -447,6 +467,12 @@ export const vehicleService = {
    * Get vehicle by ID
    */
   getById: (id: string) => api.get<Vehicle>(`/vehicles/${id}`),
+
+  /**
+   * Get platform-set base pricing per vehicle type (read-only reference)
+   */
+  getTypePricing: () =>
+    api.get<{ pricing: VehiclePricingByType }>("/vehicles/pricing-config"),
 
   /**
    * Create a new vehicle (owner only)
@@ -532,6 +558,7 @@ export const vehicleService = {
     photos: Array<{
       file: File;
       isPrimary?: boolean;
+      tag?: string;
     }>,
   ) => {
     const uploads = await Promise.all(
@@ -547,6 +574,7 @@ export const vehicleService = {
         fileSize: photos[index].file.size,
         mimeType: photos[index].file.type,
         isPrimary: photos[index].isPrimary ?? index === 0,
+        tag: photos[index].tag ?? "EXTERIOR",
       })),
     };
 
@@ -554,6 +582,13 @@ export const vehicleService = {
       `/vehicles/${id}/photos/metadata`,
       payload,
     );
+  },
+
+  /**
+   * Delete a vehicle photo
+   */
+  deletePhoto: async (vehicleId: string, photoId: string) => {
+    return api.delete(`/vehicles/${vehicleId}/photos/${photoId}`);
   },
 
   /**
@@ -1001,6 +1036,12 @@ export const bookingService = {
    * Confirm a booking
    */
   confirmBooking: (id: string) => api.patch<Booking>(`/bookings/${id}/confirm`),
+
+  /**
+   * Owner-side cancellation of a booking (sets CANCELLED + reason, notifies customer)
+   */
+  rejectBooking: (id: string, reason: string) =>
+    api.patch<Booking>(`/bookings/${id}/reject`, { reason }),
 
   /**
    * Start a trip
@@ -2197,6 +2238,7 @@ export interface AdminVehicleVerificationDetails {
     url: string;
     sortOrder: number;
     isPrimary: boolean;
+    tag: string;
     createdAt: string;
   }>;
   _count: {
@@ -2570,6 +2612,16 @@ export interface AdminCommissionRuleInput {
   isActive?: boolean;
 }
 
+export type VehicleTypeKey = "ORDINARY" | "SEMI_LUXURY" | "LUXURY_AC";
+
+export interface VehicleTypePricing {
+  pricePerDay: number;
+  pricePerKm: number;
+  fuelCostPerKm: number;
+}
+
+export type VehiclePricingByType = Record<VehicleTypeKey, VehicleTypePricing>;
+
 export interface AdminPlatformSettings {
   id: string;
   generalSettings: Record<string, unknown> | null;
@@ -2578,6 +2630,7 @@ export interface AdminPlatformSettings {
   bookingSettings: Record<string, unknown> | null;
   securitySettings: Record<string, unknown> | null;
   mapSettings: Record<string, unknown> | null;
+  pricingSettings: Record<string, unknown> | null;
   maintenanceMode: boolean;
   maintenanceMessage: string | null;
   updatedBy: string | null;
@@ -2599,6 +2652,7 @@ export interface AdminPlatformSettingsUpdateInput {
   bookingSettings?: Record<string, unknown>;
   securitySettings?: Record<string, unknown>;
   mapSettings?: Record<string, unknown>;
+  pricingSettings?: VehiclePricingByType;
   maintenanceMode?: boolean;
   maintenanceMessage?: string;
 }
@@ -4045,6 +4099,72 @@ export const ownerService = {
       isPrimary: boolean;
       updatedAt: string;
     }>("/owner/bank-account", data),
+};
+
+// ============================================
+// Driver Services
+// ============================================
+export interface DriverSummary {
+  id: string;
+  name: string;
+  phone: string;
+  photoUrl: string | null;
+  status: "ACTIVE" | "INACTIVE";
+  totalTrips: number;
+  activeTrips: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DriverAvailability {
+  id: string;
+  name: string;
+  phone: string;
+  photoUrl: string | null;
+  status: "ACTIVE" | "INACTIVE";
+}
+
+export interface CreateDriverInput {
+  name: string;
+  phone: string;
+  photoUrl?: string | null;
+  status?: "ACTIVE" | "INACTIVE";
+}
+
+export interface UpdateDriverInput {
+  name?: string;
+  phone?: string;
+  photoUrl?: string | null;
+  status?: "ACTIVE" | "INACTIVE";
+}
+
+export const driverService = {
+  list: () => api.get<{ drivers: DriverSummary[] }>("/drivers"),
+
+  getOne: (id: string) =>
+    api.get<{ driver: DriverSummary & { bookings: any[] } }>(`/drivers/${id}`),
+
+  create: (data: CreateDriverInput) =>
+    api.post<{ driver: DriverSummary }>("/drivers", data),
+
+  update: (id: string, data: UpdateDriverInput) =>
+    api.patch<{ driver: DriverSummary }>(`/drivers/${id}`, data),
+
+  delete: (id: string) => api.delete<{ message: string }>(`/drivers/${id}`),
+
+  getAvailable: (startDate: string, endDate: string, excludeBookingId?: string) => {
+    const params = new URLSearchParams({ startDate, endDate });
+    if (excludeBookingId) params.set("excludeBookingId", excludeBookingId);
+    return api.get<{ drivers: DriverAvailability[] }>(
+      `/drivers/available?${params}`,
+    );
+  },
+
+  assignToBooking: (bookingId: string, driverId: string) =>
+    api.post<{ booking: any }>(`/drivers/assign/${bookingId}`, { driverId }),
+
+  unassignFromBooking: (bookingId: string) =>
+    api.delete<{ booking: any }>(`/drivers/assign/${bookingId}`),
 };
 
 // Re-export ApiError for convenience

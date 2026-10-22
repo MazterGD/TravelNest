@@ -14,6 +14,7 @@ import {
   updateVehicleSchema,
   getVehicleByIdSchema,
   deleteVehicleSchema,
+  deletePhotoSchema,
   getVehicleAvailabilitySchema,
   getSimilarVehiclesSchema,
   uploadPhotosSchema,
@@ -56,6 +57,12 @@ const documentUpload = multer({
 // Public routes
 // Get all vehicles (with filters)
 router.get("/", optionalAuth, asyncHandler(vehicleController.getAllVehicles));
+
+// Platform-set base pricing per vehicle type (read-only reference) — MUST come before /:id
+router.get(
+  "/pricing-config",
+  asyncHandler(vehicleController.getTypePricing),
+);
 
 // Protected routes (Owner only)
 // Get my vehicles - MUST come before /:id
@@ -135,6 +142,15 @@ router.post(
   authorize("owner", "admin"),
   validate(uploadPhotosSchema),
   asyncHandler(vehicleController.uploadPhotosMetadata),
+);
+
+router.delete(
+  "/:id/photos/:photoId",
+  authenticate,
+  csrfProtection,
+  authorize("owner", "admin"),
+  validate(deletePhotoSchema),
+  asyncHandler(vehicleController.deletePhoto),
 );
 
 // Upload vehicle documents

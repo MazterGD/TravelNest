@@ -71,4 +71,4 @@ docker-compose.override.yml
 logs/
 *.log
 
-Wireframe for TravelNest Platform/
+docs/

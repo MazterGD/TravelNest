@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { z } from "zod";
 import { User, Mail, Phone, MapPin, Lock, Eye, EyeOff, Building, CheckCircle } from 'lucide-react';
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner, OtpVerificationModal } from "@/components/ui";
@@ -64,6 +65,19 @@ export default function CustomerRegistrationPage() {
     router.push(getDashboardUrl(response.user, locale));
   };
 
+  const validateField = (name: string, value: string | boolean, schema: z.ZodTypeAny) => {
+    const result = schema.safeParse(value);
+    if (!result.success) {
+      setFieldErrors((prev) => ({ ...prev, [name]: result.error.errors[0].message }));
+    } else {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -71,11 +85,37 @@ export default function CustomerRegistrationPage() {
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
+    
+    const finalValue = type === "checkbox" ? checked : value;
 
     setFormData({
       ...formData,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: finalValue,
     });
+
+    let schema: z.ZodTypeAny | null = null;
+    switch (name) {
+      case "firstName": schema = z.string().min(2, t("errors.requiredField")).max(50); break;
+      case "lastName": schema = z.string().min(2, t("errors.requiredField")).max(50); break;
+      case "email": schema = z.string().email("Invalid email address").max(254); break;
+      case "phone": schema = z.string().min(10, t("errors.requiredField")).max(20); break;
+      case "address": schema = z.string().min(5, t("errors.requiredField")).max(255); break;
+      case "city": schema = z.string().min(2, t("errors.requiredField")).max(100); break;
+      case "password": schema = z.string().min(8, t("errors.requiredField")).max(128).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Must contain uppercase, lowercase, and number"); break;
+      case "confirmPassword": 
+        if (value !== formData.password) {
+          setFieldErrors((prev) => ({ ...prev, confirmPassword: t("errors.passwordMismatch") }));
+        } else {
+          setFieldErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.confirmPassword;
+            return newErrors;
+          });
+        }
+        break;
+    }
+    
+    if (schema) validateField(name, finalValue, schema);
 
     // Calculate password strength
     if (name === "password") {
@@ -85,6 +125,19 @@ export default function CustomerRegistrationPage() {
       if (/\d/.test(value)) strength += 25;
       if (/[^a-zA-Z\d]/.test(value)) strength += 25;
       setPasswordStrength(strength);
+      
+      // Re-validate confirm password if it's already filled
+      if (formData.confirmPassword) {
+        if (value !== formData.confirmPassword) {
+          setFieldErrors((prev) => ({ ...prev, confirmPassword: t("errors.passwordMismatch") }));
+        } else {
+          setFieldErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.confirmPassword;
+            return newErrors;
+          });
+        }
+      }
     }
   };
 

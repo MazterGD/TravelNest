@@ -27,13 +27,13 @@ import {
   Trophy,
   Download,
 } from "lucide-react";
+import { printAsPDF, buildComparisonHTML } from "@/lib/utils/pdfUtils";
 
 interface PriceBreakdown {
   vehicleRentalCost: number;
   driverCost: number;
   fuelCost: number;
   tollCharges: number;
-  permitFees: number;
   otherCharges: number;
   tax: number;
 }
@@ -77,7 +77,6 @@ export default function ComparisonPageContent({
   const [sortBy, setSortBy] = useState<string>("price-asc");
   const [filterBy, setFilterBy] = useState<string>("all");
   const [rejectError, setRejectError] = useState<string | null>(null);
-  const [pdfNotice, setPdfNotice] = useState(false);
 
   const quotationIds = searchParams.get("ids")?.split(",") || [];
   const requestId = searchParams.get("requestId");
@@ -89,14 +88,7 @@ export default function ComparisonPageContent({
     }
   }, [guardLoading, requestId, tripId, quotationIds.join(",")]);
 
-  // Auto-dismiss pdf notice after 4 seconds
-  useEffect(() => {
-    if (!pdfNotice) return;
-    const timer = setTimeout(() => setPdfNotice(false), 4000);
-    return () => clearTimeout(timer);
-  }, [pdfNotice]);
-
-  const fetchData = async () => {
+const fetchData = async () => {
     try {
       setLoading(true);
 
@@ -201,7 +193,6 @@ export default function ComparisonPageContent({
             driverCost: q.driverCost || 0,
             fuelCost: q.fuelCost || 0,
             tollCharges: q.tollCharges || 0,
-            permitFees: q.permitFees || 0,
             otherCharges: (q.customItems || []).reduce(
               (sum: number, item: any) => sum + (item.amount || 0),
               0,
@@ -323,7 +314,6 @@ export default function ComparisonPageContent({
               driverCost: q.driverCost || 0,
               fuelCost: q.fuelCost || 0,
               tollCharges: q.tollCharges || 0,
-              permitFees: q.permitFees || 0,
               otherCharges: (q.customItems || []).reduce(
                 (sum: number, item: any) => sum + (item.amount || 0),
                 0,
@@ -395,7 +385,6 @@ export default function ComparisonPageContent({
                     driverCost: q.driverCost || 0,
                     fuelCost: q.fuelCost || 0,
                     tollCharges: q.tollCharges || 0,
-                    permitFees: q.permitFees || 0,
                     otherCharges: (q.customItems || []).reduce(
                       (sum: number, item: any) => sum + (item.amount || 0),
                       0,
@@ -508,7 +497,31 @@ export default function ComparisonPageContent({
   };
 
   const handleDownloadPDF = () => {
-    setPdfNotice(true);
+    const visible = getSortedQuotations();
+    if (!visible.length) return;
+    const tripDetails = requestDetails
+      ? {
+          pickupCity: requestDetails.pickupLocation.city,
+          dropoffCity: requestDetails.dropoffLocation.city,
+          pickupDate: requestDetails.pickupDate,
+          pickupTime: requestDetails.pickupTime,
+          passengerCount: requestDetails.passengerCount,
+        }
+      : { pickupCity: '', dropoffCity: '', pickupDate: '', pickupTime: '', passengerCount: 0 };
+    const html = buildComparisonHTML(
+      visible.map(q => ({
+        vehicleName: q.vehicleName,
+        ownerName: q.ownerName,
+        price: q.price,
+        validUntil: q.validUntil,
+        notes: q.notes,
+        priceBreakdown: q.priceBreakdown,
+        vehicleSpecifications: q.vehicleSpecifications,
+        amenities: q.amenities,
+      })),
+      tripDetails,
+    );
+    printAsPDF(html, 'TraveNest – Quotation Comparison');
   };
 
   if (guardLoading || loading) {
@@ -557,17 +570,6 @@ export default function ComparisonPageContent({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* PDF not-available notice */}
-        {pdfNotice && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] rounded-xl px-4 py-3 text-sm text-[var(--color-text-secondary)]"
-          >
-            {t("comparison.pdfNotAvailable")}
-          </div>
-        )}
-
         {/* Reject error banner */}
         {rejectError && (
           <div
@@ -860,15 +862,6 @@ export default function ComparisonPageContent({
                             <span className="font-medium text-[var(--color-text-primary)]">
                               Rs.{" "}
                               {quotation.priceBreakdown.tollCharges.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-[var(--color-text-secondary)]">
-                              {t("comparison.permitFees")}
-                            </span>
-                            <span className="font-medium text-[var(--color-text-primary)]">
-                              Rs.{" "}
-                              {quotation.priceBreakdown.permitFees.toLocaleString()}
                             </span>
                           </div>
                           <div className="flex justify-between">
