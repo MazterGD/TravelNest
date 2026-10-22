@@ -71,6 +71,7 @@ interface SafeUser {
 }
 
 const OTP_EXPIRY_MS = 5 * 60 * 1000;
+const OTP_RESEND_COOLDOWN_MS = 50 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -491,7 +492,23 @@ export const sendOtpCode = async (data: SendOtpInput) => {
     }
   }
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // Each send emails the address, so repeated requests are throttled per
+  // identifier (the web app already waits 60s between resends).
+  const recentOtp = await prisma.otpToken.findFirst({
+    where: {
+      purpose: data.purpose,
+      createdAt: { gt: new Date(Date.now() - OTP_RESEND_COOLDOWN_MS) },
+      ...(isEmail ? { email: identifier.toLowerCase() } : { phone: identifier }),
+    },
+    select: { id: true },
+  });
+  if (recentOtp) {
+    throw ApiError.tooManyRequests(
+      "A code was just sent. Please wait a minute before requesting another one.",
+    );
+  }
+
+  const code = crypto.randomInt(100000, 1000000).toString();
   const hashedCode = await bcrypt.hash(code, 10);
 
   await prisma.otpToken.updateMany({
@@ -565,26 +582,31 @@ export const verifyOtpCode = async (data: VerifyOtpInput) => {
     throw ApiError.badRequest("Invalid or expired OTP");
   }
 
-  if (otpRecord.attempts >= OTP_MAX_ATTEMPTS) {
+  // Reserve the attempt before comparing so parallel guesses cannot exceed
+  // the limit.
+  const attempt = await prisma.otpToken.updateMany({
+    where: { id: otpRecord.id, attempts: { lt: OTP_MAX_ATTEMPTS } },
+    data: { attempts: { increment: 1 } },
+  });
+
+  if (attempt.count !== 1) {
     throw ApiError.forbidden("Too many OTP attempts. Please request a new code.");
   }
 
   const isValid = await bcrypt.compare(data.code, otpRecord.code);
 
   if (!isValid) {
-    await prisma.otpToken.update({
-      where: { id: otpRecord.id },
-      data: { attempts: { increment: 1 } },
-    });
     throw ApiError.badRequest("Invalid OTP code");
   }
 
-  await prisma.otpToken.update({
-    where: { id: otpRecord.id },
-    data: {
-      usedAt: new Date(),
-    },
+  const consumed = await prisma.otpToken.updateMany({
+    where: { id: otpRecord.id, usedAt: null },
+    data: { usedAt: new Date() },
   });
+
+  if (consumed.count !== 1) {
+    throw ApiError.badRequest("Invalid or expired OTP");
+  }
 
   if (data.purpose !== "LOGIN") {
     return { verified: true };
