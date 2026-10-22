@@ -755,6 +755,9 @@ export const changeUserPassword = async (
   return { message: "Password changed successfully. Please login again." };
 };
 
+const hashResetToken = (rawToken: string) =>
+  crypto.createHash("sha256").update(rawToken).digest("hex");
+
 /**
  * Generate password reset token
  */
@@ -769,11 +772,11 @@ export const generatePasswordResetToken = async (email: string) => {
   }
 
   // Generate random token (use crypto for cryptographic randomness)
-  const crypto = await import("crypto");
   const rawToken = crypto.randomBytes(32).toString("hex");
 
-  // Hash token before storing in database
-  const hashedToken = await bcrypt.hash(rawToken, 10);
+  // Store only a hash; a 256-bit random token needs no slow hash, and a
+  // deterministic one allows a direct indexed lookup.
+  const hashedToken = hashResetToken(rawToken);
 
   // Store hashed token in database with 1-hour expiry
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
@@ -803,50 +806,47 @@ export const generatePasswordResetToken = async (email: string) => {
  * Reset password with token (single-use token from database)
  */
 export const resetUserPassword = async (token: string, newPassword: string) => {
-  // Find all valid (non-expired, non-used) reset tokens
-  const resetTokens = await prisma.passwordResetToken.findMany({
-    where: {
-      expiresAt: { gt: new Date() },
-      usedAt: null,
-    },
-    include: {
-      user: true,
-    },
+  const matchedResetToken = await prisma.passwordResetToken.findUnique({
+    where: { token: hashResetToken(token) },
+    select: { id: true, userId: true, expiresAt: true, usedAt: true },
   });
 
-  // Find matching token by comparing hashes
-  let matchedResetToken = null;
-  for (const resetToken of resetTokens) {
-    const isMatch = await bcrypt.compare(token, resetToken.token);
-    if (isMatch) {
-      matchedResetToken = resetToken;
-      break;
-    }
-  }
-
-  if (!matchedResetToken) {
+  if (
+    !matchedResetToken ||
+    matchedResetToken.usedAt ||
+    matchedResetToken.expiresAt <= new Date()
+  ) {
     throw ApiError.badRequest("Invalid or expired reset token");
   }
 
   // Hash new password
   const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-  // Update password, increment tokenVersion, and mark token as used
-  await prisma.$transaction([
-    prisma.user.update({
+  await prisma.$transaction(async (tx) => {
+    // Claim the token so two concurrent requests cannot both use it
+    const claimed = await tx.passwordResetToken.updateMany({
+      where: { id: matchedResetToken.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    if (claimed.count !== 1) {
+      throw ApiError.badRequest("Invalid or expired reset token");
+    }
+
+    await tx.user.update({
       where: { id: matchedResetToken.userId },
       data: {
         password: hashedPassword,
-        tokenVersion: matchedResetToken.user.tokenVersion + 1, // Invalidate all tokens
+        tokenVersion: { increment: 1 }, // Invalidate all tokens
         failedLoginAttempts: 0, // Reset failed attempts
         lockedUntil: null, // Unlock account if locked
       },
-    }),
-    prisma.passwordResetToken.update({
-      where: { id: matchedResetToken.id },
-      data: { usedAt: new Date() }, // Mark as used (single-use)
-    }),
-  ]);
+    });
+
+    // Any other outstanding reset links for this account stop working
+    await tx.passwordResetToken.deleteMany({
+      where: { userId: matchedResetToken.userId, usedAt: null },
+    });
+  });
 
   return {
     message:
