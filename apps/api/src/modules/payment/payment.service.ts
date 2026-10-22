@@ -516,6 +516,61 @@ export const applyPaymentCompletion = async (
   }
 };
 
+/**
+ * Confirm an offline payment (ADR-002): CASH by the vehicle owner, BANK_TRANSFER
+ * by a finance admin. Runs the same completion as the PayHere webhook.
+ */
+export const completeOfflinePayment = async (
+  bookingId: string,
+  method: "CASH" | "BANK_TRANSFER",
+) => {
+  const payment = await prisma.payment.findUnique({ where: { bookingId } });
+
+  if (!payment || payment.method !== method) {
+    throw ApiError.badRequest(
+      method === "CASH"
+        ? "This booking is not set to be paid in cash."
+        : "This booking has no bank transfer to confirm.",
+    );
+  }
+
+  if (payment.status === "COMPLETED") {
+    throw ApiError.conflict("This payment has already been confirmed.");
+  }
+
+  const outcome = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.payment.updateMany({
+      where: { id: payment.id, status: { in: ["PENDING", "PROCESSING"] } },
+      data: { status: "COMPLETED" },
+    });
+    if (claimed.count !== 1) {
+      throw ApiError.conflict(
+        "This payment can no longer be confirmed. Please refresh.",
+      );
+    }
+
+    const completion = await completeBookingPayment(tx, bookingId);
+    if (!completion || completion.bookingCancelled) {
+      throw ApiError.badRequest("This booking has been cancelled.");
+    }
+    return completion;
+  });
+
+  if (outcome.confirmed) {
+    dispatchNotification(
+      bookingConfirmedToCustomer(outcome.customerId, { bookingId }),
+    );
+  }
+  dispatchNotification(
+    paymentReceivedToCustomer(payment.userId, {
+      bookingId,
+      paymentId: payment.id,
+    }),
+  );
+
+  return toPaymentResponse({ ...payment, status: "COMPLETED" });
+};
+
 export const handlePayHereWebhook = async (payload: PayHereWebhookPayload) => {
   if (!payload.order_id) {
     throw ApiError.badRequest("Missing PayHere order ID");

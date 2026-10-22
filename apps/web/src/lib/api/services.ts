@@ -1016,7 +1016,7 @@ export const bookingService = {
   /**
    * Mark booking as complete
    */
-  complete: (id: string) => api.post<Booking>(`/bookings/${id}/complete`),
+  complete: (id: string) => api.patch<Booking>(`/bookings/${id}/complete`),
 
   // Owner endpoints
   /**
@@ -1028,7 +1028,7 @@ export const bookingService = {
   },
 
   /**
-   * Confirm a booking
+   * Owner confirms that a cash payment was received (confirms the booking)
    */
   confirmBooking: (id: string) => api.patch<Booking>(`/bookings/${id}/confirm`),
 
@@ -1042,11 +1042,6 @@ export const bookingService = {
    * Start a trip
    */
   startTrip: (id: string) => api.post<Booking>(`/bookings/${id}/start`),
-
-  /**
-   * End a trip
-   */
-  endTrip: (id: string) => api.post<Booking>(`/bookings/${id}/end`),
 };
 
 // ── Shared review dimension shape ─────────────────────────────────────────────

@@ -5,11 +5,13 @@ import { executePayHereRefund } from "../payment/payment.service.js";
 import {
   getConfiguredCommissionRate,
   reduceSettlementForBooking,
+  removeSettlementForBooking,
 } from "../payment/settlement.service.js";
 import { dispatchNotification } from "../notification/notification.service.js";
 import {
   bookingCancelledToOwner,
   bookingPlacedToCustomer,
+  bookingRejectedToCustomer,
   bookingRequestedToOwner,
   driverAssignedToCustomer,
 } from "../notification/notification.events.js";
@@ -652,6 +654,109 @@ export const getBookingById = async (
     createdAt: booking.createdAt.toISOString(),
     updatedAt: booking.updatedAt.toISOString(),
   };
+};
+
+/**
+ * Owner (or admin) cancels a booking. Allowed before the trip starts; a paid
+ * booking is refunded in full because the cancellation is not the customer's
+ * fault, the calendar is released and the owner's settlement line removed.
+ */
+export const cancelBookingByOwner = async (
+  bookingId: string,
+  actor: { id: string; role: string },
+  reason?: string,
+) => {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    select: {
+      id: true,
+      status: true,
+      customerId: true,
+      vehicleId: true,
+      vehicle: { select: { ownerId: true } },
+      payment: {
+        select: {
+          id: true,
+          status: true,
+          amount: true,
+          method: true,
+          payherePaymentId: true,
+        },
+      },
+    },
+  });
+
+  if (!booking) {
+    throw ApiError.notFound("Booking");
+  }
+
+  if (booking.vehicle.ownerId !== actor.id && actor.role !== "ADMIN") {
+    throw ApiError.forbidden("Not authorized");
+  }
+
+  if (booking.status !== "PENDING" && booking.status !== "CONFIRMED") {
+    throw ApiError.badRequest(
+      "Only pending or confirmed bookings can be cancelled.",
+    );
+  }
+
+  const cancelReason = reason || "Rejected by owner";
+  const claimed = await prisma.booking.updateMany({
+    where: { id: bookingId, status: booking.status },
+    data: { status: "CANCELLED", cancelReason },
+  });
+  if (claimed.count !== 1) {
+    throw ApiError.conflict("This booking was just updated. Please refresh.");
+  }
+
+  const payment = booking.payment;
+  const refundAmount =
+    payment && payment.status === "COMPLETED" ? payment.amount : 0;
+
+  if (
+    refundAmount > 0 &&
+    payment?.method === "CARD" &&
+    payment.payherePaymentId &&
+    config.payhere.appId &&
+    config.payhere.appSecret
+  ) {
+    try {
+      await executePayHereRefund(
+        payment.payherePaymentId,
+        refundAmount,
+        cancelReason,
+      );
+    } catch (error) {
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { status: booking.status, cancelReason: null },
+      });
+      throw error;
+    }
+  }
+
+  const updatedBooking = await prisma.$transaction(async (tx) => {
+    if (refundAmount > 0 && payment) {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { status: "REFUNDED", refundAmount, refundReason: cancelReason },
+      });
+    }
+
+    await tx.vehicleAvailability.deleteMany({
+      where: { vehicleId: booking.vehicleId, reason: `Booking ${bookingId}` },
+    });
+
+    await removeSettlementForBooking(tx, bookingId);
+
+    return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
+  });
+
+  dispatchNotification(
+    bookingRejectedToCustomer(booking.customerId, { bookingId }),
+  );
+
+  return updatedBooking;
 };
 
 /**

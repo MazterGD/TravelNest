@@ -6,11 +6,9 @@ import * as bookingController from "./booking.controller.js";
 import type { Request, Response } from "express";
 import prisma from "@travenest/database";
 import { dispatchNotification } from "../notification/notification.service.js";
-import {
-  bookingCompletedToCustomer,
-  bookingConfirmedToCustomer,
-  bookingRejectedToCustomer,
-} from "../notification/notification.events.js";
+import { bookingCompletedToCustomer } from "../notification/notification.events.js";
+import { completeOfflinePayment } from "../payment/payment.service.js";
+import { cancelBookingByOwner } from "./booking.service.js";
 
 const router = Router();
 
@@ -233,14 +231,10 @@ router.patch(
       });
     }
 
-    const updatedBooking = await prisma.booking.update({
-      where: { id },
-      data: { status: "CONFIRMED" },
-    });
-
-    dispatchNotification(
-      bookingConfirmedToCustomer(booking.customerId, { bookingId: id }),
-    );
+    // The owner confirms only cash collected on site (ADR-002); card and bank
+    // transfer payments are confirmed by PayHere and admins respectively.
+    await completeOfflinePayment(id, "CASH");
+    const updatedBooking = await prisma.booking.findUnique({ where: { id } });
 
     res.json({
       success: true,
@@ -263,43 +257,8 @@ router.patch(
   asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const { reason } = req.body;
-    const ownerId = req.user!.id;
 
-    // Get booking and verify ownership
-    const booking = await prisma.booking.findUnique({
-      where: { id },
-      include: {
-        vehicle: {
-          select: { ownerId: true },
-        },
-      },
-    });
-
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        error: { message: "Booking not found", code: "BOOKING_NOT_FOUND" },
-      });
-    }
-
-    if (booking.vehicle.ownerId !== ownerId && req.user!.role !== "ADMIN") {
-      return res.status(403).json({
-        success: false,
-        error: { message: "Not authorized", code: "FORBIDDEN" },
-      });
-    }
-
-    const updatedBooking = await prisma.booking.update({
-      where: { id },
-      data: {
-        status: "CANCELLED",
-        cancelReason: reason || "Rejected by owner",
-      },
-    });
-
-    dispatchNotification(
-      bookingRejectedToCustomer(booking.customerId, { bookingId: id }),
-    );
+    const updatedBooking = await cancelBookingByOwner(id, req.user!, reason);
 
     res.json({
       success: true,
@@ -347,20 +306,24 @@ router.patch(
       });
     }
 
-    if (booking.status !== "ONGOING" && booking.status !== "CONFIRMED") {
+    // Only a started trip can be completed: completing a confirmed booking
+    // early would also remove the customer's cancellation/refund path.
+    const completed = await prisma.booking.updateMany({
+      where: { id, status: "ONGOING" },
+      data: { status: "COMPLETED" },
+    });
+
+    if (completed.count !== 1) {
       return res.status(400).json({
         success: false,
         error: {
-          message: "Booking cannot be completed in current status",
+          message: "Only an ongoing trip can be marked as completed",
           code: "INVALID_STATUS",
         },
       });
     }
 
-    const updatedBooking = await prisma.booking.update({
-      where: { id },
-      data: { status: "COMPLETED" },
-    });
+    const updatedBooking = await prisma.booking.findUnique({ where: { id } });
 
     dispatchNotification(
       bookingCompletedToCustomer(booking.customerId, { bookingId: id }),

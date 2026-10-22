@@ -541,6 +541,8 @@
     "cancelTrip": "Cancel",
     "startError": "Couldn't start the trip. It can only be started on the day of the trip — please try again.",
     "completeError": "Couldn't mark the trip as complete. Please try again.",
+    "confirmCash": "Confirm Cash Received",
+    "confirmCashError": "Couldn't confirm the cash payment. Please try again.",
     "cancelError": "Couldn't cancel the booking. Please try again or contact support.",
     "sectionCustomer": "Customer Information",
     "message": "Message",

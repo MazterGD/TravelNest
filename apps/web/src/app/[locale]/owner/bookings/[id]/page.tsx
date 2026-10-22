@@ -154,6 +154,19 @@ export default function BookingDetailsPage({
     }
   };
 
+  const handleConfirmCash = async () => {
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await bookingService.confirmBooking(id);
+      await reloadBooking();
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : t("confirmCashError"));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleCompleteTrip = async () => {
     setActionLoading(true);
     setActionError(null);
@@ -252,6 +265,10 @@ export default function BookingDetailsPage({
 
   const canStartTrip = status === "confirmed" && isWithinTripWindow;
   const canCancel = status === "pending" || status === "confirmed";
+  const canConfirmCash =
+    status === "pending" &&
+    payment.method === "CASH" &&
+    payment.status !== "completed";
   const commissionRateLabel =
     typeof payment.commissionRate === "number"
       ? `${(payment.commissionRate * 100).toFixed(1)}%`
@@ -290,6 +307,20 @@ export default function BookingDetailsPage({
                       <PlayCircle className="h-4 w-4" />
                     )}
                     {t("startTrip")}
+                  </button>
+                )}
+                {canConfirmCash && (
+                  <button
+                    onClick={handleConfirmCash}
+                    disabled={actionLoading}
+                    className="flex min-h-[44px] items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {actionLoading ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      <CreditCard className="h-4 w-4" />
+                    )}
+                    {t("confirmCash")}
                   </button>
                 )}
                 {status === "ongoing" && (
