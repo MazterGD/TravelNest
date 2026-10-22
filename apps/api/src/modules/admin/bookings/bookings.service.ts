@@ -521,12 +521,16 @@ export const cancelBookingWithRefund = async (
   return result;
 };
 
+// Matches the audit-log export cap; keeps exports bounded on a small VM.
+const MAX_EXPORT_ROWS = 5000;
+
 export const exportBookingsCsv = async (filters: BookingFilters) => {
   const where = buildBookingWhere(filters);
 
   const bookings = await prisma.booking.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    take: MAX_EXPORT_ROWS,
     include: {
       customer: {
         select: {

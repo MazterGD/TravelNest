@@ -90,6 +90,7 @@ export const patchUserStatus = async (
       adminId,
       normalizeParam(req.params.userId),
       req.body,
+      req.adminRole,
     );
 
     return ResponseHelper.success(res, updatedUser, "User status updated successfully");
@@ -124,6 +125,7 @@ export const postResetPassword = async (
       adminId,
       normalizeParam(req.params.userId),
       req.body.newPassword,
+      req.adminRole,
     );
 
     return ResponseHelper.success(res, null, "User password reset successfully");
@@ -139,7 +141,11 @@ export const deleteUserById = async (
 ) => {
   try {
     const adminId = req.user?.id as string;
-    const deleted = await deleteUser(adminId, normalizeParam(req.params.userId));
+    const deleted = await deleteUser(
+      adminId,
+      normalizeParam(req.params.userId),
+      req.adminRole,
+    );
 
     return ResponseHelper.success(res, deleted, "User deleted successfully");
   } catch (error) {

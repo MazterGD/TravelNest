@@ -175,11 +175,30 @@ export const getUserActivity = async (
   };
 };
 
+/**
+ * Status, password and delete actions on admin accounts are reserved for
+ * SUPER_ADMIN; otherwise any admin with user permissions could reset a peer
+ * admin's password and act as them (e.g. a moderator taking over finance).
+ */
+const assertCanManageUser = (
+  actorAdminRole: string | undefined,
+  target: { role: string; adminRole: string | null },
+) => {
+  if (target.role === "ADMIN" && actorAdminRole !== "SUPER_ADMIN") {
+    throw new ApiError(403, "Only super admins can manage admin accounts");
+  }
+};
+
 export const updateUserStatus = async (
   adminId: string,
   userId: string,
   payload: UserStatusUpdateInput,
+  actorAdminRole?: string,
 ) => {
+  if (adminId === userId) {
+    throw new ApiError(400, "You cannot change your own account status");
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -197,6 +216,7 @@ export const updateUserStatus = async (
   if (user.role === "ADMIN" && user.adminRole === "SUPER_ADMIN") {
     throw new ApiError(403, "Cannot change SUPER_ADMIN status");
   }
+  assertCanManageUser(actorAdminRole, user);
 
   const updated = await prisma.user.update({
     where: { id: userId },
@@ -295,6 +315,7 @@ export const resetUserPassword = async (
   adminId: string,
   userId: string,
   newPassword: string,
+  actorAdminRole?: string,
 ) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -314,6 +335,7 @@ export const resetUserPassword = async (
   if (user.role === "ADMIN" && user.adminRole === "SUPER_ADMIN") {
     throw new ApiError(403, "Cannot reset SUPER_ADMIN password from this endpoint");
   }
+  assertCanManageUser(actorAdminRole, user);
 
   const hashedPassword = await bcrypt.hash(newPassword, 12);
 
@@ -340,7 +362,11 @@ export const resetUserPassword = async (
   return { success: true };
 };
 
-export const deleteUser = async (adminId: string, userId: string) => {
+export const deleteUser = async (
+  adminId: string,
+  userId: string,
+  actorAdminRole?: string,
+) => {
   if (adminId === userId) {
     throw new ApiError(400, "You cannot delete your own account");
   }
@@ -361,6 +387,26 @@ export const deleteUser = async (adminId: string, userId: string) => {
 
   if (user.role === "ADMIN" && user.adminRole === "SUPER_ADMIN") {
     throw new ApiError(403, "Cannot delete SUPER_ADMIN account");
+  }
+  assertCanManageUser(actorAdminRole, user);
+
+  // Deleting cascades to vehicles, bookings, payments, settlements and
+  // disputes, so accounts with any transaction history are suspended instead.
+  const [bookings, payments, settlements, disputes] = await Promise.all([
+    prisma.booking.count({
+      where: { OR: [{ customerId: userId }, { vehicle: { ownerId: userId } }] },
+    }),
+    prisma.payment.count({ where: { userId } }),
+    prisma.settlement.count({ where: { ownerId: userId } }),
+    prisma.dispute.count({
+      where: { OR: [{ raisedBy: userId }, { raisedAgainst: userId }] },
+    }),
+  ]);
+  if (bookings + payments + settlements + disputes > 0) {
+    throw new ApiError(
+      409,
+      "This account has bookings or payment history, so it can't be deleted. Suspend it instead.",
+    );
   }
 
   await prisma.user.delete({
@@ -386,11 +432,15 @@ export const deleteUser = async (adminId: string, userId: string) => {
   };
 };
 
+// Matches the audit-log export cap; keeps exports bounded on a small VM.
+const MAX_EXPORT_ROWS = 5000;
+
 export const exportUsersCsv = async (filters: UserListFilters) => {
   const where = buildUserWhere(filters);
   const users = await prisma.user.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    take: MAX_EXPORT_ROWS,
     select: {
       id: true,
       firstName: true,
