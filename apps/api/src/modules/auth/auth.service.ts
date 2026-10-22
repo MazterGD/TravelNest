@@ -290,6 +290,12 @@ const excludePassword = (user: {
 // Auth Operations
 // ============================================
 
+let dummyPasswordHash: Promise<string> | null = null;
+const getDummyPasswordHash = () => {
+  dummyPasswordHash ??= bcrypt.hash(crypto.randomBytes(16).toString("hex"), 12);
+  return dummyPasswordHash;
+};
+
 // Proof that the registering person controls the email (ADR-007): issued when
 // a REGISTRATION OTP is verified and required by both registration endpoints.
 const REGISTRATION_PROOF_AUDIENCE = "registration-proof";
@@ -386,6 +392,9 @@ export const loginUser = async (data: LoginInput) => {
   });
 
   if (!user) {
+    // Spend the same bcrypt time as a real check so response timing does not
+    // reveal whether the email has an account.
+    await bcrypt.compare(data.password, await getDummyPasswordHash());
     throw ApiError.unauthorized(
       "Invalid email or password",
       "INVALID_CREDENTIALS",
@@ -400,19 +409,6 @@ export const loginUser = async (data: LoginInput) => {
     throw ApiError.forbidden(
       `Account is locked. Try again in ${minutesLeft} minute(s).`,
       "ACCOUNT_LOCKED",
-    );
-  }
-
-  // Block suspended/inactive accounts; PENDING_VERIFICATION owners are allowed
-  // through so the frontend can route them to the pending-approval page.
-  if (
-    user.status !== UserStatus.ACTIVE &&
-    user.status !== UserStatus.PENDING_VERIFICATION
-  ) {
-    throw ApiError.forbidden(
-      user.status === UserStatus.SUSPENDED
-        ? "Your account has been suspended"
-        : "Your account is not active",
     );
   }
 
@@ -455,6 +451,21 @@ export const loginUser = async (data: LoginInput) => {
         "INVALID_CREDENTIALS",
       );
     }
+  }
+
+  // Block suspended/inactive accounts; PENDING_VERIFICATION owners are allowed
+  // through so the frontend can route them to the pending-approval page.
+  // Checked only after a correct password so the status is not disclosed to
+  // someone guessing emails.
+  if (
+    user.status !== UserStatus.ACTIVE &&
+    user.status !== UserStatus.PENDING_VERIFICATION
+  ) {
+    throw ApiError.forbidden(
+      user.status === UserStatus.SUSPENDED
+        ? "Your account has been suspended"
+        : "Your account is not active",
+    );
   }
 
   // Reset failed login attempts on successful login and unlock account
@@ -502,13 +513,19 @@ export const sendOtpCode = async (data: SendOtpInput) => {
           where: { phone: identifier },
         });
 
+    // Same response whether or not the account exists or can sign in, so this
+    // form cannot be used to discover registered emails; no code is sent.
+    const genericResponse = {
+      sent: true,
+      destination: maskIdentifier(identifier),
+      expiresInSeconds: OTP_EXPIRY_MS / 1000,
+    };
+
     if (!user) {
       console.log(
         `[OTP:LOGIN] No user found for "${maskIdentifier(identifier)}"`,
       );
-      throw ApiError.notFound(
-        "No account found with this email. Please register first.",
-      );
+      return genericResponse;
     }
 
     if (
@@ -518,11 +535,7 @@ export const sendOtpCode = async (data: SendOtpInput) => {
       console.log(
         `[OTP:LOGIN] User "${maskIdentifier(identifier)}" exists but status is "${user.status}"`,
       );
-      throw ApiError.forbidden(
-        user.status === UserStatus.SUSPENDED
-          ? "Your account has been suspended."
-          : "Your account is not active.",
-      );
+      return genericResponse;
     }
   }
 
