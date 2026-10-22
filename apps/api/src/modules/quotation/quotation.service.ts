@@ -710,7 +710,7 @@ export const getQuotationById = async (
   if (quotation.vehicleId && quotationWithVehicle.vehicle) {
     isOwner = quotationWithVehicle.vehicle.ownerId === userId;
   }
-  const isAdmin = userRole === "admin";
+  const isAdmin = userRole === "ADMIN";
 
   if (!isCustomer && !isOwner && !isAdmin) {
     throw ApiError.forbidden("Unauthorized to view this quotation");
@@ -976,6 +976,28 @@ export const sendQuotation = async (
 
   if (!vehicle || vehicle.ownerId !== ownerId) {
     throw ApiError.forbidden("Invalid vehicle or unauthorized");
+  }
+
+  if (!vehicle.isActive) {
+    throw ApiError.badRequest(
+      "This vehicle is not approved yet. Quote with an active vehicle.",
+    );
+  }
+
+  if (quotation.passengerCount && vehicle.seats < quotation.passengerCount) {
+    throw ApiError.badRequest(
+      "This vehicle does not have enough seats for the group.",
+    );
+  }
+
+  if (
+    !quotation.vehicleId &&
+    quotation.vehicleType &&
+    vehicle.type !== quotation.vehicleType
+  ) {
+    throw ApiError.badRequest(
+      "The customer asked for a different vehicle type.",
+    );
   }
 
   // Parse estimated distance for validation

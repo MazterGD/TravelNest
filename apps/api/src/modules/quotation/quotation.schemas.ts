@@ -58,3 +58,42 @@ export const ownerQuotationRequestsSchema = z.object({
       },
     ),
 });
+
+const money = z.number().finite().nonnegative();
+
+export const sendQuotationSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+  body: z.object({
+    vehicleId: z.string().min(1),
+    startTime: z.string().max(20).optional(),
+    estimatedDistance: z.string().max(50).optional(),
+    estimatedDuration: z.string().max(50).optional(),
+    vehicleRentalCost: money.optional(),
+    driverCost: money,
+    fuelCost: money,
+    tollCharges: money,
+    permitFees: money.optional(),
+    customItems: z
+      .array(
+        z.object({
+          description: z.string().max(200),
+          amount: money,
+        }),
+      )
+      .max(20)
+      .optional(),
+    subtotal: money.optional(),
+    tax: money.optional(),
+    totalAmount: money.optional(),
+    additionalNotes: z.string().max(1000).optional(),
+    validityDays: z.number().int().min(1).max(30),
+  }),
+});
+
+export const respondToQuotationSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+  body: z.object({
+    status: z.enum(["ACCEPTED", "REJECTED"]),
+    rejectionReason: z.string().max(500).optional(),
+  }),
+});

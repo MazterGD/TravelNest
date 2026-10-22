@@ -4,7 +4,11 @@ import { validate } from "../../middleware/validate.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
 import { csrfProtection } from "../../middleware/csrf.js";
 import * as quotationController from "./quotation.controller.js";
-import { ownerQuotationRequestsSchema } from "./quotation.schemas.js";
+import {
+  ownerQuotationRequestsSchema,
+  respondToQuotationSchema,
+  sendQuotationSchema,
+} from "./quotation.schemas.js";
 
 const router = Router();
 
@@ -36,6 +40,7 @@ router.patch(
   "/:id/respond",
   authenticate,
   csrfProtection,
+  validate(respondToQuotationSchema),
   asyncHandler(quotationController.respondToQuotation),
 );
 
@@ -71,6 +76,7 @@ router.patch(
   authenticate,
   csrfProtection,
   authorize("owner", "admin"),
+  validate(sendQuotationSchema),
   asyncHandler(quotationController.sendQuotation),
 );
 
