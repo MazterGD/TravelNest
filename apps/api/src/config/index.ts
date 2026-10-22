@@ -149,6 +149,9 @@ export const config = {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY || "",
     bucket: process.env.SUPABASE_BUCKET || "travenest",
     publicUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    // Owner documents and payment receipts (ADR-001). Server-side only.
+    privateBucket: process.env.SUPABASE_PRIVATE_BUCKET || "travenest-private",
+    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   },
 
   // Rate Limiting
@@ -215,6 +218,7 @@ if (config.env === "production") {
     "APP_URL",
     "PAYHERE_MERCHANT_ID",
     "PAYHERE_MERCHANT_SECRET",
+    "SUPABASE_SERVICE_ROLE_KEY",
   ];
 
   for (const envVar of requiredEnvVars) {

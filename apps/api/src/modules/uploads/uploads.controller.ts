@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { ResponseHelper } from "../../utils/response.js";
-import { uploadBuffer } from "../../utils/storage.js";
+import { uploadBuffer, uploadPrivateBuffer } from "../../utils/storage.js";
 
 const allowedRegistrationCategories = [
   "owner-documents",
@@ -29,6 +29,10 @@ const allowedPhotoTags = new Set([
   "seats",
   "other",
 ]);
+
+const isPrivateUpload = (category: string, prefix: string) =>
+  category === "vehicle-documents" ||
+  (category === "owner-documents" && !prefix.endsWith("/profile-photo"));
 
 export const uploadRegistrationFile = async (req: Request, res: Response) => {
   const { category, subfolder } = req.body as {
@@ -76,12 +80,21 @@ export const uploadRegistrationFile = async (req: Request, res: Response) => {
     prefix = `${prefix}/${tag}`;
   }
 
-  const upload = await uploadBuffer({
+  const file = {
     prefix,
     fileName: uploadedFile.originalname,
     buffer: uploadedFile.buffer,
     contentType: uploadedFile.mimetype,
-  });
+  };
+
+  // Identity and vehicle documents go to private storage (ADR-001); photos,
+  // including the owner's profile photo, stay public.
+  if (isPrivateUpload(category, prefix)) {
+    const upload = await uploadPrivateBuffer(file);
+    return ResponseHelper.created(res, { url: upload.url, path: upload.path });
+  }
+
+  const upload = await uploadBuffer(file);
 
   return ResponseHelper.created(res, {
     url: upload.publicUrl,

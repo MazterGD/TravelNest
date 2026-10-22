@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { ResponseHelper } from "../../utils/response.js";
-import { uploadBuffer } from "../../utils/storage.js";
+import { uploadPrivateBuffer } from "../../utils/storage.js";
 import { ApiError } from "../../middleware/errorHandler.js";
 import * as paymentService from "./payment.service.js";
 
@@ -60,7 +60,7 @@ export const uploadReceipt = async (req: Request, res: Response) => {
     throw ApiError.badRequest("Receipt file is required");
   }
 
-  const upload = await uploadBuffer({
+  const upload = await uploadPrivateBuffer({
     prefix: `receipts/${paymentId}`,
     fileName: uploadedFile.originalname,
     buffer: uploadedFile.buffer,
@@ -68,7 +68,7 @@ export const uploadReceipt = async (req: Request, res: Response) => {
   });
 
   const receipt = await paymentService.uploadBankReceipt(userId, paymentId, {
-    url: upload.publicUrl,
+    url: upload.url,
     fileName: uploadedFile.originalname,
     fileSize: uploadedFile.size,
     mimeType: uploadedFile.mimetype,

@@ -12,7 +12,8 @@
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
         "test:ui": "vitest --ui",
-        "payhere:simulate": "tsx scripts/simulatePayhereWebhook.ts"
+        "payhere:simulate": "tsx scripts/simulatePayhereWebhook.ts",
+        "storage:backfill-private": "tsx scripts/backfillPrivateStorage.ts"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.118.0",

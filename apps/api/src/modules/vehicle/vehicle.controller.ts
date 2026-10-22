@@ -3,7 +3,7 @@ import xss from "xss";
 import * as vehicleService from "./vehicle.service.js";
 import { ResponseHelper } from "../../utils/response.js";
 import { ApiError } from "../../middleware/errorHandler.js";
-import { uploadBuffer } from "../../utils/storage.js";
+import { uploadBuffer, uploadPrivateBuffer } from "../../utils/storage.js";
 
 /**
  * Sanitize an optional string query parameter
@@ -259,7 +259,7 @@ export const uploadDocuments = async (req: Request, res: Response) => {
 
   const uploads = await Promise.all(
     documentFiles.map((doc) =>
-      uploadBuffer({
+      uploadPrivateBuffer({
         prefix: `vehicles/${id}/documents/${doc.type.toLowerCase().replace(/_/g, "-")}`,
         fileName: doc.file.originalname,
         buffer: doc.file.buffer,
@@ -270,7 +270,7 @@ export const uploadDocuments = async (req: Request, res: Response) => {
 
   const documents = documentFiles.map((doc, index) => ({
     type: doc.type,
-    url: uploads[index].publicUrl,
+    url: uploads[index].url,
     fileName: doc.file.originalname,
     fileSize: doc.file.size,
     mimeType: doc.file.mimetype,

@@ -14,6 +14,7 @@ import path from "path";
 import { config } from "./config/index.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { auditLogger } from "./middleware/auditLogger.js";
+import { signPrivateFileUrls } from "./middleware/signFileUrls.js";
 
 // Import route modules
 import authRoutes from "./modules/auth/auth.routes.js";
@@ -136,6 +137,9 @@ const apiBase = `/api/${config.apiVersion}`;
 
 // Audit every authenticated mutation (records on response finish, after auth has run)
 app.use(apiBase, auditLogger);
+
+// Turn private document/receipt references into short-lived signed URLs
+app.use(apiBase, signPrivateFileUrls);
 
 app.use(`${apiBase}/auth`, authRoutes);
 app.use(`${apiBase}/users`, userRoutes);
