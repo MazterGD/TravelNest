@@ -1,6 +1,7 @@
 import { prisma } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { lockVehicleForBooking } from "../../utils/locks.js";
+import { removalStamp } from "../../utils/softDelete.js";
 
 export interface TripPackageFilters {
   startLocation?: string;
@@ -359,7 +360,23 @@ export const deleteTripPackage = async (id: string, ownerId: string) => {
     throw ApiError.forbidden("Not authorized to delete this package");
   }
 
-  await prismaClient.tripPackage.delete({ where: { id } });
+  const activeBookings = await prisma.booking.count({
+    where: {
+      tripPackageId: id,
+      status: { in: ["PENDING", "CONFIRMED", "ONGOING"] },
+    },
+  });
+  if (activeBookings > 0) {
+    throw ApiError.badRequest(
+      "This package has active bookings. Please complete or cancel them first.",
+    );
+  }
+
+  // Soft delete (ADR-006): past package bookings keep their package.
+  await prismaClient.tripPackage.update({
+    where: { id },
+    data: removalStamp(),
+  });
 };
 
 export const bookTripPackage = async (

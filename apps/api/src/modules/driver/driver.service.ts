@@ -1,6 +1,7 @@
 import prisma from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
 import type { CreateDriverInput, UpdateDriverInput } from "./driver.schemas.js";
+import { removalStamp } from "../../utils/softDelete.js";
 
 /**
  * List all drivers for an owner, each decorated with assignment counts.
@@ -131,13 +132,11 @@ export const deleteDriver = async (driverId: string, ownerId: string) => {
     );
   }
 
-  // Null out driverId on past bookings before deleting so no FK violation.
-  await prisma.booking.updateMany({
-    where: { driverId },
-    data: { driverId: null },
+  // Soft delete (ADR-006): past bookings keep their driver.
+  await prisma.driver.update({
+    where: { id: driverId },
+    data: removalStamp(),
   });
-
-  await prisma.driver.delete({ where: { id: driverId } });
 };
 
 /**

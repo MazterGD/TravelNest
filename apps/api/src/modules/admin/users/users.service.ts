@@ -4,6 +4,7 @@ import { ApiError } from "../../../middleware/errorHandler.js";
 import { recordAuditLog } from "../audit/audit.service.js";
 import { buildCsv, parsePagination } from "../types.js";
 import type { CreateAdminInput, UserStatusUpdateInput } from "./users.schemas.js";
+import { assertUserRemovable, removeUserAccount } from "../../../utils/softDelete.js";
 
 type UserListFilters = {
   search?: string;
@@ -390,28 +391,9 @@ export const deleteUser = async (
   }
   assertCanManageUser(actorAdminRole, user);
 
-  // Deleting cascades to vehicles, bookings, payments, settlements and
-  // disputes, so accounts with any transaction history are suspended instead.
-  const [bookings, payments, settlements, disputes] = await Promise.all([
-    prisma.booking.count({
-      where: { OR: [{ customerId: userId }, { vehicle: { ownerId: userId } }] },
-    }),
-    prisma.payment.count({ where: { userId } }),
-    prisma.settlement.count({ where: { ownerId: userId } }),
-    prisma.dispute.count({
-      where: { OR: [{ raisedBy: userId }, { raisedAgainst: userId }] },
-    }),
-  ]);
-  if (bookings + payments + settlements + disputes > 0) {
-    throw new ApiError(
-      409,
-      "This account has bookings or payment history, so it can't be deleted. Suspend it instead.",
-    );
-  }
-
-  await prisma.user.delete({
-    where: { id: userId },
-  });
+  // Soft delete (ADR-006): refused while anything is pending; history stays.
+  await assertUserRemovable(userId);
+  await removeUserAccount(userId);
 
   await recordAuditLog(
     adminId,

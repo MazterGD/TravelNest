@@ -419,11 +419,14 @@ describe("DELETE /vehicles/:id - Delete Vehicle", () => {
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
 
-    // Verify vehicle is deleted
+    // Soft delete (ADR-006): kept as removed, gone from the API
     const deletedVehicle = await prisma.vehicle.findUnique({
       where: { id: vehicleId },
     });
-    expect(deletedVehicle).toBeNull();
+    expect(deletedVehicle?.isRemoved).toBe(true);
+
+    const lookup = await request(app).get(`${API_BASE}/vehicles/${vehicleId}`);
+    expect(lookup.status).toBe(404);
   });
 
   it("should reject delete by non-owner", async () => {
@@ -479,7 +482,7 @@ describe("DELETE /vehicles/:id - Delete Vehicle", () => {
     expect(response.body.success).toBe(false);
   });
 
-  it("should delete associated photos when vehicle is deleted", async () => {
+  it("should keep the removed vehicle's photos for its booking history", async () => {
     // Add a photo
     await prisma.vehiclePhoto.create({
       data: {
@@ -498,11 +501,11 @@ describe("DELETE /vehicles/:id - Delete Vehicle", () => {
 
     expect(response.status).toBe(200);
 
-    // Verify photos are deleted
+    // Soft delete (ADR-006): photos stay with the removed vehicle
     const photos = await prisma.vehiclePhoto.findMany({
       where: { vehicleId },
     });
-    expect(photos.length).toBe(0);
+    expect(photos.length).toBe(1);
   });
 });
 

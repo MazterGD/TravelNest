@@ -3,6 +3,7 @@ import { ApiError } from "../../../middleware/errorHandler.js";
 import { recordAuditLog } from "../audit/audit.service.js";
 import { parsePagination } from "../types.js";
 import type { UpdateTestimonialInput } from "./testimonials.schemas.js";
+import { removalStamp } from "../../../utils/softDelete.js";
 
 type TestimonialFilters = {
   includeInactive?: boolean;
@@ -170,8 +171,9 @@ export const deleteTestimonial = async (adminId: string, testimonialId: string) 
     throw new ApiError(404, "Testimonial not found");
   }
 
-  await prisma.testimonial.delete({
+  await prisma.testimonial.update({
     where: { id: testimonialId },
+    data: removalStamp(),
   });
 
   await recordAuditLog(

@@ -1,6 +1,7 @@
 import prisma from "@travenest/database";
 import xss from "xss";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { removalStamp } from "../../utils/softDelete.js";
 
 export interface ReviewQuery {
   page?: number;
@@ -234,7 +235,7 @@ export const createReview = async (
     throw ApiError.forbidden("Not authorized to review this booking");
   if (booking.status !== "COMPLETED")
     throw ApiError.badRequest("Only completed bookings can be reviewed");
-  if (booking.review)
+  if (booking.review && !booking.review.isRemoved)
     throw ApiError.badRequest("This booking has already been reviewed");
   if (data.vehicleId !== booking.vehicleId)
     throw ApiError.badRequest("Vehicle ID does not match the booking's vehicle");
@@ -248,20 +249,30 @@ export const createReview = async (
   // Overall rating is the average of the five sub-ratings, not a separate input.
   const rating = computeOverallRating(data.dimensions);
 
-  const review = await prisma.review.create({
-    data: {
-      customerId,
-      vehicleId: data.vehicleId,
-      bookingId: data.bookingId,
-      rating,
-      ratingVehicleCondition: data.dimensions.ratingVehicleCondition ?? null,
-      ratingDriverBehavior: data.dimensions.ratingDriverBehavior ?? null,
-      ratingPunctuality: data.dimensions.ratingPunctuality ?? null,
-      ratingCleanliness: data.dimensions.ratingCleanliness ?? null,
-      ratingValueForMoney: data.dimensions.ratingValueForMoney ?? null,
-      title: sanitizeText(data.title),
-      comment: sanitizeText(data.comment),
-      isRecommended: data.isRecommended ?? null,
+  const reviewData = {
+    customerId,
+    vehicleId: data.vehicleId,
+    bookingId: data.bookingId,
+    rating,
+    ratingVehicleCondition: data.dimensions.ratingVehicleCondition ?? null,
+    ratingDriverBehavior: data.dimensions.ratingDriverBehavior ?? null,
+    ratingPunctuality: data.dimensions.ratingPunctuality ?? null,
+    ratingCleanliness: data.dimensions.ratingCleanliness ?? null,
+    ratingValueForMoney: data.dimensions.ratingValueForMoney ?? null,
+    title: sanitizeText(data.title),
+    comment: sanitizeText(data.comment),
+    isRecommended: data.isRecommended ?? null,
+  };
+
+  // One review per booking: a review the customer removed is replaced.
+  const review = await prisma.review.upsert({
+    where: { bookingId: data.bookingId },
+    create: reviewData,
+    update: {
+      ...reviewData,
+      isRemoved: false,
+      removedAt: null,
+      ownerResponse: null,
     },
     include: {
       vehicle: {
@@ -363,7 +374,10 @@ export const deleteReview = async (reviewId: string, customerId: string) => {
   if (review.customerId !== customerId)
     throw ApiError.forbidden("Not authorized to delete this review");
 
-  await prisma.review.delete({ where: { id: reviewId } });
+  await prisma.review.update({
+    where: { id: reviewId },
+    data: removalStamp(),
+  });
   return { message: "Review deleted successfully" };
 };
 

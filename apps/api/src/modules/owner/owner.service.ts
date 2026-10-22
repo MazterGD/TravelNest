@@ -6,7 +6,6 @@ import prisma, {
   maskSettlementBankAccountNumber,
 } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
-import { deleteByUrl } from "../../utils/storage.js";
 import {
   assertRegistrationProof,
   generateTokens,
@@ -25,6 +24,7 @@ import type {
   UpsertBankAccountInput,
 } from "./owner.schemas.js";
 import { assertFilesNotOwnedByOthers } from "../../utils/fileOwnership.js";
+import { removalStamp } from "../../utils/softDelete.js";
 
 // Allowed MIME types for validation
 const ALLOWED_IMAGE_TYPES = [
@@ -563,17 +563,10 @@ export const addOwnerDocument = async (
   await assertFilesNotOwnedByOthers([data.url], ownerId);
 
   return prisma.$transaction(async (tx) => {
-    const existingDocuments = await tx.ownerDocument.findMany({
-      where: { ownerId, type: data.type as any },
-      select: { url: true },
-    });
-
-    for (const existingDocument of existingDocuments) {
-      await deleteByUrl(existingDocument.url);
-    }
-
-    await tx.ownerDocument.deleteMany({
-      where: { ownerId, type: data.type as any },
+    // The previous document of this type is kept as removed (ADR-006).
+    await tx.ownerDocument.updateMany({
+      where: { ownerId, type: data.type as any, isRemoved: false },
+      data: removalStamp(),
     });
 
     return tx.ownerDocument.create({
@@ -604,8 +597,10 @@ export const deleteOwnerDocument = async (ownerId: string, docId: string) => {
     throw ApiError.forbidden("You do not own this document");
   }
 
-  await deleteByUrl(doc.url);
-  await prisma.ownerDocument.delete({ where: { id: docId } });
+  await prisma.ownerDocument.update({
+    where: { id: docId },
+    data: removalStamp(),
+  });
 };
 
 /**

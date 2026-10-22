@@ -1,7 +1,7 @@
 /**
- * Admin user management (ADM-5, ADM-6): only super admins manage admin
- * accounts, admins cannot change their own status, and accounts with
- * transaction history are suspended rather than deleted.
+ * Admin user management (ADM-5, ADM-6, ADR-006): only super admins manage
+ * admin accounts, admins cannot change their own status, and deleting a user
+ * is a soft removal refused while anything is still pending.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
@@ -117,7 +117,7 @@ describe("Admin user management safety", () => {
     expect(response.status).toBe(400);
   });
 
-  it("refuses to delete an owner with bookings and keeps the history", async () => {
+  it("refuses to remove an owner with an active booking", async () => {
     const owner = await createUser("owner", "VEHICLE_OWNER");
     const customer = await createUser("customer", "CUSTOMER");
     const vehicle = await prisma.vehicle.create({
@@ -154,11 +154,13 @@ describe("Admin user management safety", () => {
       .delete(`${API_BASE}/admin/users/${owner.id}`)
       .set("Authorization", as("SUPER_ADMIN"));
 
-    expect(response.status).toBe(409);
+    expect(response.status).toBe(400);
     expect(await prisma.booking.findUnique({ where: { id: booking.id } })).not.toBeNull();
+    const owner_ = await prisma.user.findUnique({ where: { id: owner.id } });
+    expect(owner_?.isRemoved).toBe(false);
   });
 
-  it("deletes a customer without any history", async () => {
+  it("soft-removes a customer with nothing pending and frees the email", async () => {
     const customer = await createUser("fresh", "CUSTOMER");
 
     const response = await request(app)
@@ -166,6 +168,8 @@ describe("Admin user management safety", () => {
       .set("Authorization", as("MODERATOR"));
 
     expect(response.status).toBe(200);
-    expect(await prisma.user.findUnique({ where: { id: customer.id } })).toBeNull();
+    const removed = await prisma.user.findUnique({ where: { id: customer.id } });
+    expect(removed?.isRemoved).toBe(true);
+    expect(removed?.email).toBe(`${customer.email}#removed-${customer.id}`);
   });
 });

@@ -3,6 +3,7 @@ import { ApiError } from "../../../middleware/errorHandler.js";
 import { recordAuditLog } from "../audit/audit.service.js";
 import { parsePagination } from "../types.js";
 import type { CreateFaqInput, UpdateFaqInput } from "./faqs.schemas.js";
+import { removalStamp } from "../../../utils/softDelete.js";
 
 type FaqFilters = {
   search?: string;
@@ -190,8 +191,9 @@ export const deleteFaq = async (adminId: string, faqId: string) => {
     throw new ApiError(404, "FAQ not found");
   }
 
-  await prisma.faq.delete({
+  await prisma.faq.update({
     where: { id: faqId },
+    data: removalStamp(),
   });
 
   await recordAuditLog(

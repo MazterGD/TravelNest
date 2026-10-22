@@ -1,12 +1,16 @@
 import { prisma } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
-import { deleteByUrl } from "../../utils/storage.js";
 import xss from "xss";
 import {
   getVehicleTypePricing,
   type VehicleType,
 } from "../admin/settings/settings.service.js";
 import { assertFilesNotOwnedByOthers } from "../../utils/fileOwnership.js";
+import {
+  assertVehicleRemovable,
+  removalStamp,
+  withRemovedSuffix,
+} from "../../utils/softDelete.js";
 
 /**
  * Platform-set base pricing per vehicle type. Surfaced read-only to owners so
@@ -698,18 +702,23 @@ export const deleteVehicle = async (id: string, ownerId: string) => {
       "Cannot delete vehicle with active or pending bookings. Please complete or cancel all bookings first.",
     );
   }
+  await assertVehicleRemovable(id);
 
-  const fileUrls = [
-    ...existing.documents.map((doc) => doc.url),
-    ...existing.photos.map((photo) => photo.url),
-  ];
-
-  await Promise.all(fileUrls.map((url) => deleteByUrl(url)));
-
-  // Hard delete - remove the vehicle and all related data
-  await prisma.vehicle.delete({
-    where: { id },
-  });
+  // Soft delete (ADR-006): past bookings keep their vehicle; the plate is
+  // freed so the same bus can be listed again, and its packages go with it.
+  await prisma.$transaction([
+    prisma.vehicle.update({
+      where: { id },
+      data: {
+        ...removalStamp(),
+        licensePlate: withRemovedSuffix(existing.licensePlate, id),
+      },
+    }),
+    prisma.tripPackage.updateMany({
+      where: { vehicleId: id, isRemoved: false },
+      data: removalStamp(),
+    }),
+  ]);
 
   return { message: "Vehicle deleted successfully" };
 };
@@ -828,8 +837,10 @@ export const deleteVehiclePhoto = async (
   // Idempotent: photo already deleted (e.g. retry after partial save failure)
   if (!photo) return { deleted: true };
 
-  await prisma.vehiclePhoto.delete({ where: { id: photoId } });
-  await deleteByUrl(photo.url);
+  await prisma.vehiclePhoto.update({
+    where: { id: photoId },
+    data: removalStamp(),
+  });
 
   // Promote next photo to primary if the deleted one was primary
   if (photo.isPrimary) {
@@ -921,12 +932,12 @@ export const uploadVehicleDocuments = async (
     },
   });
 
-  await Promise.all(existingDocs.map((doc) => deleteByUrl(doc.url)));
-  await prisma.vehicleDocument.deleteMany({
+  // Replaced documents are kept as removed (ADR-006).
+  await prisma.vehicleDocument.updateMany({
     where: {
-      vehicleId,
-      type: { in: docTypes },
+      id: { in: existingDocs.map((doc) => doc.id) },
     },
+    data: removalStamp(),
   });
 
   // Create document records within a transaction

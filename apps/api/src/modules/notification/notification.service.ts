@@ -4,6 +4,7 @@ import { ApiError } from "../../middleware/errorHandler.js";
 import { emitToUser } from "../../realtime/socket.js";
 import { sendNotificationEmail } from "./email.service.js";
 import type { NotificationCategory } from "./notification.schemas.js";
+import { removalStamp } from "../../utils/softDelete.js";
 
 /**
  * Notification response type
@@ -140,8 +141,9 @@ export const deleteNotification = async (
     throw ApiError.forbidden("Not authorized to delete this notification");
   }
 
-  const deleted = await prisma.notification.delete({
+  const deleted = await prisma.notification.update({
     where: { id: notificationId },
+    data: removalStamp(),
   });
 
   return deleted as NotificationResponse;
@@ -153,8 +155,9 @@ export const deleteNotification = async (
 export const deleteAllNotifications = async (
   userId: string,
 ): Promise<number> => {
-  const result = await prisma.notification.deleteMany({
-    where: { userId },
+  const result = await prisma.notification.updateMany({
+    where: { userId, isRemoved: false },
+    data: removalStamp(),
   });
 
   return result.count;
@@ -333,11 +336,13 @@ export const purgeReadNotifications = async (
 ): Promise<number> => {
   const cutoffDate = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000);
 
-  const result = await prisma.notification.deleteMany({
+  const result = await prisma.notification.updateMany({
     where: {
       createdAt: { lt: cutoffDate },
       isRead: true,
+      isRemoved: false,
     },
+    data: removalStamp(),
   });
 
   return result.count;

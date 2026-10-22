@@ -8,6 +8,7 @@ import type {
   UpdateAddressInput,
   ChangePasswordInput,
 } from "./user.schemas.js";
+import { assertUserRemovable, removeUserAccount } from "../../utils/softDelete.js";
 
 /**
  * Get user profile by ID
@@ -285,70 +286,9 @@ export const changePassword = async (
  * Delete user account
  */
 export const deleteAccount = async (userId: string) => {
-  // Check if user has any active bookings
-  const activeBookings = await prisma.booking.count({
-    where: {
-      customerId: userId,
-      status: {
-        in: ["PENDING", "CONFIRMED", "ONGOING"],
-      },
-    },
-  });
-
-  if (activeBookings > 0) {
-    throw ApiError.badRequest(
-      "Cannot delete account with active bookings. Please cancel or complete all bookings first.",
-    );
-  }
-
-  // Deleting an owner cascades to their vehicles and every booking, payment
-  // and settlement on them, so customers' paid trips would vanish.
-  const [activeOwnerBookings, openSettlements] = await Promise.all([
-    prisma.booking.count({
-      where: {
-        vehicle: { ownerId: userId },
-        status: { in: ["PENDING", "CONFIRMED", "ONGOING"] },
-      },
-    }),
-    prisma.settlement.count({
-      where: { ownerId: userId, status: { in: ["PENDING", "PROCESSING"] } },
-    }),
-  ]);
-
-  if (activeOwnerBookings > 0 || openSettlements > 0) {
-    throw ApiError.badRequest(
-      "Your vehicles have upcoming bookings or unpaid earnings, so the account can't be deleted yet. Complete or cancel those bookings and wait for your payout first.",
-    );
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      avatar: true,
-      documents: { select: { url: true } },
-      vehicles: {
-        select: {
-          documents: { select: { url: true } },
-          photos: { select: { url: true } },
-        },
-      },
-    },
-  });
-
-  const urls: string[] = [];
-  if (user?.avatar) urls.push(user.avatar);
-  user?.documents.forEach((doc) => urls.push(doc.url));
-  user?.vehicles.forEach((vehicle) => {
-    vehicle.documents.forEach((doc) => urls.push(doc.url));
-    vehicle.photos.forEach((photo) => urls.push(photo.url));
-  });
-
-  await Promise.all(urls.map((url) => deleteByUrl(url)));
-
-  // Delete user (cascades to related records due to Prisma relations)
-  await prisma.user.delete({
-    where: { id: userId },
-  });
+  // Soft delete (ADR-006): history stays for the other parties and admins.
+  await assertUserRemovable(userId);
+  await removeUserAccount(userId);
 
   return { message: "Account deleted successfully" };
 };

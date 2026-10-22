@@ -95,10 +95,17 @@ describe("DELETE /users/account", () => {
     expect(await prisma.booking.findUnique({ where: { id: bookingId } })).not.toBeNull();
   });
 
-  it("deletes an owner without active bookings or pending payouts", async () => {
+  it("soft-removes an owner without active bookings or pending payouts", async () => {
     const response = await deleteAccount("idleOwner");
 
     expect(response.status).toBe(200);
-    expect(await prisma.user.findUnique({ where: { id: ids.idleOwner } })).toBeNull();
+    const removed = await prisma.user.findUnique({ where: { id: ids.idleOwner } });
+    expect(removed?.isRemoved).toBe(true);
+
+    // The removed account can no longer use its session
+    const me = await request(app)
+      .get(`${API_BASE}/auth/me`)
+      .set("Authorization", `Bearer ${tokens.idleOwner}`);
+    expect(me.status).toBe(401);
   });
 });
