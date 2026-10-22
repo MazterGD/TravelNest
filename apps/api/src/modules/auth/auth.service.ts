@@ -212,13 +212,19 @@ export const generateTokens = async (
 // OAuth Helpers
 // ============================================
 
+const OAUTH_STATE_AUDIENCE = "oauth-state";
+
 export const createOAuthStateToken = (payload: OAuthStatePayload) =>
   jwt.sign(payload, config.oauth.stateSecret, {
     expiresIn: "10m",
+    audience: OAUTH_STATE_AUDIENCE,
   } as SignOptions);
 
 export const verifyOAuthStateToken = (token: string): OAuthStatePayload =>
-  jwt.verify(token, config.oauth.stateSecret) as OAuthStatePayload;
+  jwt.verify(token, config.oauth.stateSecret, {
+    algorithms: ["HS256"],
+    audience: OAUTH_STATE_AUDIENCE,
+  }) as OAuthStatePayload;
 
 export const getOAuthAuthorizationUrl = (
   provider: OAuthProvider,
@@ -635,7 +641,9 @@ export const refreshUserTokens = async (refreshToken: string) => {
   }
 
   try {
-    const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret) as {
+    const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret, {
+      algorithms: ["HS256"],
+    }) as {
       id: string;
       tokenVersion?: number;
       remember?: boolean;

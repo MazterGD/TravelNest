@@ -43,6 +43,60 @@ interface JwtPayload {
 // Authentication Middleware
 // ============================================
 
+const extractToken = (req: Request): string | undefined => {
+  const authHeader = req.headers.authorization;
+  return authHeader?.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : req.cookies?.accessToken;
+};
+
+/**
+ * Verify an access token and resolve the user it belongs to. Every token must
+ * name an existing user: a JWT signed with the same secret but carrying no
+ * user id (e.g. another token type) must never authenticate a request.
+ */
+const resolveTokenUser = async (
+  token: string,
+): Promise<NonNullable<Request["user"]>> => {
+  const decoded = jwt.verify(token, config.jwt.secret, {
+    algorithms: ["HS256"],
+  }) as JwtPayload;
+
+  if (typeof decoded.id !== "string" || !decoded.id) {
+    throw ApiError.unauthorized("Invalid token");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.id },
+    select: { tokenVersion: true, status: true },
+  });
+
+  if (!user) {
+    throw ApiError.unauthorized("User not found");
+  }
+
+  if (user.status !== "ACTIVE" && user.status !== "PENDING_VERIFICATION") {
+    throw ApiError.forbidden("Account is not active");
+  }
+
+  // Ensures the token is invalidated after a password change
+  if (
+    decoded.tokenVersion !== undefined &&
+    decoded.tokenVersion !== user.tokenVersion
+  ) {
+    throw ApiError.unauthorized(
+      "Token has been invalidated. Please login again.",
+      "TOKEN_INVALIDATED",
+    );
+  }
+
+  return {
+    id: decoded.id,
+    email: decoded.email,
+    role: decoded.role,
+  };
+};
+
 /**
  * Require authentication - fails if no valid token
  */
@@ -52,48 +106,13 @@ export const authenticate = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    // Get token from header or cookie
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ")
-      ? authHeader.split(" ")[1]
-      : req.cookies?.accessToken;
+    const token = extractToken(req);
 
     if (!token) {
       throw ApiError.unauthorized("Access denied. No token provided.");
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
-
-    // Validate token version against database (ensures token is invalidated after password change)
-    if (decoded.tokenVersion !== undefined) {
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.id },
-        select: { tokenVersion: true, status: true },
-      });
-
-      if (!user) {
-        throw ApiError.unauthorized("User not found");
-      }
-
-      if (user.status !== "ACTIVE" && user.status !== "PENDING_VERIFICATION") {
-        throw ApiError.forbidden("Account is not active");
-      }
-
-      if (decoded.tokenVersion !== user.tokenVersion) {
-        throw ApiError.unauthorized(
-          "Token has been invalidated. Please login again.",
-          "TOKEN_INVALIDATED",
-        );
-      }
-    }
-
-    // Attach user to request
-    req.user = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role,
-    };
+    req.user = await resolveTokenUser(token);
 
     next();
   } catch (error) {
@@ -113,31 +132,23 @@ export const authenticate = async (
 /**
  * Optional authentication - doesn't fail if no token
  */
-export const optionalAuth = (
+export const optionalAuth = async (
   req: Request,
   _res: Response,
   next: NextFunction,
-): void => {
+): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ")
-      ? authHeader.split(" ")[1]
-      : req.cookies?.accessToken;
+    const token = extractToken(req);
 
     if (token) {
-      const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
-      req.user = {
-        id: decoded.id,
-        email: decoded.email,
-        role: decoded.role,
-      };
+      req.user = await resolveTokenUser(token);
     }
-
-    next();
   } catch {
     // Continue without user if token is invalid
-    next();
+    req.user = undefined;
   }
+
+  next();
 };
 
 // ============================================

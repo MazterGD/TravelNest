@@ -52,29 +52,36 @@ const authenticateSocket = async (
       return next(new Error("UNAUTHORIZED"));
     }
 
-    const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
+    const decoded = jwt.verify(token, config.jwt.secret, {
+      algorithms: ["HS256"],
+    }) as JwtPayload;
+    if (typeof decoded.id !== "string" || !decoded.id) {
+      logSocketEvent("warn", "auth:rejected", { reason: "invalid_token" });
+      return next(new Error("UNAUTHORIZED"));
+    }
 
-    // tokenVersion check mirrors the REST authenticate middleware so that
-    // a password change or admin-revoked token can't keep a socket alive.
-    if (decoded.tokenVersion !== undefined) {
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.id },
-        select: { tokenVersion: true, status: true },
+    // Mirrors the REST authenticate middleware so that a password change or
+    // admin-revoked token can't keep a socket alive.
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { tokenVersion: true, status: true },
+    });
+    if (!user || user.status !== "ACTIVE") {
+      logSocketEvent("warn", "auth:rejected", {
+        reason: "inactive_user",
+        userId: decoded.id,
       });
-      if (!user || user.status !== "ACTIVE") {
-        logSocketEvent("warn", "auth:rejected", {
-          reason: "inactive_user",
-          userId: decoded.id,
-        });
-        return next(new Error("UNAUTHORIZED"));
-      }
-      if (user.tokenVersion !== decoded.tokenVersion) {
-        logSocketEvent("warn", "auth:rejected", {
-          reason: "token_invalidated",
-          userId: decoded.id,
-        });
-        return next(new Error("TOKEN_INVALIDATED"));
-      }
+      return next(new Error("UNAUTHORIZED"));
+    }
+    if (
+      decoded.tokenVersion !== undefined &&
+      user.tokenVersion !== decoded.tokenVersion
+    ) {
+      logSocketEvent("warn", "auth:rejected", {
+        reason: "token_invalidated",
+        userId: decoded.id,
+      });
+      return next(new Error("TOKEN_INVALIDATED"));
     }
 
     socket.data.userId = decoded.id;

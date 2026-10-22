@@ -36,7 +36,11 @@ const apiBaseUrl =
   process.env.API_BASE_URL || `http://localhost:${port}/api/${apiVersion}`;
 const jwtSecret = getJWTSecret();
 const jwtRefreshSecret = getJWTRefreshSecret();
-const oauthStateSecret = process.env.OAUTH_STATE_SECRET || jwtSecret;
+// Never sign OAuth state with the access-token secret itself: a state token
+// would then verify as an access token.
+const oauthStateSecret =
+  process.env.OAUTH_STATE_SECRET ||
+  crypto.createHmac("sha256", jwtSecret).update("oauth-state").digest("hex");
 const oauthRedirectBase = apiBaseUrl;
 const oauthRedirectGoogle =
   process.env.GOOGLE_REDIRECT_URI ||
