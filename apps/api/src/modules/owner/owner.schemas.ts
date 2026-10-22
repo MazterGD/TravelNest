@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { platformFileUrl } from "../../utils/storage.js";
 
 // Vehicle document schema
 const vehicleDocumentSchema = z.object({
@@ -6,7 +7,7 @@ const vehicleDocumentSchema = z.object({
   fileName: z.string().min(1, "File name is required"),
   fileSize: z.number().positive("File size must be positive"),
   mimeType: z.string().min(1, "MIME type is required"),
-  url: z.string().url("Document URL is required"),
+  url: platformFileUrl("Document URL is required"),
 });
 
 // Vehicle photo schema
@@ -15,7 +16,7 @@ const vehiclePhotoSchema = z.object({
   fileSize: z.number().positive("File size must be positive"),
   mimeType: z.string().min(1, "MIME type is required"),
   isPrimary: z.boolean().default(false),
-  url: z.string().url("Photo URL is required"),
+  url: platformFileUrl("Photo URL is required"),
 });
 
 // Vehicle data schema
@@ -50,7 +51,7 @@ const ownerDocumentSchema = z.object({
   fileName: z.string().min(1, "File name is required"),
   fileSize: z.number().positive("File size must be positive"),
   mimeType: z.string().min(1, "MIME type is required"),
-  url: z.string().url("Document URL is required"),
+  url: platformFileUrl("Document URL is required"),
 });
 
 // Address schema
@@ -156,7 +157,7 @@ export type UpdateAddressInput = z.infer<typeof updateAddressSchema>["body"];
 export const addOwnerDocumentSchema = z.object({
   body: z.object({
     type: z.enum(["NIC", "PROFILE_PHOTO"]),
-    url: z.string().url("Document URL is required"),
+    url: platformFileUrl("Document URL is required"),
     fileName: z.string().min(1, "File name is required"),
     fileSize: z.number().positive("File size must be positive"),
     mimeType: z.string().min(1, "MIME type is required"),

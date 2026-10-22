@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { platformFileUrl } from "../../utils/storage.js";
 
 export const createDriverSchema = z.object({
   body: z.object({
@@ -7,7 +8,7 @@ export const createDriverSchema = z.object({
       .string()
       .regex(/^[\d+\-\s]{9,15}$/, "Invalid phone number format")
       .transform((v) => v.trim()),
-    photoUrl: z.string().url("Invalid photo URL").optional().nullable(),
+    photoUrl: platformFileUrl("Invalid photo URL").optional().nullable(),
     status: z.enum(["ACTIVE", "INACTIVE"]).optional().default("ACTIVE"),
   }),
 });
@@ -22,7 +23,7 @@ export const updateDriverSchema = z.object({
         .regex(/^[\d+\-\s]{9,15}$/, "Invalid phone number format")
         .transform((v) => v.trim())
         .optional(),
-      photoUrl: z.string().url().optional().nullable(),
+      photoUrl: platformFileUrl("Invalid photo URL").optional().nullable(),
       status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
     })
     .strict(),

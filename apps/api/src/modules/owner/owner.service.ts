@@ -19,6 +19,7 @@ import type {
   EarningsTransactionsQuery,
   UpsertBankAccountInput,
 } from "./owner.schemas.js";
+import { assertFilesNotOwnedByOthers } from "../../utils/fileOwnership.js";
 
 // Allowed MIME types for validation
 const ALLOWED_IMAGE_TYPES = [
@@ -185,6 +186,17 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
       );
     }
   }
+
+  await assertFilesNotOwnedByOthers(
+    [
+      ...data.ownerDocuments.map((doc) => doc.url),
+      ...data.vehicles.flatMap((vehicle) => [
+        ...(vehicle.documents ?? []).map((doc) => doc.url),
+        ...(vehicle.photos ?? []).map((photo) => photo.url),
+      ]),
+    ],
+    "",
+  );
 
   // Hash password
   const hashedPassword = await bcrypt.hash(data.password, 12);
@@ -541,6 +553,7 @@ export const addOwnerDocument = async (
     data.fileName,
   );
   validateFileSize(data.fileSize, data.fileName);
+  await assertFilesNotOwnedByOthers([data.url], ownerId);
 
   return prisma.$transaction(async (tx) => {
     const existingDocuments = await tx.ownerDocument.findMany({

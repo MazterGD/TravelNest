@@ -6,6 +6,7 @@ import {
   getVehicleTypePricing,
   type VehicleType,
 } from "../admin/settings/settings.service.js";
+import { assertFilesNotOwnedByOthers } from "../../utils/fileOwnership.js";
 
 /**
  * Platform-set base pricing per vehicle type. Surfaced read-only to owners so
@@ -733,6 +734,10 @@ export const uploadVehiclePhotos = async (
     validateMimeType(photo.mimeType, ALLOWED_IMAGE_TYPES, "image");
     validateFileSize(photo.fileSize, photo.fileName);
   });
+  await assertFilesNotOwnedByOthers(
+    photos.map((photo) => photo.url),
+    ownerId,
+  );
 
   // Check ownership
   const vehicle = await prisma.vehicle.findUnique({
@@ -869,6 +874,10 @@ export const uploadVehicleDocuments = async (
     validateMimeType(doc.mimeType, ALLOWED_DOCUMENT_TYPES, "document");
     validateFileSize(doc.fileSize, doc.fileName);
   });
+  await assertFilesNotOwnedByOthers(
+    documents.map((doc) => doc.url),
+    ownerId,
+  );
 
   // Check ownership
   const vehicle = await prisma.vehicle.findUnique({

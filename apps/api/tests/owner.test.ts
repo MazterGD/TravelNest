@@ -25,21 +25,21 @@ const testVehicleDocuments = [
     fileName: "license.pdf",
     fileSize: 1024,
     mimeType: "application/pdf",
-    url: "https://example.com/docs/license.pdf",
+    url: "storage://private/test/docs/license.pdf",
   },
   {
     type: "INSURANCE",
     fileName: "insurance.pdf",
     fileSize: 1024,
     mimeType: "application/pdf",
-    url: "https://example.com/docs/insurance.pdf",
+    url: "storage://private/test/docs/insurance.pdf",
   },
   {
     type: "REGISTRATION_CERTIFICATE",
     fileName: "cr.pdf",
     fileSize: 1024,
     mimeType: "application/pdf",
-    url: "https://example.com/docs/cr.pdf",
+    url: "storage://private/test/docs/cr.pdf",
   },
 ];
 
@@ -49,14 +49,14 @@ const testOwnerDocuments = [
     fileName: "nic.pdf",
     fileSize: 1024,
     mimeType: "application/pdf",
-    url: "https://example.com/docs/nic.pdf",
+    url: "storage://private/test/docs/nic.pdf",
   },
   {
     type: "PROFILE_PHOTO",
     fileName: "photo.jpg",
     fileSize: 2048,
     mimeType: "image/jpeg",
-    url: "https://example.com/docs/photo.jpg",
+    url: "storage://private/test/docs/photo.jpg",
   },
 ];
 
@@ -497,7 +497,7 @@ describe("POST /owner/register - Document Requirements", () => {
               fileSize: 4096,
               mimeType: "image/jpeg",
               isPrimary: true,
-              url: "https://example.com/photos/bus-front.jpg",
+              url: "storage://private/test/photos/bus-front.jpg",
             },
           ],
         },

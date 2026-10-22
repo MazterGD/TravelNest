@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { platformFileUrl } from "../../utils/storage.js";
 
 // Allowed MIME types for validation
 export const ALLOWED_IMAGE_TYPES = [
@@ -23,7 +24,7 @@ export type VehiclePhotoTagValue = (typeof VEHICLE_PHOTO_TAGS)[number];
 
 // Vehicle photo schema
 const vehiclePhotoSchema = z.object({
-  url: z.string().url("Invalid URL"),
+  url: platformFileUrl("Invalid URL"),
   fileName: z.string().min(1, "File name is required"),
   fileSize: z
     .number()
@@ -41,7 +42,7 @@ const vehiclePhotoSchema = z.object({
 
 // Vehicle document schema
 const vehicleDocumentSchema = z.object({
-  url: z.string().url("Invalid URL"),
+  url: platformFileUrl("Invalid URL"),
   fileName: z.string().min(1, "File name is required"),
   fileSize: z
     .number()

@@ -41,14 +41,14 @@ const testOwnerData = {
       fileName: "nic.pdf",
       fileSize: 1024,
       mimeType: "application/pdf",
-      url: "https://example.com/docs/nic.pdf",
+      url: "storage://private/test/docs/nic.pdf",
     },
     {
       type: "PROFILE_PHOTO",
       fileName: "photo.jpg",
       fileSize: 2048,
       mimeType: "image/jpeg",
-      url: "https://example.com/docs/photo.jpg",
+      url: "storage://private/test/docs/photo.jpg",
     },
   ],
   vehicles: [
@@ -67,21 +67,21 @@ const testOwnerData = {
           fileName: "license.pdf",
           fileSize: 1024,
           mimeType: "application/pdf",
-          url: "https://example.com/docs/license.pdf",
+          url: "storage://private/test/docs/license.pdf",
         },
         {
           type: "INSURANCE",
           fileName: "insurance.pdf",
           fileSize: 1024,
           mimeType: "application/pdf",
-          url: "https://example.com/docs/insurance.pdf",
+          url: "storage://private/test/docs/insurance.pdf",
         },
         {
           type: "REGISTRATION_CERTIFICATE",
           fileName: "cr.pdf",
           fileSize: 1024,
           mimeType: "application/pdf",
-          url: "https://example.com/docs/cr.pdf",
+          url: "storage://private/test/docs/cr.pdf",
         },
       ],
     },
@@ -211,7 +211,7 @@ describe("GET /vehicles/my - Get Owner's Vehicles", () => {
     await prisma.vehiclePhoto.create({
       data: {
         vehicleId,
-        url: "https://example.com/photo.jpg",
+        url: "storage://private/test/photo.jpg",
         fileName: "photo.jpg",
         fileSize: 1024,
         mimeType: "image/jpeg",
@@ -329,9 +329,17 @@ describe("PATCH /vehicles/:id - Update Vehicle", () => {
       ...testOwnerData,
       email: "another.owner@example.com",
       nicNumber: "199012345679",
+      ownerDocuments: testOwnerData.ownerDocuments.map((doc) => ({
+        ...doc,
+        url: doc.url.replace("/test/", "/test/another-owner/"),
+      })),
       vehicles: [
         {
           ...testOwnerData.vehicles[0],
+          documents: testOwnerData.vehicles[0].documents.map((doc) => ({
+            ...doc,
+            url: doc.url.replace("/test/", "/test/another-owner/"),
+          })),
           registrationNumber: "VEH-TEST-002",
         },
       ],
@@ -423,9 +431,17 @@ describe("DELETE /vehicles/:id - Delete Vehicle", () => {
       ...testOwnerData,
       email: "another.owner@example.com",
       nicNumber: "199012345679",
+      ownerDocuments: testOwnerData.ownerDocuments.map((doc) => ({
+        ...doc,
+        url: doc.url.replace("/test/", "/test/another-owner/"),
+      })),
       vehicles: [
         {
           ...testOwnerData.vehicles[0],
+          documents: testOwnerData.vehicles[0].documents.map((doc) => ({
+            ...doc,
+            url: doc.url.replace("/test/", "/test/another-owner/"),
+          })),
           registrationNumber: "VEH-TEST-002",
         },
       ],
@@ -467,7 +483,7 @@ describe("DELETE /vehicles/:id - Delete Vehicle", () => {
     await prisma.vehiclePhoto.create({
       data: {
         vehicleId,
-        url: "https://example.com/photo.jpg",
+        url: "storage://private/test/photo.jpg",
         fileName: "photo.jpg",
         fileSize: 1024,
         mimeType: "image/jpeg",
@@ -669,7 +685,7 @@ describe("Vehicle Photos Management", () => {
       .send({
         photos: [
           {
-            url: "https://example.com/photo1.jpg",
+            url: "storage://private/test/photo1.jpg",
             fileName: "photo1.jpg",
             fileSize: 1024,
             mimeType: "image/jpeg",
@@ -689,7 +705,7 @@ describe("Vehicle Photos Management", () => {
       .send({
         photos: [
           {
-            url: "https://example.com/malicious.exe",
+            url: "storage://private/test/malicious.exe",
             fileName: "malicious.exe",
             fileSize: 1024,
             mimeType: "application/x-msdownload",
@@ -709,7 +725,7 @@ describe("Vehicle Photos Management", () => {
       .send({
         photos: [
           {
-            url: "https://example.com/photo1.jpg",
+            url: "storage://private/test/photo1.jpg",
             fileName: "photo1.jpg",
             fileSize: 1024,
             mimeType: "image/jpeg",
@@ -725,7 +741,7 @@ describe("Vehicle Photos Management", () => {
       .send({
         photos: [
           {
-            url: "https://example.com/photo2.jpg",
+            url: "storage://private/test/photo2.jpg",
             fileName: "photo2.jpg",
             fileSize: 1024,
             mimeType: "image/jpeg",

@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import { config } from "../config/index.js";
 import { ApiError } from "../middleware/errorHandler.js";
 
@@ -163,6 +164,13 @@ export const extractPathFromPublicUrl = (url: string) => {
 /** True for a file this platform stored (private reference or own public URL). */
 export const isPlatformFileRef = (value: string) =>
   isPrivateRef(value) || extractPathFromPublicUrl(value) !== null;
+
+/**
+ * Schema for a client-supplied file URL: it must point at a file uploaded
+ * through TraveNest, not an arbitrary external link.
+ */
+export const platformFileUrl = (message = "Upload the file through TraveNest") =>
+  z.string().refine(isPlatformFileRef, { message });
 
 export const deleteByUrl = async (url: string | null | undefined) => {
   if (!url) return;
