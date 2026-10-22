@@ -1,0 +1,48 @@
+# =============================================================================
+# TraveNest CodeQL - Static Security Analysis
+# =============================================================================
+# Scans the TypeScript/JavaScript sources for injection, XSS, auth and other
+# security-relevant flaws. Results appear under Security > Code scanning.
+# =============================================================================
+
+name: CodeQL
+
+on:
+    push:
+        branches:
+            - main
+            - staging
+    pull_request:
+        branches:
+            - main
+            - develop
+    schedule:
+        - cron: "23 3 * * 1"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    security-events: write
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    analyze:
+        name: Analyze (javascript-typescript)
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+
+            - name: Initialize CodeQL
+              uses: github/codeql-action/init@v3
+              with:
+                  languages: javascript-typescript
+                  queries: security-extended
+
+            - name: Perform CodeQL Analysis
+              uses: github/codeql-action/analyze@v3
+              with:
+                  category: "/language:javascript-typescript"
