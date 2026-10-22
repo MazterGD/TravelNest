@@ -117,6 +117,11 @@ const generateLicensePlate = (index: number): string => {
 };
 
 async function main() {
+  // The seed wipes tables and creates accounts with known demo passwords.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Refusing to seed: NODE_ENV is production.");
+  }
+
   console.log("Starting Sri Lankan TraveNest database seed...\n");
   console.log(
     `Demo date (anchor "now"): ${DEMO_NOW.toISOString()}` +
