@@ -299,7 +299,7 @@ export const getAllVehicles = async (filters: {
             SELECT "id",
                    ST_Distance("geom", ST_SetSRID(ST_MakePoint(${points[0].lng}, ${points[0].lat}), 4326)::geography) AS distance_m
             FROM "vehicles"
-            WHERE "isActive" = true AND "isAvailable" = true AND "geom" IS NOT NULL
+            WHERE "isActive" = true AND "isAvailable" = true AND "isRemoved" = false AND "geom" IS NOT NULL
               AND ST_DWithin("geom", ST_SetSRID(ST_MakePoint(${points[0].lng}, ${points[0].lat}), 4326)::geography, ${maxRadius})
             ORDER BY distance_m ASC
           `
@@ -310,7 +310,7 @@ export const getAllVehicles = async (filters: {
                      ST_Distance("geom", ST_SetSRID(ST_MakePoint(${points[1].lng}, ${points[1].lat}), 4326)::geography)
                    ) AS distance_m
             FROM "vehicles"
-            WHERE "isActive" = true AND "isAvailable" = true AND "geom" IS NOT NULL
+            WHERE "isActive" = true AND "isAvailable" = true AND "isRemoved" = false AND "geom" IS NOT NULL
               AND (
                 ST_DWithin("geom", ST_SetSRID(ST_MakePoint(${points[0].lng}, ${points[0].lat}), 4326)::geography, ${maxRadius})
                 OR ST_DWithin("geom", ST_SetSRID(ST_MakePoint(${points[1].lng}, ${points[1].lat}), 4326)::geography, ${maxRadius})

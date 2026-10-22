@@ -100,8 +100,57 @@ const settlementWriteOperations = new Set([
   "upsert",
 ]);
 
+// Soft delete (ADR-006): reads on these models skip removed rows unless the
+// query's where names isRemoved itself (admin views pass isRemoved: undefined
+// to include them). Relations loaded via include/select are not filtered, so
+// past bookings still show a removed customer, owner or vehicle.
+const SOFT_DELETE_READS = new Set([
+  "findUnique",
+  "findUniqueOrThrow",
+  "findFirst",
+  "findFirstOrThrow",
+  "findMany",
+  "count",
+  "aggregate",
+  "groupBy",
+]);
+
+const excludeRemoved = {
+  async $allOperations({
+    operation,
+    args,
+    query,
+  }: {
+    operation: string;
+    args: unknown;
+    query: (args: unknown) => Promise<unknown>;
+  }) {
+    if (!SOFT_DELETE_READS.has(operation)) {
+      return query(args);
+    }
+
+    const nextArgs = { ...((args as Record<string, unknown>) ?? {}) };
+    const where = (nextArgs.where as Record<string, unknown> | undefined) ?? {};
+    if (!("isRemoved" in where)) {
+      nextArgs.where = { ...where, isRemoved: false };
+    }
+    return query(nextArgs);
+  },
+};
+
 const prismaWithExtensions = prismaClient.$extends({
   query: {
+    user: excludeRemoved,
+    vehicle: excludeRemoved,
+    vehiclePhoto: excludeRemoved,
+    vehicleDocument: excludeRemoved,
+    ownerDocument: excludeRemoved,
+    driver: excludeRemoved,
+    tripPackage: excludeRemoved,
+    review: excludeRemoved,
+    notification: excludeRemoved,
+    faq: excludeRemoved,
+    testimonial: excludeRemoved,
     settlement: {
       async $allOperations({ operation, args, query }) {
         if (settlementWriteOperations.has(operation)) {
