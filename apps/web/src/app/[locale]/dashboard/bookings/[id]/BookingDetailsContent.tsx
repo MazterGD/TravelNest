@@ -77,12 +77,14 @@ interface BookingDetails {
     fuelType?: string | null;
     transmission?: string | null;
     acType?: string | null;
+    isRemoved?: boolean;
   };
   owner: {
     id: string;
     name: string;
     phone: string;
     email: string;
+    isRemoved?: boolean;
     avatar?: string | null;
     memberSince?: string;
     rating?: number;
@@ -664,6 +666,11 @@ export default function BookingDetailsContent({
                   <p className="text-sm text-gray-600 mb-3">
                     {t("registrationNumber", { reg: booking.vehicle.registration })}
                   </p>
+                  {booking.vehicle.isRemoved && (
+                    <Badge variant="secondary" size="sm">
+                      {t("vehicleNoLongerListed")}
+                    </Badge>
+                  )}
                   <div className="flex flex-wrap gap-2 mt-2">
                     {booking.vehicle.brand && (
                       <span className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-700">
@@ -734,9 +741,15 @@ export default function BookingDetailsContent({
                     <p className="font-bold text-lg text-gray-900">
                       {booking.owner.name}
                     </p>
-                    <p className="text-sm text-gray-600">
-                      {booking.owner.phone}
-                    </p>
+                    {booking.owner.isRemoved ? (
+                      <Badge variant="secondary" size="sm" className="mt-1">
+                        {t("operatorRemoved")}
+                      </Badge>
+                    ) : (
+                      <p className="text-sm text-gray-600">
+                        {booking.owner.phone}
+                      </p>
+                    )}
                     <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-600">
                       {typeof booking.owner.rating === "number" &&
                         booking.owner.rating > 0 && (
@@ -764,6 +777,7 @@ export default function BookingDetailsContent({
                     </div>
                   </div>
                 </div>
+                {!booking.owner.isRemoved && (
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     variant="outline"
@@ -787,6 +801,7 @@ export default function BookingDetailsContent({
                     {t("contactOwner")}
                   </Button>
                 </div>
+                )}
               </div>
             </div>
 

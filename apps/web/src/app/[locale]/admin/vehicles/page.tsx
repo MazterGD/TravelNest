@@ -39,6 +39,7 @@ import {
   type AdminVehicleDocument,
   type AdminVehicleRecord,
 } from "@/lib/api";
+import { stripRemovedSuffix } from "@/lib/utils/formatters";
 import { useDialogPrompts } from "@/hooks";
 import { useVehicleFilters } from "./hooks/useVehicleFilters";
 
@@ -299,14 +300,18 @@ export default function AdminVehiclesPage() {
               {selectedVehicle.name}
             </p>
             <p className="font-mono text-sm text-[var(--color-text-secondary)]">
-              {selectedVehicle.licensePlate}
+              {stripRemovedSuffix(selectedVehicle.licensePlate)}
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{TYPE_LABEL[selectedVehicle.type] ?? selectedVehicle.type}</Badge>
-              <Badge variant={selectedVehicle.isActive ? "success" : "danger"} dot>
-                {selectedVehicle.isActive ? "Active" : "Suspended"}
-              </Badge>
-              {!selectedVehicle.isAvailable && (
+              {selectedVehicle.isRemoved ? (
+                <Badge variant="secondary">Removed</Badge>
+              ) : (
+                <Badge variant={selectedVehicle.isActive ? "success" : "danger"} dot>
+                  {selectedVehicle.isActive ? "Active" : "Suspended"}
+                </Badge>
+              )}
+              {!selectedVehicle.isRemoved && !selectedVehicle.isAvailable && (
                 <Badge variant="warning" dot>Unavailable</Badge>
               )}
             </div>
@@ -414,7 +419,7 @@ export default function AdminVehiclesPage() {
                 <p className="font-medium text-[var(--color-text-primary)]">
                   {selectedVehicle.owner.firstName} {selectedVehicle.owner.lastName}
                 </p>
-                <p className="text-xs text-[var(--color-text-tertiary)]">{selectedVehicle.owner.email}</p>
+                <p className="text-xs text-[var(--color-text-tertiary)]">{stripRemovedSuffix(selectedVehicle.owner.email)}</p>
               </div>
               <Link
                 href={`/${locale}/admin/users?search=${encodeURIComponent(selectedVehicle.owner.email)}`}
@@ -429,6 +434,7 @@ export default function AdminVehiclesPage() {
         )}
 
         {/* Quick actions */}
+        {!selectedVehicle.isRemoved && (
         <div className="flex flex-wrap justify-center gap-2 pt-1">
           {selectedVehicle.isActive ? (
             <Button size="sm" variant="outline" onClick={() => void handleSuspend(selectedVehicle)} disabled={isMutating}>
@@ -453,6 +459,7 @@ export default function AdminVehiclesPage() {
             </>
           )}
         </div>
+        )}
       </div>
     );
   })();
@@ -911,7 +918,10 @@ export default function AdminVehiclesPage() {
               </thead>
               <tbody className="divide-y divide-[var(--color-border-default)]">
                 {vehicles.map((vehicle) => (
-                  <tr key={vehicle.id} className="transition-colors hover:bg-[var(--color-bg-surface)]">
+                  <tr
+                    key={vehicle.id}
+                    className={`transition-colors hover:bg-[var(--color-bg-surface)] ${vehicle.isRemoved ? "bg-[var(--color-bg-surface)]" : ""}`}
+                  >
 
                     {/* Vehicle identity */}
                     <td className="px-6 py-4">
@@ -923,8 +933,12 @@ export default function AdminVehiclesPage() {
                           <Car className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate font-medium text-[var(--color-text-primary)]">{vehicle.name}</p>
-                          <p className="font-mono text-xs text-[var(--color-text-tertiary)]">{vehicle.licensePlate}</p>
+                          <p
+                            className={`truncate font-medium ${vehicle.isRemoved ? "text-[var(--color-text-secondary)]" : "text-[var(--color-text-primary)]"}`}
+                          >
+                            {vehicle.name}
+                          </p>
+                          <p className="font-mono text-xs text-[var(--color-text-tertiary)]">{stripRemovedSuffix(vehicle.licensePlate)}</p>
                         </div>
                       </div>
                     </td>
@@ -955,7 +969,7 @@ export default function AdminVehiclesPage() {
                             {vehicle.owner.firstName} {vehicle.owner.lastName}
                           </p>
                           <p className="truncate text-xs text-[var(--color-text-tertiary)]">
-                            {vehicle.owner.email}
+                            {stripRemovedSuffix(vehicle.owner.email)}
                           </p>
                         </Link>
                       ) : (
@@ -965,9 +979,13 @@ export default function AdminVehiclesPage() {
 
                     {/* Status */}
                     <td className="px-4 py-4">
-                      <Badge variant={vehicle.isActive ? "success" : "danger"} dot>
-                        {vehicle.isActive ? "Active" : "Suspended"}
-                      </Badge>
+                      {vehicle.isRemoved ? (
+                        <Badge variant="secondary">Removed</Badge>
+                      ) : (
+                        <Badge variant={vehicle.isActive ? "success" : "danger"} dot>
+                          {vehicle.isActive ? "Active" : "Suspended"}
+                        </Badge>
+                      )}
                     </td>
 
                     {/* Bookings */}
@@ -996,7 +1014,7 @@ export default function AdminVehiclesPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {vehicle.isActive ? (
+                        {vehicle.isRemoved ? null : vehicle.isActive ? (
                           <Button
                             size="sm"
                             variant="ghost"

@@ -26,6 +26,7 @@ import {
   StarRating,
   Tabs,
 } from "@/components/ui";
+import { stripRemovedSuffix } from "@/lib/utils/formatters";
 import { useDialogPrompts } from "@/hooks";
 import { useReviewModeration } from "./hooks/useReviewModeration";
 
@@ -209,9 +210,13 @@ export default function AdminReviewModerationPage() {
         <span className="text-sm font-semibold text-[var(--color-text-primary)]">
           {selectedReview.rating}/5
         </span>
-        <Badge variant={moderationVariant(selectedReview.moderationStatus)}>
-          {selectedReview.moderationStatus}
-        </Badge>
+        {selectedReview.isRemoved ? (
+          <Badge variant="secondary">Removed</Badge>
+        ) : (
+          <Badge variant={moderationVariant(selectedReview.moderationStatus)}>
+            {selectedReview.moderationStatus}
+          </Badge>
+        )}
         {selectedReview.isFlagged && (
           <Badge variant="warning" size="sm">
             Flagged
@@ -273,7 +278,7 @@ export default function AdminReviewModerationPage() {
               {selectedReview.customer.firstName} {selectedReview.customer.lastName}
             </p>
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              {selectedReview.customer.email}
+              {stripRemovedSuffix(selectedReview.customer.email)}
             </p>
           </dd>
         </div>
@@ -284,7 +289,7 @@ export default function AdminReviewModerationPage() {
               {selectedReview.vehicle.name}
             </p>
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              {selectedReview.vehicle.licensePlate}
+              {stripRemovedSuffix(selectedReview.vehicle.licensePlate)}
             </p>
           </dd>
         </div>
@@ -296,7 +301,7 @@ export default function AdminReviewModerationPage() {
               {selectedReview.vehicle.owner.lastName}
             </p>
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              {selectedReview.vehicle.owner.email}
+              {stripRemovedSuffix(selectedReview.vehicle.owner.email)}
             </p>
           </dd>
         </div>
@@ -323,6 +328,7 @@ export default function AdminReviewModerationPage() {
         </div>
       </dl>
 
+      {!selectedReview.isRemoved && (
       <div className="flex flex-wrap gap-2 pt-2">
         {selectedReview.moderationStatus !== "ACTIVE" && (
           <Button
@@ -367,6 +373,7 @@ export default function AdminReviewModerationPage() {
           Resolve Report
         </Button>
       </div>
+      )}
     </div>
   );
 
@@ -672,7 +679,10 @@ export default function AdminReviewModerationPage() {
                 {reviews.map((review) => (
                   <tr
                     key={review.id}
-                    className="transition-colors hover:bg-[var(--color-bg-surface)]"
+                    className={cn(
+                      "transition-colors hover:bg-[var(--color-bg-surface)]",
+                      review.isRemoved && "bg-[var(--color-bg-surface)]"
+                    )}
                   >
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap items-center gap-2">
@@ -699,7 +709,7 @@ export default function AdminReviewModerationPage() {
                         {review.customer.firstName} {review.customer.lastName}
                       </p>
                       <p className="text-xs text-[var(--color-text-tertiary)]">
-                        {review.customer.email}
+                        {stripRemovedSuffix(review.customer.email)}
                       </p>
                     </td>
                     <td className="px-4 py-4">
@@ -707,16 +717,20 @@ export default function AdminReviewModerationPage() {
                         {review.vehicle.name}
                       </p>
                       <p className="text-xs text-[var(--color-text-tertiary)]">
-                        {review.vehicle.licensePlate}
+                        {stripRemovedSuffix(review.vehicle.licensePlate)}
                       </p>
                     </td>
                     <td className="px-4 py-4">
-                      <Badge
-                        variant={moderationVariant(review.moderationStatus)}
-                        dot
-                      >
-                        {review.moderationStatus}
-                      </Badge>
+                      {review.isRemoved ? (
+                        <Badge variant="secondary">Removed</Badge>
+                      ) : (
+                        <Badge
+                          variant={moderationVariant(review.moderationStatus)}
+                          dot
+                        >
+                          {review.moderationStatus}
+                        </Badge>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">
@@ -729,6 +743,8 @@ export default function AdminReviewModerationPage() {
                         >
                           <Eye className="h-4 w-4" aria-hidden="true" />
                         </Button>
+                        {!review.isRemoved && (
+                        <>
                         {review.moderationStatus !== "ACTIVE" && (
                           <Button
                             size="sm"
@@ -781,6 +797,8 @@ export default function AdminReviewModerationPage() {
                             aria-hidden="true"
                           />
                         </Button>
+                        </>
+                        )}
                       </div>
                     </td>
                   </tr>

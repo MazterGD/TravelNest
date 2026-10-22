@@ -40,6 +40,8 @@ export interface BookingWithDetails {
   vehicleImage?: string;
   ownerName: string;
   ownerPhone: string;
+  ownerRemoved?: boolean;
+  vehicleRemoved?: boolean;
   driverName?: string;
   driverPhone?: string;
   hasReview?: boolean;

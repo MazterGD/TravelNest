@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { printAsPDF, buildInvoiceHTML } from "@/lib/utils/pdfUtils";
-import { LoadingSpinner } from "@/components/ui";
+import { Badge, LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import {
@@ -364,38 +364,57 @@ export default function BookingDetailsPage({
               <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-foreground">{t("sectionCustomer")}</h2>
-                  <Link
-                    href={`/${locale}/owner/messages?booking=${id}`}
-                    aria-label={tMsg("messageCustomer")}
-                    className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    {tMsg("messageCustomer")}
-                  </Link>
+                  {!booking.customer?.isRemoved && (
+                    <Link
+                      href={`/${locale}/owner/messages?booking=${id}`}
+                      aria-label={tMsg("messageCustomer")}
+                      className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      {tMsg("messageCustomer")}
+                    </Link>
+                  )}
                 </div>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
                     <div className="mb-1 text-sm text-muted-foreground">{t("nameLabel")}</div>
                     <div className="font-medium text-foreground">{customerName}</div>
+                    {booking.customer?.isRemoved && (
+                      <Badge variant="secondary" size="sm" className="mt-1">
+                        {t("customerRemoved")}
+                      </Badge>
+                    )}
                   </div>
-                  <div>
-                    <div className="mb-1 text-sm text-muted-foreground">{t("phoneLabel")}</div>
-                    <a
-                      href={`tel:${booking.customer?.phone || ""}`}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {booking.customer?.phone || t("na")}
-                    </a>
-                  </div>
-                  <div>
-                    <div className="mb-1 text-sm text-muted-foreground">{t("emailLabel")}</div>
-                    <a
-                      href={`mailto:${booking.customer?.email || ""}`}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {booking.customer?.email || t("na")}
-                    </a>
-                  </div>
+                  {!booking.customer?.isRemoved && (
+                    <>
+                      <div>
+                        <div className="mb-1 text-sm text-muted-foreground">{t("phoneLabel")}</div>
+                        {booking.customer?.phone ? (
+                          <a
+                            href={`tel:${booking.customer.phone}`}
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {booking.customer.phone}
+                          </a>
+                        ) : (
+                          <span className="font-medium text-foreground">{t("na")}</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="mb-1 text-sm text-muted-foreground">{t("emailLabel")}</div>
+                        {booking.customer?.email ? (
+                          <a
+                            href={`mailto:${booking.customer.email}`}
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {booking.customer.email}
+                          </a>
+                        ) : (
+                          <span className="font-medium text-foreground">{t("na")}</span>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 

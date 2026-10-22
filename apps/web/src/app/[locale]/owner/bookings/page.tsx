@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useParams, useSearchParams } from "next/navigation";
-import { LoadingSpinner } from "@/components/ui";
+import { Badge, LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
 import { useOwnerGuard } from "@/hooks";
 import { ArrowLeft, Calendar, MapPin, Users, Bus, Eye, Phone, Mail, Upload, MessageSquare } from "lucide-react";
@@ -22,6 +22,7 @@ interface Booking {
     phone: string;
     email: string;
     organization?: string;
+    isRemoved?: boolean;
   };
   vehicle: {
     registration: string;
@@ -283,10 +284,16 @@ export default function BookingsManagementPage() {
                                 {booking.customer.organization}
                               </div>
                             )}
-                            <div className="mt-1 flex flex-col gap-0.5 text-xs text-[var(--color-text-tertiary)]">
-                              <span>{booking.customer.phone}</span>
-                              <span>{booking.customer.email}</span>
-                            </div>
+                            {booking.customer.isRemoved ? (
+                              <Badge variant="secondary" size="sm" className="mt-1">
+                                {t("customerRemoved")}
+                              </Badge>
+                            ) : (
+                              <div className="mt-1 flex flex-col gap-0.5 text-xs text-[var(--color-text-tertiary)]">
+                                <span>{booking.customer.phone}</span>
+                                <span>{booking.customer.email}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -334,6 +341,8 @@ export default function BookingsManagementPage() {
                           <Eye className="h-4 w-4" />
                           {t("viewDetails")}
                         </Link>
+                        {!booking.customer.isRemoved && (
+                        <>
                         <Link
                           href={`/${locale}/owner/messages?booking=${booking.id}`}
                           className="flex min-h-[44px] items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -355,6 +364,8 @@ export default function BookingsManagementPage() {
                           <Mail className="h-4 w-4" />
                           {t("emailBtn")}
                         </a>
+                        </>
+                        )}
                       </div>
                     </div>
                   ))}

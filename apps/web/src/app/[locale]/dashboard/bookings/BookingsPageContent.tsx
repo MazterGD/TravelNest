@@ -132,6 +132,8 @@ export function BookingsPageContent({ locale }: BookingsPageContentProps) {
         vehicleImage: b.vehicleImage,
         ownerName: b.ownerName || t("ownerFallback"),
         ownerPhone: b.ownerPhone ?? "",
+        ownerRemoved: b.ownerRemoved ?? false,
+        vehicleRemoved: b.vehicleRemoved ?? false,
         hasReview: b.hasReview,
         pickupLocation:
           typeof b.pickupLocation === "string"

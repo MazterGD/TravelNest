@@ -501,6 +501,7 @@
     }
   },
   "bookingsManagement": {
+    "customerRemoved": "Customer account removed",
     "title": "Bookings Management",
     "backToDashboard": "Back to Dashboard",
     "exportBtn": "Export",
@@ -534,6 +535,7 @@
     "errorLoad": "Failed to load bookings"
   },
   "bookingDetails": {
+    "customerRemoved": "Customer account removed",
     "backToBookings": "Back to Bookings",
     "createdOn": "Created",
     "startTrip": "Start Trip",
@@ -2061,6 +2063,8 @@
     }
   },
   "booking": {
+    "operatorRemoved": "Operator account removed",
+    "vehicleNoLongerListed": "Vehicle no longer listed",
     "pageTitle": "My Bookings - TravelNest",
     "pageDescription": "View and manage your bookings",
     "myBookings": "My Bookings",
@@ -2275,7 +2279,16 @@
     "enable": "Enable",
     "dangerZone": "Danger Zone",
     "deleteAccount": "Delete Account",
-    "deleteAccountDescription": "Permanently delete your account and all data",
+    "deleteAccountDescription": "Close your account. Past trips stay visible to the other party, and complete erasure can be requested from support.",
+    "dataDeletionTitle": "Request full data deletion",
+    "dataDeletionDescription": "Ask our support team to erase all of your personal data",
+    "dataDeletionAction": "Request",
+    "dataDeletionExplanation": "Removing your account keeps your trip history, so the other people on your past bookings can still see it. This request asks our support team to erase all of your data instead. We'll review it and reply by email.",
+    "dataDeletionReasonLabel": "Reason (optional)",
+    "dataDeletionReasonPlaceholder": "Tell us anything that helps us handle your request",
+    "dataDeletionSubmit": "Send request",
+    "dataDeletionRequested": "Your data deletion request has been sent. Your reference is {reference} — keep it handy if you contact support.",
+    "dataDeletionFailed": "We couldn't send your request. Please check your connection and try again.",
     "delete": "Delete"
   },
   "landing": {
@@ -3221,6 +3234,8 @@
     "awaitingBannerBody": "{received} of {total} owners have replied so far. We'll notify you when more quotes come in."
   },
   "customerBookingDetails": {
+    "operatorRemoved": "Operator account removed",
+    "vehicleNoLongerListed": "Vehicle no longer listed",
     "title": "Booking Details",
     "reference": "Reference: {ref}",
     "payNow": "Pay Now",

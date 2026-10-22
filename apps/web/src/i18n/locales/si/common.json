@@ -497,6 +497,7 @@
     }
   },
   "bookingsManagement": {
+    "customerRemoved": "පාරිභෝගික ගිණුම ඉවත් කර ඇත",
     "title": "වෙන්කිරීම් කළමනාකරණය",
     "backToDashboard": "උදාවෙත ආපසු",
     "exportBtn": "අපනයනය",
@@ -530,6 +531,7 @@
     "errorLoad": "වෙන්කිරීම් පූරණය කිරීමට අසමත් විය"
   },
   "bookingDetails": {
+    "customerRemoved": "පාරිභෝගික ගිණුම ඉවත් කර ඇත",
     "backToBookings": "වෙන්කිරීම් වෙත ආපසු",
     "createdOn": "සාදන ලද්දේ",
     "startTrip": "ගමන ආරම්භ කරන්න",
@@ -2156,6 +2158,8 @@
     }
   },
   "booking": {
+    "operatorRemoved": "මෙහෙයුම්කරුගේ ගිණුම ඉවත් කර ඇත",
+    "vehicleNoLongerListed": "වාහනය තවදුරටත් ලැයිස්තුගත කර නැත",
     "pageTitle": "මගේ වෙන්කරවීම් - TravelNest",
     "pageDescription": "ඔබේ වෙන්කරවීම් බලන්න සහ කළමනාකරණය කරන්න",
     "myBookings": "මගේ වෙන්කරවීම්",
@@ -2370,7 +2374,16 @@
     "enable": "සක්‍රිය කරන්න",
     "dangerZone": "අනතුරු කලාපය",
     "deleteAccount": "ගිණුම මකන්න",
-    "deleteAccountDescription": "ඔබේ ගිණුම සහ සියලුම දත්ත ස්ථිරවම මකන්න",
+    "deleteAccountDescription": "ඔබේ ගිණුම වසා දමන්න. පසුගිය ගමන් අනෙක් පාර්ශවයට තවදුරටත් පෙනෙනු ඇති අතර, සම්පූර්ණ දත්ත මැකීම සහාය කණ්ඩායමෙන් ඉල්ලිය හැක.",
+    "dataDeletionTitle": "සම්පූර්ණ දත්ත මැකීම ඉල්ලන්න",
+    "dataDeletionDescription": "ඔබේ සියලුම පුද්ගලික දත්ත මකා දැමීමට අපගේ සහාය කණ්ඩායමෙන් ඉල්ලන්න",
+    "dataDeletionAction": "ඉල්ලන්න",
+    "dataDeletionExplanation": "ඔබේ ගිණුම ඉවත් කළ විට, ඔබගේ පසුගිය වෙන්කිරීම්වල අනෙක් පාර්ශවයන්ට තවදුරටත් දැකිය හැකි වන පරිදි ගමන් ඉතිහාසය රඳවා තබා ගනී. මෙම ඉල්ලීම මගින් ඔබේ සියලුම දත්ත මකා දැමීමට අපගේ සහාය කණ්ඩායමෙන් ඉල්ලා සිටී. අපි එය සලකා බලා ඊමේල් මගින් ඔබට පිළිතුරු දෙන්නෙමු.",
+    "dataDeletionReasonLabel": "හේතුව (විකල්ප)",
+    "dataDeletionReasonPlaceholder": "ඔබේ ඉල්ලීම හැසිරවීමට අපට උපකාර වන ඕනෑම දෙයක් කියන්න",
+    "dataDeletionSubmit": "ඉල්ලීම යවන්න",
+    "dataDeletionRequested": "ඔබේ දත්ත මැකීමේ ඉල්ලීම යවා ඇත. ඔබේ යොමු අංකය {reference} — සහාය අමතන්නේ නම් එය තබා ගන්න.",
+    "dataDeletionFailed": "ඔබේ ඉල්ලීම යැවීමට නොහැකි විය. කරුණාකර ඔබේ සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
     "delete": "මකන්න"
   },
   "fileUpload": {
@@ -3206,6 +3219,8 @@
     "awaitingBannerBody": "මේ දක්වා හිමියන් {total}න් {received}දෙනෙක් පිළිතුරු දී ඇත. තවත් මිල ගණන් ලැබුණු විට අපි ඔබට දන්වමු."
   },
   "customerBookingDetails": {
+    "operatorRemoved": "මෙහෙයුම්කරුගේ ගිණුම ඉවත් කර ඇත",
+    "vehicleNoLongerListed": "වාහනය තවදුරටත් ලැයිස්තුගත කර නැත",
     "title": "වෙන්කිරීම් විස්තර",
     "reference": "ලිපිනය: {ref}",
     "payNow": "දැන් ගෙවන්න",

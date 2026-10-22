@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import {
+  Badge,
   Card,
   CardContent,
   StatusBadge,
@@ -133,6 +134,20 @@ export function BookingCard({
                   {booking.ownerName}
                 </span>
               </div>
+              {(booking.ownerRemoved || booking.vehicleRemoved) && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {booking.ownerRemoved && (
+                    <Badge variant="secondary" size="sm">
+                      {t("operatorRemoved")}
+                    </Badge>
+                  )}
+                  {booking.vehicleRemoved && (
+                    <Badge variant="secondary" size="sm">
+                      {t("vehicleNoLongerListed")}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-[var(--color-action-primary)]">
@@ -211,6 +226,7 @@ export function BookingCard({
           {/* Actions */}
           {showActions && (
             <div className="flex flex-wrap gap-2 pt-4 border-t border-[var(--color-border-default)]">
+              {!booking.ownerRemoved && (
               <Button
                 variant="outline"
                 size="sm"
@@ -225,7 +241,8 @@ export function BookingCard({
                 <MessageSquare className="w-4 h-4 mr-2" />
                 {tMsg("messageOwner")}
               </Button>
-              {onContact && (
+              )}
+              {onContact && !booking.ownerRemoved && (
                 <Button
                   variant="outline"
                   size="sm"

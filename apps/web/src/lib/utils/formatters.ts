@@ -177,3 +177,10 @@ export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength - 3) + "...";
 }
+
+/**
+ * Strip the "#removed-<id>" suffix the API appends to unique fields of soft-removed rows
+ */
+export function stripRemovedSuffix(value: string): string {
+  return value.replace(/#removed-[^#]*$/, "");
+}

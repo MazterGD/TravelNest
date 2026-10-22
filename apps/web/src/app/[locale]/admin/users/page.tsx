@@ -36,6 +36,7 @@ import {
   Tabs,
 } from "@/components/ui";
 import { adminService, type AdminBookingRecord, type AdminOwnerDocument, type AdminVehicleRecord } from "@/lib/api";
+import { stripRemovedSuffix } from "@/lib/utils/formatters";
 import { useDialogPrompts } from "@/hooks";
 import { useUserFilters } from "./hooks/useUserFilters";
 
@@ -230,10 +231,10 @@ export default function AdminUsersPage() {
 
   const handleDelete = async (userId: string) => {
     const approved = await confirm({
-      title: "Permanently Delete Account",
+      title: "Remove User Account",
       message:
-        "This action cannot be undone. All associated data will be removed from the platform.",
-      confirmText: "Delete",
+        "The account will be closed and the user can no longer sign in. Past trips, payments and reviews are kept so the other parties can still see them.",
+      confirmText: "Remove",
       variant: "danger",
     });
     if (approved) {
@@ -291,17 +292,27 @@ export default function AdminUsersPage() {
           <p className="text-base font-semibold text-[var(--color-text-primary)]">
             {selectedUser.firstName} {selectedUser.lastName}
           </p>
-          <p className="text-sm text-[var(--color-text-secondary)]">{selectedUser.email}</p>
+          <p className="text-sm text-[var(--color-text-secondary)]">{stripRemovedSuffix(selectedUser.email)}</p>
           {selectedUser.phone && (
             <p className="text-sm text-[var(--color-text-tertiary)]">{selectedUser.phone}</p>
           )}
-          <Badge
-            variant={STATUS_BADGE_VARIANT[selectedUser.status as keyof typeof STATUS_BADGE_VARIANT] ?? "secondary"}
-            dot
-            className="mt-2"
-          >
-            {STATUS_LABEL[selectedUser.status] ?? selectedUser.status}
-          </Badge>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {selectedUser.isRemoved ? (
+              <Badge variant="secondary">
+                Removed
+                {selectedUser.removedAt
+                  ? ` ${new Date(selectedUser.removedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`
+                  : ""}
+              </Badge>
+            ) : (
+              <Badge
+                variant={STATUS_BADGE_VARIANT[selectedUser.status as keyof typeof STATUS_BADGE_VARIANT] ?? "secondary"}
+                dot
+              >
+                {STATUS_LABEL[selectedUser.status] ?? selectedUser.status}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
@@ -368,6 +379,7 @@ export default function AdminUsersPage() {
       </dl>
 
       {/* Quick actions */}
+      {!selectedUser.isRemoved && (
       <div>
         <div className="flex flex-wrap gap-2 justify-center">
           {selectedUser.status !== "ACTIVE" ? (
@@ -400,10 +412,11 @@ export default function AdminUsersPage() {
             className="text-[var(--color-error-text)] hover:bg-[var(--color-error-bg)]"
           >
             <Trash2 className="h-4 w-4" />
-            Delete Account
+            Remove Account
           </Button>
         </div>
       </div>
+      )}
     </div>
   );
 
@@ -983,7 +996,10 @@ export default function AdminUsersPage() {
                   const statusVariant = STATUS_BADGE_VARIANT[user.status as keyof typeof STATUS_BADGE_VARIANT] ?? "secondary";
                   const roleLabel = user.adminRole ?? user.role;
                   return (
-                    <tr key={user.id} className="transition-colors hover:bg-[var(--color-bg-surface)]">
+                    <tr
+                      key={user.id}
+                      className={`transition-colors hover:bg-[var(--color-bg-surface)] ${user.isRemoved ? "bg-[var(--color-bg-surface)] text-[var(--color-text-tertiary)]" : ""}`}
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div
@@ -993,10 +1009,12 @@ export default function AdminUsersPage() {
                             {userInitials(user.firstName, user.lastName)}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate font-medium text-[var(--color-text-primary)]">
+                            <p
+                              className={`truncate font-medium ${user.isRemoved ? "text-[var(--color-text-secondary)]" : "text-[var(--color-text-primary)]"}`}
+                            >
                               {user.firstName} {user.lastName}
                             </p>
-                            <p className="truncate text-xs text-[var(--color-text-tertiary)]">{user.email}</p>
+                            <p className="truncate text-xs text-[var(--color-text-tertiary)]">{stripRemovedSuffix(user.email)}</p>
                           </div>
                         </div>
                       </td>
@@ -1004,9 +1022,13 @@ export default function AdminUsersPage() {
                         <Badge variant="secondary">{roleLabel}</Badge>
                       </td>
                       <td className="px-4 py-4">
-                        <Badge variant={statusVariant} dot>
-                          {STATUS_LABEL[user.status] ?? user.status}
-                        </Badge>
+                        {user.isRemoved ? (
+                          <Badge variant="secondary">Removed</Badge>
+                        ) : (
+                          <Badge variant={statusVariant} dot>
+                            {STATUS_LABEL[user.status] ?? user.status}
+                          </Badge>
+                        )}
                       </td>
                       <td className="px-4 py-4 tabular-nums text-[var(--color-text-secondary)]">
                         {user._count.bookings}
@@ -1029,6 +1051,8 @@ export default function AdminUsersPage() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {user.isRemoved ? null : (
+                          <>
                           {user.status !== "ACTIVE" ? (
                             <></>
                           ) : (
@@ -1056,11 +1080,13 @@ export default function AdminUsersPage() {
                             variant="ghost"
                             onClick={() => void handleDelete(user.id)}
                             disabled={isMutating}
-                            aria-label={`Delete account for ${user.firstName} ${user.lastName}`}
+                            aria-label={`Remove account for ${user.firstName} ${user.lastName}`}
                             className="text-[var(--color-error-text)] hover:bg-[var(--color-error-bg)]"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                          </>
+                          )}
                         </div>
                       </td>
                     </tr>

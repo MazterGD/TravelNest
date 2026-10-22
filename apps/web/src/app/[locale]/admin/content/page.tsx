@@ -429,16 +429,30 @@ export default function AdminContentPage() {
                   className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-3"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    <p
+                      className={cn(
+                        "text-sm font-semibold",
+                        testimonial.isRemoved
+                          ? "text-[var(--color-text-secondary)]"
+                          : "text-[var(--color-text-primary)]",
+                      )}
+                    >
                       {testimonial.name}
                     </p>
-                    <Badge variant={testimonial.isActive ? "success" : "warning"} size="sm">
-                      {testimonial.isActive ? "Active" : "Pending"}
-                    </Badge>
+                    {testimonial.isRemoved ? (
+                      <Badge variant="secondary" size="sm">
+                        Removed
+                      </Badge>
+                    ) : (
+                      <Badge variant={testimonial.isActive ? "success" : "warning"} size="sm">
+                        {testimonial.isActive ? "Active" : "Pending"}
+                      </Badge>
+                    )}
                   </div>
                   <p className="mt-1 line-clamp-2 text-xs text-[var(--color-text-secondary)]">
                     “{testimonial.quote}”
                   </p>
+                  {!testimonial.isRemoved && (
                   <div className="mt-3 flex flex-wrap gap-1">
                     {!testimonial.isActive && (
                       <Button
@@ -471,6 +485,7 @@ export default function AdminContentPage() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
+                  )}
                 </div>
               ))
             )}

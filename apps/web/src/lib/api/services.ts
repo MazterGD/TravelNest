@@ -400,6 +400,9 @@ export const userService = {
    */
   deleteAccount: () => api.delete<{ message: string }>("/users/account"),
 
+  requestDataDeletion: (reason?: string) =>
+    api.post<{ reference: string }>("/users/data-deletion-request", { reason }),
+
   /**
    * Get customer dashboard statistics
    */
@@ -1853,6 +1856,8 @@ export interface AdminManagedUser {
   isVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  isRemoved?: boolean;
+  removedAt?: string | null;
   _count: {
     bookings: number;
     reviews: number;
@@ -2272,6 +2277,7 @@ export interface AdminReviewModerationItem {
   moderationStatus: AdminReviewModerationStatus;
   isFlagged: boolean;
   flaggedByKeyword: boolean;
+  isRemoved?: boolean;
   customer: {
     id: string;
     firstName: string;
@@ -2698,6 +2704,7 @@ export interface AdminFaq {
   updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
+  isRemoved?: boolean;
   updatedByAdmin: {
     id: string;
     firstName: string;
@@ -2741,6 +2748,7 @@ export interface AdminTestimonial {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  isRemoved?: boolean;
 }
 
 export interface AdminTestimonialResponse {
@@ -3137,6 +3145,7 @@ export interface AdminVehicleRecord {
   isAvailable: boolean;
   createdAt: string;
   updatedAt: string;
+  isRemoved?: boolean;
   owner: {
     id: string;
     firstName: string;
