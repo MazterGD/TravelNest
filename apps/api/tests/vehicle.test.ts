@@ -16,6 +16,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
 import request from "supertest";
 import { prisma } from "./setup";
 import app from "../src/app";
+import { withRegistrationProof } from "./helpers";
 
 const API_BASE = "/api/v1";
 
@@ -147,7 +148,7 @@ describe("GET /vehicles/my - Get Owner's Vehicles", () => {
     // Register owner with a vehicle
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     expect(registerResponse.status).toBe(201);
     ownerToken = registerResponse.body.data.accessToken;
@@ -237,7 +238,7 @@ describe("GET /vehicles/:id - Get Single Vehicle", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;
@@ -292,7 +293,7 @@ describe("PATCH /vehicles/:id - Update Vehicle", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;
@@ -347,7 +348,7 @@ describe("PATCH /vehicles/:id - Update Vehicle", () => {
 
     const anotherRegisterResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(anotherOwnerData);
+      .send(withRegistrationProof(anotherOwnerData));
 
     const anotherOwnerToken = anotherRegisterResponse.body.data.accessToken;
 
@@ -394,7 +395,7 @@ describe("DELETE /vehicles/:id - Delete Vehicle", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;
@@ -449,7 +450,7 @@ describe("DELETE /vehicles/:id - Delete Vehicle", () => {
 
     const anotherRegisterResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(anotherOwnerData);
+      .send(withRegistrationProof(anotherOwnerData));
 
     const anotherOwnerToken = anotherRegisterResponse.body.data.accessToken;
 
@@ -513,7 +514,7 @@ describe("PATCH /vehicles/:id/status - Toggle Vehicle Status", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;
@@ -581,7 +582,7 @@ describe("Vehicle Edge Cases", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;
@@ -662,7 +663,7 @@ describe("Vehicle Photos Management", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;

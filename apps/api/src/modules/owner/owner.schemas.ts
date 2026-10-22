@@ -73,6 +73,8 @@ const businessInfoSchema = z.object({
 // Full owner registration schema
 export const ownerRegistrationSchema = z.object({
   body: z.object({
+    // Issued by POST /auth/otp/verify (REGISTRATION) for this email
+    registrationToken: z.string().min(1, "Verify your email before registering"),
     // Personal information
     firstName: z
       .string()

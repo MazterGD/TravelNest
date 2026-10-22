@@ -240,6 +240,8 @@ export interface VerifyOtpResponse {
   verified: boolean;
   user?: User;
   accessToken?: string;
+  /** Returned for REGISTRATION codes; required by the register endpoints. */
+  registrationToken?: string;
 }
 
 export const landingContentService = {
@@ -289,7 +291,7 @@ export const authService = {
    * Register a new user
    * @throws {ApiError} On validation error or email already exists
    */
-  register: (data: RegisterInput) =>
+  register: (data: RegisterInput & { registrationToken: string }) =>
     api.post<AuthResponse>("/auth/register", data, { skipAuth: true }),
 
   /**

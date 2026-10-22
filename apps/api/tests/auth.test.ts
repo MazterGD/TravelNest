@@ -18,6 +18,7 @@ import { prisma, testUsers, cleanupTestUsers } from "./setup";
 
 // Import app directly for testing
 import app from "../src/app";
+import { withRegistrationProof } from "./helpers";
 
 const API_BASE = "/api/v1";
 
@@ -33,7 +34,7 @@ describe("POST /auth/register", () => {
     it("should register a new customer successfully", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
@@ -47,7 +48,7 @@ describe("POST /auth/register", () => {
     it("should register a new vehicle owner successfully", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.owner);
+        .send(withRegistrationProof(testUsers.owner));
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
@@ -57,7 +58,7 @@ describe("POST /auth/register", () => {
     it("should set HTTP-only cookie for refresh token", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       expect(response.status).toBe(201);
       const cookies = response.headers["set-cookie"] as unknown as string[];
@@ -71,10 +72,10 @@ describe("POST /auth/register", () => {
     it("should normalize email to lowercase", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           email: "TEST.CUSTOMER@EXAMPLE.COM",
-        });
+        }));
 
       expect(response.status).toBe(201);
       expect(response.body.data.user.email).toBe("test.customer@example.com");
@@ -83,7 +84,7 @@ describe("POST /auth/register", () => {
     it("should return a valid JWT access token", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       expect(response.status).toBe(201);
       const { accessToken } = response.body.data;
@@ -106,7 +107,7 @@ describe("POST /auth/register", () => {
       const { email, ...userData } = testUsers.customer;
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(userData);
+        .send(withRegistrationProof(userData));
 
       expect(response.status).toBe(422); // Zod validation returns 422
       expect(response.body.success).toBe(false);
@@ -115,10 +116,10 @@ describe("POST /auth/register", () => {
     it("should reject registration with invalid email format", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           email: "not-an-email",
-        });
+        }));
 
       expect(response.status).toBe(422); // Zod validation returns 422
       expect(response.body.success).toBe(false);
@@ -127,10 +128,10 @@ describe("POST /auth/register", () => {
     it("should reject registration with password less than 8 characters", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           password: "Short1!",
-        });
+        }));
 
       expect(response.status).toBe(422); // Zod validation returns 422
       expect(response.body.success).toBe(false);
@@ -139,10 +140,10 @@ describe("POST /auth/register", () => {
     it("should reject registration with password without uppercase", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           password: "lowercase123!",
-        });
+        }));
 
       expect(response.status).toBe(422); // Zod validation returns 422
       expect(response.body.success).toBe(false);
@@ -151,10 +152,10 @@ describe("POST /auth/register", () => {
     it("should reject registration with password without number", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           password: "NoNumberHere!",
-        });
+        }));
 
       expect(response.status).toBe(422); // Zod validation returns 422
       expect(response.body.success).toBe(false);
@@ -164,7 +165,7 @@ describe("POST /auth/register", () => {
       const { firstName, ...userData } = testUsers.customer;
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(userData);
+        .send(withRegistrationProof(userData));
 
       expect(response.status).toBe(422); // Zod validation returns 422
       expect(response.body.success).toBe(false);
@@ -173,10 +174,10 @@ describe("POST /auth/register", () => {
     it("should reject registration with firstName less than 2 characters", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           firstName: "A",
-        });
+        }));
 
       expect(response.status).toBe(422); // Zod validation returns 422
       expect(response.body.success).toBe(false);
@@ -186,7 +187,7 @@ describe("POST /auth/register", () => {
       const { lastName, ...userData } = testUsers.customer;
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(userData);
+        .send(withRegistrationProof(userData));
 
       expect(response.status).toBe(422); // Zod validation returns 422
       expect(response.body.success).toBe(false);
@@ -198,12 +199,12 @@ describe("POST /auth/register", () => {
       // First registration
       await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       // Attempt duplicate
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       expect(response.status).toBe(409);
       expect(response.body.success).toBe(false);
@@ -213,14 +214,14 @@ describe("POST /auth/register", () => {
     it("should reject registration with same email different case", async () => {
       await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           email: testUsers.customer.email.toUpperCase(),
-        });
+        }));
 
       expect(response.status).toBe(409);
     });
@@ -236,7 +237,7 @@ describe("POST /auth/login", () => {
     // Create test user
     await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send(testUsers.customer);
+      .send(withRegistrationProof(testUsers.customer));
   });
 
   describe("Successful Login", () => {
@@ -392,7 +393,7 @@ describe("Token Management", () => {
     await cleanupTestUsers();
     const registerResponse = await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send(testUsers.customer);
+      .send(withRegistrationProof(testUsers.customer));
 
     accessToken = registerResponse.body.data.accessToken;
     refreshTokenCookie = registerResponse.headers["set-cookie"]?.[0] || "";
@@ -535,7 +536,7 @@ describe("Password Management", () => {
     await cleanupTestUsers();
     const response = await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send(testUsers.customer);
+      .send(withRegistrationProof(testUsers.customer));
     accessToken = response.body.data.accessToken;
   });
 
@@ -700,13 +701,13 @@ describe("Authorization / RBAC", () => {
     // Create customer
     const customerResponse = await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send(testUsers.customer);
+      .send(withRegistrationProof(testUsers.customer));
     customerToken = customerResponse.body.data.accessToken;
 
     // Create owner
     const ownerResponse = await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send(testUsers.owner);
+      .send(withRegistrationProof(testUsers.owner));
     ownerToken = ownerResponse.body.data.accessToken;
   });
 
@@ -741,11 +742,11 @@ describe("Security Tests", () => {
     it("should sanitize XSS in firstName", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           email: "xss@example.com",
           firstName: '<script>alert("xss")</script>',
-        });
+        }));
 
       if (response.status === 201) {
         // If registration succeeds, the script should be stored safely (escaped)
@@ -759,11 +760,11 @@ describe("Security Tests", () => {
     it("should sanitize XSS in lastName", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           email: "xss@example.com",
           lastName: '<img src=x onerror="alert(1)">',
-        });
+        }));
 
       if (response.status === 201) {
         expect(response.body.data.user.lastName).not.toContain("onerror");
@@ -786,7 +787,7 @@ describe("Security Tests", () => {
       // First register
       await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       const response = await request(app).post(`${API_BASE}/auth/login`).send({
         email: testUsers.customer.email,
@@ -801,7 +802,7 @@ describe("Security Tests", () => {
     it("should hash passwords (not store in plaintext)", async () => {
       await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       const user = await prisma.user.findUnique({
         where: { email: testUsers.customer.email },
@@ -814,7 +815,7 @@ describe("Security Tests", () => {
     it("should never return password in any response", async () => {
       const registerResponse = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       expect(registerResponse.body.data.user).not.toHaveProperty("password");
 
@@ -856,7 +857,7 @@ describe("Security Tests", () => {
     it("should reject tampered tokens", async () => {
       const registerResponse = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       const validToken = registerResponse.body.data.accessToken;
       // Tamper with the token payload
@@ -882,7 +883,7 @@ describe("Security Tests", () => {
     it("should set SameSite attribute on cookies", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send(testUsers.customer);
+        .send(withRegistrationProof(testUsers.customer));
 
       const cookies = response.headers["set-cookie"] as unknown as string[];
       expect(cookies).toBeDefined();
@@ -906,10 +907,10 @@ describe("Edge Cases", () => {
     it("should reject email with only whitespace", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           email: "   ",
-        });
+        }));
 
       expect(response.status).toBe(422); // Zod validation returns 422
     });
@@ -917,10 +918,10 @@ describe("Edge Cases", () => {
     it("should trim whitespace from email", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           email: "  test.customer@example.com  ",
-        });
+        }));
 
       if (response.status === 201) {
         expect(response.body.data.user.email).toBe("test.customer@example.com");
@@ -930,7 +931,7 @@ describe("Edge Cases", () => {
     it("should handle empty request body", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({});
+        .send(withRegistrationProof({}));
 
       expect(response.status).toBe(422); // Zod validation returns 422
     });
@@ -938,12 +939,12 @@ describe("Edge Cases", () => {
     it("should handle null values", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           email: null,
           password: null,
           firstName: null,
           lastName: null,
-        });
+        }));
 
       expect(response.status).toBe(422); // Zod validation returns 422
     });
@@ -953,11 +954,11 @@ describe("Edge Cases", () => {
     it("should handle Unicode characters in names", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           firstName: "日本語",
           lastName: "Müller",
-        });
+        }));
 
       expect(response.status).toBe(201);
       expect(response.body.data.user.firstName).toBe("日本語");
@@ -967,11 +968,11 @@ describe("Edge Cases", () => {
     it("should handle emoji in names", async () => {
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           firstName: "Test😀",
           lastName: "User🎉",
-        });
+        }));
 
       // Either accept or reject consistently (Zod may return 422 for validation)
       expect([201, 400, 422]).toContain(response.status);
@@ -985,7 +986,7 @@ describe("Edge Cases", () => {
         .map(() =>
           request(app)
             .post(`${API_BASE}/auth/register`)
-            .send(testUsers.customer),
+            .send(withRegistrationProof(testUsers.customer)),
         );
 
       const results = await Promise.all(registrations);
@@ -1006,10 +1007,10 @@ describe("Edge Cases", () => {
       const longEmail = "a".repeat(500) + "@example.com";
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           email: longEmail,
-        });
+        }));
 
       expect([400, 422]).toContain(response.status);
     });
@@ -1018,10 +1019,10 @@ describe("Edge Cases", () => {
       const longPassword = "A1!" + "a".repeat(10000);
       const response = await request(app)
         .post(`${API_BASE}/auth/register`)
-        .send({
+        .send(withRegistrationProof({
           ...testUsers.customer,
           password: longPassword,
-        });
+        }));
 
       // Should either reject or handle gracefully (422 is also valid for validation errors)
       expect([201, 400, 413, 422]).toContain(response.status);
@@ -1040,7 +1041,7 @@ describe("Response Format Validation", () => {
   it("should return consistent success response format", async () => {
     const response = await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send(testUsers.customer);
+      .send(withRegistrationProof(testUsers.customer));
 
     expect(response.body).toHaveProperty("success", true);
     expect(response.body).toHaveProperty("data");
@@ -1061,7 +1062,7 @@ describe("Response Format Validation", () => {
   it("should return proper content-type header", async () => {
     const response = await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send(testUsers.customer);
+      .send(withRegistrationProof(testUsers.customer));
 
     expect(response.headers["content-type"]).toMatch(/application\/json/);
   });

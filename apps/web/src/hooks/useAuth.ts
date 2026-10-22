@@ -146,7 +146,9 @@ export function useAuth() {
    * Register a new user
    */
   const register = useCallback(
-    async (data: RegisterInput): Promise<AuthResult> => {
+    async (
+      data: RegisterInput & { registrationToken: string },
+    ): Promise<AuthResult> => {
       setLoading(true);
       try {
         const response = await authService.register(data);

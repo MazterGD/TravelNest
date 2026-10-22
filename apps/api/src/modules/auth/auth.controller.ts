@@ -132,7 +132,12 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  return ResponseHelper.success(res, { verified: true });
+  return ResponseHelper.success(res, {
+    verified: true,
+    ...("registrationToken" in result && {
+      registrationToken: result.registrationToken,
+    }),
+  });
 });
 
 // Refresh tokens

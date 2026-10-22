@@ -15,6 +15,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import request from "supertest";
 import { prisma } from "./setup";
 import app from "../src/app";
+import { withRegistrationProof } from "./helpers";
 
 const API_BASE = "/api/v1";
 
@@ -143,7 +144,7 @@ describe("POST /owner/register - Successful Registration", () => {
   it("should register a new owner with one vehicle successfully", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(validOwnerData);
+      .send(withRegistrationProof(validOwnerData));
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
@@ -188,7 +189,7 @@ describe("POST /owner/register - Successful Registration", () => {
 
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(dataWithMultipleVehicles);
+      .send(withRegistrationProof(dataWithMultipleVehicles));
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
@@ -203,7 +204,7 @@ describe("POST /owner/register - Successful Registration", () => {
   it("should set HTTP-only cookie for refresh token", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(validOwnerData);
+      .send(withRegistrationProof(validOwnerData));
 
     expect(response.status).toBe(201);
     const cookies = response.headers["set-cookie"] as unknown as string[];
@@ -215,7 +216,7 @@ describe("POST /owner/register - Successful Registration", () => {
   it("should issue a CSRF cookie and no SameSite=Strict refresh cookie", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(validOwnerData);
+      .send(withRegistrationProof(validOwnerData));
 
     expect(response.status).toBe(201);
     const cookies = response.headers["set-cookie"] as unknown as string[];
@@ -228,10 +229,10 @@ describe("POST /owner/register - Successful Registration", () => {
   it("should normalize email to lowercase", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         email: "TEST.OWNER.REG@EXAMPLE.COM",
-      });
+      }));
 
     expect(response.status).toBe(201);
     expect(response.body.data.user.email).toBe("test.owner.reg@example.com");
@@ -250,7 +251,7 @@ describe("POST /owner/register - Validation Errors", () => {
     const { email, ...dataWithoutEmail } = validOwnerData;
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(dataWithoutEmail);
+      .send(withRegistrationProof(dataWithoutEmail));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -259,7 +260,7 @@ describe("POST /owner/register - Validation Errors", () => {
   it("should reject registration with invalid email format", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({ ...validOwnerData, email: "not-an-email" });
+      .send(withRegistrationProof({ ...validOwnerData, email: "not-an-email" }));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -268,11 +269,11 @@ describe("POST /owner/register - Validation Errors", () => {
   it("should reject registration with password less than 8 characters", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         password: "Short1!",
         confirmPassword: "Short1!",
-      });
+      }));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -281,10 +282,10 @@ describe("POST /owner/register - Validation Errors", () => {
   it("should reject registration with mismatched passwords", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         confirmPassword: "DifferentPassword123!",
-      });
+      }));
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
@@ -295,7 +296,7 @@ describe("POST /owner/register - Validation Errors", () => {
     const { nicNumber, ...dataWithoutNic } = validOwnerData;
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(dataWithoutNic);
+      .send(withRegistrationProof(dataWithoutNic));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -304,7 +305,7 @@ describe("POST /owner/register - Validation Errors", () => {
   it("should reject registration without vehicles", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({ ...validOwnerData, vehicles: [] });
+      .send(withRegistrationProof({ ...validOwnerData, vehicles: [] }));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -314,7 +315,7 @@ describe("POST /owner/register - Validation Errors", () => {
     const { address, ...dataWithoutAddress } = validOwnerData;
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(dataWithoutAddress);
+      .send(withRegistrationProof(dataWithoutAddress));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -335,12 +336,12 @@ describe("POST /owner/register - Duplicate Handling", () => {
 
   it("should reject registration with existing email", async () => {
     // First registration
-    await request(app).post(`${API_BASE}/owner/register`).send(validOwnerData);
+    await request(app).post(`${API_BASE}/owner/register`).send(withRegistrationProof(validOwnerData));
 
     // Second registration with same email
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         vehicles: [
           {
@@ -348,7 +349,7 @@ describe("POST /owner/register - Duplicate Handling", () => {
             registrationNumber: "DUP-1234",
           },
         ],
-      });
+      }));
 
     expect(response.status).toBe(409);
     expect(response.body.success).toBe(false);
@@ -357,15 +358,15 @@ describe("POST /owner/register - Duplicate Handling", () => {
 
   it("should reject registration with existing vehicle registration number", async () => {
     // First registration
-    await request(app).post(`${API_BASE}/owner/register`).send(validOwnerData);
+    await request(app).post(`${API_BASE}/owner/register`).send(withRegistrationProof(validOwnerData));
 
     // Second registration with different email but same vehicle
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         email: "test.owner.dup@example.com",
-      });
+      }));
 
     expect(response.status).toBe(409);
     expect(response.body.success).toBe(false);
@@ -384,7 +385,7 @@ describe("POST /owner/register - Vehicle Validation", () => {
   it("should reject invalid vehicle type", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         vehicles: [
           {
@@ -392,7 +393,7 @@ describe("POST /owner/register - Vehicle Validation", () => {
             vehicleType: "invalid-type",
           },
         ],
-      });
+      }));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -401,7 +402,7 @@ describe("POST /owner/register - Vehicle Validation", () => {
   it("should reject invalid AC type", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         vehicles: [
           {
@@ -409,7 +410,7 @@ describe("POST /owner/register - Vehicle Validation", () => {
             acType: "invalid-ac",
           },
         ],
-      });
+      }));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -418,7 +419,7 @@ describe("POST /owner/register - Vehicle Validation", () => {
   it("should reject vehicle with year before 1990", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         vehicles: [
           {
@@ -426,7 +427,7 @@ describe("POST /owner/register - Vehicle Validation", () => {
             year: 1985,
           },
         ],
-      });
+      }));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -435,7 +436,7 @@ describe("POST /owner/register - Vehicle Validation", () => {
   it("should reject vehicle with seating capacity over 100", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         vehicles: [
           {
@@ -443,7 +444,7 @@ describe("POST /owner/register - Vehicle Validation", () => {
             seatingCapacity: 150,
           },
         ],
-      });
+      }));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -465,7 +466,7 @@ describe("POST /owner/register - Document Requirements", () => {
   it("should reject registration without documents (documents are required)", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         ownerDocuments: [],
         vehicles: [
@@ -475,7 +476,7 @@ describe("POST /owner/register - Document Requirements", () => {
             photos: [],
           },
         ],
-      });
+      }));
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
@@ -506,7 +507,7 @@ describe("POST /owner/register - Document Requirements", () => {
 
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(dataWithDocs);
+      .send(withRegistrationProof(dataWithDocs));
 
     expect(response.status).toBe(201);
 
@@ -558,7 +559,7 @@ describe("POST /owner/register - Business Profile", () => {
 
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(dataWithBusiness);
+      .send(withRegistrationProof(dataWithBusiness));
 
     expect(response.status).toBe(201);
 
@@ -577,10 +578,10 @@ describe("POST /owner/register - Business Profile", () => {
   it("should allow registration without business info", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         businessInfo: undefined,
-      });
+      }));
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
@@ -602,11 +603,11 @@ describe("POST /owner/register - Edge Cases", () => {
   it("should sanitize XSS in input fields", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         firstName: '<script>alert("xss")</script>Test',
         lastName: 'Owner<img src=x onerror=alert("xss")>',
-      });
+      }));
 
     expect(response.status).toBe(201);
     expect(response.body.data.user.firstName).not.toContain("<script>");
@@ -616,13 +617,13 @@ describe("POST /owner/register - Edge Cases", () => {
   it("should handle empty optional postal code", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         address: {
           ...validOwnerData.address,
           postalCode: "",
         },
-      });
+      }));
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
@@ -631,12 +632,12 @@ describe("POST /owner/register - Edge Cases", () => {
   it("should trim whitespace from input fields", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send({
+      .send(withRegistrationProof({
         ...validOwnerData,
         firstName: "  Test  ",
         lastName: "  Owner  ",
         email: "  test.owner.reg@example.com  ",
-      });
+      }));
 
     expect(response.status).toBe(201);
     expect(response.body.data.user.firstName).toBe("Test");

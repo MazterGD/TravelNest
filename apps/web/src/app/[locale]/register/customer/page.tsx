@@ -50,8 +50,9 @@ export default function CustomerRegistrationPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const registerCustomerAccount = async () => {
+  const registerCustomerAccount = async (registrationToken: string) => {
     const response = await authService.register({
+      registrationToken,
       email: formData.email,
       password: formData.password,
       confirmPassword: formData.confirmPassword,
@@ -224,13 +225,13 @@ export default function CustomerRegistrationPage() {
     setIsVerifyingOtp(true);
 
     try {
-      await authService.verifyOtp({
+      const { registrationToken } = await authService.verifyOtp({
         identifier: formData.email,
         code,
         purpose: "REGISTRATION",
       });
 
-      await registerCustomerAccount();
+      await registerCustomerAccount(registrationToken ?? "");
       setOtpModalOpen(false);
     } catch (verifyError) {
       if (verifyError instanceof ApiError) {

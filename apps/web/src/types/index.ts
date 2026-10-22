@@ -354,6 +354,8 @@ export interface OwnerRegistrationAddress {
 }
 
 export interface OwnerRegistrationInput {
+  /** Proof of the verified registration OTP for this email */
+  registrationToken: string;
   firstName: string;
   lastName: string;
   email: string;

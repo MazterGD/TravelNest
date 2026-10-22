@@ -552,7 +552,7 @@ export default function OwnerRegistrationPage() {
     setVehicles(updated);
   };
 
-  const completeRegistration = async () => {
+  const completeRegistration = async (registrationToken: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -657,6 +657,7 @@ export default function OwnerRegistrationPage() {
 
       // Prepare registration payload
       const registrationPayload: OwnerRegistrationInput = {
+        registrationToken,
         firstName: personalInfo.firstName,
         lastName: personalInfo.lastName,
         email: personalInfo.email,
@@ -726,14 +727,14 @@ export default function OwnerRegistrationPage() {
     setIsVerifyingOtp(true);
 
     try {
-      await authService.verifyOtp({
+      const { registrationToken } = await authService.verifyOtp({
         identifier: personalInfo.email,
         code,
         purpose: "REGISTRATION",
       });
 
       setOtpModalOpen(false);
-      await completeRegistration();
+      await completeRegistration(registrationToken ?? "");
     } catch (verifyError) {
       if (verifyError instanceof ApiError) {
         throw new Error(verifyError.message);

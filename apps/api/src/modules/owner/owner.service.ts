@@ -7,7 +7,12 @@ import prisma, {
 } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { deleteByUrl } from "../../utils/storage.js";
-import { generateTokens, UserRole, UserStatus } from "../auth/auth.service.js";
+import {
+  assertRegistrationProof,
+  generateTokens,
+  UserRole,
+  UserStatus,
+} from "../auth/auth.service.js";
 import {
   getVehicleTypePricing,
   type VehicleType,
@@ -119,6 +124,8 @@ const requireDocumentTypes = (types: string[], required: string[]) => {
  * Register a new bus owner with vehicles
  */
 export const registerOwner = async (data: OwnerRegistrationInput) => {
+  assertRegistrationProof(data.registrationToken, data.email);
+
   // Validate password confirmation
   if (data.password !== data.confirmPassword) {
     throw ApiError.badRequest("Passwords do not match");

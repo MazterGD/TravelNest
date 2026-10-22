@@ -290,10 +290,44 @@ const excludePassword = (user: {
 // Auth Operations
 // ============================================
 
+// Proof that the registering person controls the email (ADR-007): issued when
+// a REGISTRATION OTP is verified and required by both registration endpoints.
+const REGISTRATION_PROOF_AUDIENCE = "registration-proof";
+const registrationProofSecret = crypto
+  .createHmac("sha256", config.jwt.secret)
+  .update(REGISTRATION_PROOF_AUDIENCE)
+  .digest("hex");
+
+export const createRegistrationProof = (email: string) =>
+  jwt.sign({ email: email.toLowerCase() }, registrationProofSecret, {
+    expiresIn: "15m",
+    audience: REGISTRATION_PROOF_AUDIENCE,
+  } as SignOptions);
+
+export const assertRegistrationProof = (
+  token: string | undefined,
+  email: string,
+) => {
+  try {
+    const payload = jwt.verify(token ?? "", registrationProofSecret, {
+      algorithms: ["HS256"],
+      audience: REGISTRATION_PROOF_AUDIENCE,
+    }) as { email?: string };
+    if (payload.email === email.toLowerCase()) return;
+  } catch {
+    // fall through to the error below
+  }
+  throw ApiError.badRequest(
+    "Please verify your email with the code we sent before creating your account.",
+  );
+};
+
 /**
  * Register a new user
  */
 export const registerUser = async (data: RegisterInput) => {
+  assertRegistrationProof(data.registrationToken, data.email);
+
   // Check if email already exists
   const existingUser = await prisma.user.findUnique({
     where: { email: data.email.toLowerCase() },
@@ -606,6 +640,13 @@ export const verifyOtpCode = async (data: VerifyOtpInput) => {
 
   if (consumed.count !== 1) {
     throw ApiError.badRequest("Invalid or expired OTP");
+  }
+
+  if (data.purpose === "REGISTRATION" && isEmail) {
+    return {
+      verified: true,
+      registrationToken: createRegistrationProof(identifier),
+    };
   }
 
   if (data.purpose !== "LOGIN") {

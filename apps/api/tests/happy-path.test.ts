@@ -11,6 +11,7 @@ import request from "supertest";
 import crypto from "crypto";
 import { prisma } from "./setup";
 import app from "../src/app";
+import { withRegistrationProof } from "./helpers";
 
 const API_BASE = "/api/v1";
 
@@ -170,7 +171,7 @@ describe("1. Customer Registration & Login", () => {
   it("TC-004-10: should register a new customer successfully", async () => {
     const response = await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send(testCustomer);
+      .send(withRegistrationProof(testCustomer));
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
@@ -218,7 +219,7 @@ describe("2. Owner Registration", () => {
   it("TC-008-10: should register a new owner with vehicle", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwner);
+      .send(withRegistrationProof(testOwner));
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
@@ -722,7 +723,7 @@ describe("9. Customer Views Booking", () => {
     // Register another user
     const registerRes = await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send(otherUser);
+      .send(withRegistrationProof(otherUser));
 
     if (registerRes.status === 201) {
       const otherToken = registerRes.body.data.accessToken;
@@ -1114,7 +1115,7 @@ describe("16. Security Tests", () => {
 
     const response = await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send(xssPayload);
+      .send(withRegistrationProof(xssPayload));
 
     if (response.status === 201) {
       // If registration succeeded, check that script tags are sanitized

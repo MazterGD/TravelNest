@@ -15,6 +15,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
 import request from "supertest";
 import { prisma } from "./setup";
 import app from "../src/app";
+import { withRegistrationProof } from "./helpers";
 
 const API_BASE = "/api/v1";
 
@@ -132,7 +133,7 @@ describe("GET /owner/profile - Get Owner Profile", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     expect(registerResponse.status).toBe(201);
     ownerToken = registerResponse.body.data.accessToken;
@@ -184,13 +185,13 @@ describe("GET /owner/profile - Get Owner Profile", () => {
     // Create a customer
     const customerResponse = await request(app)
       .post(`${API_BASE}/auth/register`)
-      .send({
+      .send(withRegistrationProof({
         firstName: "Test",
         lastName: "Customer",
         email: "customer.test@example.com",
         password: "TestPassword123!",
         role: "customer",
-      });
+      }));
 
     const customerToken = customerResponse.body.data.accessToken;
 
@@ -211,7 +212,7 @@ describe("PATCH /owner/profile/personal - Update Personal Info", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;
@@ -316,7 +317,7 @@ describe("PATCH /owner/profile/address - Update Address", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;
@@ -385,7 +386,7 @@ describe("GET /owner/dashboard/stats - Dashboard Statistics", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;
@@ -432,7 +433,7 @@ describe("Owner Profile Authorization", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;
@@ -479,7 +480,7 @@ describe("Owner Profile Edge Cases", () => {
     await cleanupTestData();
     const registerResponse = await request(app)
       .post(`${API_BASE}/owner/register`)
-      .send(testOwnerData);
+      .send(withRegistrationProof(testOwnerData));
 
     ownerToken = registerResponse.body.data.accessToken;
     ownerId = registerResponse.body.data.user.id;
