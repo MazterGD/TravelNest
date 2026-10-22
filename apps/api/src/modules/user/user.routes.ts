@@ -8,6 +8,7 @@ import {
   updatePersonalInfoSchema,
   updateAddressSchema,
   changePasswordSchema,
+  dataDeletionRequestSchema,
 } from "./user.schemas.js";
 import * as userController from "./user.controller.js";
 import { config } from "../../config/index.js";
@@ -98,6 +99,19 @@ router.delete(
   authenticate,
   csrfProtection,
   asyncHandler(userController.deleteAvatar),
+);
+
+/**
+ * @route   POST /api/v1/users/data-deletion-request
+ * @desc    Ask support to delete all of the user's data
+ * @access  Private
+ */
+router.post(
+  "/data-deletion-request",
+  authenticate,
+  csrfProtection,
+  validate(dataDeletionRequestSchema),
+  asyncHandler(userController.requestDataDeletion),
 );
 
 /**

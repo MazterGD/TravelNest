@@ -9,6 +9,7 @@ import type {
   ChangePasswordInput,
 } from "./user.schemas.js";
 import { assertUserRemovable, removeUserAccount } from "../../utils/softDelete.js";
+import { landingService } from "../landing/landing.service.js";
 
 /**
  * Get user profile by ID
@@ -340,4 +341,40 @@ export const getCustomerDashboardStats = async (customerId: string) => {
     totalReviews,
     totalSpent: bookingsTotal._sum.totalAmount || 0,
   };
+};
+
+/**
+ * Ask support to erase all of the user's data (ADR-006). Removal in the app
+ * is a soft delete, so complete deletion is a manual, support-handled step;
+ * the request lands in the admin contact inbox.
+ */
+export const requestDataDeletion = async (userId: string, reason?: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      role: true,
+    },
+  });
+
+  if (!user) {
+    throw ApiError.notFound("User");
+  }
+
+  return landingService.submitContactMessage({
+    name: `${user.firstName} ${user.lastName}`,
+    email: user.email,
+    phone: user.phone ?? undefined,
+    subject: "Data deletion request",
+    message: [
+      `Account ${user.id} (${user.role}) asks for complete deletion of their data.`,
+      reason ? `Reason: ${reason}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  });
 };

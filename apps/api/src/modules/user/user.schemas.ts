@@ -71,6 +71,12 @@ export const changePasswordSchema = z.object({
     }),
 });
 
+export const dataDeletionRequestSchema = z.object({
+  body: z.object({
+    reason: z.string().trim().max(1000).optional(),
+  }),
+});
+
 // Export types
 export type UpdatePersonalInfoInput = z.infer<
   typeof updatePersonalInfoSchema

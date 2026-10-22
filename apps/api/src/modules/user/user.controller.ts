@@ -68,6 +68,23 @@ export const deleteAccount = async (req: Request, res: Response) => {
 };
 
 /**
+ * Ask support to delete all of the user's data
+ * POST /api/v1/users/data-deletion-request
+ */
+export const requestDataDeletion = async (req: Request, res: Response) => {
+  const result = await userService.requestDataDeletion(
+    req.user!.id,
+    req.body.reason,
+  );
+
+  return ResponseHelper.success(
+    res,
+    { reference: result.reference },
+    "Your data deletion request has been sent to our support team",
+  );
+};
+
+/**
  * Get customer dashboard statistics
  * GET /api/v1/users/dashboard/stats
  */
