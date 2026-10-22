@@ -5,7 +5,7 @@ import prisma from "@travenest/database";
  * (the base `Prisma.TransactionClient` does not match the extended `$transaction`
  * callback argument). Derived by omitting the top-level-only client methods.
  */
-type TxClient = Omit<
+export type TxClient = Omit<
   typeof prisma,
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;

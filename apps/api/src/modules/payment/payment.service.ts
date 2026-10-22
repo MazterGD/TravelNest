@@ -4,7 +4,10 @@ import { ApiError } from "../../middleware/errorHandler.js";
 import { deleteByUrl } from "../../utils/storage.js";
 import { config } from "../../config/index.js";
 import { dispatchNotification } from "../notification/notification.service.js";
-import { accrueSettlementForBooking } from "./settlement.service.js";
+import {
+  accrueSettlementForBooking,
+  type TxClient,
+} from "./settlement.service.js";
 import {
   bookingConfirmedToCustomer,
   paymentFailedToCustomer,
@@ -433,53 +436,78 @@ export const getBankDetails = () => {
  * call again on webhook retries. Reused by any channel that completes a payment
  * (PayHere webhook now; owner/admin bank-transfer confirmation later).
  */
+const completeBookingPayment = async (
+  tx: TxClient,
+  bookingId: string,
+): Promise<{
+  customerId: string;
+  confirmed: boolean;
+  bookingCancelled: boolean;
+} | null> => {
+  const booking = await tx.booking.findUnique({
+    where: { id: bookingId },
+    select: {
+      id: true,
+      status: true,
+      vehicleId: true,
+      customerId: true,
+      startDate: true,
+      endDate: true,
+    },
+  });
+  if (!booking) return null;
+
+  // Money arrived after the booking was cancelled: do not hold the vehicle
+  // or pay the owner; the caller records the amount as owed back.
+  if (booking.status === "CANCELLED") {
+    return {
+      customerId: booking.customerId,
+      confirmed: false,
+      bookingCancelled: true,
+    };
+  }
+
+  let confirmed = false;
+  if (booking.status === "PENDING") {
+    await tx.booking.update({
+      where: { id: booking.id },
+      data: { status: "CONFIRMED" },
+    });
+    confirmed = true;
+  }
+
+  const existingBlock = await tx.vehicleAvailability.findFirst({
+    where: { vehicleId: booking.vehicleId, reason: `Booking ${booking.id}` },
+    select: { id: true },
+  });
+  if (!existingBlock) {
+    await tx.vehicleAvailability.create({
+      data: {
+        vehicleId: booking.vehicleId,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        isBlocked: true,
+        reason: `Booking ${booking.id}`,
+      },
+    });
+  }
+
+  // Record the paid booking on the owner's settlement ledger (idempotent).
+  await accrueSettlementForBooking(tx, booking.id);
+
+  return {
+    customerId: booking.customerId,
+    confirmed,
+    bookingCancelled: false,
+  };
+};
+
 export const applyPaymentCompletion = async (
   bookingId: string,
 ): Promise<void> => {
-  const outcome = await prisma.$transaction(async (tx) => {
-    const booking = await tx.booking.findUnique({
-      where: { id: bookingId },
-      select: {
-        id: true,
-        status: true,
-        vehicleId: true,
-        customerId: true,
-        startDate: true,
-        endDate: true,
-      },
-    });
-    if (!booking) return null;
-
-    let confirmed = false;
-    if (booking.status === "PENDING") {
-      await tx.booking.update({
-        where: { id: booking.id },
-        data: { status: "CONFIRMED" },
-      });
-      confirmed = true;
-    }
-
-    const existingBlock = await tx.vehicleAvailability.findFirst({
-      where: { vehicleId: booking.vehicleId, reason: `Booking ${booking.id}` },
-      select: { id: true },
-    });
-    if (!existingBlock) {
-      await tx.vehicleAvailability.create({
-        data: {
-          vehicleId: booking.vehicleId,
-          startDate: booking.startDate,
-          endDate: booking.endDate,
-          isBlocked: true,
-          reason: `Booking ${booking.id}`,
-        },
-      });
-    }
-
-    // Record the paid booking on the owner's settlement ledger (idempotent).
-    await accrueSettlementForBooking(tx, booking.id);
-
-    return { customerId: booking.customerId, confirmed };
-  });
+  const outcome = await prisma.$transaction((tx) =>
+    completeBookingPayment(tx, bookingId),
+  );
 
   if (outcome?.confirmed) {
     dispatchNotification(
@@ -551,23 +579,60 @@ export const handlePayHereWebhook = async (payload: PayHereWebhookPayload) => {
     throw ApiError.badRequest("PayHere payment details do not match");
   }
 
-  if (payment.status === "COMPLETED" && nextStatus === "COMPLETED") {
+  // Terminal states are sticky: a retried or out-of-order notification must
+  // not resurrect a refunded payment or downgrade a completed one. The only
+  // change accepted after completion is a PayHere chargeback (-3).
+  const isStale =
+    payment.status === "REFUNDED" ||
+    (payment.status === "COMPLETED" && nextStatus !== "REFUNDED");
+  if (isStale) {
     return toPaymentResponse(payment);
   }
 
-  const updated = await prisma.payment.update({
-    where: { id: payment.id },
-    data: {
-      status: nextStatus,
-      payherePaymentId: payload.payment_id || payment.payherePaymentId,
-      payhereCustomerId: payload.customer_token || payment.payhereCustomerId,
-      method: payload.method || payment.method,
-    },
+  const { updated, outcome } = await prisma.$transaction(async (tx) => {
+    const updatedPayment = await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: nextStatus,
+        payherePaymentId: payload.payment_id || payment.payherePaymentId,
+        payhereCustomerId: payload.customer_token || payment.payhereCustomerId,
+        method: payload.method || payment.method,
+      },
+    });
+
+    if (nextStatus !== "COMPLETED") {
+      return { updated: updatedPayment, outcome: null };
+    }
+
+    // Advance the booking and block availability now that funds are in.
+    const completion = await completeBookingPayment(tx, payment.bookingId);
+    if (!completion?.bookingCancelled) {
+      return { updated: updatedPayment, outcome: completion };
+    }
+
+    console.warn(
+      `[payment] payment ${payment.id} completed after booking ${payment.bookingId} was cancelled; recorded for refund`,
+    );
+    const owedBack = await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: "REFUNDED",
+        refundAmount: payment.amount,
+        refundReason: "Payment received after the booking was cancelled",
+      },
+    });
+    return { updated: owedBack, outcome: completion };
   });
 
-  if (nextStatus === "COMPLETED") {
-    // Advance the booking and block availability now that funds are in.
-    await applyPaymentCompletion(payment.bookingId);
+  if (outcome?.confirmed) {
+    dispatchNotification(
+      bookingConfirmedToCustomer(outcome.customerId, {
+        bookingId: payment.bookingId,
+      }),
+    );
+  }
+
+  if (nextStatus === "COMPLETED" && !outcome?.bookingCancelled) {
     dispatchNotification(
       paymentReceivedToCustomer(payment.userId, {
         bookingId: payment.bookingId,
