@@ -133,6 +133,7 @@ export const postRunScheduledReport = async (
       adminId,
       normalizeParam(req.params.reportId),
       req.body,
+      req.adminRole,
     );
 
     return ResponseHelper.success(
@@ -152,7 +153,7 @@ export const postExportAdminReport = async (
 ) => {
   try {
     const adminId = req.user?.id as string;
-    const generated = await exportAdminReport(adminId, req.body);
+    const generated = await exportAdminReport(adminId, req.body, req.adminRole);
 
     res.setHeader("Content-Type", generated.mimeType);
     res.setHeader(

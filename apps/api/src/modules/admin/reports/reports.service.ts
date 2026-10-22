@@ -1103,10 +1103,48 @@ export const archiveScheduledReport = async (adminId: string, reportId: string) 
   };
 };
 
+// Report types that expose another module's data need that module's access,
+// otherwise report permissions would bypass the finance and audit gates.
+const REPORT_TYPE_ACCESS: Partial<
+  Record<string, { roles?: string[]; permission: string }>
+> = {
+  FINANCIAL: {
+    roles: ["SUPER_ADMIN", "FINANCE_ADMIN"],
+    permission: "admin.financial.read",
+  },
+  AUDIT: { permission: "audit.export" },
+};
+
+const assertCanAccessReportType = async (
+  adminId: string,
+  adminRole: string | undefined,
+  reportType: string,
+) => {
+  const access = REPORT_TYPE_ACCESS[reportType];
+  if (!access || adminRole === "SUPER_ADMIN") return;
+
+  const hasRole = !access.roles || (!!adminRole && access.roles.includes(adminRole));
+  const permission = hasRole
+    ? await prisma.adminPermission.findFirst({
+        where: {
+          adminId,
+          permission: access.permission,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+        select: { id: true },
+      })
+    : null;
+
+  if (!permission) {
+    throw new ApiError(403, `You do not have access to ${reportType} reports`);
+  }
+};
+
 export const runScheduledReport = async (
   adminId: string,
   reportId: string,
   payload: RunScheduledReportInput,
+  adminRole?: string,
 ) => {
   const report = await prisma.scheduledReport.findUnique({
     where: { id: reportId },
@@ -1115,6 +1153,8 @@ export const runScheduledReport = async (
   if (!report) {
     throw new ApiError(404, "Scheduled report not found");
   }
+
+  await assertCanAccessReportType(adminId, adminRole, report.reportType);
 
   const run = await prisma.scheduledReportRun.create({
     data: {
@@ -1208,6 +1248,7 @@ export const runScheduledReport = async (
 export const exportAdminReport = async (
   adminId: string,
   payload: ExportAdminReportInput,
+  adminRole?: string,
 ) => {
   const scheduledReport = payload.reportId
     ? await prisma.scheduledReport.findUnique({
@@ -1226,6 +1267,8 @@ export const exportAdminReport = async (
   if (!reportType) {
     throw new ApiError(400, "reportType is required when reportId is not provided");
   }
+
+  await assertCanAccessReportType(adminId, adminRole, reportType);
 
   const format = toReportFormat(
     payload.format ?? ((scheduledReport?.format as ReportFormat | undefined) ?? "CSV"),
