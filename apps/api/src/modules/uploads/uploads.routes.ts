@@ -1,5 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
+import rateLimit from "express-rate-limit";
 import { asyncHandler } from "../../middleware/errorHandler.js";
 import { config } from "../../config/index.js";
 import * as uploadsController from "./uploads.controller.js";
@@ -26,8 +27,22 @@ const registrationUpload = multer({
   },
 });
 
+// Anonymous (used before the owner account exists), so cap uploads per IP to
+// keep the endpoint from being used as free file hosting.
+const registrationUploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many uploads. Please try again later.",
+  },
+  skip: () => config.env !== "production",
+});
+
 router.post(
   "/registration",
+  registrationUploadLimiter,
   registrationUpload.single("file"),
   asyncHandler(uploadsController.uploadRegistrationFile),
 );

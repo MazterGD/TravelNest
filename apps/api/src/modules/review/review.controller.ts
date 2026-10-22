@@ -2,6 +2,21 @@ import type { Request, Response } from "express";
 import * as reviewService from "./review.service.js";
 import { ResponseHelper } from "../../utils/response.js";
 
+const MAX_PAGE_SIZE = 50;
+
+// Public list endpoints: ignore non-numeric values and cap the page size.
+const toPage = (value: unknown) => {
+  const page = Number(value);
+  return Number.isInteger(page) && page >= 1 ? page : undefined;
+};
+
+const toLimit = (value: unknown) => {
+  const limit = Number(value);
+  return Number.isInteger(limit) && limit >= 1
+    ? Math.min(limit, MAX_PAGE_SIZE)
+    : undefined;
+};
+
 /**
  * GET /api/v1/reviews/my-reviews
  */
@@ -10,8 +25,8 @@ export const getMyReviews = async (req: Request, res: Response) => {
   const { page, limit } = req.query;
 
   const result = await reviewService.getCustomerReviews(customerId, {
-    page: page ? Number(page) : undefined,
-    limit: limit ? Number(limit) : undefined,
+    page: toPage(page),
+    limit: toLimit(limit),
   });
 
   return ResponseHelper.success(res, result);
@@ -25,8 +40,8 @@ export const getPendingReviews = async (req: Request, res: Response) => {
   const { page, limit } = req.query;
 
   const result = await reviewService.getPendingReviews(customerId, {
-    page: page ? Number(page) : undefined,
-    limit: limit ? Number(limit) : undefined,
+    page: toPage(page),
+    limit: toLimit(limit),
   });
 
   return ResponseHelper.success(res, result);
@@ -90,8 +105,8 @@ export const getVehicleReviews = async (req: Request, res: Response) => {
   const { page, limit } = req.query;
 
   const result = await reviewService.getVehicleReviews(vehicleId, {
-    page: page ? Number(page) : undefined,
-    limit: limit ? Number(limit) : undefined,
+    page: toPage(page),
+    limit: toLimit(limit),
   });
 
   return ResponseHelper.success(res, result);
@@ -116,8 +131,8 @@ export const getOwnerReviews = async (req: Request, res: Response) => {
   const { page, limit, hasResponse } = req.query;
 
   const result = await reviewService.getOwnerReviews(ownerId, {
-    page: page ? Number(page) : undefined,
-    limit: limit ? Number(limit) : undefined,
+    page: toPage(page),
+    limit: toLimit(limit),
     hasResponse:
       hasResponse === "true" ? true : hasResponse === "false" ? false : undefined,
   });
