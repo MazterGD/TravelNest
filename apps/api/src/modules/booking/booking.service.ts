@@ -4,7 +4,7 @@ import { config } from "../../config/index.js";
 import { executePayHereRefund } from "../payment/payment.service.js";
 import {
   getConfiguredCommissionRate,
-  removeSettlementForBooking,
+  reduceSettlementForBooking,
 } from "../payment/settlement.service.js";
 import { dispatchNotification } from "../notification/notification.service.js";
 import {
@@ -747,9 +747,9 @@ export const cancelBooking = async (
       where: { vehicleId: booking.vehicleId, reason: `Booking ${bookingId}` },
     });
 
-    // Remove the booking from any un-processed settlement ledger so the owner
-    // is not paid out for a cancelled/refunded booking.
-    await removeSettlementForBooking(tx, bookingId);
+    // The owner keeps the share the customer is not refunded (ADR-005); a full
+    // refund or an unpaid reserve removes the settlement line entirely.
+    await reduceSettlementForBooking(tx, bookingId, paidAmount - refundAmount);
 
     return tx.booking.update({
       where: { id: bookingId },

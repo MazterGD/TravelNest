@@ -27,7 +27,12 @@ export const getConfiguredCommissionRate = async (): Promise<number> => {
     select: { percentage: true },
   });
 
-  if (activePercentageRule && activePercentageRule.percentage !== null) {
+  if (
+    activePercentageRule &&
+    activePercentageRule.percentage !== null &&
+    activePercentageRule.percentage >= 0 &&
+    activePercentageRule.percentage <= 100
+  ) {
     return activePercentageRule.percentage / 100;
   }
 
@@ -45,7 +50,9 @@ export const getConfiguredCommissionRate = async (): Promise<number> => {
       ? paymentSettings.commissionRate
       : null;
 
-  if (configuredRate !== null && configuredRate >= 0) {
+  // A fraction; anything above 1 (e.g. 15 entered as a percent) would make
+  // the owner's net negative, so it falls back to the default.
+  if (configuredRate !== null && configuredRate >= 0 && configuredRate <= 1) {
     return configuredRate;
   }
 
@@ -141,6 +148,47 @@ export const accrueSettlementForBooking = async (
     },
   });
 
+  await recomputeSettlementTotals(tx, settlement.id);
+};
+
+/**
+ * Shrink a booking's settlement line to the amount the platform kept after a
+ * partial refund (ADR-005): the owner is paid for the retained share. A
+ * retained amount of 0 removes the line. Only PENDING settlements change.
+ * Runs in a transaction.
+ */
+export const reduceSettlementForBooking = async (
+  tx: TxClient,
+  bookingId: string,
+  retainedAmount: number,
+): Promise<void> => {
+  if (retainedAmount <= 0) {
+    await removeSettlementForBooking(tx, bookingId);
+    return;
+  }
+
+  const line = await tx.settlementBooking.findFirst({
+    where: { bookingId },
+    select: { id: true, settlementId: true, amount: true },
+  });
+  if (!line || retainedAmount >= line.amount) return;
+
+  const settlement = await tx.settlement.findUnique({
+    where: { id: line.settlementId },
+    select: { id: true, status: true },
+  });
+  if (!settlement || settlement.status !== "PENDING") return;
+
+  const rate = await getConfiguredCommissionRate();
+  const commission = Math.round(retainedAmount * rate);
+  await tx.settlementBooking.update({
+    where: { id: line.id },
+    data: {
+      amount: retainedAmount,
+      commission,
+      net: retainedAmount - commission,
+    },
+  });
   await recomputeSettlementTotals(tx, settlement.id);
 };
 
