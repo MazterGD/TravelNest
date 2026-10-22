@@ -212,6 +212,19 @@ describe("POST /owner/register - Successful Registration", () => {
     expect(cookies!.some((c: string) => c.includes("HttpOnly"))).toBe(true);
   });
 
+  it("should issue a CSRF cookie and no SameSite=Strict refresh cookie", async () => {
+    const response = await request(app)
+      .post(`${API_BASE}/owner/register`)
+      .send(validOwnerData);
+
+    expect(response.status).toBe(201);
+    const cookies = response.headers["set-cookie"] as unknown as string[];
+    expect(cookies.some((c) => c.startsWith("csrf-token="))).toBe(true);
+    const refresh = cookies.find((c) => c.startsWith("refreshToken="));
+    expect(refresh).toBeDefined();
+    expect(refresh).not.toMatch(/SameSite=Strict/i);
+  });
+
   it("should normalize email to lowercase", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)

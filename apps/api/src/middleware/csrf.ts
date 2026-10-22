@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import { ApiError } from "./errorHandler.js";
+import { authCookieOptions } from "../utils/cookies.js";
 
 /**
  * Simple CSRF Protection Middleware
@@ -34,9 +35,8 @@ export const setCSRFToken = (res: Response): string => {
   const token = generateCSRFToken();
 
   res.cookie(CSRF_COOKIE, token, {
+    ...authCookieOptions(),
     httpOnly: false, // Must be false so JavaScript can read it for the header
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
   });
 

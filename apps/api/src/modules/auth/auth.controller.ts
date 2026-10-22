@@ -4,6 +4,7 @@ import { asyncHandler } from "../../middleware/errorHandler.js";
 import { setCSRFToken } from "../../middleware/csrf.js";
 import { ResponseHelper } from "../../utils/response.js";
 import { config } from "../../config/index.js";
+import { authCookieOptions } from "../../utils/cookies.js";
 
 const getAppBaseUrl = () =>
   config.appUrl.endsWith("/") ? config.appUrl : `${config.appUrl}/`;
@@ -56,9 +57,8 @@ const setRefreshCookie = (
   options: { remember: boolean; maxAgeMs: number },
 ) => {
   res.cookie("refreshToken", token, {
+    ...authCookieOptions(),
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     ...(options.remember ? { maxAge: options.maxAgeMs } : {}),
   });
 };
@@ -69,9 +69,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   // Set refresh token as HTTP-only cookie
   res.cookie("refreshToken", result.refreshToken, {
+    ...authCookieOptions(),
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
@@ -118,9 +117,8 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     "user" in result
   ) {
     res.cookie("refreshToken", result.refreshToken, {
+      ...authCookieOptions(),
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -159,9 +157,8 @@ export const refreshToken = asyncHandler(
 export const logout = asyncHandler(async (_req: Request, res: Response) => {
   // Clear refresh token cookie
   res.clearCookie("refreshToken", {
+    ...authCookieOptions(),
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
 
   return ResponseHelper.success(res, null, "Logged out successfully");
@@ -276,9 +273,8 @@ export const handleGoogleCallback = asyncHandler(
       const result = await authService.loginWithOAuthProfile(profile);
 
       res.cookie("refreshToken", result.refreshToken, {
+        ...authCookieOptions(),
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 
@@ -339,9 +335,8 @@ export const handleFacebookCallback = asyncHandler(
       const result = await authService.loginWithOAuthProfile(profile);
 
       res.cookie("refreshToken", result.refreshToken, {
+        ...authCookieOptions(),
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 

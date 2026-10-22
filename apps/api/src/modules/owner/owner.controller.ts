@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import * as ownerService from "./owner.service.js";
-import { config } from "../../config/index.js";
+import { setCSRFToken } from "../../middleware/csrf.js";
+import { authCookieOptions } from "../../utils/cookies.js";
 import { ResponseHelper } from "../../utils/response.js";
 import type { EarningsTransactionsQuery } from "./owner.schemas.js";
 
@@ -13,11 +14,12 @@ export const register = async (req: Request, res: Response) => {
 
   // Set refresh token as HTTP-only cookie
   res.cookie("refreshToken", result.refreshToken, {
+    ...authCookieOptions(),
     httpOnly: true,
-    secure: config.env === "production",
-    sameSite: "strict",
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
+
+  setCSRFToken(res);
 
   return ResponseHelper.created(
     res,

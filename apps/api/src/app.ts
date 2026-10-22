@@ -38,6 +38,10 @@ import driverRoutes from "./modules/driver/driver.routes.js";
 
 const app: Express = express();
 
+// Behind a reverse proxy (Caddy) this makes req.ip the client address, which the
+// rate limiter and audit log key on; otherwise every client shares one bucket.
+app.set("trust proxy", config.trustProxy);
+
 // Security middleware
 app.use(
   helmet({

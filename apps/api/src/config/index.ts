@@ -42,6 +42,17 @@ const oauthStateSecret =
   process.env.OAUTH_STATE_SECRET ||
   crypto.createHmac("sha256", jwtSecret).update("oauth-state").digest("hex");
 const oauthRedirectBase = apiBaseUrl;
+
+// Express "trust proxy": unset/false when the API is reached directly, a hop
+// count (e.g. 1) or subnet name (e.g. "loopback") behind a reverse proxy.
+const parseTrustProxy = (
+  value: string | undefined,
+): boolean | number | string => {
+  if (!value || value === "false") return false;
+  if (value === "true") return true;
+  const hops = Number(value);
+  return Number.isInteger(hops) ? hops : value;
+};
 const oauthRedirectGoogle =
   process.env.GOOGLE_REDIRECT_URI ||
   `${oauthRedirectBase}/auth/oauth/google/callback`;
@@ -88,6 +99,10 @@ export const config = {
 
   // CORS
   corsOrigin: process.env.CORS_ORIGIN || appUrl,
+
+  // Cookies / proxy
+  cookieDomain: process.env.COOKIE_DOMAIN || "",
+  trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
 
   // Email
   email: {
@@ -192,7 +207,15 @@ export const config = {
 
 // Validate required environment variables in production
 if (config.env === "production") {
-  const requiredEnvVars = ["DATABASE_URL", "JWT_SECRET", "JWT_REFRESH_SECRET"];
+  const requiredEnvVars = [
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "JWT_REFRESH_SECRET",
+    "CORS_ORIGIN",
+    "APP_URL",
+    "PAYHERE_MERCHANT_ID",
+    "PAYHERE_MERCHANT_SECRET",
+  ];
 
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
