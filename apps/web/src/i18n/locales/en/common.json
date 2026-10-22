@@ -1459,7 +1459,10 @@
       "submitButton": "Send Reset Link",
       "successTitle": "Password Reset Link Sent",
       "successMessage": "If an account with that email exists, a password reset link has been sent.",
-      "error": "Failed to send reset link. Please try again."
+      "error": "Failed to send reset link. Please try again.",
+      "errors": {
+        "unexpected": "Something went wrong while sending the reset link. Please try again in a moment."
+      }
     }
   },
   "faq": {
