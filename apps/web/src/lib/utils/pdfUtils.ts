@@ -123,7 +123,7 @@ function buildDocument(title: string, body: string): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${title}</title>
+  <title>${esc(title)}</title>
   <style>${PRINT_STYLES}</style>
 </head>
 <body>
@@ -142,7 +142,12 @@ export function printAsPDF(body: string, title: string): void {
 }
 
 function esc(s: unknown): string {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function fmtDate(d: string): string {
@@ -347,7 +352,7 @@ export function buildComparisonHTML(
         : '';
 
       const specsText = specs
-        ? `${esc(specs.brand)} ${esc(specs.model)}${specs.year ? ` (${specs.year})` : ''}, ${specs.seats} seats`
+        ? `${esc(specs.brand)} ${esc(specs.model)}${specs.year ? ` (${esc(specs.year)})` : ''}, ${esc(specs.seats)} seats`
         : '';
 
       return `<div class="cmp-card${isBest ? ' best' : ''}">
