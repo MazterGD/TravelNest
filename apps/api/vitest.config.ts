@@ -6,6 +6,9 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.ts"],
+    // Files share one database and tests/setup.ts cleans shared fixture users
+    // after every test, so files must not run concurrently.
+    fileParallelism: false,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
