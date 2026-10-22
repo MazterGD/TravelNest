@@ -55,6 +55,9 @@ type PaymentForm = {
 type BookingForm = {
   autoCancelUnpaidHours: number;
   refundWindowHours: number;
+  refundFullHours: number;
+  refundPartialHours: number;
+  refundPartialPercent: number;
 };
 
 type SecurityForm = {
@@ -118,6 +121,9 @@ const DEFAULTS: DraftState = {
   booking: {
     autoCancelUnpaidHours: 24,
     refundWindowHours: 48,
+    refundFullHours: 336,
+    refundPartialHours: 168,
+    refundPartialPercent: 50,
   },
   security: {
     requireStrongPasswords: true,
@@ -262,6 +268,21 @@ const deriveDraft = (settings: AdminPlatformSettings): DraftState => ({
       settings.bookingSettings,
       "refundWindowHours",
       DEFAULTS.booking.refundWindowHours,
+    ),
+    refundFullHours: readNumber(
+      settings.bookingSettings,
+      "refundFullHours",
+      DEFAULTS.booking.refundFullHours,
+    ),
+    refundPartialHours: readNumber(
+      settings.bookingSettings,
+      "refundPartialHours",
+      DEFAULTS.booking.refundPartialHours,
+    ),
+    refundPartialPercent: readNumber(
+      settings.bookingSettings,
+      "refundPartialPercent",
+      DEFAULTS.booking.refundPartialPercent,
     ),
   },
   security: {
@@ -473,7 +494,12 @@ function SettingsForm({
     }
     if (
       draft.booking.autoCancelUnpaidHours < 1 ||
-      draft.booking.refundWindowHours < 0
+      draft.booking.refundWindowHours < 0 ||
+      draft.booking.refundFullHours < 0 ||
+      draft.booking.refundPartialHours < 0 ||
+      draft.booking.refundFullHours < draft.booking.refundPartialHours ||
+      draft.booking.refundPartialPercent < 0 ||
+      draft.booking.refundPartialPercent > 100
     ) {
       setFormError(t("errors.bookingHoursInvalid"));
       setActiveTab("booking");
@@ -978,6 +1004,71 @@ function SettingsForm({
                         refundWindowHours:
                           Number(event.target.value) ||
                           DEFAULTS.booking.refundWindowHours,
+                      },
+                    }))
+                  }
+                />
+              </FieldRow>
+
+              <FieldRow
+                label={t("booking.refundFull.label")}
+                description={t("booking.refundFull.help")}
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  value={draft.booking.refundFullHours}
+                  onChange={(event) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      booking: {
+                        ...prev.booking,
+                        refundFullHours:
+                          Number(event.target.value) ||
+                          DEFAULTS.booking.refundFullHours,
+                      },
+                    }))
+                  }
+                />
+              </FieldRow>
+
+              <FieldRow
+                label={t("booking.refundPartialWindow.label")}
+                description={t("booking.refundPartialWindow.help")}
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  value={draft.booking.refundPartialHours}
+                  onChange={(event) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      booking: {
+                        ...prev.booking,
+                        refundPartialHours:
+                          Number(event.target.value) ||
+                          DEFAULTS.booking.refundPartialHours,
+                      },
+                    }))
+                  }
+                />
+              </FieldRow>
+
+              <FieldRow
+                label={t("booking.refundPartialPercent.label")}
+                description={t("booking.refundPartialPercent.help")}
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={draft.booking.refundPartialPercent}
+                  onChange={(event) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      booking: {
+                        ...prev.booking,
+                        refundPartialPercent: Number(event.target.value),
                       },
                     }))
                   }

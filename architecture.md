@@ -161,7 +161,7 @@ The PostgreSQL schema (managed via Prisma) contains 30+ models organized across 
 - `itinerary_stops` / `itinerary_routes` — PostGIS-backed ordered stops and OSRM-cached route geometry, keyed on `quotationId`. Trip-level itinerary captured as JSON on `trips.itineraryStops` / `trips.itineraryRoute` to avoid duplicating PostGIS tables for the trip-level snapshot.
 
 **Transaction**
-- `bookings` — confirmed transaction; `booking_status` enum (implemented): `PENDING | CONFIRMED | ONGOING | COMPLETED | CANCELLED`. *Roadmap:* `DISPUTED` as an additional status.
+- `bookings` — transaction record created the moment a customer accepts a quotation; `booking_status` enum (implemented): `PENDING` (reserved, awaiting payment) `| CONFIRMED` (payment completed) `| ONGOING | COMPLETED | CANCELLED`. Carries a nullable `quotationId` foreign key back to the accepted `Quotation` (legacy rows encode the `QUO-` code in `notes` and are resolved via that fallback). *Roadmap:* `DISPUTED` as an additional status.
 - `booking_itinerary` — immutable snapshot of itinerary at time of booking
 - `bookings` (driver fields) — `driver_name`, `driver_license`, `driver_contact` stored directly on the booking record
 - `payments` — payment record; `payment_method` enum: `credit_card | debit_card | bank_transfer | cash | other`; `payment_status` lifecycle: `pending → processing → completed | failed | refunded | cancelled`
@@ -210,23 +210,35 @@ The PostgreSQL schema (managed via Prisma) contains 30+ models organized across 
    → AI Pricing Suggestions endpoint consulted as optional hint
    → Quotation stored with expires_at = created_at + validity_period
 
-5. Customer compares Quotations under the Trip → selects one → initiates Booking
-   → Booking created with status: PENDING (awaiting owner confirmation)
+5. Customer compares Quotations under the Trip → accepts one → Booking auto-created
+   → Accepting the quotation is the single action that creates the Booking, with
+     status: PENDING — a reserve that holds the vehicle's dates. The owner does NOT
+     re-confirm; price and availability were committed when the quotation was sent.
+   → The sibling quotations under the same Trip are auto-rejected
    → Trip status flips AWAITING_QUOTES → CONFIRMED on quotation acceptance
+   → Booking carries a quotationId FK back to the accepted quotation
+   → Customer is routed to the booking to pay (PayHere / bank transfer / cash)
 
-6. Owner confirms → Booking status: CONFIRMED
-   → Customer redirected to payment (PayHere / bank transfer / cash)
-
-7. Payment completed
+6. Payment completed → Booking confirmed (atomic cascade)
    → PayHere: MD5-signed webhook callback received and verified → payment_status: completed
-   → Bank transfer / Cash: receipt uploaded → admin or owner manually confirms
-   → booking_status → ONGOING (on trip start) → COMPLETED
-   → vehicle_availability blocked for booking date range
-   → Settlement record updated / new SettlementBooking line item created
+   → On completion, in a single $transaction: booking_status PENDING → CONFIRMED AND
+     vehicle_availability blocked for the booking date range (owner calendar and booking
+     ledger stay in sync). Idempotent, so webhook retries are safe.
+   → Bank transfer / Cash: receipt uploaded → PROCESSING → admin/owner confirmation
+     applies the same completion cascade
    → [Roadmap: per-transaction payment_splits records created for owner | platform | driver]
    → In-app Notification records created for both parties
    → [Roadmap: Transactional email dispatched via Brevo SMTP (nodemailer) to both owner and customer]
    → Digital invoice generated
+
+7. Trip lifecycle & background sweeps (see Background Jobs)
+   → Owner starts the trip within its window → booking_status ONGOING → COMPLETED
+   → A PENDING reserve left unpaid past the configured window (autoCancelUnpaidHours,
+     default 24h) is released by a background sweep: booking_status → CANCELLED and the
+     parent Trip returns to AWAITING_QUOTES (cash / bank-receipt reserves are exempt)
+   → The same sweep expires stale SENT/VIEWED quotations (past validUntil) and
+     PLANNING/AWAITING_QUOTES trips (past end date)
+   → Paid bookings become eligible for the admin batch Settlement / SettlementBooking payout
 ```
 
 ### Service Layer Architecture
@@ -329,6 +341,17 @@ Redis is also usable as the backing store for WebSocket session state when real-
 
 **Database Indexing**
 Critical indexes required on high-query paths: `vehicles(owner_id, is_active, vehicle_type)`, `vehicle_availability(vehicle_id, start_date, end_date)`, `quotation_requests(customer_id, status)`, `bookings(customer_id, owner_id, booking_status)`, `payments(booking_id, payment_status)`.
+
+**Background Jobs**
+
+Time-based transitions run as in-process scheduled sweeps (plain `setInterval`, timers `unref`'d — no external cron/scheduler dependency, matching the single-instance host-process model). Two jobs are registered at server start:
+
+| Job | Cadence | Responsibility |
+|---|---|---|
+| `notificationRetention` | daily | Purge read notifications older than the retention window |
+| `bookingLifecycle` | every 15 min | (1) Release unpaid `PENDING` reserves past `autoCancelUnpaidHours` → `CANCELLED`, returning the parent trip to `AWAITING_QUOTES` (cash / bank-receipt reserves exempt); (2) expire stale `SENT`/`VIEWED` quotations past `validUntil` and `PLANNING`/`AWAITING_QUOTES` trips past their end date |
+
+Quotation/trip expiry is still additionally applied lazily on read as a fast-path; the sweep guarantees eventual consistency without requiring a record to be opened. If the API is scaled horizontally, these jobs must be pinned to a single instance (or moved to a distributed scheduler) to avoid duplicate runs.
 
 **Observability**
 

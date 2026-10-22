@@ -548,7 +548,8 @@ export const createVehicle = async (
       seats: data.seats,
       doors: 2, // Default for buses
       color: data.color ? xss(data.color) : null,
-      acType: mapACType(data.acType),
+      // A LUXURY_AC vehicle is by definition fully air-conditioned.
+      acType: canonicalType === "LUXURY_AC" ? "full-ac" : mapACType(data.acType),
       fuelType: "DIESEL", // Default for buses
       transmission: "MANUAL", // Default for buses
       description: data.description ? xss(data.description) : null,
@@ -617,7 +618,14 @@ export const updateVehicle = async (
   if (data.year) updateData.year = data.year;
   if (data.seats) updateData.seats = data.seats;
   if (data.color) updateData.color = xss(data.color);
-  if (data.acType) updateData.acType = mapACType(data.acType);
+  // A LUXURY_AC vehicle is always fully air-conditioned, regardless of the
+  // submitted AC type; otherwise honour the owner's selection.
+  const effectiveType = (updateData.type ?? existing.type) as string;
+  if (effectiveType === "LUXURY_AC") {
+    updateData.acType = "full-ac";
+  } else if (data.acType) {
+    updateData.acType = mapACType(data.acType);
+  }
   if (data.condition) updateData.condition = xss(data.condition);
   if (data.description !== undefined)
     updateData.description = data.description ? xss(data.description) : null;

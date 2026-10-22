@@ -525,6 +525,10 @@ model Booking {
   customerId      String
   vehicleId       String
   tripPackageId   String?
+  // Direct link to the accepted quotation this booking was created from.
+  // Nullable + SetNull so legacy bookings (which encode the QUO- code in notes)
+  // and package bookings without a quotation keep working.
+  quotationId     String?
   startDate       DateTime
   endDate         DateTime
   pickupLocation  String
@@ -554,6 +558,7 @@ model Booking {
   vehicle         Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   driver          Driver?       @relation(fields: [driverId], references: [id], onDelete: SetNull)
   tripPackage     TripPackage?  @relation(fields: [tripPackageId], references: [id], onDelete: SetNull)
+  quotation       Quotation?    @relation("QuotationBookings", fields: [quotationId], references: [id], onDelete: SetNull)
   payment         Payment?
   review          Review?
   itinerary       TripItinerary[]
@@ -566,6 +571,7 @@ model Booking {
   @@index([driverId])
   @@index([status])
   @@index([tripPackageId])
+  @@index([quotationId])
   @@index([customerId, status, startDate])
   @@index([vehicleId, startDate, endDate])
   @@index([driverId, startDate, endDate])
@@ -671,6 +677,7 @@ model Quotation {
   customer        User            @relation("CustomerQuotations", fields: [customerId], references: [id], onDelete: Cascade)
   vehicle         Vehicle?        @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
   trip            Trip?           @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  bookings        Booking[]       @relation("QuotationBookings")
   itineraryStops  ItineraryStop[]
   itineraryRoute  ItineraryRoute?
 

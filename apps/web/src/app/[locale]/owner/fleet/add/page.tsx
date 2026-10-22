@@ -178,7 +178,14 @@ export default function AddVehiclePage() {
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      // A LUXURY_AC bus is always fully air-conditioned — lock the AC type.
+      if (name === "type" && value === "LUXURY_AC") {
+        next.acType = "full-ac";
+      }
+      return next;
+    });
   };
 
   const toggleAmenity = (id: string) => {
@@ -503,6 +510,7 @@ export default function AddVehiclePage() {
                         options={acTypeOptions}
                         placeholder={t("fieldAcTypePlaceholder")}
                         error={errors.acType}
+                        disabled={formData.type === "LUXURY_AC"}
                       />
                       <Select
                         label={t("fieldCondition")}

@@ -8,6 +8,12 @@ import { PrismaClient } from "@prisma/client";
 // Set test environment to disable rate limiting
 process.env.NODE_ENV = "test";
 
+// PayHere env must be set here (setupFiles run before test-file imports) so
+// src/config captures it; top-of-file assignments in test files run after the
+// hoisted app/config imports and are too late.
+process.env.PAYHERE_MERCHANT_ID = "TEST_MERCHANT";
+process.env.PAYHERE_MERCHANT_SECRET = "TEST_SECRET";
+
 // Test database client
 export const prisma = new PrismaClient();
 

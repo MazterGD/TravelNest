@@ -115,6 +115,14 @@ export default function VehicleAvailabilityPage() {
     return `${y}-${m}-${d}`;
   };
 
+  // Booked/blocked ranges arrive from the API as full ISO datetime strings, but
+  // the calendar compares plain YYYY-MM-DD cell keys. Comparing the two directly
+  // fails (a date-only key is a lexicographic prefix of the ISO string), so
+  // normalize each endpoint to a local date key first. Already-normalized keys
+  // (locally-created blocks) are passed through unchanged.
+  const toDateKey = (value: string): string =>
+    value.length > 10 ? toLocalDateStr(new Date(value)) : value;
+
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -131,14 +139,18 @@ export default function VehicleAvailabilityPage() {
   const isDateBlocked = (date: Date) => {
     const dateStr = toLocalDateStr(date);
     return blockedDates.some(
-      (block) => dateStr >= block.startDate && dateStr <= block.endDate,
+      (block) =>
+        dateStr >= toDateKey(block.startDate) &&
+        dateStr <= toDateKey(block.endDate),
     );
   };
 
   const isDateBooked = (date: Date) => {
     const dateStr = toLocalDateStr(date);
     return bookedDates.some(
-      (booking) => dateStr >= booking.startDate && dateStr <= booking.endDate,
+      (booking) =>
+        dateStr >= toDateKey(booking.startDate) &&
+        dateStr <= toDateKey(booking.endDate),
     );
   };
 

@@ -39,6 +39,10 @@ const DEFAULT_PLATFORM_SETTINGS = {
   bookingSettings: {
     autoCancelUnpaidHours: 24,
     refundWindowHours: 48,
+    // Time-based cancellation refund policy (hours before trip start).
+    refundFullHours: 336, // >= 14 days -> 100% refund
+    refundPartialHours: 168, // >= 7 days -> refundPartialPercent
+    refundPartialPercent: 50, // otherwise 0%
   },
   securitySettings: {
     requireStrongPasswords: true,

@@ -296,7 +296,7 @@ export interface ComparisonQuotation {
   vehicleName: string;
   ownerName: string;
   price: number;
-  validUntil: string;
+  validUntil?: string;
   notes?: string;
   priceBreakdown?: {
     vehicleRentalCost: number;

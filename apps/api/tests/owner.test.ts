@@ -18,6 +18,48 @@ import app from "../src/app";
 
 const API_BASE = "/api/v1";
 
+// Shared document fixtures matching the current schema (documents are required)
+const testVehicleDocuments = [
+  {
+    type: "DRIVING_LICENSE",
+    fileName: "license.pdf",
+    fileSize: 1024,
+    mimeType: "application/pdf",
+    url: "https://example.com/docs/license.pdf",
+  },
+  {
+    type: "INSURANCE",
+    fileName: "insurance.pdf",
+    fileSize: 1024,
+    mimeType: "application/pdf",
+    url: "https://example.com/docs/insurance.pdf",
+  },
+  {
+    type: "REGISTRATION_CERTIFICATE",
+    fileName: "cr.pdf",
+    fileSize: 1024,
+    mimeType: "application/pdf",
+    url: "https://example.com/docs/cr.pdf",
+  },
+];
+
+const testOwnerDocuments = [
+  {
+    type: "NIC",
+    fileName: "nic.pdf",
+    fileSize: 1024,
+    mimeType: "application/pdf",
+    url: "https://example.com/docs/nic.pdf",
+  },
+  {
+    type: "PROFILE_PHOTO",
+    fileName: "photo.jpg",
+    fileSize: 2048,
+    mimeType: "image/jpeg",
+    url: "https://example.com/docs/photo.jpg",
+  },
+];
+
 // Test owner data
 const validOwnerData = {
   firstName: "Test",
@@ -34,17 +76,18 @@ const validOwnerData = {
     postalCode: "10100",
     baseLocation: "Colombo",
   },
+  ownerDocuments: testOwnerDocuments,
   vehicles: [
     {
       registrationNumber: "TEST-1234",
-      vehicleType: "luxury",
+      vehicleType: "LUXURY_AC",
       make: "Ashok Leyland",
       model: "Viking",
       year: 2022,
       seatingCapacity: 45,
-      acType: "full-ac",
+      acType: "FULL_AC",
       photos: [],
-      documents: [],
+      documents: testVehicleDocuments,
     },
   ],
 };
@@ -70,7 +113,6 @@ async function cleanupTestOwner() {
       });
       await prisma.vehicle.deleteMany({ where: { ownerId: user.id } });
       await prisma.ownerDocument.deleteMany({ where: { ownerId: user.id } });
-      await prisma.businessProfile.deleteMany({ where: { ownerId: user.id } });
     }
   }
 
@@ -121,25 +163,25 @@ describe("POST /owner/register - Successful Registration", () => {
       vehicles: [
         {
           registrationNumber: "TEST-1234",
-          vehicleType: "luxury",
+          vehicleType: "LUXURY_AC",
           make: "Ashok Leyland",
           model: "Viking",
           year: 2022,
           seatingCapacity: 45,
-          acType: "full-ac",
+          acType: "FULL_AC",
           photos: [],
-          documents: [],
+          documents: testVehicleDocuments,
         },
         {
           registrationNumber: "TEST-5678",
-          vehicleType: "standard",
+          vehicleType: "ORDINARY",
           make: "TATA",
           model: "Marcopolo",
           year: 2021,
           seatingCapacity: 52,
-          acType: "ac",
+          acType: "AC",
           photos: [],
-          documents: [],
+          documents: testVehicleDocuments,
         },
       ],
     };
@@ -396,9 +438,9 @@ describe("POST /owner/register - Vehicle Validation", () => {
 });
 
 // ============================================
-// 5. DOCUMENT BYPASS MODE TESTS
+// 5. DOCUMENT REQUIREMENT TESTS
 // ============================================
-describe("POST /owner/register - Optional Documents Mode", () => {
+describe("POST /owner/register - Document Requirements", () => {
   beforeEach(async () => {
     await cleanupTestOwner();
   });
@@ -407,7 +449,7 @@ describe("POST /owner/register - Optional Documents Mode", () => {
     await cleanupTestOwner();
   });
 
-  it("should allow registration without documents (documents are optional)", async () => {
+  it("should reject registration without documents (documents are required)", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
       .send({
@@ -422,58 +464,27 @@ describe("POST /owner/register - Optional Documents Mode", () => {
         ],
       });
 
-    expect(response.status).toBe(201);
-    expect(response.body.success).toBe(true);
+    expect(response.status).toBe(422);
+    expect(response.body.success).toBe(false);
   });
 
   it("should store documents when provided", async () => {
     const dataWithDocs = {
       ...validOwnerData,
       email: "test.owner.nodocs@example.com",
-      ownerDocuments: [
-        {
-          type: "NIC",
-          fileName: "nic.pdf",
-          fileSize: 1024,
-          mimeType: "application/pdf",
-        },
-        {
-          type: "PROFILE_PHOTO",
-          fileName: "photo.jpg",
-          fileSize: 2048,
-          mimeType: "image/jpeg",
-        },
-      ],
+      ownerDocuments: testOwnerDocuments,
       vehicles: [
         {
           ...validOwnerData.vehicles[0],
           registrationNumber: "BUS-0001",
-          documents: [
-            {
-              type: "DRIVING_LICENSE",
-              fileName: "license.pdf",
-              fileSize: 1024,
-              mimeType: "application/pdf",
-            },
-            {
-              type: "INSURANCE",
-              fileName: "insurance.pdf",
-              fileSize: 1024,
-              mimeType: "application/pdf",
-            },
-            {
-              type: "REGISTRATION_CERTIFICATE",
-              fileName: "cr.pdf",
-              fileSize: 1024,
-              mimeType: "application/pdf",
-            },
-          ],
+          documents: testVehicleDocuments,
           photos: [
             {
               fileName: "bus-front.jpg",
               fileSize: 4096,
               mimeType: "image/jpeg",
               isPrimary: true,
+              url: "https://example.com/photos/bus-front.jpg",
             },
           ],
         },
@@ -520,15 +531,15 @@ describe("POST /owner/register - Business Profile", () => {
     await cleanupTestOwner();
   });
 
-  it("should create business profile when provided", async () => {
+  it("should store business info when provided", async () => {
     const dataWithBusiness = {
       ...validOwnerData,
       email: "test.owner.business@example.com",
-      businessProfile: {
+      businessInfo: {
         businessName: "Test Bus Company",
         businessType: "private-limited",
-        registrationNumber: "PV12345",
-        taxId: "TIN123456",
+        businessRegNumber: "PV12345",
+        tinNumber: "TIN123456",
       },
     };
 
@@ -538,22 +549,24 @@ describe("POST /owner/register - Business Profile", () => {
 
     expect(response.status).toBe(201);
 
-    // Verify business profile was created
-    const businessProfile = await prisma.businessProfile.findFirst({
-      where: { owner: { email: dataWithBusiness.email } },
+    // Business info is stored on the user record
+    const user = await prisma.user.findUnique({
+      where: { email: dataWithBusiness.email },
     });
 
-    expect(businessProfile).not.toBeNull();
-    expect(businessProfile!.businessName).toBe("Test Bus Company");
-    expect(businessProfile!.businessType).toBe("private-limited");
+    expect(user).not.toBeNull();
+    expect(user!.businessName).toBe("Test Bus Company");
+    expect(user!.businessType).toBe("private-limited");
+    expect(user!.businessRegNumber).toBe("PV12345");
+    expect(user!.tinNumber).toBe("TIN123456");
   });
 
-  it("should allow registration without business profile", async () => {
+  it("should allow registration without business info", async () => {
     const response = await request(app)
       .post(`${API_BASE}/owner/register`)
       .send({
         ...validOwnerData,
-        businessProfile: undefined,
+        businessInfo: undefined,
       });
 
     expect(response.status).toBe(201);

@@ -4,7 +4,9 @@ import { ApiError } from "../../middleware/errorHandler.js";
 import { deleteByUrl } from "../../utils/storage.js";
 import { config } from "../../config/index.js";
 import { dispatchNotification } from "../notification/notification.service.js";
+import { accrueSettlementForBooking } from "./settlement.service.js";
 import {
+  bookingConfirmedToCustomer,
   paymentFailedToCustomer,
   paymentReceivedToCustomer,
 } from "../notification/notification.events.js";
@@ -470,6 +472,68 @@ export const getBankDetails = () => {
   return config.bankDetails;
 };
 
+/**
+ * Advance a booking once its payment has completed: PENDING reserve -> CONFIRMED
+ * and block the vehicle availability calendar for the booking window so the
+ * owner's calendar and the booking ledger stay in sync. Idempotent — safe to
+ * call again on webhook retries. Reused by any channel that completes a payment
+ * (PayHere webhook now; owner/admin bank-transfer confirmation later).
+ */
+export const applyPaymentCompletion = async (
+  bookingId: string,
+): Promise<void> => {
+  const outcome = await prisma.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        status: true,
+        vehicleId: true,
+        customerId: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+    if (!booking) return null;
+
+    let confirmed = false;
+    if (booking.status === "PENDING") {
+      await tx.booking.update({
+        where: { id: booking.id },
+        data: { status: "CONFIRMED" },
+      });
+      confirmed = true;
+    }
+
+    const existingBlock = await tx.vehicleAvailability.findFirst({
+      where: { vehicleId: booking.vehicleId, reason: `Booking ${booking.id}` },
+      select: { id: true },
+    });
+    if (!existingBlock) {
+      await tx.vehicleAvailability.create({
+        data: {
+          vehicleId: booking.vehicleId,
+          startDate: booking.startDate,
+          endDate: booking.endDate,
+          isBlocked: true,
+          reason: `Booking ${booking.id}`,
+        },
+      });
+    }
+
+    // Record the paid booking on the owner's settlement ledger (idempotent).
+    await accrueSettlementForBooking(tx, booking.id);
+
+    return { customerId: booking.customerId, confirmed };
+  });
+
+  if (outcome?.confirmed) {
+    dispatchNotification(
+      bookingConfirmedToCustomer(outcome.customerId, { bookingId }),
+    );
+  }
+};
+
 export const handlePayHereWebhook = async (payload: PayHereWebhookPayload) => {
   if (!payload.order_id) {
     throw ApiError.badRequest("Missing PayHere order ID");
@@ -521,6 +585,8 @@ export const handlePayHereWebhook = async (payload: PayHereWebhookPayload) => {
   });
 
   if (nextStatus === "COMPLETED") {
+    // Advance the booking and block availability now that funds are in.
+    await applyPaymentCompletion(payment.bookingId);
     dispatchNotification(
       paymentReceivedToCustomer(payment.userId, {
         bookingId: payment.bookingId,

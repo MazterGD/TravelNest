@@ -194,6 +194,7 @@ router.patch(
   "/:id/confirm",
   authenticate,
   authorize("owner", "admin"),
+  csrfProtection,
   asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const ownerId = req.user!.id;
@@ -317,6 +318,7 @@ router.patch(
   "/:id/complete",
   authenticate,
   authorize("owner", "admin"),
+  csrfProtection,
   asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const ownerId = req.user!.id;

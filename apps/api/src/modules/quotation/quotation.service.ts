@@ -1202,18 +1202,21 @@ export const respondToQuotation = async (
         },
       });
 
-      // Create booking within the same transaction
+      // Create booking within the same transaction. The booking starts as a
+      // PENDING reserve (holds the vehicle's dates) — it is only advanced to
+      // CONFIRMED once payment completes. The owner does not re-confirm.
       const booking = await tx.booking.create({
         data: {
           customerId: quotation.customerId,
           vehicleId: quotation.vehicleId!,
+          quotationId: quotation.id,
           startDate: quotation.startDate,
           endDate: quotation.endDate,
           pickupLocation: quotation.pickupLocation,
           dropoffLocation: quotation.dropoffLocation,
           totalPassengers: quotation.passengerCount,
           totalAmount: quotation.totalAmount || 0,
-          status: "CONFIRMED",
+          status: "PENDING",
           notes: `Booking created from quotation ${quotation.quotationId}. ${quotation.specialRequests || ""}`,
           // Include trip details from quotation
           estimatedDistance: quotation.estimatedDistance,
@@ -1221,9 +1224,24 @@ export const respondToQuotation = async (
         },
       });
 
-      // Flip the parent trip to CONFIRMED so the customer's trip list reflects
-      // that this trip now has a real booking.
+      // Accepting one quotation auto-rejects the sibling quotations under the
+      // same trip — the customer has made their choice.
       if (quotation.tripId) {
+        await tx.quotation.updateMany({
+          where: {
+            tripId: quotation.tripId,
+            id: { not: quotationId },
+            status: { in: ["PENDING", "SENT", "VIEWED"] },
+          },
+          data: {
+            status: "REJECTED",
+            rejectionReason: "Another quotation was accepted for this trip",
+            respondedAt: new Date(),
+          },
+        });
+
+        // Flip the parent trip to CONFIRMED so the customer's trip list reflects
+        // that this trip now has a real booking.
         await tx.trip.update({
           where: { id: quotation.tripId },
           data: { status: "CONFIRMED" },

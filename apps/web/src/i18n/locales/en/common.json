@@ -3538,6 +3538,18 @@
       "refundWindow": {
         "label": "Customer refund window (hours)",
         "help": "Hours before trip start when refunds are still allowed."
+      },
+      "refundFull": {
+        "label": "Full refund window (hours before start)",
+        "help": "Cancel at least this many hours before start for a 100% refund (e.g. 336 = 14 days)."
+      },
+      "refundPartialWindow": {
+        "label": "Partial refund window (hours before start)",
+        "help": "Cancel at least this many hours before start for a partial refund (e.g. 168 = 7 days)."
+      },
+      "refundPartialPercent": {
+        "label": "Partial refund percentage",
+        "help": "Percentage refunded inside the partial window; cancellations later than this get 0%."
       }
     },
     "security": {

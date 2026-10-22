@@ -35,17 +35,55 @@ const testOwnerData = {
     postalCode: "10100",
     baseLocation: "Colombo",
   },
+  ownerDocuments: [
+    {
+      type: "NIC",
+      fileName: "nic.pdf",
+      fileSize: 1024,
+      mimeType: "application/pdf",
+      url: "https://example.com/docs/nic.pdf",
+    },
+    {
+      type: "PROFILE_PHOTO",
+      fileName: "photo.jpg",
+      fileSize: 2048,
+      mimeType: "image/jpeg",
+      url: "https://example.com/docs/photo.jpg",
+    },
+  ],
   vehicles: [
     {
       registrationNumber: "VEH-TEST-001",
-      vehicleType: "luxury",
+      vehicleType: "LUXURY_AC",
       make: "Ashok Leyland",
       model: "Viking",
       year: 2022,
       seatingCapacity: 45,
-      acType: "full-ac",
+      acType: "FULL_AC",
       photos: [],
-      documents: [],
+      documents: [
+        {
+          type: "DRIVING_LICENSE",
+          fileName: "license.pdf",
+          fileSize: 1024,
+          mimeType: "application/pdf",
+          url: "https://example.com/docs/license.pdf",
+        },
+        {
+          type: "INSURANCE",
+          fileName: "insurance.pdf",
+          fileSize: 1024,
+          mimeType: "application/pdf",
+          url: "https://example.com/docs/insurance.pdf",
+        },
+        {
+          type: "REGISTRATION_CERTIFICATE",
+          fileName: "cr.pdf",
+          fileSize: 1024,
+          mimeType: "application/pdf",
+          url: "https://example.com/docs/cr.pdf",
+        },
+      ],
     },
   ],
 };
@@ -73,7 +111,6 @@ async function cleanupTestData() {
       });
       await prisma.vehicle.deleteMany({ where: { ownerId: user.id } });
       await prisma.ownerDocument.deleteMany({ where: { ownerId: user.id } });
-      await prisma.businessProfile.deleteMany({ where: { ownerId: user.id } });
     }
   }
 
@@ -135,9 +172,9 @@ describe("GET /vehicles/my - Get Owner's Vehicles", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(Array.isArray(response.body.data)).toBe(true);
-    expect(response.body.data.length).toBe(1);
-    expect(response.body.data[0].licensePlate).toBe("VEH-TEST-001");
+    expect(Array.isArray(response.body.data.vehicles)).toBe(true);
+    expect(response.body.data.vehicles.length).toBe(1);
+    expect(response.body.data.vehicles[0].licensePlate).toBe("VEH-TEST-001");
   });
 
   it("should return empty array for owner with no vehicles", async () => {
@@ -150,7 +187,7 @@ describe("GET /vehicles/my - Get Owner's Vehicles", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.data).toEqual([]);
+    expect(response.body.data.vehicles).toEqual([]);
   });
 
   it("should reject request without authentication", async () => {
@@ -187,8 +224,8 @@ describe("GET /vehicles/my - Get Owner's Vehicles", () => {
       .set("Authorization", `Bearer ${ownerToken}`);
 
     expect(response.status).toBe(200);
-    expect(response.body.data[0]).toHaveProperty("photos");
-    expect(response.body.data[0].photos.length).toBe(1);
+    expect(response.body.data.vehicles[0]).toHaveProperty("photos");
+    expect(response.body.data.vehicles[0].photos.length).toBe(1);
   });
 });
 
@@ -223,8 +260,8 @@ describe("GET /vehicles/:id - Get Single Vehicle", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.id).toBe(vehicleId);
-    expect(response.body.data.licensePlate).toBe("VEH-TEST-001");
+    expect(response.body.data.vehicle.id).toBe(vehicleId);
+    expect(response.body.data.vehicle.licensePlate).toBe("VEH-TEST-001");
   });
 
   it("should return 422 for invalid UUID format (all zeros)", async () => {
@@ -282,8 +319,8 @@ describe("PATCH /vehicles/:id - Update Vehicle", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.model).toBe("Updated Model");
-    expect(response.body.data.year).toBe(2023);
+    expect(response.body.data.vehicle.model).toBe("Updated Model");
+    expect(response.body.data.vehicle.year).toBe(2023);
   });
 
   it("should reject update of vehicle by non-owner", async () => {
@@ -337,7 +374,7 @@ describe("PATCH /vehicles/:id - Update Vehicle", () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.model).not.toContain("<script>");
+    expect(response.body.data.vehicle.model).not.toContain("<script>");
   });
 });
 
@@ -497,7 +534,7 @@ describe("PATCH /vehicles/:id/status - Toggle Vehicle Status", () => {
     expect(vehicle!.isActive).toBe(false);
   });
 
-  it("should reactivate vehicle successfully", async () => {
+  it("should reject owner reactivation (requires admin approval)", async () => {
     // First deactivate
     await prisma.vehicle.update({
       where: { id: vehicleId },
@@ -509,13 +546,14 @@ describe("PATCH /vehicles/:id/status - Toggle Vehicle Status", () => {
       .set("Authorization", `Bearer ${ownerToken}`)
       .send({ isActive: true });
 
-    expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
+    expect(response.status).toBe(403);
+    expect(response.body.success).toBe(false);
 
+    // Vehicle stays inactive until an admin approves an activation request
     const vehicle = await prisma.vehicle.findUnique({
       where: { id: vehicleId },
     });
-    expect(vehicle!.isActive).toBe(true);
+    expect(vehicle!.isActive).toBe(false);
   });
 });
 
@@ -568,7 +606,7 @@ describe("Vehicle Edge Cases", () => {
       .send({ model: "Viking (Premium)" });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.model).toBe("Viking (Premium)");
+    expect(response.body.data.vehicle.model).toBe("Viking (Premium)");
   });
 
   it("should reject invalid year values", async () => {
@@ -626,7 +664,7 @@ describe("Vehicle Photos Management", () => {
 
   it("should add photos to vehicle", async () => {
     const response = await request(app)
-      .post(`${API_BASE}/vehicles/${vehicleId}/photos`)
+      .post(`${API_BASE}/vehicles/${vehicleId}/photos/metadata`)
       .set("Authorization", `Bearer ${ownerToken}`)
       .send({
         photos: [
@@ -646,7 +684,7 @@ describe("Vehicle Photos Management", () => {
 
   it("should reject invalid MIME type for photos", async () => {
     const response = await request(app)
-      .post(`${API_BASE}/vehicles/${vehicleId}/photos`)
+      .post(`${API_BASE}/vehicles/${vehicleId}/photos/metadata`)
       .set("Authorization", `Bearer ${ownerToken}`)
       .send({
         photos: [
@@ -666,7 +704,7 @@ describe("Vehicle Photos Management", () => {
   it("should enforce only one primary photo", async () => {
     // Add first primary photo
     await request(app)
-      .post(`${API_BASE}/vehicles/${vehicleId}/photos`)
+      .post(`${API_BASE}/vehicles/${vehicleId}/photos/metadata`)
       .set("Authorization", `Bearer ${ownerToken}`)
       .send({
         photos: [
@@ -682,7 +720,7 @@ describe("Vehicle Photos Management", () => {
 
     // Add second primary photo
     await request(app)
-      .post(`${API_BASE}/vehicles/${vehicleId}/photos`)
+      .post(`${API_BASE}/vehicles/${vehicleId}/photos/metadata`)
       .set("Authorization", `Bearer ${ownerToken}`)
       .send({
         photos: [

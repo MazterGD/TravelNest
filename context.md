@@ -126,8 +126,10 @@ Characteristic: Require a low-friction onboarding and fleet management workflow.
 - Full status lifecycle: `PENDING → SENT → VIEWED → ACCEPTED / REJECTED / EXPIRED`
 
 **Booking & Payment**
-- Booking workflow: Quotation acceptance → payment → confirmation
-- Booking status lifecycle (implemented): `PENDING` (created, awaiting owner confirmation) → `CONFIRMED` → `ONGOING` → `COMPLETED / CANCELLED`
+- Booking workflow: Quotation acceptance → booking auto-created (reserved) → customer payment → confirmation. Accepting a quotation is the single action that creates the booking; the **owner does not re-confirm** it — the price and availability were already committed when the owner sent the quotation. Accepting one quotation **auto-rejects the sibling quotations** under the same trip.
+- Booking status lifecycle (implemented): `PENDING` (reserved on acceptance — holds the vehicle's dates while awaiting customer payment) → `CONFIRMED` (payment completed) → `ONGOING` → `COMPLETED / CANCELLED`
+- Unpaid reserves are released automatically after a configurable window (`autoCancelUnpaidHours`, default 24h) by a background sweep: the booking is set to `CANCELLED` and the parent trip returns to `AWAITING_QUOTES` so the customer can request fresh quotations. Cash and bank-transfer (receipt-uploaded) reserves are exempt from auto-release.
+- On payment completion the booking is advanced to `CONFIRMED` and the vehicle's `vehicle_availability` calendar is blocked for the booking date range in the same transaction, keeping the owner calendar and booking ledger in sync.
 - *Roadmap:* `DISPUTED` as a distinct booking status (requires a schema migration; disputes currently exist as a separate entity linked to a booking, not as a booking state)
 - Driver information tracking: assigned driver name, license number, and contact stored against a booking record
 - Payment methods:
@@ -138,7 +140,7 @@ Characteristic: Require a low-friction onboarding and fleet management workflow.
 - Advance payment with digital receipt and invoice generation
 - Automatic availability calendar update on booking confirmation
 - **Email notifications** to both parties via Brevo transactional email (*in-app notification records are implemented; transactional email templates are a roadmap item*)
-- *Roadmap:* Time-based cancellation policy enforcement: full refund ≥ 2 weeks prior; 50% refund ≥ 1 week prior. Policy is documented in platform terms but the automated time-check and refund calculation are not yet wired into the cancellation handler.
+- Time-based cancellation refund policy (**implemented**, configurable via admin → platform settings): **100% refund** when cancelled at least `refundFullHours` before trip start (default 336h / 14 days), **`refundPartialPercent`%** (default 50%) when cancelled at least `refundPartialHours` before start (default 168h / 7 days), otherwise **0%**. For paid card bookings the refund is executed via PayHere when the gateway is configured; otherwise the computed refund amount is recorded on the payment for the admin payout to honour. Unpaid (PENDING reserve) cancellations simply release the hold.
 
 **Review & Trust**
 - *Current implementation:* Single aggregate star rating (1–5) with free-text review, linked to a completed booking (verified flag enforced)
