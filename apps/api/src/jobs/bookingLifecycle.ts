@@ -25,12 +25,13 @@ const getAutoCancelHours = async (): Promise<number> => {
 
 /**
  * Release PENDING reserves that were never paid within the configured window so
- * the held vehicle dates free up for other customers. Card intents that reached
- * PROCESSING, bank-transfer receipts (PROCESSING) and cash reserves are left
- * alone — only abandoned reserves (no payment, or a still-PENDING non-cash
- * payment) are released.
+ * the held vehicle dates free up for other customers. Bank-transfer receipts
+ * awaiting review (PROCESSING) and cash reserves are left alone. Released:
+ * no payment, a still-PENDING non-cash payment, a FAILED payment, or a card
+ * checkout abandoned in PROCESSING since before the cutoff (a late PayHere
+ * success is then recorded as owed back by the webhook).
  */
-const releaseExpiredReserves = async (): Promise<void> => {
+export const releaseExpiredReserves = async (): Promise<void> => {
   const hours = await getAutoCancelHours();
   const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
 
@@ -41,6 +42,16 @@ const releaseExpiredReserves = async (): Promise<void> => {
       OR: [
         { payment: { is: null } },
         { payment: { is: { status: "PENDING", method: { not: "CASH" } } } },
+        { payment: { is: { status: "FAILED" } } },
+        {
+          payment: {
+            is: {
+              status: "PROCESSING",
+              method: "CARD",
+              updatedAt: { lt: cutoff },
+            },
+          },
+        },
       ],
     },
     select: {
@@ -52,13 +63,15 @@ const releaseExpiredReserves = async (): Promise<void> => {
   for (const booking of stale) {
     try {
       await prisma.$transaction(async (tx) => {
-        await tx.booking.update({
-          where: { id: booking.id },
+        // Conditional: a payment or cancellation may have landed since the read.
+        const released = await tx.booking.updateMany({
+          where: { id: booking.id, status: "PENDING" },
           data: {
             status: "CANCELLED",
             cancelReason: "Payment not completed within the allowed time",
           },
         });
+        if (released.count !== 1) return;
 
         // Return the parent trip to AWAITING_QUOTES so the customer can request
         // fresh quotations (the sibling quotes were auto-rejected on accept).
