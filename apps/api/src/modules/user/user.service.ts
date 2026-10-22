@@ -301,6 +301,26 @@ export const deleteAccount = async (userId: string) => {
     );
   }
 
+  // Deleting an owner cascades to their vehicles and every booking, payment
+  // and settlement on them, so customers' paid trips would vanish.
+  const [activeOwnerBookings, openSettlements] = await Promise.all([
+    prisma.booking.count({
+      where: {
+        vehicle: { ownerId: userId },
+        status: { in: ["PENDING", "CONFIRMED", "ONGOING"] },
+      },
+    }),
+    prisma.settlement.count({
+      where: { ownerId: userId, status: { in: ["PENDING", "PROCESSING"] } },
+    }),
+  ]);
+
+  if (activeOwnerBookings > 0 || openSettlements > 0) {
+    throw ApiError.badRequest(
+      "Your vehicles have upcoming bookings or unpaid earnings, so the account can't be deleted yet. Complete or cancel those bookings and wait for your payout first.",
+    );
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
