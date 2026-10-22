@@ -61,7 +61,7 @@ pnpm install
 
 ### 3. Environment variables
 
-There are no `.env.example` files. Create the files below yourself.
+Start from the templates `apps/api/.env.example` and `apps/web/.env.example`; they list every variable with comments.
 
 - **`/.env`** (repository root): the API reads this file as well as `apps/api/.env`, and the database scripts use it. Most variables go here.
 - **`apps/web/.env.local`**: public variables for the frontend.
@@ -92,13 +92,13 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY="..."
 
 | Group | Variables |
 |---|---|
-| Server | `PORT` (5000), `API_VERSION` (v1), `APP_URL`, `API_BASE_URL`, `CORS_ORIGIN`, `NODE_ENV` |
+| Server | `PORT` (5000), `API_VERSION` (v1), `APP_URL`, `API_BASE_URL`, `CORS_ORIGIN`, `NODE_ENV`, `TZ` (`Asia/Colombo`), `TRUST_PROXY` (1 behind a reverse proxy), `COOKIE_DOMAIN` (sibling subdomains) |
 | Auth | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRY`, `JWT_REFRESH_EXPIRY`, `OAUTH_STATE_SECRET` |
 | OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`, `FACEBOOK_REDIRECT_URI` |
 | Email (Brevo) | `SMTP_HOST` (`smtp-relay.brevo.com`), `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` |
 | PayHere | `PAYHERE_MERCHANT_ID`, `PAYHERE_MERCHANT_SECRET`, `PAYHERE_APP_ID`, `PAYHERE_APP_SECRET`, `PAYHERE_MODE` (`sandbox`/`live`), `PAYHERE_NOTIFY_URL`, `PAYHERE_RETURN_URL`, `PAYHERE_CANCEL_URL` |
 | Bank transfer | `BANK_NAME`, `BANK_ACCOUNT_NAME`, `BANK_ACCOUNT_NUMBER`, `BANK_BRANCH`, `BANK_REFERENCE_HINT` |
-| Storage | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, `SUPABASE_BUCKET` (`travenest`), `MAX_FILE_SIZE` |
+| Storage | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, `SUPABASE_BUCKET` (`travenest`, public), `SUPABASE_PRIVATE_BUCKET` (`travenest-private`, documents and receipts), `SUPABASE_SERVICE_ROLE_KEY` (API only), `MAX_FILE_SIZE` |
 | Encryption | `SETTLEMENT_BANK_ENCRYPTION_KEY` (falls back to `BANK_DATA_ENCRYPTION_KEY`, then `JWT_SECRET`) |
 | Routing | `OSRM_BASE_URL`, `OSRM_TIMEOUT_MS` |
 | Rate limits (production only) | `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS`, `AUTH_RATE_LIMIT_WINDOW_MS`, `AUTH_RATE_LIMIT_MAX_REQUESTS` |
@@ -106,7 +106,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY="..."
 
 </details>
 
-Without SMTP settings, emails are skipped and OTP codes are printed to the API console instead. Without Supabase settings, file uploads return an error.
+Without SMTP settings, emails are skipped; in development OTP codes and reset links are printed to the API console instead. Without Supabase settings, file uploads return an error. Without `SUPABASE_SERVICE_ROLE_KEY`, development stores private documents in the public bucket (with a warning); production refuses to start.
 
 ### 4. Run OSRM (routing engine)
 

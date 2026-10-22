@@ -85,7 +85,7 @@ The frontend serves three portal contexts from one Next.js application: the cust
 |---|---|---|
 | Runtime | Node.js (ESM, `tsx` in dev, `tsc` build) | |
 | Framework | Express 4 | |
-| ORM | Prisma 6 | 42 models, 27 enums, 31 migrations (Jan–Jul 2026) |
+| ORM | Prisma 6 | 42 models, 27 enums, 32 migrations (Jan–Oct 2026); soft-delete read filter in `packages/database/src/index.ts` |
 | Authentication | JWT (`jsonwebtoken`) access + refresh tokens with `tokenVersion` | Tokens in cookies; refresh rotation |
 | OAuth | Hand-rolled OAuth 2.0 code flow for Google and Facebook | JWT-signed `state` (`OAUTH_STATE_SECRET`); **no Passport.js** |
 | Password hashing | `bcryptjs` | Account lockout via `failedLoginAttempts` / `lockedUntil` |
@@ -97,7 +97,7 @@ The frontend serves three portal contexts from one Next.js application: the cust
 | Realtime | Socket.IO 4 on the same HTTP server (`/socket.io`) | Rooms `user:<id>` and `conversation:<id>` |
 | Reports | `exceljs` (Excel), `pdfkit` (PDF), CSV | Admin report exports |
 | Logging | `morgan` (`dev` / `combined`) + `console` | Pino is a roadmap item |
-| Tests | Vitest + Supertest | 254 tests; run against the dev database |
+| Tests | Vitest + Supertest | ~410 tests (unit, integration, security regression); run against a dedicated test database (CI: PostGIS service) |
 
 ### Database
 
@@ -118,9 +118,9 @@ The frontend serves three portal contexts from one Next.js application: the cust
 | Routing engine | **OSRM, self-hosted via Docker** on the same VM | Sri Lanka OSM extract; `OSRM_BASE_URL` (dev default `http://127.0.0.1:5001`) |
 | Reverse proxy / TLS | Caddy (automatic Let's Encrypt) on the VM | Planned; not in repo |
 | Database | Managed free Postgres with PostGIS (Supabase or Neon) | Supabase free projects pause after 7 days inactive; Neon scales to zero |
-| File storage | Supabase Storage, `travenest` bucket | See Security for current URL model |
+| File storage | Supabase Storage: public `travenest` bucket (photos, avatars) + private `travenest-private` bucket (documents, receipts) | Private files are served as 1-hour signed URLs (ADR-001) |
 | Email | Brevo free tier (300 emails/day) | |
-| CI | GitHub Actions (`.github/workflows/ci.yml`, `pr.yml`) | Lint, typecheck, tests, build. Known issue: the test DB uses plain `postgres:16-alpine` + `db:push`, which cannot create the PostGIS schema; switch to a PostGIS image + `db:migrate:deploy` |
+| CI | GitHub Actions (`ci.yml`, `pr.yml`, `codeql.yml`) | Lint, typecheck, API + web tests on a PostGIS service with `db:migrate:deploy` and a schema-drift check, build, `pnpm audit --prod` gate, CodeQL |
 | CD | `.github/workflows/cd.yml` | Validation job is active; deploy steps are commented-out placeholders |
 | Error tracking | Sentry Developer (free) | **Roadmap**; no SDK installed yet |
 
@@ -147,6 +147,9 @@ Deployment notes:
 - **Background jobs** run in-process, so the API must run as a **single instance**. Scaling out requires pinning jobs to one instance and moving Socket.IO to a shared adapter.
 - **PayHere webhooks** need a public HTTPS `PAYHERE_NOTIFY_URL`. Locally, use ngrok or the simulator (`pnpm --filter @travenest/api payhere:simulate <bookingId>`).
 - `GET /health` returns `{ status, timestamp, uptime }` for liveness checks.
+- Production environment (see `apps/api/.env.example`): set `TZ=Asia/Colombo` (trip-day checks use server-local dates), `TRUST_PROXY=1` behind Caddy, `COOKIE_DOMAIN` when web and API are sibling subdomains, `SUPABASE_SERVICE_ROLE_KEY` and a private `SUPABASE_PRIVATE_BUCKET`. The API refuses to start in production without the JWT secrets, `CORS_ORIGIN`, `APP_URL`, PayHere merchant credentials and the service-role key.
+- One-off after the private bucket exists: `pnpm --filter @travenest/api storage:backfill-private --apply` moves existing documents and receipts out of the public bucket (dry run without `--apply`).
+- The seed script resets data and creates accounts with known demo passwords; it refuses to run when `NODE_ENV=production`.
 
 ---
 
@@ -154,7 +157,7 @@ Deployment notes:
 
 ### Primary Domain Entities
 
-The Prisma schema (`packages/database/prisma/schema.prisma`) has 42 models. Table names are snake_case via `@@map`.
+The Prisma schema (`packages/database/prisma/schema.prisma`) has 42 models. Table names are snake_case via `@@map`. `User`, `Vehicle`, `VehiclePhoto`, `VehicleDocument`, `OwnerDocument`, `Driver`, `TripPackage`, `Review`, `Notification`, `Faq` and `Testimonial` carry `isRemoved` / `removedAt` for soft delete (ADR-006); a removed user's email and a removed vehicle's licence plate get a `#removed-<id>` suffix so they can be registered again.
 
 **Identity & Access**
 - `User` (`users`): single identity table for all roles. `role`: `CUSTOMER | VEHICLE_OWNER | ADMIN`; `adminRole`: `SUPER_ADMIN | MODERATOR | FINANCE_ADMIN | SUPPORT_ADMIN`; `status`: `ACTIVE | INACTIVE | SUSPENDED | PENDING_VERIFICATION`. Owner business fields (`businessName`, `businessRegNumber`, `tinNumber`) and verification fields (`verifiedAt`, `rejectionReason`) live on the user row. Security fields: `tokenVersion`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`.
@@ -271,7 +274,7 @@ REST base path: `/api/v1`. Mounted routers: `auth`, `users`, `vehicles`, `bookin
 | Geocoding | Nominatim (OSM public API) | Browser `fetch` | Implemented (public usage policy: ≤1 req/s, no heavy use) |
 | Payments | PayHere (LK) | Checkout + MD5-verified webhook (`POST /payments/webhook`) + merchant API OAuth + refund API | Implemented (sandbox and live) |
 | Email | Brevo SMTP relay | `nodemailer` | Implemented: OTP, password reset, booking-confirmed and payment-received emails |
-| File storage | Supabase Storage | `@supabase/supabase-js` with publishable key | Implemented (public object URLs; see Security) |
+| File storage | Supabase Storage | `@supabase/supabase-js`: publishable key (public bucket), service-role key on the API only (private bucket, signed URLs) | Implemented |
 | OAuth | Google, Facebook | Direct OAuth 2.0 code exchange (`fetch`) | Implemented |
 | Error tracking | Sentry (Developer free tier) | `@sentry/*` SDKs | Roadmap |
 
@@ -286,34 +289,37 @@ REST base path: `/api/v1`. Mounted routers: `auth`, `users`, `vehicles`, `bookin
 ### Security (implemented)
 
 **Authentication & sessions**
-- JWT access and refresh tokens in cookies (`SameSite=None; Secure` in production, `Lax` in development); refresh rotation. `tokenVersion` is checked on every request and socket handshake; incrementing it on password change invalidates all sessions.
-- Password login with bcrypt and account lockout; passwordless email OTP login (hashed codes, expiry, attempt limits).
-- OAuth `state` is a signed JWT, validated on callback.
+- JWT access and refresh tokens (HS256 pinned); refresh token in an httpOnly cookie (`SameSite=None; Secure` in production, `Lax` in development; optional `COOKIE_DOMAIN` for sibling subdomains); refresh rotation. Every access token must resolve to an existing, active, non-removed user; `tokenVersion` is checked on every request and socket handshake, so password changes and account removal invalidate all sessions.
+- Password login with bcrypt, account lockout and no account enumeration (dummy hash for unknown emails, status disclosed only after a correct password); passwordless email OTP login (crypto-random codes, hashed, expiry, atomic attempt limit, per-address resend cooldown, generic responses).
+- Registration requires a short-lived proof issued when the registration OTP is verified (ADR-007).
+- Password-reset tokens are stored as SHA-256 hashes, looked up directly and single-use.
+- OAuth `state` is a signed JWT with its own secret and audience, bound to the browser by an httpOnly nonce cookie; tokens never travel in redirect URLs; Google logins require a verified email.
 
 **Request hardening**
 - Helmet with an explicit CSP; CORS restricted to `CORS_ORIGIN` with credentials.
-- **CSRF:** double-submit cookie (`csrf-token` cookie + `x-csrf-token` header, timing-safe compare) on mutating routes in the public, customer and owner modules. Skipped when `NODE_ENV=test`.
-- **Rate limiting:** global 100 req / 15 min and auth 10 req / 15 min per IP, **enforced only when `NODE_ENV=production`**, using the in-memory store.
+- **CSRF:** double-submit cookie (`csrf-token` cookie + `x-csrf-token` header, length-checked timing-safe compare) on every authenticated mutating route, including `/admin/*`. Anonymous endpoints (auth, registration uploads, contact form) have no session to forge. Skipped when `NODE_ENV=test`.
+- **Rate limiting:** global 100 req / 15 min and auth 10 req / 15 min per IP, plus per-route limits on registration uploads, the contact form and route estimates; **enforced only when `NODE_ENV=production`**, using the in-memory store. Behind Caddy set `TRUST_PROXY=1` so limits key on the client IP.
+- Socket.IO refuses handshakes whose `Origin` is not `CORS_ORIGIN` (cross-site WebSocket hijacking).
+- File URLs accepted from clients must be TraveNest storage references and must not belong to another account; uploads are authorized before files are stored.
 - RBAC: `authenticate`, `isCustomer`, `isVehicleOwner`, `isAdmin`, plus `requireAdminRole()` / `requireAdminPermission()` for admin sub-roles.
 - Audit logging middleware records every authenticated mutation under `/api/v1`.
 
 **Data integrity**
-- Payment completion, booking confirmation, availability blocking and settlement accrual run in a single Prisma `$transaction()` and are idempotent for webhook retries.
-- PayHere webhook MD5 signature verified before any state change.
+- Payment completion, booking confirmation, availability blocking and settlement accrual run in a single Prisma `$transaction()` and are idempotent for webhook retries; the same path serves the PayHere webhook, admin bank-transfer confirmation and owner cash confirmation (ADR-002).
+- PayHere webhook: refused without a merchant secret; MD5 signature compared in constant time; merchant id, currency and amount must match the stored payment; COMPLETED/REFUNDED states are final; money arriving for a cancelled booking is recorded as owed back. The charged amount is always the booking total.
+- Race-safe transitions (ADR-004): quotation accept, package booking, cancellations, refunds and settlement payouts claim their state with conditional updates; per-vehicle and per-owner advisory locks serialise booking creation and settlement accrual/payout.
+- Soft delete (ADR-006): user and admin deletions mark rows `isRemoved`; the shared Prisma client hides removed rows from reads unless a query opts in (admin views).
 - Owner bank account numbers and settlement bank fields encrypted at rest (`packages/database/src/settlementBankEncryption.ts`; key from `SETTLEMENT_BANK_ENCRYPTION_KEY`, else `BANK_DATA_ENCRYPTION_KEY`, else derived from `JWT_SECRET`, so set an explicit key in production).
 
 ### Known Gaps (open security and hardening items)
 
 | Gap | Current behaviour | Target |
 |---|---|---|
-| **Storage privacy** | Uploads use the publishable key and return **public** object URLs for all files, including owner NIC, licence and insurance documents and payment receipts | Private bucket for documents/receipts; server-generated short-lived signed URLs; public bucket only for vehicle photos and avatars |
-| CSRF coverage | `/admin/*` routes and `POST /uploads/registration` have no CSRF middleware | Apply `csrfProtection` to all mutating routes |
-| Validation coverage | `booking.routes.ts` has no Zod schemas (validated ad hoc in services) | Add `booking.schemas.ts` |
-| OTP logging | OTP codes are always printed to the console | Log only in development |
+| Validation coverage | `booking.routes.ts` has no Zod schemas (validated in handlers/services) | Add `booking.schemas.ts` |
 | Rate limiter store | In-memory; resets on restart; not shared across instances | Redis store (roadmap) |
+| Refresh tokens | Stateless JWTs; logout clears the cookie but cannot revoke a copied token before it expires | Server-side token store with reuse detection (schema change) |
 | Logging | Morgan + `console`; no structured logs or PII redaction policy | Pino (roadmap) |
 | Error tracking | None | Sentry Developer free tier (roadmap) |
-| Unused dependency | `express-validator` installed but unused | Remove |
 
 ### Scalability
 

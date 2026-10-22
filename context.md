@@ -87,15 +87,16 @@ Status markers: features below are **implemented** unless marked *Roadmap*.
 
 **Authentication & User Management**
 - Email + password registration and login, with account lockout after repeated failed attempts.
-- **Passwordless Email OTP login** and OTP-verified registration. Codes are hashed, time-limited and attempt-limited, and delivered by Brevo transactional email.
+- **Passwordless Email OTP login** and OTP-verified registration. Codes are hashed, time-limited, attempt-limited and throttled per address, and delivered by Brevo transactional email. Registration (customer and owner) requires the short-lived proof returned when the registration OTP is verified. Login and OTP-login responses do not reveal whether an email has an account.
 - Google and Facebook OAuth via a direct OAuth 2.0 implementation (signed `state`; callback page `/auth/callback`). Passport.js is not used.
 - JWT session cookies with refresh-token rotation and `tokenVersion` invalidation (password change logs out all sessions).
-- Password reset via emailed single-use link; change password; delete account; avatar upload.
+- Password reset via emailed single-use link; change password; avatar upload.
+- **Account removal (soft delete):** customers and owners can remove their account when nothing is pending (no active bookings, open disputes, unpaid payouts or open quotations). Removal keeps past trips and payments for the other party and for admins, frees the email for a new registration and ends all sessions. An owner's vehicles, packages and drivers are removed with the account. Users can ask support to erase all of their data from account settings ("Request full data deletion").
 - Role-based access control: Customer, Bus Owner, Admin (4 sub-roles plus granular permissions).
 - Trilingual language switcher (EN / SI / TA) on public, customer and owner surfaces. The admin portal is English-only.
 
 **Owner Onboarding & Fleet Management**
-- Self-registration with business details and document uploads.
+- Self-registration with business details and document uploads. Identity and vehicle documents (and bank-transfer receipts) are stored in a private bucket and shown only to the owner and admins through short-lived signed links.
 - Admin verification: approve, reject or request resubmission per owner, plus approve/reject per document.
 - Owner Pending Approval page showing document and verification status before approval.
 - Vehicle listings: type (see taxonomy), AC type (`full-ac | ac | non-ac`), seats, brand/model/year, fuel, transmission, amenities from an admin-managed catalogue, tagged photos (exterior / interior / front / rear / seats / other), documents, base location with coordinates.
@@ -139,9 +140,10 @@ Status markers: features below are **implemented** unless marked *Roadmap*.
 - On payment completion, the booking is confirmed, the vehicle calendar is blocked, and the owner's settlement is credited in one database transaction.
 - Payment methods:
   - PayHere card payments (MD5-verified webhook; sandbox/live switch; local webhook simulator for development).
-  - Bank transfer: platform bank details shown; customer uploads a receipt; confirmed by admin/owner.
-  - Cash: recorded for on-site settlement.
-- Time-based refund policy (admin-configurable): 100% refund at least `refundFullHours` before start (default 14 days), `refundPartialPercent`% (default 50%) at least `refundPartialHours` before start (default 7 days), otherwise 0%. Paid card bookings are refunded via the PayHere refund API when configured; otherwise the amount is recorded for admin payout. Admins can also cancel with refund.
+  - Bank transfer: platform bank details shown; customer uploads a receipt; a finance admin (SUPER_ADMIN / FINANCE_ADMIN) confirms receipt of the money.
+  - Cash: collected on site; the owner confirms it was received ("Confirm cash received").
+  - Every confirmation (PayHere webhook, admin, owner) runs the same completion: payment completed, booking confirmed, calendar blocked, settlement credited, in one transaction.
+- Time-based refund policy (admin-configurable): 100% refund at least `refundFullHours` before start (default 14 days), `refundPartialPercent`% (default 50%) at least `refundPartialHours` before start (default 7 days), otherwise 0%. Paid card bookings are refunded via the PayHere refund API when configured; otherwise the amount is recorded for admin payout. On a partial or no refund the owner keeps the retained share in their settlement. An owner cancelling a paid booking refunds the customer in full. Admins can also cancel with refund.
 - Per-day itinerary for multi-day bookings.
 - Driver details (assigned roster driver, phone, licence) shown on the booking.
 - Printable booking documents and invoices (browser print to PDF).
@@ -177,7 +179,7 @@ Status markers: features below are **implemented** unless marked *Roadmap*.
 **Admin Dashboard**
 - Dashboard with revenue/user/booking charts, activity feed and pending actions.
 - Owner and vehicle verification queues with per-document review and verification history.
-- User management: view activity, suspend/reinstate, reset password, delete, export; create admins (super admin only).
+- User management: view activity, suspend/reinstate, reset password, remove (soft delete, blocked while anything is pending), export; create admins and manage other admin accounts (super admin only). Removed users, vehicles, reviews, FAQs and testimonials stay visible to admins, marked as removed.
 - Booking management: status overrides, cancel with refund, export.
 - Dispute management, review moderation.
 - Finance: commission rules (`PERCENTAGE / FIXED / TIERED`) and owner settlements. Paid bookings accrue automatically into the owner's pending settlement; admins process payouts.
@@ -202,7 +204,6 @@ Status markers: features below are **implemented** unless marked *Roadmap*.
 **Roadmap (not yet implemented):**
 - Redis caching (search results, OSRM responses), Redis-backed rate limiting and Socket.IO adapter.
 - Pino structured logging; Sentry (free Developer tier) error tracking.
-- Private storage with signed URLs for owner documents and payment receipts.
 - `DISPUTED` booking status.
 - Automatic execution of scheduled reports.
 - Email templates for all notification types.
