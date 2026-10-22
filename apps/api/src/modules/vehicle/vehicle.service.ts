@@ -856,6 +856,25 @@ export const deleteVehiclePhoto = async (
 };
 
 /**
+ * Ensure the vehicle exists and belongs to the owner. Used before files are
+ * stored so uploads to someone else's vehicle never reach storage.
+ */
+export const assertVehicleOwner = async (vehicleId: string, ownerId: string) => {
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    select: { ownerId: true },
+  });
+
+  if (!vehicle) {
+    throw ApiError.notFound("Vehicle not found");
+  }
+
+  if (vehicle.ownerId !== ownerId) {
+    throw ApiError.forbidden("You can only upload files to your own vehicles");
+  }
+};
+
+/**
  * Upload vehicle documents
  */
 export const uploadVehicleDocuments = async (

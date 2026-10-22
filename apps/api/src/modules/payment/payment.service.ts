@@ -378,6 +378,42 @@ export const executePayHereRefund = async (
   }
 };
 
+/**
+ * A receipt can be attached only by the paying customer, to an open payment on
+ * a booking that is still awaiting payment. Checked before the file is stored.
+ */
+export const assertReceiptUploadAllowed = async (
+  userId: string,
+  paymentId: string,
+) => {
+  const payment = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    select: {
+      userId: true,
+      status: true,
+      booking: { select: { status: true } },
+    },
+  });
+
+  if (!payment) {
+    throw ApiError.notFound("Payment not found");
+  }
+
+  if (payment.userId !== userId) {
+    throw ApiError.forbidden("Not authorized to update this payment");
+  }
+
+  if (payment.status === "COMPLETED") {
+    throw ApiError.badRequest("Cannot upload receipt for completed payments");
+  }
+
+  if (payment.status === "REFUNDED" || payment.booking.status !== "PENDING") {
+    throw ApiError.badRequest(
+      "This booking is no longer awaiting payment, so a receipt can't be added.",
+    );
+  }
+};
+
 export const uploadBankReceipt = async (
   userId: string,
   paymentId: string,
@@ -401,9 +437,7 @@ export const uploadBankReceipt = async (
     throw ApiError.forbidden("Not authorized to update this payment");
   }
 
-  if (payment.status === "COMPLETED") {
-    throw ApiError.badRequest("Cannot upload receipt for completed payments");
-  }
+  await assertReceiptUploadAllowed(userId, paymentId);
 
   if (payment.bankReceiptUrl) {
     await deleteByUrl(payment.bankReceiptUrl);

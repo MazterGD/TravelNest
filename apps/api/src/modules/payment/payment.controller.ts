@@ -60,6 +60,8 @@ export const uploadReceipt = async (req: Request, res: Response) => {
     throw ApiError.badRequest("Receipt file is required");
   }
 
+  await paymentService.assertReceiptUploadAllowed(userId, paymentId);
+
   const upload = await uploadPrivateBuffer({
     prefix: `receipts/${paymentId}`,
     fileName: uploadedFile.originalname,

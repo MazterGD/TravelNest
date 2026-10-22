@@ -158,6 +158,8 @@ export const uploadPhotos = async (req: Request, res: Response) => {
     throw ApiError.badRequest("At least one photo is required");
   }
 
+  await vehicleService.assertVehicleOwner(String(id), ownerId);
+
   const uploads = await Promise.all(
     files.map((file) =>
       uploadBuffer({
@@ -250,6 +252,8 @@ export const uploadDocuments = async (req: Request, res: Response) => {
   if (!licenseFile || !insuranceFile || !registrationFile) {
     throw ApiError.badRequest("All vehicle documents are required");
   }
+
+  await vehicleService.assertVehicleOwner(String(id), ownerId);
 
   const documentFiles = [
     { file: licenseFile, type: "DRIVING_LICENSE" },
