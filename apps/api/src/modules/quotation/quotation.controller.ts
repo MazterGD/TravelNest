@@ -3,6 +3,7 @@ import type { VehicleType } from "@travenest/database";
 import type { QuotationQuery } from "./quotation.service.js";
 import * as quotationService from "./quotation.service.js";
 import { ResponseHelper } from "../../utils/response.js";
+import { createQuotationRequestSchema } from "./quotation.schemas.js";
 
 /**
  * Get owner's quotation requests (PENDING)
@@ -104,9 +105,12 @@ export const getQuotationById = async (req: Request, res: Response) => {
 export const createQuotationRequest = async (req: Request, res: Response) => {
   const customerId = req.user!.id;
 
+  // validate() checks but does not replace req.body; reuse the parsed values
+  // so the schema's coercions reach the service.
+  const body = createQuotationRequestSchema.shape.body.parse(req.body);
   const quotation = await quotationService.createQuotationRequest(
     customerId,
-    req.body,
+    body as quotationService.CreateQuotationRequestData,
   );
 
   return ResponseHelper.created(

@@ -5,7 +5,9 @@ import { asyncHandler } from "../../middleware/errorHandler.js";
 import { csrfProtection } from "../../middleware/csrf.js";
 import * as quotationController from "./quotation.controller.js";
 import {
+  createQuotationRequestSchema,
   ownerQuotationRequestsSchema,
+  quotationListQuerySchema,
   respondToQuotationSchema,
   sendQuotationSchema,
 } from "./quotation.schemas.js";
@@ -17,6 +19,7 @@ const router = Router();
 router.get(
   "/my-requests",
   authenticate,
+  validate(quotationListQuerySchema),
   asyncHandler(quotationController.getCustomerQuotations),
 );
 
@@ -25,6 +28,7 @@ router.post(
   "/",
   authenticate,
   csrfProtection,
+  validate(createQuotationRequestSchema),
   asyncHandler(quotationController.createQuotationRequest),
 );
 
@@ -59,6 +63,7 @@ router.get(
   "/owner/sent",
   authenticate,
   authorize("owner", "admin"),
+  validate(quotationListQuerySchema),
   asyncHandler(quotationController.getOwnerSentQuotations),
 );
 
@@ -86,6 +91,7 @@ router.get(
   "/admin/all",
   authenticate,
   authorize("admin"),
+  validate(quotationListQuerySchema),
   asyncHandler(quotationController.getAllQuotations),
 );
 
