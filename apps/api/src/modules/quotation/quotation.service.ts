@@ -3,6 +3,8 @@ import type { Prisma } from "@travenest/database";
 import type { QuotationStatus, VehicleType } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
 import { lockVehicleForBooking } from "../../utils/locks.js";
+import { createWithSequentialCode, yearSequence } from "../../utils/sequentialCode.js";
+import { createTripWithCode } from "../trip/trip.service.js";
 import { config } from "../../config/index.js";
 import { getVehicleTypePricing } from "../admin/settings/settings.service.js";
 import { dispatchNotification } from "../notification/notification.service.js";
@@ -797,16 +799,7 @@ export const createQuotationRequest = async (
     targetOwnerId = vehicle.ownerId;
   }
 
-  // Generate quotation ID
   const currentYear = new Date().getFullYear();
-  const count = await prisma.quotation.count({
-    where: {
-      quotationId: {
-        startsWith: `QUO-${currentYear}`,
-      },
-    },
-  });
-  const quotationId = `QUO-${currentYear}-${String(count + 1).padStart(3, "0")}`;
 
   // Resolve or auto-create the Trip this quotation belongs to. Customers can
   // either pick an active trip explicitly (data.tripId) or implicitly create a
@@ -836,75 +829,81 @@ export const createQuotationRequest = async (
       typeof data.pickupLocation === "object" ? data.pickupLocation : null;
     const dropoffPayload =
       typeof data.dropoffLocation === "object" ? data.dropoffLocation : null;
-    const tripCountYear = await prisma.trip.count({
-      where: { tripCode: { startsWith: `TRP-${currentYear}` } },
-    });
-    const tripCode = `TRP-${currentYear}-${String(tripCountYear + 1).padStart(3, "0")}`;
-    const newTrip = await prisma.trip.create({
-      data: {
-        tripCode,
-        customerId,
-        pickupLocation,
-        pickupCity: pickupPayload?.city || pickupLocation.split(",")[0]?.trim() || null,
-        pickupDistrict: pickupPayload?.district || null,
-        pickupLatitude: pickupPayload?.lat ?? null,
-        pickupLongitude: pickupPayload?.lng ?? null,
-        dropoffLocation: dropoffLocation || null,
-        dropoffCity: dropoffPayload?.city || dropoffLocation.split(",")[0]?.trim() || null,
-        dropoffDistrict: dropoffPayload?.district || null,
-        dropoffLatitude: dropoffPayload?.lat ?? null,
-        dropoffLongitude: dropoffPayload?.lng ?? null,
-        startDate,
-        endDate,
-        startTime: data.startTime || null,
-        isRoundTrip: data.isRoundTrip ?? false,
-        passengerCount: data.passengerCount ?? 1,
-        vehicleTypePreference: vehicleType,
-        needsAC: data.needsAC ?? true,
-        specialRequests: data.specialRequests || null,
-        estimatedDistance: data.estimatedDistance || null,
-        estimatedDuration: data.estimatedDuration || null,
-        itineraryStops: (data.itineraryStops as any) ?? undefined,
-        itineraryRoute: (data.itineraryRoute as any) ?? undefined,
-        intermediateStops: (data.intermediateStops as any) ?? undefined,
-        // Will be flipped to AWAITING_QUOTES below once the quotation is
-        // created.
-        status: "PLANNING",
-      },
-    });
+    const newTrip = await createTripWithCode((tripCode) =>
+      prisma.trip.create({
+        data: {
+          tripCode,
+          customerId,
+          pickupLocation,
+          pickupCity: pickupPayload?.city || pickupLocation.split(",")[0]?.trim() || null,
+          pickupDistrict: pickupPayload?.district || null,
+          pickupLatitude: pickupPayload?.lat ?? null,
+          pickupLongitude: pickupPayload?.lng ?? null,
+          dropoffLocation: dropoffLocation || null,
+          dropoffCity: dropoffPayload?.city || dropoffLocation.split(",")[0]?.trim() || null,
+          dropoffDistrict: dropoffPayload?.district || null,
+          dropoffLatitude: dropoffPayload?.lat ?? null,
+          dropoffLongitude: dropoffPayload?.lng ?? null,
+          startDate,
+          endDate,
+          startTime: data.startTime || null,
+          isRoundTrip: data.isRoundTrip ?? false,
+          passengerCount: data.passengerCount ?? 1,
+          vehicleTypePreference: vehicleType,
+          needsAC: data.needsAC ?? true,
+          specialRequests: data.specialRequests || null,
+          estimatedDistance: data.estimatedDistance || null,
+          estimatedDuration: data.estimatedDuration || null,
+          itineraryStops: (data.itineraryStops as any) ?? undefined,
+          itineraryRoute: (data.itineraryRoute as any) ?? undefined,
+          intermediateStops: (data.intermediateStops as any) ?? undefined,
+          // Will be flipped to AWAITING_QUOTES below once the quotation is
+          // created.
+          status: "PLANNING",
+        },
+      }),
+    );
     resolvedTripId = newTrip.id;
   }
 
   // Create quotation with only allowed fields (whitelist approach)
-  const quotation = await prisma.quotation.create({
-    data: {
-      quotationId,
-      customerId,
-      tripId: resolvedTripId,
-      vehicleId: data.vehicleId || null,
-      vehicleType,
-      startDate,
-      endDate,
-      startTime: data.startTime || null,
-      pickupLocation,
-      dropoffLocation: dropoffLocation || null,
-      passengerCount: data.passengerCount || null,
-      estimatedDistance: data.estimatedDistance || null,
-      estimatedDuration: data.estimatedDuration || null,
-      specialRequests: data.specialRequests || null,
-      status: "PENDING",
-    },
-    include: {
-      customer: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
+  const quotation = await createWithSequentialCode(
+    "quotationId",
+    async () =>
+      (await prisma.quotation.count({
+        where: { quotationId: { startsWith: `QUO-${currentYear}` } },
+      })) + 1,
+    (sequence) => yearSequence("QUO", currentYear, sequence),
+    (quotationId) => prisma.quotation.create({
+      data: {
+        quotationId,
+        customerId,
+        tripId: resolvedTripId,
+        vehicleId: data.vehicleId || null,
+        vehicleType,
+        startDate,
+        endDate,
+        startTime: data.startTime || null,
+        pickupLocation,
+        dropoffLocation: dropoffLocation || null,
+        passengerCount: data.passengerCount || null,
+        estimatedDistance: data.estimatedDistance || null,
+        estimatedDuration: data.estimatedDuration || null,
+        specialRequests: data.specialRequests || null,
+        status: "PENDING",
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
         },
       },
-    },
-  });
+    }),
+  );
 
   // Promote a PLANNING trip to AWAITING_QUOTES now that it has a quotation.
   if (resolvedTripId) {

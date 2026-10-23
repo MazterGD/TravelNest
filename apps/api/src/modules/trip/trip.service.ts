@@ -1,6 +1,7 @@
 import { prisma } from "@travenest/database";
 import type { TripStatus, VehicleType } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
+import { createWithSequentialCode, yearSequence } from "../../utils/sequentialCode.js";
 
 export interface LocationInput {
   address?: string;
@@ -84,12 +85,15 @@ const extractLocationFields = (
   };
 };
 
-const generateTripCode = async (): Promise<string> => {
+export const createTripWithCode = <T>(create: (tripCode: string) => Promise<T>) => {
   const year = new Date().getFullYear();
-  const count = await prisma.trip.count({
-    where: { tripCode: { startsWith: `TRP-${year}` } },
-  });
-  return `TRP-${year}-${String(count + 1).padStart(3, "0")}`;
+  return createWithSequentialCode(
+    "tripCode",
+    async () =>
+      (await prisma.trip.count({ where: { tripCode: { startsWith: `TRP-${year}` } } })) + 1,
+    (sequence) => yearSequence("TRP", year, sequence),
+    create,
+  );
 };
 
 const validateDates = (start: Date, end: Date) => {
@@ -162,41 +166,41 @@ export const createTrip = async (
   const endDate = data.endDate ? new Date(data.endDate) : startDate;
   validateDates(startDate, endDate);
 
-  const tripCode = await generateTripCode();
-
-  const trip = await prisma.trip.create({
-    data: {
-      tripCode,
-      customerId,
-      title: data.title?.trim() || null,
-      pickupLocation: pickup.display,
-      pickupCity: pickup.city,
-      pickupDistrict: pickup.district,
-      pickupLatitude: pickup.lat,
-      pickupLongitude: pickup.lng,
-      dropoffLocation: dropoff.display || null,
-      dropoffCity: dropoff.city,
-      dropoffDistrict: dropoff.district,
-      dropoffLatitude: dropoff.lat,
-      dropoffLongitude: dropoff.lng,
-      startDate,
-      endDate,
-      startTime: data.startTime || null,
-      isRoundTrip: data.isRoundTrip ?? false,
-      passengerCount: data.passengerCount,
-      vehicleTypePreference: data.vehicleTypePreference ?? null,
-      needsAC: data.needsAC ?? true,
-      specialRequests: data.specialRequests?.trim() || null,
-      estimatedDistance: data.estimatedDistance || null,
-      estimatedDuration: data.estimatedDuration || null,
-      itineraryStops: data.itineraryStops ?? undefined,
-      itineraryRoute: data.itineraryRoute ?? undefined,
-      intermediateStops: data.intermediateStops
-        ? (data.intermediateStops as any)
-        : undefined,
-      status: "PLANNING",
-    },
-  });
+  const trip = await createTripWithCode((tripCode) =>
+    prisma.trip.create({
+      data: {
+        tripCode,
+        customerId,
+        title: data.title?.trim() || null,
+        pickupLocation: pickup.display,
+        pickupCity: pickup.city,
+        pickupDistrict: pickup.district,
+        pickupLatitude: pickup.lat,
+        pickupLongitude: pickup.lng,
+        dropoffLocation: dropoff.display || null,
+        dropoffCity: dropoff.city,
+        dropoffDistrict: dropoff.district,
+        dropoffLatitude: dropoff.lat,
+        dropoffLongitude: dropoff.lng,
+        startDate,
+        endDate,
+        startTime: data.startTime || null,
+        isRoundTrip: data.isRoundTrip ?? false,
+        passengerCount: data.passengerCount,
+        vehicleTypePreference: data.vehicleTypePreference ?? null,
+        needsAC: data.needsAC ?? true,
+        specialRequests: data.specialRequests?.trim() || null,
+        estimatedDistance: data.estimatedDistance || null,
+        estimatedDuration: data.estimatedDuration || null,
+        itineraryStops: data.itineraryStops ?? undefined,
+        itineraryRoute: data.itineraryRoute ?? undefined,
+        intermediateStops: data.intermediateStops
+          ? (data.intermediateStops as any)
+          : undefined,
+        status: "PLANNING",
+      },
+    }),
+  );
 
   return trip;
 };
