@@ -281,5 +281,13 @@ describe("DisputesView", () => {
     expect(within(screen.getByRole("dialog")).getByText("noBookings")).toBeTruthy();
   });
 
-  it.todo("raise-dispute Select fields have labels associated with their controls (DisputesView.tsx:422-433 pass no id, so <label htmlFor> is undefined)");
+  it("links the raise-dispute select labels to their controls", async () => {
+    render(<DisputesView locale="en" bookingOptions={bookings} />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole("button", { name: "raiseButton" }));
+
+    const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByLabelText("fieldBooking").tagName).toBe("SELECT");
+    expect(dialog.getByLabelText("fieldType").tagName).toBe("SELECT");
+  });
 });

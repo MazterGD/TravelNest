@@ -402,9 +402,25 @@ describe("QuotationRequestForm", () => {
     expect(onSubmit.mock.calls[0][0]).toMatchObject({ isRoundTrip: true, returnDate: "2026-12-03", returnTime: "18:00" });
   });
 
-  it.todo("date/time pickers stay controlled from first render (QuotationRequestForm.tsx:244-269 pass value={undefined}, React warns 'changing an uncontrolled input to be controlled')");
+  it("keeps date/time pickers controlled from the first render", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { container } = render(<QuotationRequestForm onSubmit={vi.fn()} />);
 
-  it.todo("pickup and dropoff address/city inputs get unique ids so each label targets its own field (QuotationRequestForm.tsx:181-221 derive the same id from identical labels)");
+    fireEvent.change(container.querySelector('input[type="date"]')!, { target: { value: "2026-12-01" } });
+
+    expect(errors.mock.calls.some((call: unknown[]) => String(call[0]).includes("uncontrolled"))).toBe(false);
+    errors.mockRestore();
+  });
+
+  it("gives the pickup and dropoff fields their own ids", () => {
+    const { container } = render(<QuotationRequestForm onSubmit={vi.fn()} />);
+
+    const ids = Array.from(container.querySelectorAll("input[id]")).map((input) => input.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const label of Array.from(container.querySelectorAll("label[for]"))) {
+      expect(document.getElementById(label.getAttribute("for")!)).not.toBeNull();
+    }
+  });
 });
 
 describe("ReviewForm", () => {

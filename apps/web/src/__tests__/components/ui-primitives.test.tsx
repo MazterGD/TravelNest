@@ -145,10 +145,15 @@ describe("CTAButton", () => {
 });
 
 describe("Input", () => {
-  it("links label to input via a slugified id and shows helper text", () => {
-    render(<Input label="Full Name" helperText="As on NIC" />);
-    const input = screen.getByLabelText("Full Name");
-    expect(input.getAttribute("id")).toBe("full-name");
+  it("links each label to its own input and shows helper text", () => {
+    render(
+      <>
+        <Input label="Address" helperText="As on NIC" />
+        <Input label="Address" />
+      </>,
+    );
+    const [first, second] = screen.getAllByLabelText("Address");
+    expect(first.id).not.toBe(second.id);
     expect(screen.getByText("As on NIC")).toBeTruthy();
   });
 

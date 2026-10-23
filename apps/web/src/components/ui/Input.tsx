@@ -1,4 +1,4 @@
-import { forwardRef, InputHTMLAttributes, ReactNode } from "react";
+import { forwardRef, InputHTMLAttributes, ReactNode, useId } from "react";
 import { cn } from "@/lib/utils/cn";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -24,7 +24,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref,
   ) => {
-    const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
+    // Label-derived ids collided when two fields shared a label (e.g. "Address").
+    const generatedId = useId();
+    const inputId = id || generatedId;
 
     return (
       <div className="w-full">

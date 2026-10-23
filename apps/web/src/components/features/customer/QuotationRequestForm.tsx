@@ -241,14 +241,14 @@ export function QuotationRequestForm({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <DatePicker
-              value={formData.pickupDate}
+              value={formData.pickupDate ?? ""}
               onChange={(e) => updateField("pickupDate", e.target.value)}
               label={t("pickupDate")}
               min={new Date().toISOString().split("T")[0]}
               error={errors.pickupDate}
             />
             <TimePicker
-              value={formData.pickupTime}
+              value={formData.pickupTime ?? ""}
               onChange={(e) => updateField("pickupTime", e.target.value)}
               label={t("pickupTime")}
               error={errors.pickupTime}
@@ -257,7 +257,7 @@ export function QuotationRequestForm({
           {isRoundTrip && (
             <div className="grid grid-cols-2 gap-4">
               <DatePicker
-                value={formData.returnDate}
+                value={formData.returnDate ?? ""}
                 onChange={(e) => updateField("returnDate", e.target.value)}
                 label={t("returnDate")}
                 min={
@@ -266,7 +266,7 @@ export function QuotationRequestForm({
                 error={errors.returnDate}
               />
               <TimePicker
-                value={formData.returnTime}
+                value={formData.returnTime ?? ""}
                 onChange={(e) => updateField("returnTime", e.target.value)}
                 label={t("returnTime")}
               />

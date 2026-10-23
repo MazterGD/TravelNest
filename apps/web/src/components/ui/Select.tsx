@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useState, type SelectHTMLAttributes } from "react";
+import { forwardRef, useId, useState, type SelectHTMLAttributes } from "react";
 import { cn } from "@/lib/utils/cn";
 import { useClickOutside } from "@/hooks";
 
@@ -38,6 +38,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     },
     ref
   ) => {
+    const generatedId = useId();
+    const selectId = id || generatedId;
     const [isOpen, setIsOpen] = useState(false);
     // For uncontrolled usage only - tracks internal state when value prop is not provided
     const [internalValue, setInternalValue] = useState("");
@@ -64,7 +66,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       <div className="w-full">
         {label && (
           <label
-            htmlFor={id}
+            htmlFor={selectId}
             className="block text-sm font-medium text-foreground mb-1.5"
           >
             {label}
@@ -75,7 +77,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           {/* Hidden native select for form submission */}
           <select
             ref={ref}
-            id={id}
+            id={selectId}
             value={selectedValue}
             onChange={(e) => handleSelect(e.target.value)}
             className="sr-only"
