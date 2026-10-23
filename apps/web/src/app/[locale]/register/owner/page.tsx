@@ -688,7 +688,10 @@ export default function OwnerRegistrationPage() {
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.isValidationError()) {
-          setFieldErrors(err.getValidationErrors());
+          const errors = err.getValidationErrors();
+          setFieldErrors(errors);
+          // The fields may sit on earlier steps, so also say what failed here.
+          setError(Object.values(errors).join(" ") || err.message);
         } else {
           setError(err.message);
         }

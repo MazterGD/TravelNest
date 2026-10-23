@@ -441,6 +441,7 @@ describe("owner registration", () => {
     });
     expect(ownerRegistrationService.register.mock.calls[0][0].registrationToken).toBe("");
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText("Email taken")).toBeTruthy();
 
     await act(async () => {
       click("actions.completeRegistration");
@@ -509,10 +510,6 @@ describe("owner registration", () => {
     );
     log.mockRestore();
   });
-
-  it.todo(
-    "shows server validation errors from the final registration call — register/owner/page.tsx:690-691 only sets field errors for fields on earlier steps, so on step 5 the user sees no message at all",
-  );
 
   it.todo(
     "submits each vehicle's colour (required), condition, description, driver allowance and amenities — register/owner/page.tsx:642-653 drops them and the API owner schema does not accept them",
