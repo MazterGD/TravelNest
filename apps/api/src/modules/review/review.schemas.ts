@@ -38,5 +38,11 @@ export const updateReviewSchema = z.object({
   }),
 });
 
+export const respondToReviewSchema = z.object({
+  body: z.object({
+    response: z.string({ required_error: "Response is required" }).max(1000),
+  }),
+});
+
 export type CreateReviewBody = z.infer<typeof createReviewSchema>["body"];
 export type UpdateReviewBody = z.infer<typeof updateReviewSchema>["body"];

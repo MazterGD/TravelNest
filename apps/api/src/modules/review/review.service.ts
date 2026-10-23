@@ -169,7 +169,8 @@ export const getPendingReviews = async (
       where: {
         customerId,
         status: "COMPLETED",
-        review: null,
+        // A removed review frees the booking to be reviewed again (ADR-006).
+        OR: [{ review: null }, { review: { isRemoved: true } }],
       },
       skip,
       take: limit,
@@ -194,7 +195,8 @@ export const getPendingReviews = async (
       where: {
         customerId,
         status: "COMPLETED",
-        review: null,
+        // A removed review frees the booking to be reviewed again (ADR-006).
+        OR: [{ review: null }, { review: { isRemoved: true } }],
       },
     }),
   ]);

@@ -421,9 +421,16 @@ describe("Review lifecycle", () => {
       expect(empty.status).toBe(400);
     });
 
-    it.todo(
-      "rejects a non-string owner response with 400 (route has no Zod schema; `response.trim` throws a 500)",
-    );
+    it("rejects a missing or non-string owner response", async () => {
+      for (const body of [{}, { response: 42 }]) {
+        const res = await request(app)
+          .post(`${API_BASE}/reviews/${reviewId}/response`)
+          .set("Authorization", as("ownerA"))
+          .send(body);
+
+        expect(res.status).toBe(422);
+      }
+    });
 
     it("lets the vehicle owner respond once", async () => {
       const first = await request(app)
@@ -534,9 +541,16 @@ describe("Review lifecycle", () => {
       expect(edit.status).toBe(404);
     });
 
-    it.todo(
-      "lists a booking whose review was removed under GET /reviews/pending, since it can be reviewed again",
-    );
+    it("lists a booking whose review was removed as pending again", async () => {
+      const res = await request(app)
+        .get(`${API_BASE}/reviews/pending`)
+        .set("Authorization", as("customer"));
+
+      expect(res.status).toBe(200);
+      expect(
+        res.body.data.pendingReviews.map((p: { bookingId: string }) => p.bookingId),
+      ).toContain(bookings.first);
+    });
 
     it("replaces a removed review and clears the old owner response", async () => {
       const res = await create("customer", {

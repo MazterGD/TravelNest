@@ -3,7 +3,11 @@ import { authenticate, authorize } from "../../middleware/auth.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
 import { csrfProtection } from "../../middleware/csrf.js";
 import { validate } from "../../middleware/validate.js";
-import { createReviewSchema, updateReviewSchema } from "./review.schemas.js";
+import {
+  createReviewSchema,
+  respondToReviewSchema,
+  updateReviewSchema,
+} from "./review.schemas.js";
 import * as reviewController from "./review.controller.js";
 
 const router = Router();
@@ -124,6 +128,7 @@ router.post(
   authenticate,
   authorize("owner", "admin"),
   csrfProtection,
+  validate(respondToReviewSchema),
   asyncHandler(reviewController.respondToReview),
 );
 
