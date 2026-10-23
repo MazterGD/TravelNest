@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -14,9 +14,6 @@ import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility
 import "leaflet-defaulticon-compatibility";
 import L from "leaflet";
 import { api } from "@/lib/api";
-import { Button } from "./Button";
-import { Input } from "./Input";
-import { Search, MapPin, Route, Trash2 } from "lucide-react";
 
 export interface Coordinate {
   lat: number;
@@ -81,9 +78,13 @@ function MapBoundsFitter({
   return null;
 }
 
+// Stable defaults: a fresh [] each render would re-run the waypoint reset effect forever.
+const NO_WAYPOINTS: Coordinate[] = [];
+const NO_ROUTE: [number, number][] = [];
+
 export function InteractiveMap({
-  initialWaypoints = [],
-  initialRouteGeometry = [],
+  initialWaypoints = NO_WAYPOINTS,
+  initialRouteGeometry = NO_ROUTE,
   readOnly = false,
   onRouteCalculated,
   quotationId,
@@ -93,8 +94,6 @@ export function InteractiveMap({
   const [locations, setLocations] = useState<Coordinate[]>(initialWaypoints);
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>(initialRouteGeometry);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distanceKm: number; durationMinutes: number } | null>(null);
 
   useEffect(() => {
@@ -117,40 +116,6 @@ export function InteractiveMap({
       return;
     }
     setLocations((prev) => [...prev, coord]);
-  };
-
-  const handleClear = () => {
-    setLocations([]);
-    setRouteCoordinates([]);
-    setRouteInfo(null);
-  };
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    setIsSearching(true);
-    try {
-      const params = new URLSearchParams({ q: searchQuery + ", Sri Lanka", format: "json", limit: "1" });
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`);
-      const data = await response.json();
-
-      if (data && data.length > 0) {
-        const result = data[0];
-        const newLocation: Coordinate = {
-          lat: parseFloat(result.lat),
-          lng: parseFloat(result.lon),
-          name: result.name || searchQuery,
-        };
-        handleLocationClick(newLocation);
-        setSearchQuery("");
-      } else {
-        alert("Location not found in Sri Lanka.");
-      }
-    } catch (error) {
-      console.error("Search error:", error);
-      alert("Failed to search location.");
-    } finally {
-      setIsSearching(false);
-    }
   };
 
   const calculateRoute = async (waypointsToUse = locations) => {

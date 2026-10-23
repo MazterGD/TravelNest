@@ -215,15 +215,16 @@ describe("InteractiveMap", () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  // A stable array is required: the default `[]` re-runs the reset effect every render (see todo below).
-  const NO_WAYPOINTS: { lat: number; lng: number }[] = [];
+  it("keeps clicked waypoints across re-renders when no initial waypoints are given", () => {
+    const { rerender } = render(<InteractiveMap className="m" />);
+    act(() => h.mapHandlers.click({ latlng: { lat: 6.9, lng: 79.8 } }));
+    rerender(<InteractiveMap className="m" />);
 
-  it.todo(
-    "renders without initialWaypoints without an infinite render loop and keeps clicked waypoints (InteractiveMap.tsx:85 default [] + effect at 100 re-runs every render)",
-  );
+    expect(h.fitBounds).toHaveBeenCalled();
+  });
 
   it("adds waypoints on map click, colours start/mid/end markers and fits bounds", () => {
-    render(<InteractiveMap className="m" initialWaypoints={NO_WAYPOINTS} />);
+    render(<InteractiveMap className="m" />);
     expect(h.fitBounds).not.toHaveBeenCalled();
     act(() => h.mapHandlers.click({ latlng: { lat: 6.9, lng: 79.8 } }));
     act(() => h.mapHandlers.click({ latlng: { lat: 7.2, lng: 80.6 } }));
