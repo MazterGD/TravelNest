@@ -430,10 +430,21 @@ router.post(
       });
     }
 
-    const updatedBooking = await prisma.booking.update({
-      where: { id },
+    // Conditional claim (ADR-004): a cancellation landing in between wins.
+    const claimed = await prisma.booking.updateMany({
+      where: { id, status: "CONFIRMED" },
       data: { status: "ONGOING" },
     });
+    if (claimed.count !== 1) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          message: "This booking was just updated. Please refresh.",
+          code: "CONFLICT",
+        },
+      });
+    }
+    const updatedBooking = await prisma.booking.findUnique({ where: { id } });
 
     res.json({
       success: true,
