@@ -5,18 +5,22 @@ import dns from "node:dns";
 // causes undici fetch to hang until timeout and throw "fetch failed".
 dns.setDefaultResultOrder("ipv4first");
 
+import type { Server } from "node:http";
+import prisma from "@travenest/database";
 import app from "./app.js";
 import { config } from "./config/index.js";
-import { initSocketServer } from "./realtime/socket.js";
+import { getIO, initSocketServer } from "./realtime/socket.js";
 import { startNotificationRetentionJob } from "./jobs/notificationRetention.js";
 import { startBookingLifecycleJobs } from "./jobs/bookingLifecycle.js";
+
+let server: Server | undefined;
 
 const startServer = async () => {
   try {
     // You can add database connection check here
     // await prisma.$connect();
 
-    const server = app.listen(config.port, () => {
+    server = app.listen(config.port, () => {
       console.log(`
 TraveNest API Server Started
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -49,15 +53,21 @@ Realtime: ws://localhost:${config.port}/socket.io
   }
 };
 
-// Handle graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received. Shutting down gracefully...");
-  process.exit(0);
-});
+// Stop taking requests, let in-flight ones finish, then release the database.
+const shutdown = (signal: string) => {
+  console.log(`${signal} received. Shutting down gracefully...`);
+  // Long-lived connections must not keep a deploy waiting forever.
+  setTimeout(() => process.exit(1), 10_000).unref();
+  getIO()?.close();
+  if (!server) {
+    process.exit(0);
+  }
+  server.close(() => {
+    void prisma.$disconnect().finally(() => process.exit(0));
+  });
+};
 
-process.on("SIGINT", () => {
-  console.log("SIGINT received. Shutting down gracefully...");
-  process.exit(0);
-});
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 startServer();
