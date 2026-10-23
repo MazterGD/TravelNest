@@ -1088,6 +1088,7 @@ export default function BookingDetailsContent({
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               placeholder={t("cancelDialog.placeholder")}
+              maxLength={1000}
               rows={4}
               className="mb-4"
             />

@@ -16,6 +16,7 @@ import {
   driverAssignedToCustomer,
 } from "../notification/notification.events.js";
 import { stripRemovedSuffix } from "../../utils/softDelete.js";
+import { lockVehicleForBooking } from "../../utils/locks.js";
 
 /**
  * Time-based cancellation refund policy. Values are configurable by admins via
@@ -975,7 +976,7 @@ export const createBookingFromQuotation = async (
 
   // Create the booking within a transaction to ensure atomicity
   const booking = await prisma.$transaction(async (tx) => {
-    // Double-check availability within transaction
+    await lockVehicleForBooking(tx, quotation.vehicleId!);
     const existingBooking = await tx.booking.findFirst({
       where: {
         vehicleId: quotation.vehicleId!,

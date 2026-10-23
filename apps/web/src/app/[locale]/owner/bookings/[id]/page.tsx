@@ -904,6 +904,7 @@ export default function BookingDetailsPage({
                 <textarea
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
+                  maxLength={1000}
                   rows={3}
                   placeholder={t("cancelModal.reasonPlaceholder")}
                   className="w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-[var(--color-text-tertiary)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

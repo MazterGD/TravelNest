@@ -315,7 +315,6 @@ REST base path: `/api/v1`. Mounted routers: `auth`, `users`, `vehicles`, `bookin
 
 | Gap | Current behaviour | Target |
 |---|---|---|
-| Validation coverage | `booking.routes.ts` has no Zod schemas (validated in handlers/services) | Add `booking.schemas.ts` |
 | Rate limiter store | In-memory; resets on restart; not shared across instances | Redis store (roadmap) |
 | Refresh tokens | Stateless JWTs; logout clears the cookie but cannot revoke a copied token before it expires | Server-side token store with reuse detection (schema change) |
 | Logging | Morgan + `console`; no structured logs or PII redaction policy | Pino (roadmap) |

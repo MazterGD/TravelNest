@@ -2,6 +2,16 @@ import { Router } from "express";
 import { authenticate, authorize } from "../../middleware/auth.js";
 import { asyncHandler } from "../../middleware/errorHandler.js";
 import { csrfProtection } from "../../middleware/csrf.js";
+import { validate } from "../../middleware/validate.js";
+import {
+  adminBookingsQuerySchema,
+  assignDriverSchema,
+  bookingReasonSchema,
+  fromQuotationSchema,
+  myBookingsQuerySchema,
+  ownerBookingsQuerySchema,
+  updateItinerarySchema,
+} from "./booking.schemas.js";
 import * as bookingController from "./booking.controller.js";
 import type { Request, Response } from "express";
 import prisma from "@travenest/database";
@@ -24,6 +34,7 @@ const router = Router();
 router.get(
   "/my-bookings",
   authenticate,
+  validate(myBookingsQuerySchema),
   asyncHandler(bookingController.getMyBookings),
 );
 
@@ -36,6 +47,7 @@ router.post(
   "/from-quotation",
   authenticate,
   csrfProtection,
+  validate(fromQuotationSchema),
   asyncHandler(bookingController.createFromQuotation),
 );
 
@@ -59,6 +71,7 @@ router.patch(
   "/:id/cancel",
   authenticate,
   csrfProtection,
+  validate(bookingReasonSchema),
   asyncHandler(bookingController.cancelBooking),
 );
 
@@ -75,6 +88,7 @@ router.get(
   "/owner/vehicle-bookings",
   authenticate,
   authorize("owner", "admin"),
+  validate(ownerBookingsQuerySchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { status, vehicleId, page = 1, limit = 10 } = req.query;
     const ownerId = req.user!.id;
@@ -257,6 +271,7 @@ router.patch(
   authenticate,
   authorize("owner", "admin"),
   csrfProtection,
+  validate(bookingReasonSchema),
   asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const { reason } = req.body;
@@ -441,6 +456,7 @@ router.get(
   "/",
   authenticate,
   authorize("admin"),
+  validate(adminBookingsQuerySchema),
   asyncHandler(async (req: Request, res: Response) => {
     const { status, page = 1, limit = 10 } = req.query;
 
@@ -516,6 +532,7 @@ router.patch(
   authenticate,
   authorize("owner", "admin"),
   csrfProtection,
+  validate(assignDriverSchema),
   asyncHandler(bookingController.assignDriver),
 );
 
@@ -544,6 +561,7 @@ router.put(
   authenticate,
   authorize("owner", "admin"),
   csrfProtection,
+  validate(updateItinerarySchema),
   asyncHandler(bookingController.updateTripItinerary),
 );
 

@@ -53,7 +53,7 @@ After loading all three documents, you should have indexed the following key fac
 - Backend: Node.js + Express.js modular monolith, Prisma ORM, PostgreSQL 16 + PostGIS, Socket.IO (chat + notification push), in-process `setInterval` jobs (`apps/api/src/jobs/`)
 - Frontend: Next.js 16 (React 19), Tailwind CSS 4, `zustand`, Leaflet + OpenStreetMap tiles, Nominatim geocoding, `@ducanh2912/next-pwa`
 - Auth: JWT cookies + refresh rotation + tokenVersion, bcryptjs, email OTP login, hand-rolled Google + Facebook OAuth (no Passport.js)
-- Validation: Zod via `middleware/validate.ts` on every endpoint (booking module still lacks schemas — known gap)
+- Validation: Zod via `middleware/validate.ts` on every endpoint
 - Routing: self-hosted OSRM (Docker, `OSRM_BASE_URL`); route geometry persisted in PostGIS
 - Email: Brevo SMTP via nodemailer (`modules/notification/email.service.ts`)
 - Caching: none today. Redis (search 5min, OSRM 24h, rate-limiter store, Socket.IO adapter) is **roadmap**
