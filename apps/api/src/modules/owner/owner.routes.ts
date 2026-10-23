@@ -9,8 +9,10 @@ import {
   addOwnerDocumentSchema,
   earningsTransactionsQuerySchema,
   upsertBankAccountSchema,
+  verifyOwnerSchema,
 } from "./owner.schemas.js";
 import { csrfProtection } from "../../middleware/csrf.js";
+import { requireAdminPermission } from "../admin/admin.middleware.js";
 import * as ownerController from "./owner.controller.js";
 
 const router = Router();
@@ -48,6 +50,10 @@ router.patch(
   authenticate,
   csrfProtection,
   authorize("admin"),
+  // Same permission as the admin verification queue, so sub-roles without it
+  // cannot verify owners (and activate their fleet) through this route.
+  requireAdminPermission("admin.verifications.approve"),
+  validate(verifyOwnerSchema),
   asyncHandler(ownerController.verifyOwner),
 );
 
