@@ -197,6 +197,18 @@ export const getVehicleAvailabilitySchema = z.object({
   }),
 });
 
+export const toggleAvailabilitySchema = z.object({
+  body: z.object({
+    available: z.boolean({ required_error: "available is required" }),
+  }),
+});
+
+export const toggleStatusSchema = z.object({
+  body: z.object({
+    isActive: z.boolean({ required_error: "isActive is required" }),
+  }),
+});
+
 export const getSimilarVehiclesSchema = z.object({
   params: z.object({
     id: z.string().cuid("Invalid vehicle ID"),

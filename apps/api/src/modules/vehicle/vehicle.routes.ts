@@ -19,6 +19,8 @@ import {
   getSimilarVehiclesSchema,
   uploadPhotosSchema,
   uploadDocumentsSchema,
+  toggleAvailabilitySchema,
+  toggleStatusSchema,
 } from "./vehicle.schemas.js";
 import { config } from "../../config/index.js";
 
@@ -182,6 +184,7 @@ router.patch(
   authenticate,
   csrfProtection,
   authorize("owner", "admin"),
+  validate(toggleAvailabilitySchema),
   asyncHandler(vehicleController.toggleAvailability),
 );
 
@@ -191,6 +194,7 @@ router.patch(
   authenticate,
   csrfProtection,
   authorize("owner", "admin"),
+  validate(toggleStatusSchema),
   asyncHandler(vehicleController.toggleStatus),
 );
 
