@@ -1,0 +1,779 @@
+/**
+ * Component tests for interactive UI building blocks: Modal, ConfirmDialog,
+ * OtpVerificationModal, Select, Tabs/TabsList, StarRating, QuickActionCard,
+ * date/time pickers, ImageUpload, LocationAutocomplete, EmptyState,
+ * Skeletons, FeatureCard, StepCard, InfoItem and the Icons set.
+ */
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => key,
+  useLocale: () => "en",
+}));
+
+import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { OtpVerificationModal } from "@/components/ui/OtpVerificationModal";
+import { Select } from "@/components/ui/Select";
+import { Tabs, TabsList } from "@/components/ui/Tabs";
+import { StarRating } from "@/components/ui/StarRating";
+import { QuickActionCard, QuickActionGrid } from "@/components/ui/QuickActionCard";
+import { DatePicker, DateTimePicker, TimePicker } from "@/components/ui/DatePicker";
+import { ImageUpload } from "@/components/ui/ImageUpload";
+import { LocationAutocomplete } from "@/components/ui/LocationAutocomplete";
+import {
+  EmptyBoxIcon,
+  EmptyCalendarIcon,
+  EmptyDocumentIcon,
+  EmptyNotificationIcon,
+  EmptySearchIcon,
+  EmptyState,
+} from "@/components/ui/EmptyState";
+import {
+  Skeleton,
+  SkeletonCard,
+  SkeletonDashboard,
+  SkeletonList,
+  SkeletonProfile,
+  SkeletonTable,
+} from "@/components/ui/Skeleton";
+import { FeatureCard, FeatureCardGrid } from "@/components/ui/FeatureCard";
+import { StepCard, StepCardGrid } from "@/components/ui/StepCard";
+import { InfoItem, InfoItemList } from "@/components/ui/InfoItem";
+import { Icons, StarIcon } from "@/components/ui/Icons";
+
+const IconCmp = ({ className }: { className?: string }) => (
+  <svg data-testid="icon-cmp" className={className} />
+);
+
+describe("Modal", () => {
+  it("renders nothing when closed", () => {
+    render(
+      <Modal isOpen={false} onClose={vi.fn()}>
+        Hidden
+      </Modal>,
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.body.style.overflow).toBe("unset");
+  });
+
+  it("renders a labelled dialog in a portal, focuses it and locks scroll", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal isOpen onClose={onClose} title="Hello" size="xl" className="mc">
+        Body
+      </Modal>,
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("modal-title");
+    expect(screen.getByRole("heading", { name: "Hello" }).id).toBe("modal-title");
+    expect(document.activeElement?.className).toContain("max-w-xl");
+    expect(document.body.style.overflow).toBe("hidden");
+    fireEvent.click(screen.getByRole("button", { name: "closeModal" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes on Escape and overlay click", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal isOpen onClose={onClose}>
+        Body
+      </Modal>,
+    );
+    fireEvent.keyDown(document, { key: "Enter" });
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    const overlay = screen.getByRole("dialog").querySelector('[aria-hidden="true"]')!;
+    fireEvent.click(overlay);
+    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("dialog").getAttribute("aria-labelledby")).toBeNull();
+    expect(screen.getByRole("button", { name: "closeModal" }).className).toContain("ml-auto");
+  });
+
+  it("ignores overlay click when disabled and hides header without title/close", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal isOpen onClose={onClose} showCloseButton={false} closeOnOverlayClick={false}>
+        Body
+      </Modal>,
+    );
+    fireEvent.click(screen.getByRole("dialog").querySelector('[aria-hidden="true"]')!);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("restores body scroll on unmount", () => {
+    const { unmount } = render(
+      <Modal isOpen onClose={vi.fn()}>
+        x
+      </Modal>,
+    );
+    unmount();
+    expect(document.body.style.overflow).toBe("unset");
+  });
+});
+
+describe("ConfirmDialog", () => {
+  it("uses translated defaults and confirms then closes", async () => {
+    const onClose = vi.fn();
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ConfirmDialog
+        isOpen
+        onClose={onClose}
+        onConfirm={onConfirm}
+        title="Delete?"
+        message="This cannot be undone"
+      />,
+    );
+    expect(screen.getByText("Delete?")).toBeTruthy();
+    expect(screen.getByText("This cannot be undone")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "cancel" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    const confirm = screen.getByRole("button", { name: "confirm" });
+    expect(confirm.className).toContain("bg-error");
+    fireEvent.click(confirm);
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(2));
+    expect(onConfirm).toHaveBeenCalled();
+  });
+
+  it("shows processing state, disables buttons and does not auto-close", async () => {
+    const onClose = vi.fn();
+    const onConfirm = vi.fn();
+    render(
+      <ConfirmDialog
+        isOpen
+        isLoading
+        variant="warning"
+        onClose={onClose}
+        onConfirm={onConfirm}
+        title="T"
+        message="M"
+        confirmText="Yes"
+        cancelText="No"
+      />,
+    );
+    expect(screen.getByText("processing")).toBeTruthy();
+    const buttons = screen.getAllByRole("button") as HTMLButtonElement[];
+    expect(buttons.every((b) => b.disabled)).toBe(true);
+    expect(screen.getByText("No")).toBeTruthy();
+    fireEvent.click(screen.getByRole("dialog").querySelector('[aria-hidden="true"]')!);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("renders info variant with custom labels", () => {
+    render(
+      <ConfirmDialog
+        isOpen
+        variant="info"
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        title="T"
+        message="M"
+        confirmText="OK"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "OK" }).className).toContain("bg-primary");
+  });
+});
+
+describe("OtpVerificationModal", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  const setup = (over: Partial<Parameters<typeof OtpVerificationModal>[0]> = {}) => {
+    const props = {
+      isOpen: true,
+      destination: "a@b.lk",
+      onClose: vi.fn(),
+      onVerify: vi.fn().mockResolvedValue(undefined),
+      onResend: vi.fn().mockResolvedValue(undefined),
+      ...over,
+    };
+    const utils = render(<OtpVerificationModal {...props} />);
+    return { ...utils, props };
+  };
+
+  it("shows default copy, strips non-digits and validates length", async () => {
+    const { props } = setup();
+    expect(screen.getByText("Verify Your Account")).toBeTruthy();
+    expect(screen.getByText("Enter the 6-digit code sent to a@b.lk.")).toBeTruthy();
+    const input = screen.getByLabelText("OTP Code") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "12a3" } });
+    expect(input.value).toBe("123");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    });
+    expect(screen.getByText("Please enter a valid 6-digit code.")).toBeTruthy();
+    expect(props.onVerify).not.toHaveBeenCalled();
+  });
+
+  it("submits a full code and surfaces Error messages", async () => {
+    const onVerify = vi.fn().mockRejectedValueOnce(new Error("Code expired"));
+    setup({ onVerify });
+    fireEvent.change(screen.getByLabelText("OTP Code"), {
+      target: { value: "1234567" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    });
+    expect(onVerify).toHaveBeenCalledWith("123456");
+    expect(screen.getByText("Code expired")).toBeTruthy();
+  });
+
+  it("uses a fallback message for non-Error verify failures", async () => {
+    setup({ onVerify: vi.fn().mockRejectedValue("nope"), subtitle: "Custom sub" });
+    expect(screen.getByText("Custom sub")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("OTP Code"), { target: { value: "000000" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    });
+    expect(screen.getByText("Invalid or expired code. Please try again.")).toBeTruthy();
+  });
+
+  it("counts down the resend cooldown and resends", async () => {
+    const onResend = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("Too many"))
+      .mockRejectedValueOnce(42);
+    setup({ onResend, title: "Check email" });
+    expect(screen.getByText("Check email")).toBeTruthy();
+    const resend = () => screen.getByRole("button", { name: /Resend/ }) as HTMLButtonElement;
+    expect(resend().textContent).toBe("Resend in 60s");
+    expect(resend().disabled).toBe(true);
+    act(() => {
+      vi.advanceTimersByTime(61000);
+    });
+    expect(resend().textContent).toBe("Resend code");
+    await act(async () => {
+      fireEvent.click(resend());
+    });
+    expect(onResend).toHaveBeenCalledTimes(1);
+    expect(resend().textContent).toBe("Resend in 60s");
+    act(() => {
+      vi.advanceTimersByTime(60000);
+    });
+    await act(async () => {
+      fireEvent.click(resend());
+    });
+    expect(screen.getByText("Too many")).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(resend());
+    });
+    expect(screen.getByText("Failed to resend code. Please try again.")).toBeTruthy();
+  });
+
+  it("disables resend while sending and resets state when closed", () => {
+    const { rerender, props } = setup({ isSending: true });
+    act(() => {
+      vi.advanceTimersByTime(61000);
+    });
+    expect(
+      (screen.getByRole("button", { name: "Resend code" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    fireEvent.change(screen.getByLabelText("OTP Code"), { target: { value: "12" } });
+    rerender(<OtpVerificationModal {...props} isSending={false} isOpen={false} />);
+    rerender(<OtpVerificationModal {...props} isSending={false} isOpen />);
+    expect((screen.getByLabelText("OTP Code") as HTMLInputElement).value).toBe("");
+    expect(screen.getByRole("button", { name: /Resend in 60s/ })).toBeTruthy();
+  });
+
+  it("shows a loading verify button", () => {
+    setup({ isVerifying: true });
+    expect(screen.getByText("Loading...")).toBeTruthy();
+  });
+});
+
+describe("Select", () => {
+  const listOption = (name: string) =>
+    screen.getAllByRole("option", { name }).find((el) => el.tagName === "BUTTON")!;
+  const options = [
+    { value: "a", label: "Alpha" },
+    { value: "b", label: "Beta" },
+    { value: "c", label: "Gamma", disabled: true },
+  ];
+
+  it("opens, selects (uncontrolled) and fires onChange", () => {
+    const onChange = vi.fn();
+    render(<Select id="s" label="Pick" options={options} onChange={onChange} required />);
+    const trigger = screen.getByRole("button", { name: /Select an option/ });
+    expect(trigger.getAttribute("aria-haspopup")).toBe("listbox");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(listOption("Beta"));
+    expect(onChange).toHaveBeenCalledWith("b");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(trigger.textContent).toContain("Beta");
+    expect((screen.getByLabelText("Pick") as HTMLSelectElement).required).toBe(false);
+    fireEvent.click(trigger);
+    expect(listOption("Beta").getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("ignores disabled options and closes on outside click", () => {
+    const onChange = vi.fn();
+    render(<Select options={options} onChange={onChange} />);
+    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(listOption("Gamma"));
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("supports controlled value, native change and error", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <Select options={options} value="a" onChange={onChange} error="Required" placeholder="Choose" />,
+    );
+    expect(screen.getByRole("button").textContent).toContain("Alpha");
+    expect(screen.getByText("Required")).toBeTruthy();
+    fireEvent.change(container.querySelector("select")!, { target: { value: "b" } });
+    expect(onChange).toHaveBeenCalledWith("b");
+    expect(screen.getByRole("button").textContent).toContain("Alpha");
+  });
+
+  it("does not open when disabled", () => {
+    render(<Select options={options} disabled />);
+    const trigger = screen.getByRole("button") as HTMLButtonElement;
+    expect(trigger.disabled).toBe(true);
+    fireEvent.click(trigger);
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it.todo(
+    "uses focus-visible:ring (not focus:ring) on the trigger (Select.tsx:105)",
+  );
+});
+
+describe("Tabs", () => {
+  const tabs = [
+    { id: "one", label: "One", content: <p>First</p>, badge: 3, icon: <i data-testid="ti" /> },
+    { id: "two", label: "Two", content: <p>Second</p>, badge: "new" },
+    { id: "three", label: "Three", content: <p>Third</p>, disabled: true },
+  ];
+
+  it("defaults to the first tab and switches on click", () => {
+    const onChange = vi.fn();
+    render(<Tabs tabs={tabs} onChange={onChange} className="c" tabsClassName="tc" contentClassName="cc" />);
+    expect(screen.getByRole("tablist").className).toContain("tc");
+    const [one, two, three] = screen.getAllByRole("tab");
+    expect(one.getAttribute("aria-selected")).toBe("true");
+    expect(one.getAttribute("aria-controls")).toBe("tabpanel-one");
+    expect(screen.getByText("First")).toBeTruthy();
+    expect(screen.getByTestId("ti")).toBeTruthy();
+    fireEvent.click(two);
+    expect(onChange).toHaveBeenCalledWith("two");
+    expect(two.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tabpanel").id).toBe("tabpanel-two");
+    expect(screen.getByText("Second")).toBeTruthy();
+    expect((three as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it.each(["pills", "underline"] as const)("renders the %s variant with defaultTab", (variant: any) => {
+    render(<Tabs tabs={tabs} defaultTab="two" variant={variant} />);
+    expect(screen.getByText("Second")).toBeTruthy();
+    expect(screen.getByText("new").className).toContain("text-primary");
+    expect(screen.getByText("3").className).toContain("bg-muted");
+  });
+
+  it.todo(
+    "tabpanel aria-labelledby points at an existing tab element id (Tabs.tsx:126 references an id no tab button has)",
+  );
+
+  it.each(["default", "pills", "underline"] as const)("TabsList (%s) is controlled", (variant: any) => {
+    const onTabChange = vi.fn();
+    render(<TabsList activeTab="b" onTabChange={onTabChange} variant={variant} className="x" tabs={[
+      { id: "a", label: "A", badge: 1 },
+      { id: "b", label: "B", badge: 2 },
+      { id: "c", label: "C", disabled: true },
+    ]} />);
+    const [a, b] = screen.getAllByRole("tab");
+    expect(b.getAttribute("aria-selected")).toBe("true");
+    expect(a.getAttribute("aria-selected")).toBe("false");
+    expect(a.className).toContain("text-muted-foreground");
+    fireEvent.click(a);
+    expect(onTabChange).toHaveBeenCalledWith("a");
+  });
+});
+
+describe("StarRating", () => {
+  it("renders display stars, value and label", () => {
+    const { container } = render(<StarRating rating={3.5} showValue label="(12)" size="xs" />);
+    const stars = container.querySelectorAll("svg");
+    expect(stars.length).toBe(5);
+    const filled = Array.from(stars).filter((s) => s.getAttribute("class")?.includes("fill-yellow-400"));
+    expect(filled.length).toBe(4);
+    expect(screen.getByText("3.5")).toBeTruthy();
+    expect(screen.getByText("(12)")).toBeTruthy();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("handles interactive click and hover", () => {
+    const onChange = vi.fn();
+    const onHoverChange = vi.fn();
+    const { container } = render(
+      <StarRating rating={1} interactive hoverRating={4} onChange={onChange} onHoverChange={onHoverChange} maxRating={6} size="lg" />,
+    );
+    const star3 = screen.getByRole("button", { name: "Rate 3 out of 6" });
+    fireEvent.click(star3);
+    expect(onChange).toHaveBeenCalledWith(3);
+    fireEvent.mouseEnter(star3);
+    expect(onHoverChange).toHaveBeenCalledWith(3);
+    fireEvent.mouseLeave(star3);
+    expect(onHoverChange).toHaveBeenLastCalledWith(0);
+    const filled = Array.from(container.querySelectorAll("svg")).filter((s) =>
+      s.getAttribute("class")?.includes("fill-yellow-400"),
+    );
+    expect(filled.length).toBe(4);
+  });
+
+  it("does nothing without handlers and stays static when readOnly", () => {
+    const { rerender } = render(<StarRating rating={2} interactive size="sm" />);
+    const btn = screen.getAllByRole("button")[0];
+    fireEvent.click(btn);
+    fireEvent.mouseEnter(btn);
+    fireEvent.mouseLeave(btn);
+    rerender(<StarRating rating={2} interactive readOnly onChange={vi.fn()} />);
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it.todo("interactive stars use focus-visible:ring instead of focus:ring (StarRating.tsx:119)");
+});
+
+describe("QuickActionCard", () => {
+  it("fires onClick via click, Enter and Space", () => {
+    const onClick = vi.fn();
+    render(<QuickActionCard label="New" icon={IconCmp} variant="success" onClick={onClick} className="q" />);
+    const card = screen.getByRole("button", { name: "New" });
+    expect(card.getAttribute("tabindex")).toBe("0");
+    fireEvent.click(card);
+    fireEvent.keyDown(card, { key: "Enter" });
+    fireEvent.keyDown(card, { key: " " });
+    fireEvent.keyDown(card, { key: "a" });
+    expect(onClick).toHaveBeenCalledTimes(3);
+    expect(screen.getByTestId("icon-cmp").getAttribute("class")).toContain("w-6");
+  });
+
+  it("is inert when disabled and supports node icons without onClick", () => {
+    const onClick = vi.fn();
+    const { rerender } = render(<QuickActionCard label="Off" icon={<b>i</b>} variant="warning" disabled onClick={onClick} />);
+    const card = screen.getByRole("button");
+    expect(card.getAttribute("tabindex")).toBe("-1");
+    expect(card.className).toContain("cursor-not-allowed");
+    fireEvent.click(card);
+    fireEvent.keyDown(card, { key: "Enter" });
+    expect(onClick).not.toHaveBeenCalled();
+    rerender(<QuickActionCard label="NoHandler" icon={<b>i</b>} variant="info" />);
+    fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" });
+    expect(screen.getByText("NoHandler")).toBeTruthy();
+  });
+
+  it.each([2, 3, 4] as const)("QuickActionGrid with %s columns", (columns: any) => {
+    const { container } = render(<QuickActionGrid columns={columns}>x</QuickActionGrid>);
+    expect(container.firstElementChild?.className).toContain("grid-cols-2");
+  });
+
+  it("QuickActionGrid defaults to 4 columns", () => {
+    const { container } = render(<QuickActionGrid>x</QuickActionGrid>);
+    expect(container.firstElementChild?.className).toContain("md:grid-cols-4");
+  });
+});
+
+describe("DatePicker family", () => {
+  it.each([
+    [DatePicker, "date"],
+    [TimePicker, "time"],
+    [DateTimePicker, "datetime-local"],
+  ] as const)("%o renders type %s with label, helper and error", (Cmp: any, type: any) => {
+    const { rerender } = render(<Cmp id="d" label="When" helperText="Pick one" />);
+    const input = screen.getByLabelText("When");
+    expect(input.getAttribute("type")).toBe(type);
+    expect(screen.getByText("Pick one")).toBeTruthy();
+    rerender(<Cmp id="d" error="Bad date" helperText="Pick one" />);
+    expect(screen.getByText("Bad date")).toBeTruthy();
+    expect(screen.queryByText("Pick one")).toBeNull();
+    expect(screen.queryByText("When")).toBeNull();
+  });
+
+  it.todo("date/time pickers use focus-visible:ring instead of focus:ring (DatePicker.tsx:33,81,129)");
+});
+
+describe("ImageUpload", () => {
+  beforeEach(() => {
+    (URL as any).createObjectURL = vi.fn(() => "blob:preview");
+    (URL as any).revokeObjectURL = vi.fn();
+  });
+
+  const img = (size = 10, type = "image/png") => {
+    const f = new File(["x"], "a.png", { type });
+    Object.defineProperty(f, "size", { value: size });
+    return f;
+  };
+
+  it("uploads a valid image via input, previews and removes it", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <ImageUpload label="Cover" value={null} onChange={onChange} required helperText="16:9" aspectRatio="square" />,
+    );
+    expect(screen.getByText("*")).toBeTruthy();
+    expect(screen.getByText("16:9")).toBeTruthy();
+    expect(screen.getByText("PNG, JPG, GIF up to 5MB")).toBeTruthy();
+    const file = img();
+    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
+    expect(onChange).toHaveBeenCalledWith(file);
+    expect(screen.getByAltText("Preview").getAttribute("src")).toBe("blob:preview");
+    fireEvent.click(screen.getByRole("button"));
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview");
+    expect(onChange).toHaveBeenLastCalledWith(null);
+    expect(screen.queryByAltText("Preview")).toBeNull();
+  });
+
+  it("rejects oversize and non-image files with an alert", () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const onChange = vi.fn();
+    const { container } = render(<ImageUpload label="L" value={null} onChange={onChange} maxSize={1} />);
+    const input = container.querySelector('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [img(2 * 1024 * 1024)] } });
+    expect(alertSpy).toHaveBeenCalledWith("Image size must be less than 1MB");
+    fireEvent.change(input, { target: { files: [img(10, "application/pdf")] } });
+    expect(alertSpy).toHaveBeenCalledWith("Please upload an image file");
+    fireEvent.change(input, { target: { files: [] } });
+    expect(onChange).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
+  });
+
+  it("handles drag states and drop, shows errors, keeps external previews", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <ImageUpload label="" value={null} onChange={onChange} preview="/existing.png" error="Required" aspectRatio="wide" helperText="hidden" />,
+    );
+    expect(screen.getByText("Required")).toBeTruthy();
+    expect(screen.queryByText("hidden")).toBeNull();
+    expect(container.querySelector("label")).toBeNull();
+    const zone = screen.getByAltText("Preview").parentElement!;
+    fireEvent.dragEnter(zone);
+    expect(zone.className).toContain("border-primary");
+    fireEvent.dragLeave(zone);
+    expect(zone.className).toContain("border-error-border");
+    fireEvent.dragOver(zone);
+    const file = img();
+    fireEvent.drop(zone, { dataTransfer: { files: [file] } });
+    expect(onChange).toHaveBeenCalledWith(file);
+    fireEvent.drop(zone, { dataTransfer: { files: [] } });
+    fireEvent.click(screen.getByRole("button"));
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+  });
+
+  it.todo("remove-image icon-only button has an aria-label (ImageUpload.tsx:119)");
+});
+
+describe("LocationAutocomplete", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("debounces a Nominatim lookup and selects a suggestion", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      json: async () => [
+        { lat: "6.9", lon: "79.8", display_name: "Colombo, Western", address: { city: "Colombo", state_district: "Colombo District" } },
+        { lat: "7.2", lon: "80.6", display_name: "Kandy, Central", address: { village: "Kandy", county: "Kandy" } },
+        { lat: "8", lon: "81", display_name: "Nowhere", address: undefined },
+        { lat: "9", lon: "80", display_name: "Town X", address: { town: "TX", state: "North" } },
+        { lat: "9", lon: "80", display_name: "Sub Y", address: { suburb: "SY" } },
+      ],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const onChange = vi.fn();
+    const onSelect = vi.fn();
+    const { rerender } = render(
+      <LocationAutocomplete value="" onChange={onChange} onSelectLocation={onSelect} />,
+    );
+    fireEvent.change(screen.getByPlaceholderText("Search location..."), { target: { value: "Col" } });
+    expect(onChange).toHaveBeenCalledWith("Col");
+    rerender(<LocationAutocomplete value="Colombo" onChange={onChange} onSelectLocation={onSelect} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600);
+    });
+    expect(fetchMock.mock.calls[0][0]).toContain("q=Colombo");
+    expect(fetchMock.mock.calls[0][0]).toContain("countrycodes=lk");
+    fireEvent.click(screen.getByText("Colombo, Western").closest("button")!);
+    expect(onSelect).toHaveBeenCalledWith({
+      lat: 6.9,
+      lng: 79.8,
+      displayName: "Colombo, Western",
+      city: "Colombo",
+      district: "Colombo District",
+    });
+    expect(screen.queryByText("Kandy, Central")).toBeNull();
+  });
+
+  it("hides suggestions on outside click and logs fetch failures", async () => {
+    vi.useFakeTimers();
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ json: async () => [{ lat: "1", lon: "2", display_name: "Galle, South", address: {} }] })
+      .mockRejectedValueOnce(new Error("offline"));
+    vi.stubGlobal("fetch", fetchMock);
+    const { rerender } = render(
+      <LocationAutocomplete value="Galle" onChange={vi.fn()} onSelectLocation={vi.fn()} placeholder="Where" disabled={false} />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600);
+    });
+    expect(screen.getByText("Galle, South")).toBeTruthy();
+    fireEvent.mouseDown(screen.getByPlaceholderText("Where"));
+    expect(screen.getByText("Galle, South")).toBeTruthy();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByText("Galle, South")).toBeNull();
+    rerender(<LocationAutocomplete value="Galle Fort" onChange={vi.fn()} onSelectLocation={vi.fn()} placeholder="Where" />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600);
+    });
+    expect(errSpy).toHaveBeenCalledWith("Geocoding failed", expect.any(Error));
+    rerender(<LocationAutocomplete value="Ga" onChange={vi.fn()} onSelectLocation={vi.fn()} placeholder="Where" disabled />);
+    expect((screen.getByPlaceholderText("Where") as HTMLInputElement).disabled).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    errSpy.mockRestore();
+  });
+});
+
+describe("EmptyState and icons", () => {
+  it("renders icon, title, description and action", () => {
+    render(
+      <EmptyState icon={<EmptyBoxIcon className="ic" />} title="Nothing yet" description="Start a trip" action={<button>Go</button>} className="e" />,
+    );
+    expect(screen.getByRole("heading", { name: "Nothing yet" })).toBeTruthy();
+    expect(screen.getByText("Start a trip")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Go" })).toBeTruthy();
+  });
+
+  it("renders minimal empty state and all icons", () => {
+    const { container } = render(
+      <>
+        <EmptyState title="Only title" />
+        <EmptyDocumentIcon />
+        <EmptySearchIcon />
+        <EmptyCalendarIcon />
+        <EmptyNotificationIcon className="n" />
+      </>,
+    );
+    expect(container.querySelectorAll("p").length).toBe(0);
+    expect(container.querySelectorAll("svg").length).toBe(4);
+  });
+});
+
+describe("Skeletons", () => {
+  it("applies variant and animation classes", () => {
+    const { container } = render(
+      <>
+        <Skeleton />
+        <Skeleton variant="circular" animation="wave" />
+        <Skeleton variant="rectangular" animation="none" />
+      </>,
+    );
+    const [a, b, c] = Array.from(container.children);
+    expect(a.className).toContain("animate-pulse");
+    expect(a.className).toContain("h-4");
+    expect(b.className).toContain("animate-shimmer");
+    expect(b.className).toContain("rounded-full");
+    expect(c.className).toContain("rounded-lg");
+    expect(c.className).not.toContain("animate-pulse");
+  });
+
+  it("renders presets with requested counts", () => {
+    const { container } = render(<SkeletonList count={2} />);
+    expect(container.firstElementChild?.children.length).toBe(2);
+    const t = render(<SkeletonTable rows={3} cols={2} />);
+    expect(t.container.firstElementChild?.children.length).toBe(4);
+    render(<SkeletonList />);
+    render(<SkeletonTable />);
+    const p = render(<SkeletonProfile className="p" />);
+    expect(p.container.firstElementChild?.className).toContain("p");
+    const d = render(<SkeletonDashboard />);
+    expect(d.container.querySelectorAll(".rounded-xl").length).toBeGreaterThan(4);
+    render(<SkeletonCard className="k" />);
+  });
+});
+
+describe("FeatureCard / StepCard / InfoItem", () => {
+  it("FeatureCard handles component and node icons and clicks", () => {
+    const onClick = vi.fn();
+    const { rerender } = render(
+      <FeatureCard title="Fast" description="Quick quotes" icon={IconCmp} variant="elevated" onClick={onClick} />,
+    );
+    expect(screen.getByRole("heading", { name: "Fast" })).toBeTruthy();
+    expect(screen.getByTestId("icon-cmp")).toBeTruthy();
+    fireEvent.click(screen.getByText("Quick quotes"));
+    expect(onClick).toHaveBeenCalled();
+    rerender(<FeatureCard title="F" description="D" icon={<b>node</b>} variant="default" />);
+    expect(screen.getByText("node")).toBeTruthy();
+    rerender(<FeatureCard title="F" description="D" icon={<b>node</b>} />);
+  });
+
+  it.each([2, 3, 4, undefined] as const)("FeatureCardGrid/StepCardGrid columns %s", (columns: any) => {
+    const { container } = render(
+      <>
+        <FeatureCardGrid columns={columns as any}>a</FeatureCardGrid>
+        <StepCardGrid columns={columns as any}>b</StepCardGrid>
+      </>,
+    );
+    expect(container.children[0].className).toContain("sm:grid-cols-2");
+    expect(container.children[1].className).toContain("md:grid-cols-2");
+  });
+
+  it("StepCard renders number, connector and both icon kinds", () => {
+    const { container, rerender } = render(
+      <StepCard stepNumber={2} title="Quote" description="Get prices" icon={IconCmp} showConnector variant="secondary" />,
+    );
+    expect(screen.getByText("2").className).toContain("bg-secondary");
+    expect(container.querySelector(".lg\\:block")).toBeTruthy();
+    rerender(<StepCard stepNumber={1} title="S" description="D" icon={<b>n</b>} />);
+    expect(screen.getByText("1").className).toContain("bg-primary");
+    expect(container.querySelector(".lg\\:block")).toBeNull();
+  });
+
+  it("InfoItem renders default, horizontal, compact and link variants", () => {
+    const { rerender, container } = render(<InfoItem title="Email" value="a@b.lk" icon={IconCmp} href="mailto:a@b.lk" />);
+    expect(screen.getByRole("link").getAttribute("href")).toBe("mailto:a@b.lk");
+    expect(screen.getByTestId("icon-cmp").getAttribute("class")).toContain("h-5");
+    rerender(<InfoItem title="Phone" value="077" icon={IconCmp} variant="compact" />);
+    expect(screen.getByTestId("icon-cmp").getAttribute("class")).toContain("h-4");
+    expect(screen.queryByRole("link")).toBeNull();
+    rerender(<InfoItem title="Addr" value="Colombo" icon={<b>n</b>} variant="horizontal" className="h" />);
+    expect(container.firstElementChild?.className).toContain("gap-4");
+    rerender(<InfoItem title="Addr" value="Colombo" icon={<b>n</b>} variant="compact" />);
+    expect(screen.getByText("n").parentElement?.className).toContain("text-sm");
+  });
+
+  it.each(["sm", "md", "lg", undefined] as const)("InfoItemList spacing %s", (spacing: any) => {
+    const { container } = render(<InfoItemList spacing={spacing as any}>x</InfoItemList>);
+    expect(container.firstElementChild?.className).toMatch(/space-y-\d/);
+  });
+});
+
+describe("Icons", () => {
+  it("renders every icon at every size", () => {
+    const sizes = ["xs", "sm", "md", "lg", "xl"] as const;
+    for (const [name, Icon] of Object.entries(Icons)) {
+      for (const size of sizes) {
+        const { container, unmount } = render(<Icon size={size} className={`i-${name}`} strokeWidth={1} />);
+        expect(container.querySelector("svg")?.getAttribute("class")).toContain(`i-${name}`);
+        unmount();
+      }
+      const { unmount } = render(<Icon />);
+      unmount();
+    }
+  });
+
+  it("StarIcon can be filled", () => {
+    const { container } = render(<StarIcon filled />);
+    expect(container.querySelector("svg")?.getAttribute("fill")).toBe("currentColor");
+  });
+});
