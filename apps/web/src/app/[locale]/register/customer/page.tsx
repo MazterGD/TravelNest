@@ -384,10 +384,10 @@ export default function CustomerRegistrationPage() {
                             placeholder={t("fields.firstName.placeholder")}
                             data-field-error={fieldErrors.firstName ? "true" : undefined}
                             className={cn(
-                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                               fieldErrors.firstName
-                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                                ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white"
                             )}
                           />
                         </div>
@@ -414,10 +414,10 @@ export default function CustomerRegistrationPage() {
                             placeholder={t("fields.lastName.placeholder")}
                             data-field-error={fieldErrors.lastName ? "true" : undefined}
                             className={cn(
-                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                               fieldErrors.lastName
-                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                                ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white"
                             )}
                           />
                         </div>
@@ -444,10 +444,10 @@ export default function CustomerRegistrationPage() {
                             placeholder={t("fields.email.placeholder")}
                             data-field-error={fieldErrors.email ? "true" : undefined}
                             className={cn(
-                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                               fieldErrors.email
-                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                                ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white"
                             )}
                           />
                         </div>
@@ -474,10 +474,10 @@ export default function CustomerRegistrationPage() {
                             placeholder={t("fields.phone.placeholder")}
                             data-field-error={fieldErrors.phone ? "true" : undefined}
                             className={cn(
-                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                               fieldErrors.phone
-                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                                ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white"
                             )}
                           />
                         </div>
@@ -508,7 +508,7 @@ export default function CustomerRegistrationPage() {
                             value={formData.organizationName}
                             onChange={handleChange}
                             placeholder="Company or organization name"
-                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all bg-gray-50 focus-visible:bg-white"
                           />
                         </div>
                       </div>
@@ -517,11 +517,11 @@ export default function CustomerRegistrationPage() {
                         <label className="block text-sm font-semibold text-gray-800 mb-1.5">
                           Organization Type
                         </label>
-                        <select className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+                        <select className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-colors"
                           name="organizationType"
                           value={formData.organizationType}
                           onChange={handleChange}
-                          className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none bg-gray-50 focus:bg-white cursor-pointer"
+                          className="w-full px-4 py-4 text-lg border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all appearance-none bg-gray-50 focus-visible:bg-white cursor-pointer"
                         >
                           <option value="">Select type</option>
                           <option value="school">School</option>
@@ -558,10 +558,10 @@ export default function CustomerRegistrationPage() {
                             placeholder={t("fields.address.placeholder")}
                             data-field-error={fieldErrors.address ? "true" : undefined}
                             className={cn(
-                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all resize-none",
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all resize-none",
                               fieldErrors.address
-                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                                ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white"
                             )}
                           />
                         </div>
@@ -585,10 +585,10 @@ export default function CustomerRegistrationPage() {
                             placeholder={t("fields.city.placeholder")}
                             data-field-error={fieldErrors.city ? "true" : undefined}
                             className={cn(
-                              "w-full px-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              "w-full px-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                               fieldErrors.city
-                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                                ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white"
                             )}
                           />
                           {fieldErrors.city && (
@@ -606,7 +606,7 @@ export default function CustomerRegistrationPage() {
                             value={formData.postalCode}
                             onChange={handleChange}
                             placeholder={t("fields.postalCode.placeholder")}
-                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all bg-gray-50 focus-visible:bg-white"
                           />
                         </div>
                       </div>
@@ -635,10 +635,10 @@ export default function CustomerRegistrationPage() {
                             placeholder={t("fields.password.placeholder")}
                             data-field-error={fieldErrors.password ? "true" : undefined}
                             className={cn(
-                              "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                               fieldErrors.password
-                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                                ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white"
                             )}
                           />
                           <button
@@ -704,10 +704,10 @@ export default function CustomerRegistrationPage() {
                             )}
                             data-field-error={fieldErrors.confirmPassword ? "true" : undefined}
                             className={cn(
-                              "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                               fieldErrors.confirmPassword
-                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white"
+                                ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white"
                             )}
                           />
                           <button
@@ -742,7 +742,7 @@ export default function CustomerRegistrationPage() {
                         required
                         checked={formData.termsAccepted}
                         onChange={handleChange}
-                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
+                        className="w-4 h-4 rounded border-gray-300 text-primary focus-visible:ring-primary mt-0.5"
                       />
                       <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                         {t("terms.accept")}{" "}
@@ -763,7 +763,7 @@ export default function CustomerRegistrationPage() {
                         required
                         checked={formData.privacyAccepted}
                         onChange={handleChange}
-                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
+                        className="w-4 h-4 rounded border-gray-300 text-primary focus-visible:ring-primary mt-0.5"
                       />
                       <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                         {t("terms.privacyAccept")}{" "}

@@ -116,7 +116,7 @@ export function StarRating({
               onClick={() => handleClick(star)}
               onMouseEnter={() => handleMouseEnter(star)}
               onMouseLeave={handleMouseLeave}
-              className="p-0.5 focus:outline-none focus:ring-2 focus:ring-primary rounded transition-colors"
+              className="p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded transition-colors"
               aria-label={`Rate ${star} out of ${maxRating}`}
             >
               <StarIcon

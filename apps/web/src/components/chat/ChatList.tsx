@@ -107,7 +107,7 @@ export function ChatList({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("searchPlaceholder")}
-            className={`w-full rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] py-2.5 pl-9 pr-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-base)] focus:bg-[var(--color-bg-base)] ${focusRing}`}
+            className={`w-full rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] py-2.5 pl-9 pr-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-base)] focus-visible:bg-[var(--color-bg-base)] ${focusRing}`}
             aria-label={t("searchPlaceholder")}
           />
         </label>

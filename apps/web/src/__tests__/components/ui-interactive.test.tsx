@@ -344,9 +344,13 @@ describe("Select", () => {
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 
-  it.todo(
-    "uses focus-visible:ring (not focus:ring) on the trigger (Select.tsx:105)",
-  );
+  it("shows its focus ring only for keyboard focus", () => {
+    render(<Select options={options} error="Required" />);
+
+    const trigger = screen.getByRole("button");
+    expect(trigger.className).toContain("focus-visible:ring-2");
+    expect(trigger.className).not.toMatch(/(^|\s)focus:/);
+  });
 });
 
 describe("Tabs", () => {
@@ -441,7 +445,14 @@ describe("StarRating", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it.todo("interactive stars use focus-visible:ring instead of focus:ring (StarRating.tsx:119)");
+  it("gives interactive stars a keyboard focus ring", () => {
+    render(<StarRating rating={2} interactive onChange={vi.fn()} />);
+
+    for (const star of screen.getAllByRole("button")) {
+      expect(star.className).toContain("focus-visible:ring-2");
+      expect(star.className).not.toMatch(/(^|\s)focus:/);
+    }
+  });
 });
 
 describe("QuickActionCard", () => {
@@ -499,7 +510,13 @@ describe("DatePicker family", () => {
     expect(screen.queryByText("When")).toBeNull();
   });
 
-  it.todo("date/time pickers use focus-visible:ring instead of focus:ring (DatePicker.tsx:33,81,129)");
+  it.each([DatePicker, TimePicker, DateTimePicker])("%o uses a keyboard focus ring", (Cmp: any) => {
+    render(<Cmp id="d" label="When" error="Bad" />);
+
+    const input = screen.getByLabelText("When");
+    expect(input.className).toContain("focus-visible:ring-2");
+    expect(input.className).not.toMatch(/(^|\s)focus:/);
+  });
 });
 
 describe("ImageUpload", () => {

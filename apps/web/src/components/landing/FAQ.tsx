@@ -79,7 +79,7 @@ export function FAQ({ contactHref, helpCenterHref }: FAQProps) {
               >
                 <button
                   onClick={() => setOpenIndex(isOpen ? null : index)}
-                  className="flex w-full items-center gap-4 rounded-[20px] px-6 py-5 text-left transition-colors hover:bg-[#F1F5F9] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  className="flex w-full items-center gap-4 rounded-[20px] px-6 py-5 text-left transition-colors hover:bg-[#F1F5F9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   aria-expanded={isOpen}
                 >
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-white">

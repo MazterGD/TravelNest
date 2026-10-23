@@ -120,7 +120,7 @@ export function MessageInput({ disabled, onSend }: MessageInputProps) {
             maxLength={MAX_LENGTH + 100}
             aria-invalid={error ? "true" : undefined}
             aria-describedby={error ? "chat-input-error" : undefined}
-            className="block w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-sm leading-relaxed text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none disabled:opacity-50"
+            className="block w-full resize-none rounded-2xl bg-transparent px-4 py-3 text-sm leading-relaxed text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus-visible:outline-none disabled:opacity-50"
             style={{ maxHeight: `${MAX_HEIGHT_PX}px` }}
           />
         </div>

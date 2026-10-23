@@ -950,10 +950,10 @@ export default function OwnerRegistrationPage() {
                               placeholder={t("fields.firstName.placeholder")}
                               data-field-error={fieldErrors.firstName ? "true" : undefined}
                               className={cn(
-                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                                 fieldErrors.firstName
-                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                  ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                               )}
                             />
                           </div>
@@ -979,10 +979,10 @@ export default function OwnerRegistrationPage() {
                               placeholder={t("fields.lastName.placeholder")}
                               data-field-error={fieldErrors.lastName ? "true" : undefined}
                               className={cn(
-                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                                 fieldErrors.lastName
-                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                  ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                               )}
                             />
                           </div>
@@ -1008,10 +1008,10 @@ export default function OwnerRegistrationPage() {
                               placeholder={t("fields.email.placeholder")}
                               data-field-error={fieldErrors.email ? "true" : undefined}
                               className={cn(
-                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                                 fieldErrors.email
-                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                  ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                               )}
                             />
                           </div>
@@ -1037,10 +1037,10 @@ export default function OwnerRegistrationPage() {
                               placeholder={t("fields.phone.placeholder")}
                               data-field-error={fieldErrors.phone ? "true" : undefined}
                               className={cn(
-                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                                 fieldErrors.phone
-                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                  ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                               )}
                             />
                           </div>
@@ -1066,10 +1066,10 @@ export default function OwnerRegistrationPage() {
                               placeholder={t("fields.nicNumber.placeholder")}
                               data-field-error={fieldErrors.nicNumber ? "true" : undefined}
                               className={cn(
-                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                                 fieldErrors.nicNumber
-                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                  ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                               )}
                             />
                           </div>
@@ -1203,10 +1203,10 @@ export default function OwnerRegistrationPage() {
                             placeholder={t("fields.address.placeholder")}
                             data-field-error={fieldErrors.address ? "true" : undefined}
                             className={cn(
-                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus:outline-none transition-all resize-none",
+                              "w-full pl-10 pr-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all resize-none",
                               fieldErrors.address
-                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                             )}
                           />
                         </div>
@@ -1231,10 +1231,10 @@ export default function OwnerRegistrationPage() {
                             placeholder={t("fields.city.placeholder")}
                             data-field-error={fieldErrors.city ? "true" : undefined}
                             className={cn(
-                              "w-full px-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                              "w-full px-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                               fieldErrors.city
-                                ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                             )}
                           />
                           {fieldErrors.city && (
@@ -1252,10 +1252,10 @@ export default function OwnerRegistrationPage() {
                             id="owner-district"
                             data-field-error={fieldErrors.district ? "true" : undefined}
                             className={cn(
-                              "w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors appearance-none cursor-pointer",
+                              "w-full rounded-xl px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 transition-colors appearance-none cursor-pointer",
                               fieldErrors.district
-                                ? "bg-red-50 border border-red-400 focus:border-red-400 focus:ring-red-100"
-                                : "bg-background border border-border focus:ring-primary focus:border-primary",
+                                ? "bg-red-50 border border-red-400 focus-visible:border-red-400 focus-visible:ring-red-100"
+                                : "bg-background border border-border focus-visible:ring-primary focus-visible:border-primary",
                             )}
                             required
                             value={addressInfo.district}
@@ -1294,7 +1294,7 @@ export default function OwnerRegistrationPage() {
                               })
                             }
                             placeholder={t("fields.postalCode.placeholder")}
-                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all bg-gray-50 focus-visible:bg-white"
                           />
                         </div>
                       </div>
@@ -1312,10 +1312,10 @@ export default function OwnerRegistrationPage() {
                           placeholder={t("fields.baseLocation.placeholder")}
                           data-field-error={fieldErrors.baseLocation ? "true" : undefined}
                           className={cn(
-                            "w-full px-4 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                            "w-full px-4 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                             fieldErrors.baseLocation
-                              ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                              : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                              ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                              : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                           )}
                         />
                         {fieldErrors.baseLocation && (
@@ -1389,10 +1389,10 @@ export default function OwnerRegistrationPage() {
                                 )}
                                 data-field-error={fieldErrors[`vehicle_${index}_registrationNumber`] ? "true" : undefined}
                                 className={cn(
-                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  "w-full px-4 py-3 border rounded-xl focus-visible:outline-none transition-all",
                                   fieldErrors[`vehicle_${index}_registrationNumber`]
-                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                    ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                                 )}
                               />
                               {fieldErrors[`vehicle_${index}_registrationNumber`] && (
@@ -1445,10 +1445,10 @@ export default function OwnerRegistrationPage() {
                                 id={`vehicle-${index}-vehicleType`}
                                 data-field-error={fieldErrors[`vehicle_${index}_vehicleType`] ? "true" : undefined}
                                 className={cn(
-                                  "w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors appearance-none cursor-pointer",
+                                  "w-full rounded-xl px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 transition-colors appearance-none cursor-pointer",
                                   fieldErrors[`vehicle_${index}_vehicleType`]
-                                    ? "bg-red-50 border border-red-400 focus:border-red-400 focus:ring-red-100"
-                                    : "bg-background border border-border focus:ring-primary focus:border-primary",
+                                    ? "bg-red-50 border border-red-400 focus-visible:border-red-400 focus-visible:ring-red-100"
+                                    : "bg-background border border-border focus-visible:ring-primary focus-visible:border-primary",
                                 )}
                                 required
                                 value={vehicle.vehicleType}
@@ -1491,10 +1491,10 @@ export default function OwnerRegistrationPage() {
                                 placeholder={t("fields.make.placeholder")}
                                 data-field-error={fieldErrors[`vehicle_${index}_make`] ? "true" : undefined}
                                 className={cn(
-                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  "w-full px-4 py-3 border rounded-xl focus-visible:outline-none transition-all",
                                   fieldErrors[`vehicle_${index}_make`]
-                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                    ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                                 )}
                               />
                               {fieldErrors[`vehicle_${index}_make`] && (
@@ -1519,10 +1519,10 @@ export default function OwnerRegistrationPage() {
                                 placeholder={t("fields.model.placeholder")}
                                 data-field-error={fieldErrors[`vehicle_${index}_model`] ? "true" : undefined}
                                 className={cn(
-                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  "w-full px-4 py-3 border rounded-xl focus-visible:outline-none transition-all",
                                   fieldErrors[`vehicle_${index}_model`]
-                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                    ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                                 )}
                               />
                               {fieldErrors[`vehicle_${index}_model`] && (
@@ -1549,10 +1549,10 @@ export default function OwnerRegistrationPage() {
                                 max={new Date().getFullYear()}
                                 data-field-error={fieldErrors[`vehicle_${index}_year`] ? "true" : undefined}
                                 className={cn(
-                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  "w-full px-4 py-3 border rounded-xl focus-visible:outline-none transition-all",
                                   fieldErrors[`vehicle_${index}_year`]
-                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                    ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                                 )}
                               />
                               {fieldErrors[`vehicle_${index}_year`] && (
@@ -1585,10 +1585,10 @@ export default function OwnerRegistrationPage() {
                                 max="100"
                                 data-field-error={fieldErrors[`vehicle_${index}_seatingCapacity`] ? "true" : undefined}
                                 className={cn(
-                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  "w-full px-4 py-3 border rounded-xl focus-visible:outline-none transition-all",
                                   fieldErrors[`vehicle_${index}_seatingCapacity`]
-                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                    ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                                 )}
                               />
                               {fieldErrors[`vehicle_${index}_seatingCapacity`] && (
@@ -1606,10 +1606,10 @@ export default function OwnerRegistrationPage() {
                                 id={`vehicle-${index}-acType`}
                                 data-field-error={fieldErrors[`vehicle_${index}_acType`] ? "true" : undefined}
                                 className={cn(
-                                  "w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors cursor-pointer appearance-none",
+                                  "w-full rounded-xl px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 transition-colors cursor-pointer appearance-none",
                                   fieldErrors[`vehicle_${index}_acType`]
-                                    ? "bg-red-50 border border-red-400 focus:border-red-400 focus:ring-red-100"
-                                    : "bg-background border border-border focus:ring-primary focus:border-primary",
+                                    ? "bg-red-50 border border-red-400 focus-visible:border-red-400 focus-visible:ring-red-100"
+                                    : "bg-background border border-border focus-visible:ring-primary focus-visible:border-primary",
                                 )}
                                 required
                                 value={vehicle.acType}
@@ -1648,10 +1648,10 @@ export default function OwnerRegistrationPage() {
                                 placeholder={t("fields.color.placeholder")}
                                 data-field-error={fieldErrors[`vehicle_${index}_color`] ? "true" : undefined}
                                 className={cn(
-                                  "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all",
+                                  "w-full px-4 py-3 border rounded-xl focus-visible:outline-none transition-all",
                                   fieldErrors[`vehicle_${index}_color`]
-                                    ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                    : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                    ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                    : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                                 )}
                               />
                               {fieldErrors[`vehicle_${index}_color`] && (
@@ -1666,7 +1666,7 @@ export default function OwnerRegistrationPage() {
                                 {t("fields.condition.label")}
                               </label>
                               <select
-                                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors cursor-pointer appearance-none"
+                                className="w-full bg-background border border-border rounded-xl px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-colors cursor-pointer appearance-none"
                                 required
                                 value={vehicle.condition}
                                 onChange={(e) =>
@@ -1710,7 +1710,7 @@ export default function OwnerRegistrationPage() {
                                 )}
                                 min="0"
                                 step="0.01"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all bg-gray-50 focus-visible:bg-white"
                               />
                               <p className="text-xs text-gray-500 mt-1">
                                 {t("fields.driverAllowance.helpText")}
@@ -1735,7 +1735,7 @@ export default function OwnerRegistrationPage() {
                               rows={4}
                               placeholder={t("fields.description.placeholder")}
                               maxLength={500}
-                              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white resize-none"
+                              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all bg-gray-50 focus-visible:bg-white resize-none"
                             />
                             <p className="text-xs text-gray-500 mt-1 text-right">
                               {t("vehicle.descriptionCount", {
@@ -1782,7 +1782,7 @@ export default function OwnerRegistrationPage() {
                                         }
                                         setVehicles(updated);
                                       }}
-                                      className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2"
+                                      className="w-4 h-4 text-primary border-gray-300 rounded focus-visible:ring-primary focus-visible:ring-2"
                                     />
                                     <span className="text-sm font-medium text-gray-700">
                                       {amenity.label}
@@ -2038,10 +2038,10 @@ export default function OwnerRegistrationPage() {
                               placeholder={t("fields.password.placeholder")}
                               data-field-error={fieldErrors.password ? "true" : undefined}
                               className={cn(
-                                "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                                 fieldErrors.password
-                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                  ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                               )}
                             />
                             <button
@@ -2111,10 +2111,10 @@ export default function OwnerRegistrationPage() {
                               )}
                               data-field-error={fieldErrors.confirmPassword ? "true" : undefined}
                               className={cn(
-                                "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus:outline-none transition-all",
+                                "w-full pl-10 pr-10 py-3 text-sm border rounded-xl focus-visible:outline-none transition-all",
                                 fieldErrors.confirmPassword
-                                  ? "border-red-400 bg-red-50 focus:border-red-400 focus:ring-4 focus:ring-red-100"
-                                  : "border-gray-200 bg-gray-50 focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-white",
+                                  ? "border-red-400 bg-red-50 focus-visible:border-red-400 focus-visible:ring-4 focus-visible:ring-red-100"
+                                  : "border-gray-200 bg-gray-50 focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:bg-white",
                               )}
                             />
                             <button
@@ -2234,7 +2234,7 @@ export default function OwnerRegistrationPage() {
                                 termsAccepted: e.target.checked,
                               })
                             }
-                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus-visible:ring-primary mt-0.5"
                           />
                           <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                             {t("terms.acceptPrefix")}{" "}
@@ -2258,7 +2258,7 @@ export default function OwnerRegistrationPage() {
                                 privacyAccepted: e.target.checked,
                               })
                             }
-                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus-visible:ring-primary mt-0.5"
                           />
                           <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                             {t("terms.privacyPrefix")}{" "}
@@ -2282,7 +2282,7 @@ export default function OwnerRegistrationPage() {
                                 dataProcessingAccepted: e.target.checked,
                               })
                             }
-                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary mt-0.5"
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus-visible:ring-primary mt-0.5"
                           />
                           <span className="text-gray-700 group-hover:text-gray-900 leading-relaxed">
                             {t("terms.dataProcessing")}

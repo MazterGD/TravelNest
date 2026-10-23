@@ -83,8 +83,15 @@ describe("SearchSection", () => {
     expect(h.push).toHaveBeenCalledWith("/en/search");
   });
 
-  it.todo("search form labels are associated with their inputs (SearchSection.tsx:103,119,135,150 have no htmlFor/id)");
-  it.todo("search inputs keep a visible focus indicator instead of bare focus:outline-none (SearchSection.tsx:113,129,144,161)");
+  it("labels every field and shows a focus ring around the focused one", () => {
+    render(<SearchSection searchHref="/en/search" howItWorksHref="/en/how" />);
+
+    for (const label of ["form.fromLabel", "form.toLabel", "form.dateLabel", "form.passengersLabel"]) {
+      const input = screen.getByLabelText(label);
+      expect(input.className).not.toMatch(/(^|\s)focus:/);
+      expect(input.closest("div.px-4")!.className).toContain("focus-within:ring-2");
+    }
+  });
 });
 
 describe("TrustIndicators", () => {

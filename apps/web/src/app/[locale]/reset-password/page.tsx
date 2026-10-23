@@ -162,7 +162,7 @@ function ResetPasswordForm() {
               value={password}
               onChange={handlePasswordChange}
               placeholder={t("auth.resetPassword.newPasswordPlaceholder", { defaultValue: "Enter new password" })}
-              className="w-full pl-12 pr-12 py-4 text-base border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+              className="w-full pl-12 pr-12 py-4 text-base border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all bg-gray-50 focus-visible:bg-white"
             />
             <button
               type="button"
@@ -213,7 +213,7 @@ function ResetPasswordForm() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder={t("auth.resetPassword.confirmPasswordPlaceholder", { defaultValue: "Confirm new password" })}
-              className="w-full pl-12 pr-12 py-4 text-base border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+              className="w-full pl-12 pr-12 py-4 text-base border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all bg-gray-50 focus-visible:bg-white"
             />
             <button
               type="button"

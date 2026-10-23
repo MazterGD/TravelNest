@@ -99,66 +99,70 @@ export function SearchSection({
           className="max-w-[960px] rounded-[20px] bg-white p-2 shadow-2xl"
         >
           <div className="grid grid-cols-1 gap-0 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]">
-            <div className="border-b border-border px-4 py-3 transition-colors hover:bg-muted lg:border-b-0 lg:border-r">
-              <label className="mb-1 block text-[12px] font-semibold text-muted-foreground">
+            <div className="border-b border-border px-4 py-3 transition-colors hover:bg-muted lg:border-b-0 lg:border-r focus-within:ring-2 focus-within:ring-inset focus-within:ring-[var(--color-action-focus)]">
+              <label htmlFor="search-from" className="mb-1 block text-[12px] font-semibold text-muted-foreground">
                 {t("form.fromLabel")}
               </label>
               <div className="flex items-center gap-2">
                 <MapPin className="h-[18px] w-[18px] flex-shrink-0 text-text-tertiary" />
                 <input
+                  id="search-from"
                   type="text"
                   value={from}
                   onChange={(event) => setFrom(event.target.value)}
                   placeholder={t("form.fromPlaceholder")}
-                  className="w-full bg-transparent text-[16px] text-foreground placeholder:text-text-tertiary focus:outline-none"
+                  className="w-full bg-transparent text-[16px] text-foreground placeholder:text-text-tertiary focus-visible:outline-none"
                 />
               </div>
             </div>
 
-            <div className="border-b border-border px-4 py-3 transition-colors hover:bg-muted lg:border-b-0 lg:border-r">
-              <label className="mb-1 block text-[12px] font-semibold text-muted-foreground">
+            <div className="border-b border-border px-4 py-3 transition-colors hover:bg-muted lg:border-b-0 lg:border-r focus-within:ring-2 focus-within:ring-inset focus-within:ring-[var(--color-action-focus)]">
+              <label htmlFor="search-to" className="mb-1 block text-[12px] font-semibold text-muted-foreground">
                 {t("form.toLabel")}
               </label>
               <div className="flex items-center gap-2">
                 <MapPin className="h-[18px] w-[18px] flex-shrink-0 text-text-tertiary" />
                 <input
+                  id="search-to"
                   type="text"
                   value={to}
                   onChange={(event) => setTo(event.target.value)}
                   placeholder={t("form.toPlaceholder")}
-                  className="w-full bg-transparent text-[16px] text-foreground placeholder:text-text-tertiary focus:outline-none"
+                  className="w-full bg-transparent text-[16px] text-foreground placeholder:text-text-tertiary focus-visible:outline-none"
                 />
               </div>
             </div>
 
-            <div className="border-b border-border px-4 py-3 transition-colors hover:bg-muted sm:border-r lg:border-b-0">
-              <label className="mb-1 block text-[12px] font-semibold text-muted-foreground">
+            <div className="border-b border-border px-4 py-3 transition-colors hover:bg-muted sm:border-r lg:border-b-0 focus-within:ring-2 focus-within:ring-inset focus-within:ring-[var(--color-action-focus)]">
+              <label htmlFor="search-date" className="mb-1 block text-[12px] font-semibold text-muted-foreground">
                 {t("form.dateLabel")}
               </label>
               <div className="flex items-center gap-2">
                 <Calendar className="h-[18px] w-[18px] flex-shrink-0 text-text-tertiary" />
                 <input
+                  id="search-date"
                   type="date"
                   value={travelDate}
                   onChange={(event) => setTravelDate(event.target.value)}
-                  className="w-full bg-transparent text-[16px] text-foreground focus:outline-none"
+                  className="w-full bg-transparent text-[16px] text-foreground focus-visible:outline-none"
                 />
               </div>
             </div>
 
-            <div className="border-b border-border px-4 py-3 transition-colors hover:bg-muted lg:border-b-0 lg:border-r">
-              <label className="mb-1 block text-[12px] font-semibold text-muted-foreground">
+            <div className="border-b border-border px-4 py-3 transition-colors hover:bg-muted lg:border-b-0 lg:border-r focus-within:ring-2 focus-within:ring-inset focus-within:ring-[var(--color-action-focus)]">
+              <label htmlFor="search-passengers" className="mb-1 block text-[12px] font-semibold text-muted-foreground">
                 {t("form.passengersLabel")}
               </label>
               <div className="flex items-center gap-2">
                 <Users className="h-[18px] w-[18px] flex-shrink-0 text-text-tertiary" />
                 <input
+                  id="search-passengers"
                   type="number"
                   value={passengers}
                   onChange={(event) => setPassengers(event.target.value)}
                   placeholder={t("form.passengersPlaceholder")}
                   min="1"
-                  className="w-full bg-transparent text-[16px] text-foreground placeholder:text-text-tertiary focus:outline-none"
+                  className="w-full bg-transparent text-[16px] text-foreground placeholder:text-text-tertiary focus-visible:outline-none"
                 />
               </div>
             </div>

@@ -341,7 +341,7 @@ export default function LoginPage() {
                       setFormData({ ...formData, emailOrPhone: e.target.value })
                     }
                     placeholder={t("emailOrPhonePlaceholder")}
-                    className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                    className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all bg-gray-50 focus-visible:bg-white"
                   />
                 </div>
               </div>
@@ -358,7 +358,7 @@ export default function LoginPage() {
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
                     placeholder="Enter 6-digit OTP"
-                    className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                    className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all bg-gray-50 focus-visible:bg-white"
                     required
                   />
                   <p className="mt-1.5 text-xs text-gray-500">
@@ -394,7 +394,7 @@ export default function LoginPage() {
                         setFormData({ ...formData, password: e.target.value })
                       }
                       placeholder={t("passwordPlaceholder")}
-                      className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all bg-gray-50 focus:bg-white"
+                      className="w-full pl-10 pr-10 py-3 text-sm border border-gray-200 rounded-xl focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 transition-all bg-gray-50 focus-visible:bg-white"
                     />
                     <button
                       type="button"
@@ -425,7 +425,7 @@ export default function LoginPage() {
                           rememberMe: e.target.checked,
                         })
                       }
-                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus-visible:ring-primary"
                     />
                     <span className="text-sm text-gray-700 group-hover:text-gray-900">
                       {t("rememberMe")}

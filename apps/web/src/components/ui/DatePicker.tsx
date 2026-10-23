@@ -30,10 +30,10 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           className={cn(
             "w-full px-3 py-2.5 bg-background border border-input rounded-lg",
             "text-sm text-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary",
             "transition-colors duration-200",
             "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted",
-            error && "border-destructive focus:ring-destructive",
+            error && "border-destructive focus-visible:ring-destructive",
             className
           )}
           {...props}
@@ -78,10 +78,10 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
           className={cn(
             "w-full px-3 py-2.5 bg-background border border-input rounded-lg",
             "text-sm text-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary",
             "transition-colors duration-200",
             "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted",
-            error && "border-destructive focus:ring-destructive",
+            error && "border-destructive focus-visible:ring-destructive",
             className
           )}
           {...props}
@@ -126,10 +126,10 @@ export const DateTimePicker = forwardRef<HTMLInputElement, DateTimePickerProps>(
           className={cn(
             "w-full px-3 py-2.5 bg-background border border-input rounded-lg",
             "text-sm text-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary",
             "transition-colors duration-200",
             "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-muted",
-            error && "border-destructive focus:ring-destructive",
+            error && "border-destructive focus-visible:ring-destructive",
             className
           )}
           {...props}

@@ -314,7 +314,7 @@ export function QuotationRequestForm({
                   type="checkbox"
                   checked={formData.needsAC ?? true}
                   onChange={(e) => updateField("needsAC", e.target.checked)}
-                  className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
+                  className="w-4 h-4 rounded border-input text-primary focus-visible:ring-primary"
                 />
                 <span className="text-sm font-medium">{t("needsAC")}</span>
               </label>
