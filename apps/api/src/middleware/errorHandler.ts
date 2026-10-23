@@ -60,7 +60,9 @@ export class ApiError extends Error {
     resource = "Resource",
     code: ErrorCodeType = ErrorCode.RESOURCE_NOT_FOUND,
   ): ApiError {
-    return new ApiError(HttpStatus.NOT_FOUND, `${resource} not found`, code);
+    // Callers pass either a noun ("Booking") or a full sentence ("Booking not found").
+    const message = /not found\.?$/i.test(resource) ? resource : `${resource} not found`;
+    return new ApiError(HttpStatus.NOT_FOUND, message, code);
   }
 
   static conflict(
