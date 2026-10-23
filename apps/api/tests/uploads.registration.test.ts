@@ -114,13 +114,9 @@ describe("POST /uploads/registration", () => {
       { buffer: Buffer.from("MZ"), name: "x.exe", type: "application/x-msdownload" },
     );
 
-    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(res.status).toBe(400);
     nothingStored();
   });
-
-  it.todo(
-    "answers an unsupported registration file type with 400, not 500 (multer fileFilter error is not mapped)",
-  );
 
   it("stores an NIC privately and returns a signed link, never the raw reference", async () => {
     const res = await upload({ category: "owner-documents", subfolder: " nic " });

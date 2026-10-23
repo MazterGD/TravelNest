@@ -309,13 +309,23 @@ describe("User profile endpoints", () => {
           contentType: "application/pdf",
         });
 
-      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(res.status).toBe(400);
       expect(uploadBuffer).not.toHaveBeenCalled();
     });
 
-    it.todo(
-      "answers an unsupported avatar type with 400, not 500 (multer fileFilter error is not mapped)",
-    );
+    it("answers a file over the size limit with 400", async () => {
+      const res = await request(app)
+        .post(`${API_BASE}/users/avatar`)
+        .set("Authorization", auth("other"))
+        .attach("avatar", Buffer.alloc(config.upload.maxFileSize + 1), {
+          filename: "big.png",
+          contentType: "image/png",
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("INVALID_INPUT");
+      expect(uploadBuffer).not.toHaveBeenCalled();
+    });
 
     it("uploads to the caller's folder and replaces the previous avatar", async () => {
       await prisma.user.update({

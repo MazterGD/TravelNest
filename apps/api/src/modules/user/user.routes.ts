@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { authenticate } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
-import { asyncHandler } from "../../middleware/errorHandler.js";
+import { ApiError, asyncHandler } from "../../middleware/errorHandler.js";
 import { csrfProtection } from "../../middleware/csrf.js";
 import {
   updatePersonalInfoSchema,
@@ -20,7 +20,7 @@ const avatarUpload = multer({
   fileFilter: (_req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "image/webp"];
     if (!allowed.includes(file.mimetype)) {
-      cb(new Error("Unsupported avatar file type"));
+      cb(ApiError.badRequest("Unsupported avatar file type"));
       return;
     }
     cb(null, true);

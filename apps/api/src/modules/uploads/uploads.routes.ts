@@ -1,7 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import rateLimit from "express-rate-limit";
-import { asyncHandler } from "../../middleware/errorHandler.js";
+import { ApiError, asyncHandler } from "../../middleware/errorHandler.js";
 import { config } from "../../config/index.js";
 import * as uploadsController from "./uploads.controller.js";
 
@@ -17,7 +17,7 @@ const registrationUpload = multer({
       "application/pdf",
     ];
     if (!allowed.includes(file.mimetype)) {
-      cb(new Error("Unsupported file type"));
+      cb(ApiError.badRequest("Unsupported file type"));
       return;
     }
     cb(null, true);

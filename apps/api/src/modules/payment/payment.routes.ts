@@ -1,7 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import { authenticate } from "../../middleware/auth.js";
-import { asyncHandler } from "../../middleware/errorHandler.js";
+import { ApiError, asyncHandler } from "../../middleware/errorHandler.js";
 import { csrfProtection } from "../../middleware/csrf.js";
 import { validate } from "../../middleware/validate.js";
 import * as paymentController from "./payment.controller.js";
@@ -19,7 +19,7 @@ const receiptUpload = multer({
   fileFilter: (_req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "application/pdf"];
     if (!allowed.includes(file.mimetype)) {
-      cb(new Error("Unsupported receipt file type"));
+      cb(ApiError.badRequest("Unsupported receipt file type"));
       return;
     }
     cb(null, true);

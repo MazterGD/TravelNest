@@ -161,6 +161,12 @@ export const errorHandler = (
     message = "Authentication token has expired";
     code = ErrorCode.TOKEN_EXPIRED;
   }
+  // Multer upload limits (file too large, too many files)
+  else if (err.name === "MulterError") {
+    statusCode = HttpStatus.BAD_REQUEST;
+    message = err.message;
+    code = ErrorCode.INVALID_INPUT;
+  }
   // Handle Prisma errors
   else if (err.name === "PrismaClientKnownRequestError") {
     const prismaErr = err as Error & { code?: string };
