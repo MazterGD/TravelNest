@@ -14,6 +14,13 @@ export default defineConfig({
       reporter: ["text", "json", "html", "lcov"],
       include: ["src/**/*.ts"],
       exclude: ["src/index.ts", "src/**/*.d.ts"],
+      // Floor just under the current numbers so CI fails on a coverage drop.
+      thresholds: {
+        statements: 92,
+        branches: 78,
+        functions: 95,
+        lines: 92,
+      },
     },
     testTimeout: 30000,
     hookTimeout: 30000,
