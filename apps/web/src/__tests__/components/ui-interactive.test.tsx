@@ -1,7 +1,7 @@
 /**
  * Component tests for interactive UI building blocks: Modal, ConfirmDialog,
  * OtpVerificationModal, Select, Tabs/TabsList, StarRating, QuickActionCard,
- * date/time pickers, ImageUpload, LocationAutocomplete, EmptyState,
+ * date/time pickers, LocationAutocomplete, EmptyState,
  * Skeletons, FeatureCard, StepCard, InfoItem and the Icons set.
  */
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -20,7 +20,6 @@ import { Tabs, TabsList } from "@/components/ui/Tabs";
 import { StarRating } from "@/components/ui/StarRating";
 import { QuickActionCard, QuickActionGrid } from "@/components/ui/QuickActionCard";
 import { DatePicker, DateTimePicker, TimePicker } from "@/components/ui/DatePicker";
-import { ImageUpload } from "@/components/ui/ImageUpload";
 import { LocationAutocomplete } from "@/components/ui/LocationAutocomplete";
 import {
   EmptyBoxIcon,
@@ -517,75 +516,6 @@ describe("DatePicker family", () => {
     expect(input.className).toContain("focus-visible:ring-2");
     expect(input.className).not.toMatch(/(^|\s)focus:/);
   });
-});
-
-describe("ImageUpload", () => {
-  beforeEach(() => {
-    (URL as any).createObjectURL = vi.fn(() => "blob:preview");
-    (URL as any).revokeObjectURL = vi.fn();
-  });
-
-  const img = (size = 10, type = "image/png") => {
-    const f = new File(["x"], "a.png", { type });
-    Object.defineProperty(f, "size", { value: size });
-    return f;
-  };
-
-  it("uploads a valid image via input, previews and removes it", () => {
-    const onChange = vi.fn();
-    const { container } = render(
-      <ImageUpload label="Cover" value={null} onChange={onChange} required helperText="16:9" aspectRatio="square" />,
-    );
-    expect(screen.getByText("*")).toBeTruthy();
-    expect(screen.getByText("16:9")).toBeTruthy();
-    expect(screen.getByText("PNG, JPG, GIF up to 5MB")).toBeTruthy();
-    const file = img();
-    fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file] } });
-    expect(onChange).toHaveBeenCalledWith(file);
-    expect(screen.getByAltText("Preview").getAttribute("src")).toBe("blob:preview");
-    fireEvent.click(screen.getByRole("button"));
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview");
-    expect(onChange).toHaveBeenLastCalledWith(null);
-    expect(screen.queryByAltText("Preview")).toBeNull();
-  });
-
-  it("rejects oversize and non-image files with an alert", () => {
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
-    const onChange = vi.fn();
-    const { container } = render(<ImageUpload label="L" value={null} onChange={onChange} maxSize={1} />);
-    const input = container.querySelector('input[type="file"]')!;
-    fireEvent.change(input, { target: { files: [img(2 * 1024 * 1024)] } });
-    expect(alertSpy).toHaveBeenCalledWith("Image size must be less than 1MB");
-    fireEvent.change(input, { target: { files: [img(10, "application/pdf")] } });
-    expect(alertSpy).toHaveBeenCalledWith("Please upload an image file");
-    fireEvent.change(input, { target: { files: [] } });
-    expect(onChange).not.toHaveBeenCalled();
-    alertSpy.mockRestore();
-  });
-
-  it("handles drag states and drop, shows errors, keeps external previews", () => {
-    const onChange = vi.fn();
-    const { container } = render(
-      <ImageUpload label="" value={null} onChange={onChange} preview="/existing.png" error="Required" aspectRatio="wide" helperText="hidden" />,
-    );
-    expect(screen.getByText("Required")).toBeTruthy();
-    expect(screen.queryByText("hidden")).toBeNull();
-    expect(container.querySelector("label")).toBeNull();
-    const zone = screen.getByAltText("Preview").parentElement!;
-    fireEvent.dragEnter(zone);
-    expect(zone.className).toContain("border-primary");
-    fireEvent.dragLeave(zone);
-    expect(zone.className).toContain("border-error-border");
-    fireEvent.dragOver(zone);
-    const file = img();
-    fireEvent.drop(zone, { dataTransfer: { files: [file] } });
-    expect(onChange).toHaveBeenCalledWith(file);
-    fireEvent.drop(zone, { dataTransfer: { files: [] } });
-    fireEvent.click(screen.getByRole("button"));
-    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
-  });
-
-  it.todo("remove-image icon-only button has an aria-label (ImageUpload.tsx:119)");
 });
 
 describe("LocationAutocomplete", () => {

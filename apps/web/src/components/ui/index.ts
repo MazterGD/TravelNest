@@ -6,7 +6,6 @@ export { Input } from "./Input";
 export { Select } from "./Select";
 export { TextArea } from "./TextArea";
 export { FileUpload, type UploadedFile } from "./FileUpload";
-export { ImageUpload } from "./ImageUpload";
 export { LoadingSpinner } from "./LoadingSpinner";
 export {
   Card,
