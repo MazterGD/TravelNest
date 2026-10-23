@@ -214,9 +214,10 @@ export function FileUpload({
             <button
               type="button"
               onClick={handleRemove}
+              aria-label={t("remove")}
               className="rounded-xl bg-error-bg p-3 text-error hover:bg-error-bg/80 transition-all"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         ) : existingFile ? (

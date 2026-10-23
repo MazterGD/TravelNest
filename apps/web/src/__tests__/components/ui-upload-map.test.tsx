@@ -180,7 +180,15 @@ describe("FileUpload", () => {
     expect(onChange).toHaveBeenCalledWith({ file, preview: undefined });
   });
 
-  it.todo("remove-file icon-only button has an aria-label (FileUpload.tsx:214)");
+  it("names the icon-only remove button", () => {
+    const onChange = vi.fn();
+    const file = mkFile("b.pdf", "application/pdf");
+    render(<FileUpload label="Doc" value={{ file }} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "remove" }));
+
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
 
   it("DocumentUploadGroup wires keys, errors and default help text", () => {
     const onChange = vi.fn();

@@ -2637,7 +2637,8 @@
     "errors": {
       "maxSize": "File size must be less than {maxSize}MB",
       "invalidType": "Invalid file type. Allowed: {types}"
-    }
+    },
+    "remove": "Remove file"
   },
   "payment": {
     "return": {
