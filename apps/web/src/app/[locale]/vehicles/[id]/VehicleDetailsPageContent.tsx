@@ -302,14 +302,18 @@ export default function VehicleDetailsPageContent({
   useEffect(() => {
     if (!showLightbox || !vehicle) return;
 
+    // Same merged gallery as rendered below: photos first, then legacy images.
+    const count = new Set([
+      ...(vehicle.photos?.map((p) => p.url) ?? []),
+      ...(vehicle.images ?? []),
+    ]).size;
+
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setShowLightbox(false);
-      if (e.key === "ArrowRight")
-        setSelectedImage((i) => (i + 1) % vehicle.images.length);
+      if (count === 0) return;
+      if (e.key === "ArrowRight") setSelectedImage((i) => (i + 1) % count);
       if (e.key === "ArrowLeft")
-        setSelectedImage(
-          (i) => (i - 1 + vehicle.images.length) % vehicle.images.length,
-        );
+        setSelectedImage((i) => (i - 1 + count) % count);
     };
 
     document.addEventListener("keydown", handleKey);

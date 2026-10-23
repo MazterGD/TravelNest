@@ -209,9 +209,20 @@ describe("vehicle details", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it.todo(
-    "lightbox arrow keys cycle through photo-only galleries (VehicleDetailsPageContent.tsx:307-311 uses vehicle.images.length, which is 0 when only photos exist, so the index becomes NaN)",
-  );
+  it("cycles photo-only galleries with the arrow keys", async () => {
+    vehicleService.getById.mockResolvedValue(
+      vehicle({ images: [], photos: [{ url: "/p1.webp" }, { url: "/p2.webp" }] }),
+    );
+    await renderPage();
+    fireEvent.click(screen.getByAltText("Blue Liner — photo 1").parentElement!);
+
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+    expect(screen.getByAltText("Blue Liner — photo 2 of 2")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+    expect(screen.getByAltText("Blue Liner — photo 1 of 2")).toBeTruthy();
+    fireEvent.keyDown(document, { key: "ArrowLeft" });
+    expect(screen.getByAltText("Blue Liner — photo 2 of 2")).toBeTruthy();
+  });
 
   it("requests a quotation for an available vehicle", async () => {
     await renderPage();
