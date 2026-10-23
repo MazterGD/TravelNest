@@ -216,13 +216,20 @@ describe("Trips API", () => {
       });
     });
 
-    it.todo(
-      "accepts a lower-case vehicleTypePreference (schema upper-cases it but validate() discards the parsed body, so Prisma gets 'luxury_ac' and the API returns 500)",
-    );
+    it("accepts a lower-case vehicle type and a numeric-string passenger count", async () => {
+      const response = await as("customer").post("", {
+        pickupLocation: "Colombo",
+        startDate: inDays(5),
+        passengerCount: "12",
+        vehicleTypePreference: "luxury_ac",
+      });
 
-    it.todo(
-      "accepts a numeric-string passengerCount (schema coerces it but the raw string reaches Prisma and the API returns 500)",
-    );
+      expect(response.status).toBe(201);
+      expect(response.body.data.trip).toMatchObject({
+        passengerCount: 12,
+        vehicleTypePreference: "LUXURY_AC",
+      });
+    });
 
     it("rejects a pickup location with no address, city or district", async () => {
       const response = await as("customer").post("", {
@@ -423,9 +430,14 @@ describe("Trips API", () => {
       expect(response.status).toBe(422);
     });
 
-    it.todo(
-      "accepts a lower-case status filter (schema upper-cases it but the raw value reaches Prisma and the API returns 500)",
-    );
+    it("accepts a lower-case status filter", async () => {
+      const response = await list("?status=planning");
+
+      expect(response.status).toBe(200);
+      for (const trip of response.body.data.trips) {
+        expect(trip.status).toBe("PLANNING");
+      }
+    });
   });
 
   describe("GET /trips/active", () => {
@@ -650,9 +662,26 @@ describe("Trips API", () => {
       expect(response.body.data.trip.endDate).toBe(new Date(endDate).toISOString());
     });
 
-    it.todo(
-      "keeps a multi-day trip's end date when only the start date moves (updateTrip resets endDate to the new startDate)",
-    );
+    it("keeps a multi-day trip's end date when only the start date moves", async () => {
+      const trip = await seedTrip(users.customer, { startDate: inDays(10), endDate: inDays(14) });
+      const startDate = inDays(12);
+
+      const response = await as("customer").patch(`/${trip.id}`, { startDate });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.trip.startDate).toBe(new Date(startDate).toISOString());
+      expect(response.body.data.trip.endDate).toBe(trip.endDate.toISOString());
+    });
+
+    it("moves a single-day trip's end date along with its start date", async () => {
+      const trip = await seedTrip(users.customer, { startDate: inDays(10), endDate: inDays(10) });
+      const startDate = inDays(12);
+
+      const response = await as("customer").patch(`/${trip.id}`, { startDate });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.trip.endDate).toBe(new Date(startDate).toISOString());
+    });
 
     it("rejects an end date before the stored start date", async () => {
       const trip = await seedTrip(users.customer, { startDate: inDays(10), endDate: inDays(11) });

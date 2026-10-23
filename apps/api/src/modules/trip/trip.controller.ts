@@ -1,23 +1,32 @@
 import type { Request, Response } from "express";
-import type { TripStatus } from "@travenest/database";
 import * as tripService from "./trip.service.js";
+import {
+  createTripSchema,
+  listTripsSchema,
+  updateTripSchema,
+} from "./trip.schemas.js";
 import { ResponseHelper } from "../../utils/response.js";
 
 export const createTrip = async (req: Request, res: Response) => {
   const customerId = req.user!.id;
-  const trip = await tripService.createTrip(customerId, req.body);
+  // validate() checks but does not replace req.body, so reuse the parsed
+  // values to keep the schema's coercions (upper-cased enums, numbers).
+  const body = createTripSchema.shape.body.parse(req.body);
+  const trip = await tripService.createTrip(customerId, body);
   return ResponseHelper.created(res, { trip }, "Trip created successfully");
 };
 
 export const listTrips = async (req: Request, res: Response) => {
   const customerId = req.user!.id;
-  const { status, page, limit, activeOnly } = req.query;
+  const { status, page, limit, activeOnly } = listTripsSchema.shape.query.parse(
+    req.query,
+  );
 
   const result = await tripService.listTrips(customerId, {
-    status: typeof status === "string" ? (status as TripStatus) : undefined,
-    page: page ? Number(page) : undefined,
-    limit: limit ? Number(limit) : undefined,
-    activeOnly: activeOnly === "true",
+    status,
+    page,
+    limit,
+    activeOnly: activeOnly === true,
   });
 
   return ResponseHelper.success(res, result);
@@ -34,7 +43,8 @@ export const getTripById = async (req: Request, res: Response) => {
 export const updateTrip = async (req: Request, res: Response) => {
   const { id } = req.params;
   const userId = req.user!.id;
-  const trip = await tripService.updateTrip(id as string, userId, req.body);
+  const body = updateTripSchema.shape.body.parse(req.body);
+  const trip = await tripService.updateTrip(id as string, userId, body);
   return ResponseHelper.success(res, { trip }, "Trip updated successfully");
 };
 

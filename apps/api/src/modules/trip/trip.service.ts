@@ -335,7 +335,9 @@ export const updateTrip = async (
     const startDate = data.startDate
       ? new Date(data.startDate)
       : existing.startDate;
-    const endDate = data.endDate ? new Date(data.endDate) : startDate;
+    const keptEndDate =
+      existing.endDate && existing.endDate >= startDate ? existing.endDate : startDate;
+    const endDate = data.endDate ? new Date(data.endDate) : keptEndDate;
     validateDates(startDate, endDate);
     updateData.startDate = startDate;
     updateData.endDate = endDate;
