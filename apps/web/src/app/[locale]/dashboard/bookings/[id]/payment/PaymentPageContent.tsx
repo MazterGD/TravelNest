@@ -263,7 +263,7 @@ export default function PaymentPageContent({
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">Booking not found</p>
+          <p className="text-gray-600 mb-4">{error || "Booking not found"}</p>
           <Button onClick={() => router.push(`/${locale}/dashboard/bookings`)}>
             Go to Bookings
           </Button>
@@ -472,7 +472,7 @@ export default function PaymentPageContent({
                 <div className="flex items-center justify-between text-sm text-gray-600">
                   <span>Paid</span>
                   <span className="font-medium text-gray-900">
-                    LKR {booking.payment.paid.toLocaleString()}
+                    LKR {(booking.payment.paid || 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm text-gray-600">

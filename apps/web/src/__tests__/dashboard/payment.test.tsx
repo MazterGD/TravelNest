@@ -214,13 +214,12 @@ describe("PaymentPageContent", () => {
   it("shows not-found when the booking cannot be loaded", async () => {
     getById.mockRejectedValueOnce(new ApiError(404, "Booking missing"));
     const first = render(<PaymentPageContent bookingId="b1" locale="en" />);
+    expect(await screen.findByText("Booking missing")).toBeTruthy();
     fireEvent.click(await screen.findByText("Go to Bookings"));
     expect(h.push).toHaveBeenCalledWith("/en/dashboard/bookings");
     first.unmount();
     getById.mockRejectedValueOnce(new Error("x"));
     render(<PaymentPageContent bookingId="b1" locale="en" />);
-    expect(await screen.findByText("Booking not found")).toBeTruthy();
+    expect(await screen.findByText("Failed to load booking")).toBeTruthy();
   });
-
-  it.todo("shows the API error message (e.g. 'Booking missing') when the booking fails to load, instead of a generic 'Booking not found'");
 });
