@@ -194,44 +194,6 @@ export const authorize = (...allowedRoles: (UserRole | RoleString)[]) => {
   };
 };
 
-/**
- * Check if user is the owner of a resource or an admin
- * @param getResourceOwnerId - Function to get the owner ID from the request
- */
-export const authorizeOwner = (
-  getResourceOwnerId: (req: Request) => Promise<string | null>,
-) => {
-  return async (
-    req: Request,
-    _res: Response,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      if (!req.user) {
-        throw ApiError.unauthorized("Authentication required");
-      }
-
-      // Admins can access anything
-      if (req.user.role === UserRole.ADMIN) {
-        next();
-        return;
-      }
-
-      const resourceOwnerId = await getResourceOwnerId(req);
-
-      if (!resourceOwnerId || resourceOwnerId !== req.user.id) {
-        throw ApiError.forbidden(
-          "You do not have permission to access this resource",
-        );
-      }
-
-      next();
-    } catch (error) {
-      next(error);
-    }
-  };
-};
-
 // ============================================
 // Role Check Helpers
 // ============================================
@@ -250,13 +212,3 @@ export const isVehicleOwner = authorize(UserRole.VEHICLE_OWNER);
  * Check if user is an admin
  */
 export const isAdmin = authorize(UserRole.ADMIN);
-
-/**
- * Check if user is a vehicle owner or admin
- */
-export const isOwnerOrAdmin = authorize(UserRole.VEHICLE_OWNER, UserRole.ADMIN);
-
-/**
- * Check if user is a customer or admin
- */
-export const isCustomerOrAdmin = authorize(UserRole.CUSTOMER, UserRole.ADMIN);

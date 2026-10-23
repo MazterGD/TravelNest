@@ -30,36 +30,3 @@ export const validate = (schema: AnyZodObject) => {
     }
   };
 };
-
-// Sanitize request body - remove undefined and null values
-export const sanitizeBody = (
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-): void => {
-  if (req.body && typeof req.body === "object") {
-    req.body = Object.fromEntries(
-      Object.entries(req.body).filter(
-        ([_, value]) => value !== undefined && value !== null && value !== "",
-      ),
-    );
-  }
-  next();
-};
-
-// Trim string fields in request body
-export const trimStrings = (
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-): void => {
-  if (req.body && typeof req.body === "object") {
-    req.body = Object.fromEntries(
-      Object.entries(req.body).map(([key, value]) => [
-        key,
-        typeof value === "string" ? value.trim() : value,
-      ]),
-    );
-  }
-  next();
-};
