@@ -650,7 +650,8 @@
     "openMenu": "Open main menu",
     "dashboardFor": "{name}'s Dashboard",
     "backToHome": "Back to Home",
-    "disabledPending": "Available after your account is approved"
+    "disabledPending": "Available after your account is approved",
+    "closeMenu": "Close main menu"
   },
   "locations": {
     "colombo": "Colombo",
@@ -3653,7 +3654,8 @@
       "profile": "My Profile",
       "settings": "Settings",
       "drivers": "Drivers"
-    }
+    },
+    "selectLanguage": "Select language"
   },
   "ownerShell": {
     "breadcrumbRoot": "Owner Portal"

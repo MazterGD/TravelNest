@@ -501,7 +501,7 @@ export function OwnerSidebar({ locale }: OwnerSidebarProps) {
               />
               <ul
                 role="listbox"
-                aria-label={t("openMenu")}
+                aria-label={t("selectLanguage")}
                 className="absolute bottom-full left-0 right-0 z-50 mb-1 rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] shadow-lg overflow-hidden"
               >
                 {locales.map((loc) => (

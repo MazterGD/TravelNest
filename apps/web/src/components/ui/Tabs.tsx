@@ -88,6 +88,7 @@ export function Tabs({
           <button
             key={tab.id}
             type="button"
+            id={`tab-${tab.id}`}
             role="tab"
             aria-selected={activeTab === tab.id}
             aria-controls={`tabpanel-${tab.id}`}
@@ -123,7 +124,7 @@ export function Tabs({
       <div
         id={`tabpanel-${activeTab}`}
         role="tabpanel"
-        aria-labelledby={activeTab}
+        aria-labelledby={`tab-${activeTab}`}
         className={cn("mt-4", contentClassName)}
       >
         {activeContent}

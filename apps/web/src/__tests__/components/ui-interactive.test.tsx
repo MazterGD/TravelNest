@@ -383,9 +383,14 @@ describe("Tabs", () => {
     expect(screen.getByText("3").className).toContain("bg-muted");
   });
 
-  it.todo(
-    "tabpanel aria-labelledby points at an existing tab element id (Tabs.tsx:126 references an id no tab button has)",
-  );
+  it("labels the panel with its tab", () => {
+    render(<Tabs tabs={tabs} />);
+
+    const panel = screen.getByRole("tabpanel");
+    const tab = document.getElementById(panel.getAttribute("aria-labelledby")!);
+    expect(tab?.getAttribute("role")).toBe("tab");
+    expect(tab?.getAttribute("aria-selected")).toBe("true");
+  });
 
   it.each(["default", "pills", "underline"] as const)("TabsList (%s) is controlled", (variant: any) => {
     const onTabChange = vi.fn();

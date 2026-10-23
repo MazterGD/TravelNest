@@ -313,7 +313,16 @@ describe("Header", () => {
     expect(screen.getAllByRole("link", { name: "login" }).length).toBe(1);
   });
 
-  it.todo("mobile menu toggle exposes aria-expanded and a close label when open (Header.tsx:234-239)");
+  it("announces the mobile menu state on its toggle", async () => {
+    render(<Header />);
+    await flush();
+
+    const toggle = screen.getByRole("button", { name: "openMenu" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(toggle.getAttribute("aria-label")).toBe("closeMenu");
+  });
 });
 
 describe("MainLayout", () => {
@@ -732,5 +741,12 @@ describe("OwnerSidebar", () => {
     expect(screen.queryByLabelText(/unread/)).toBeNull();
   });
 
-  it.todo("language listbox is labelled as a language picker, not with the 'openMenu' string (OwnerSidebar.tsx:504)");
+  it("labels the language list as a language picker", async () => {
+    render(<OwnerSidebar locale="en" />);
+    await flush();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /English/ })[0]);
+
+    expect(screen.getByRole("listbox", { name: "selectLanguage" })).toBeTruthy();
+  });
 });

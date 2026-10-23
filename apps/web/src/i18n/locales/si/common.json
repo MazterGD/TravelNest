@@ -650,7 +650,8 @@
     "dashboardFor": "{name}ගේ උපකරණ පුවරුව",
     "backToHome": "මුල් පිටුවට",
     "settings": "සැකසීම්",
-    "disabledPending": "ඔබේ ගිණුම අනුමත වූ පසු ලබා ගත හැකිය"
+    "disabledPending": "ඔබේ ගිණුම අනුමත වූ පසු ලබා ගත හැකිය",
+    "closeMenu": "ප්‍රධාන මෙනුව වසන්න"
   },
   "locations": {
     "colombo": "කොළඹ",
@@ -3654,7 +3655,8 @@
       "profile": "මගේ පැතිකඩ",
       "settings": "සැකසීම්",
       "drivers": "රියදුරන්"
-    }
+    },
+    "selectLanguage": "භාෂාව තෝරන්න"
   },
   "ownerShell": {
     "breadcrumbRoot": "හිමිකරු ද්වාරය"

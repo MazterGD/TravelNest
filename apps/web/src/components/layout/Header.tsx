@@ -233,7 +233,8 @@ export function Header() {
             <LanguageSwitcher />
             <button
               type="button"
-              aria-label={t("openMenu")}
+              aria-label={t(mobileMenuOpen ? "closeMenu" : "openMenu")}
+              aria-expanded={mobileMenuOpen}
               className="inline-flex items-center justify-center rounded-xl p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
