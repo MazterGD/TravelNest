@@ -1011,6 +1011,8 @@ model OwnerBankAccount {
   isPrimary         Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  isRemoved         Boolean  @default(false) // Soft delete (ADR-006): replaced accounts are kept
+  removedAt         DateTime?
 
   owner             User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 

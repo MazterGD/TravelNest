@@ -1285,7 +1285,11 @@ export const upsertBankAccount = async (
   }
 
   const account = await prisma.$transaction(async (tx) => {
-    await tx.ownerBankAccount.deleteMany({ where: { ownerId } });
+    // The previous account is kept as removed for payout history (ADR-006).
+    await tx.ownerBankAccount.updateMany({
+      where: { ownerId, isRemoved: false },
+      data: removalStamp(),
+    });
 
     return tx.ownerBankAccount.create({
       data: {

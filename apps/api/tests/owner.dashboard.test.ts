@@ -522,10 +522,13 @@ describe("Owner dashboard", () => {
         .set(auth("owner"))
         .send({ accountHolderName: "Nuwan Perera", accountNumber: "99887766", bankName: "HNB", bankCode: "7083", branchCode: "001" });
 
-      expect(await prisma.ownerBankAccount.count({ where: { ownerId: users.owner } })).toBe(1);
+      expect(await prisma.ownerBankAccount.count({ where: { ownerId: users.owner, isRemoved: false } })).toBe(1);
+      const replaced = await prisma.ownerBankAccount.findMany({ where: { ownerId: users.owner, isRemoved: true } });
+      expect(replaced).toHaveLength(1);
+      expect(replaced[0].removedAt).not.toBeNull();
 
       await prisma.ownerBankAccount.updateMany({
-        where: { ownerId: users.owner },
+        where: { ownerId: users.owner, isRemoved: false },
         data: { accountNumber: "enc:v1:broken" },
       });
       const res = await get("/bank-account");
