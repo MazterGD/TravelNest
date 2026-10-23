@@ -77,7 +77,7 @@ export default function BookingConfirmPageContent({
   const quotationId = searchParams.get("quotationId");
 
   useEffect(() => {
-    if (!guardLoading && quotationId) {
+    if (!guardLoading) {
       fetchQuotationDetails();
     }
   }, [guardLoading, quotationId]);
@@ -94,7 +94,6 @@ export default function BookingConfirmPageContent({
       const response = await quotationService.getById(quotationId);
       const data = response as any;
       const quotationData = data.data?.quotation || data.quotation || data;
-      console.log("Fetched quotation:", quotationData);
       setQuotation(quotationData);
     } catch (err: any) {
       console.error("Error fetching quotation:", err);

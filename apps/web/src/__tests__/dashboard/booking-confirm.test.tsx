@@ -167,6 +167,18 @@ describe("BookingConfirmPageContent", () => {
     expect(await screen.findByText("Failed to load quotation details")).toBeTruthy();
   });
 
-  it.todo("shows 'No quotation ID provided' when ?quotationId is missing (currently the spinner never ends because the fetch effect is skipped)");
-  it.todo("does not console.log the fetched quotation, which includes customer/owner email and phone (PII in browser logs)");
+  it("explains a missing quotation id instead of loading forever", async () => {
+    h.params = new URLSearchParams();
+
+    render(<BookingConfirmPageContent locale="en" />);
+
+    expect(await screen.findByText("No quotation ID provided")).toBeTruthy();
+    expect(getById).not.toHaveBeenCalled();
+  });
+
+  it("never logs the quotation, which carries contact details", async () => {
+    await renderConfirm();
+
+    expect(console.log).not.toHaveBeenCalled();
+  });
 });
