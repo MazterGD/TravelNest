@@ -216,9 +216,30 @@ describe("POST /routing/calculate", () => {
       expect((await calculate("admin", { waypoints: WAYPOINTS })).status).toBe(200);
     });
 
-    it.todo(
-      "labels reordered stops with their own names (originalName is looked up by trip order, not input order, so a reordered trip mislabels stops)",
-    );
+    it("labels reordered stops with their own names", async () => {
+      getSpy.mockResolvedValue(
+        osrmOk({
+          waypoints: [
+            { waypoint_index: 0, trips_index: 0, location: [79.8612, 6.9271], name: "", distance: 1 },
+            { waypoint_index: 2, trips_index: 0, location: [80.6337, 7.2906], name: "", distance: 1 },
+            { waypoint_index: 1, trips_index: 0, location: [80.221, 6.0535], name: "", distance: 1 },
+          ],
+        }),
+      );
+
+      const response = await calculate("customer", { waypoints: WAYPOINTS });
+
+      expect(response.status).toBe(200);
+      expect(
+        response.body.data.route.optimizedWaypoints.map(
+          (wp: { index: number; lat: number; originalName?: string }) => [wp.index, wp.lat, wp.originalName],
+        ),
+      ).toEqual([
+        [0, 6.9271, "Colombo"],
+        [1, 6.0535, undefined],
+        [2, 7.2906, "Kandy"],
+      ]);
+    });
   });
 
   describe("OSRM failures", () => {

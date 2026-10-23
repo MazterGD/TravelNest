@@ -191,16 +191,16 @@ export const calculateRoute = async (
   const geometry = trip.geometry;
 
   // Build the optimised waypoint list in OSRM-suggested order
+  // OSRM lists waypoints in input order; waypoint_index is the trip position.
   const optimizedWaypoints = osrmData.waypoints
-    .sort((a, b) => a.waypoint_index - b.waypoint_index)
-    .map((wp) => ({
+    .map((wp, inputIndex) => ({
       index: wp.waypoint_index,
       lat: wp.location[1],
       lng: wp.location[0],
       name: wp.name || "",
-      // Attach the user-provided name if available (matched by original index)
-      originalName: waypoints[wp.waypoint_index]?.name,
-    }));
+      originalName: waypoints[inputIndex]?.name,
+    }))
+    .sort((a, b) => a.index - b.index);
 
   // ------------------------------------------------------------------
   // 4. Optionally persist to the database
