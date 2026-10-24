@@ -144,6 +144,7 @@ describe("Quotation API", () => {
         estimatedDistance: "140 km",
         isRoundTrip: false,
         luggageCount: 0,
+        amenities: ["wifi", "usb<script>"],
       });
 
       expect(res.status).toBe(201);
@@ -155,6 +156,8 @@ describe("Quotation API", () => {
         pickupLocation: "Kandy, Kandy",
         dropoffLocation: "Ella",
       });
+      expect(quotation?.requiredAmenities[0]).toBe("wifi");
+      expect(quotation?.requiredAmenities[1]).not.toContain("<script>");
       const trip = await prisma.trip.findUnique({ where: { id: quotation!.tripId! } });
       expect(trip).toMatchObject({ status: "AWAITING_QUOTES", dropoffLatitude: 6.87, pickupLatitude: null });
       await expect

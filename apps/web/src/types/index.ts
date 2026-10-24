@@ -235,6 +235,7 @@ export interface Quotation {
   customer?: Partial<User>;
   vehicle?: Partial<Vehicle>;
   bookings?: Array<{ id: string; status: string }>;
+  requiredAmenities?: string[];
   // Itinery
   itineraryRoute?: string;
   itineraryStops?: string[];

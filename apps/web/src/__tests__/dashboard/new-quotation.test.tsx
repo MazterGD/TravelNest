@@ -301,6 +301,7 @@ describe("NewQuotationPageContent", () => {
     expect(payload.specialRequests).toBeUndefined();
     expect(payload.itineraryStops).toBeUndefined();
     expect(payload.itineraryRoute).toBeUndefined();
+    expect(payload.amenities).toBeUndefined();
     expect(payload.pickupLocation).toMatchObject({ address: "Colombo 7", city: "Colombo 7", district: "Colombo" });
     expect(payload.dropoffLocation).toMatchObject({ address: "Galle Fort", district: "Galle" });
   });
@@ -429,7 +430,19 @@ describe("NewQuotationPageContent", () => {
     expect(screen.getAllByText("recentSearchesTitle").length).toBe(1);
   });
 
-  it.todo("sends the customer's selected 'Required Amenities' with the quotation request (currently collected but dropped from the payload)");
+  it("sends the customer's selected amenities with the request", async () => {
+    svc.request.mockResolvedValue({});
+    await renderForm();
+    await screen.findByText("Ashok Viking");
+    fireEvent.click(screen.getByText("WiFi").previousSibling as HTMLInputElement);
+    fillValidForm();
+
+    fireEvent.click(screen.getByText("requestQuotations"));
+
+    await waitFor(() => expect(svc.request).toHaveBeenCalled());
+    expect(svc.request.mock.calls[0][0].amenities).toEqual(["WiFi"]);
+    expect(screen.getByText("requiredAmenities")).toBeTruthy();
+  });
   it("restores a saved draft when the form re-opens, and ignores an unreadable one", async () => {
     localStorage.setItem(
       "quotation-draft",

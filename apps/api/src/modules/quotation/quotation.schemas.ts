@@ -125,6 +125,7 @@ export const createQuotationRequestSchema = z.object({
     intermediateStops: z.array(z.any()).max(10).optional(),
     isRoundTrip: z.boolean().optional(),
     needsAC: z.boolean().optional(),
+    amenities: z.array(z.string().trim().min(1).max(50)).max(30).optional(),
   }),
 });
 

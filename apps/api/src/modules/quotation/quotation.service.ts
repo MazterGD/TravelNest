@@ -1,4 +1,5 @@
 import { prisma } from "@travenest/database";
+import xss from "xss";
 import type { Prisma } from "@travenest/database";
 import type { QuotationStatus, VehicleType } from "@travenest/database";
 import { ApiError } from "../../middleware/errorHandler.js";
@@ -257,6 +258,7 @@ export interface CreateQuotationRequestData {
   intermediateStops?: any[];
   isRoundTrip?: boolean;
   needsAC?: boolean;
+  amenities?: string[];
 }
 
 const normalizeLocationInput = (
@@ -896,6 +898,7 @@ export const createQuotationRequest = async (
         estimatedDistance: data.estimatedDistance || null,
         estimatedDuration: data.estimatedDuration || null,
         specialRequests: data.specialRequests || null,
+        requiredAmenities: (data.amenities ?? []).map((amenity) => xss(amenity)),
         status: "PENDING",
       },
       include: {

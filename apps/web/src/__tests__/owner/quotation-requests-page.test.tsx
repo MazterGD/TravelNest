@@ -194,6 +194,17 @@ describe("QuotationRequestsPage", () => {
     expect(document.querySelectorAll("select")[0].querySelectorAll("option").length).toBe(1);
   });
 
+  it("shows the amenities a customer asked for", async () => {
+    quotes.getOwnerRequests.mockResolvedValue({
+      quotations: [request("1", { requiredAmenities: ["WiFi", "TV"] }), request("2")],
+    });
+    await renderPage();
+
+    expect(screen.getAllByText("ownerQuotations.labels.requiredAmenities").length).toBe(1);
+    expect(screen.getByText("WiFi")).toBeTruthy();
+    expect(screen.getByText("TV")).toBeTruthy();
+  });
+
   it("shows only requests for the vehicle in ?vehicleId=", async () => {
     quotes.getOwnerRequests.mockResolvedValue({
       quotations: [request("1", { vehicleId: "veh-1" }), request("2", { vehicleId: "veh-2" }), request("3")],

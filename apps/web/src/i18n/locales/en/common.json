@@ -95,7 +95,8 @@
       "passengers": "Passengers",
       "vehicleType": "Vehicle Type",
       "requestedOn": "Requested {date}",
-      "dropoffPending": "To be confirmed"
+      "dropoffPending": "To be confirmed",
+      "requiredAmenities": "Requested amenities"
     },
     "actions": {
       "sendQuotation": "Send Quotation",
@@ -2075,7 +2076,8 @@
       "rejectError": "Failed to reject quotation. Please try again.",
       "ownerFallback": "Unknown Owner",
       "vehicleFallback": "Vehicle"
-    }
+    },
+    "requiredAmenities": "Required amenities"
   },
   "booking": {
     "operatorRemoved": "Operator account removed",

@@ -659,6 +659,7 @@ model Quotation {
   estimatedDistance String?
   estimatedDuration String?
   specialRequests String?
+  requiredAmenities String[]      @default([]) // Amenity codes the customer asked for
   
   // Quotation status
   status          QuotationStatus @default(PENDING)

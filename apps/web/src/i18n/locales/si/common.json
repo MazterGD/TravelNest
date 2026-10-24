@@ -95,7 +95,8 @@
       "passengers": "මගීන්",
       "vehicleType": "වාහන වර්ගය",
       "requestedOn": "ඉල්ලීම {date}",
-      "dropoffPending": "තහවුරු කිරීමට ඉතිරි"
+      "dropoffPending": "තහවුරු කිරීමට ඉතිරි",
+      "requiredAmenities": "ඉල්ලූ පහසුකම්"
     },
     "actions": {
       "sendQuotation": "ගිණුම යවන්න",
@@ -2185,7 +2186,8 @@
       "rejectError": "මිල ගණන ප්‍රතික්ෂේප කිරීමට අසමත් විය. නැවත උත්සාහ කරන්න.",
       "ownerFallback": "හිමිකරු නොදන්නා",
       "vehicleFallback": "වාහනය"
-    }
+    },
+    "requiredAmenities": "අවශ්‍ය පහසුකම්"
   },
   "booking": {
     "operatorRemoved": "මෙහෙයුම්කරුගේ ගිණුම ඉවත් කර ඇත",

@@ -95,7 +95,8 @@
       "passengers": "பயணிகள்",
       "vehicleType": "வாகன வகை",
       "requestedOn": "கோரப்பட்டது {date}",
-      "dropoffPending": "உறுதி செய்யப்படவில்லை"
+      "dropoffPending": "உறுதி செய்யப்படவில்லை",
+      "requiredAmenities": "கோரப்பட்ட வசதிகள்"
     },
     "actions": {
       "sendQuotation": "மேற்கோளை அனுப்பு",
@@ -2185,7 +2186,8 @@
       "rejectError": "மதிப்பீட்டை நிராகரிக்க தோல்வி. மீண்டும் முயற்சிக்கவும்.",
       "ownerFallback": "தெரியாத உரிமையாளர்",
       "vehicleFallback": "வாகனம்"
-    }
+    },
+    "requiredAmenities": "தேவையான வசதிகள்"
   },
   "booking": {
     "operatorRemoved": "இயக்குநர் கணக்கு நீக்கப்பட்டது",

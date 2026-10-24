@@ -597,6 +597,24 @@ export default function QuotationRequestsPage() {
                       </div>
                     </div>
 
+                    {request.requiredAmenities && request.requiredAmenities.length > 0 && (
+                      <div className="mb-4">
+                        <div className="mb-1 text-caption text-[var(--color-text-tertiary)]">
+                          {t("ownerQuotations.labels.requiredAmenities")}
+                        </div>
+                        <ul className="flex flex-wrap gap-2">
+                          {request.requiredAmenities.map((amenity) => (
+                            <li
+                              key={amenity}
+                              className="rounded-lg border border-border bg-muted px-2 py-1 text-caption text-foreground"
+                            >
+                              {amenity}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     {request.status === "PENDING" && (
                       <CTAButton
                         href={`/${locale}/owner/quotations/send/${request.id}`}

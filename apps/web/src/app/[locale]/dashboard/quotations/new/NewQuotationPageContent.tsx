@@ -467,6 +467,7 @@ export function NewQuotationPageContent({
         intermediateStops: intermediateStops as any,
         itineraryStops: itineraryStops.length > 0 ? itineraryStops : undefined,
         itineraryRoute: itineraryRoute || undefined,
+        amenities: selectedAmenities.length > 0 ? selectedAmenities : undefined,
       } as any)) as any;
 
       localStorage.removeItem("quotation-draft");
@@ -932,7 +933,7 @@ export function NewQuotationPageContent({
                 {vehicleAmenities.length > 0 && (
                   <div className="mt-6">
                     <label className="mb-3 block text-sm font-medium text-[var(--color-text-secondary)]">
-                      Required Amenities
+                      {t("requiredAmenities")}
                     </label>
                     <div className="grid gap-3 sm:grid-cols-3">
                       {vehicleAmenities.map((amenity) => (
