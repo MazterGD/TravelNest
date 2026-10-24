@@ -81,11 +81,16 @@ const getHistoryMessage = (changes: Record<string, unknown> | null, fallback: st
 
 // Derives verification state from the document summary on AdminVehicleVerificationDetails
 // (the detail object has no verificationState field — only items in the queue list do).
-function deriveVerificationState(summary: {
-  pending: number;
-  verified: number;
-  rejected: number;
-}): keyof typeof VERIFICATION_BADGE_VARIANT {
+// Same precedence as the API queue: an activation request comes first.
+function deriveVerificationState(
+  summary: {
+    pending: number;
+    verified: number;
+    rejected: number;
+  },
+  vehicle: { isActive: boolean; isAvailable: boolean },
+): keyof typeof VERIFICATION_BADGE_VARIANT {
+  if (!vehicle.isActive && vehicle.isAvailable) return "ACTIVATION_REQUEST";
   if (summary.pending > 0) return "PENDING";
   if (summary.rejected > 0) return "REJECTED";
   if (summary.verified > 0) return "VERIFIED";
@@ -165,7 +170,7 @@ export default function AdminVehicleVerificationsPage() {
   // ── Detail modal tab panels ──────────────────────────────────────────────────
 
   const overviewPanel = selectedVehicle && (() => {
-    const state = deriveVerificationState(selectedVehicle.documentSummary);
+    const state = deriveVerificationState(selectedVehicle.documentSummary, selectedVehicle);
     return (
       <div className="space-y-4">
         {/* Identity header */}

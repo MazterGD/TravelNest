@@ -320,7 +320,16 @@ describe("AdminVehicleVerificationsPage", () => {
     expect(screen.getByText("Loading vehicle details…")).toBeTruthy();
   });
 
-  it.todo(
-    "shows Approve Activation / Reject in the detail overview for a vehicle in ACTIVATION_REQUEST state (deriveVerificationState never yields ACTIVATION_REQUEST)",
-  );
+  it("offers approve/reject in the detail overview for an activation request", async () => {
+    svc.getVehicleVerificationById.mockResolvedValue(detail({ isActive: false, isAvailable: true }));
+    await renderPage();
+    const dialog = await openDetail();
+
+    fireEvent.click(await within(dialog).findByText("Overview"));
+    const approve = await within(dialog).findByText("Approve Activation");
+    expect(within(dialog).getByText("Activation Request")).toBeTruthy();
+    await act(async () => fireEvent.click(approve));
+
+    expect(svc.approveVehicleVerification).toHaveBeenCalledWith("veh-1", undefined);
+  });
 });
