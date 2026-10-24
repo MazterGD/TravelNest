@@ -3819,5 +3819,57 @@
       "notFound": "We couldn't find this quotation. It may have been withdrawn — check your quotations.",
       "create": "We couldn't create your booking. Please try again in a moment."
     }
+  },
+  "bookingPayment": {
+    "title": "Payment",
+    "backToBooking": "Back to booking",
+    "reference": "Booking reference: {ref}",
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "failed": "Failed",
+      "refunded": "Refunded"
+    },
+    "chooseMethod": "Choose a payment method",
+    "tabs": {
+      "card": "Credit/Debit card",
+      "bank": "Bank transfer"
+    },
+    "cardRedirect": "When you select Pay now, we'll take you to PayHere's secure page to enter your card details.",
+    "cardSecure": "Card details are processed securely by PayHere.",
+    "bankDetails": "Bank details",
+    "accountName": "Account name: {value}",
+    "accountNumber": "Account number: {value}",
+    "branch": "Branch: {value}",
+    "referenceHint": "Use your booking reference as the payment note.",
+    "receiptLabel": "Upload payment receipt",
+    "receiptHelp": "Upload a PDF, JPG or PNG receipt.",
+    "viewReceipt": "View uploaded receipt",
+    "uploadReceipt": "Upload receipt",
+    "paid": "Paid",
+    "payNow": "Pay now",
+    "bankReady": "Your bank transfer details are ready. Use your booking reference as the transfer note.",
+    "receiptUploaded": "Receipt uploaded. We'll confirm your payment soon.",
+    "paymentStatus": "Payment status",
+    "confirmed": "Your payment is confirmed.",
+    "completeToConfirm": "Complete the payment to confirm your booking.",
+    "refresh": "Refresh status",
+    "summary": "Payment summary",
+    "total": "Total amount",
+    "paidAmount": "Paid",
+    "due": "Amount due",
+    "amount": "LKR {amount}",
+    "security": "Security",
+    "pci": "PCI-compliant payment processing",
+    "encrypted": "Encrypted checkout powered by PayHere",
+    "goToBookings": "Go to bookings",
+    "errors": {
+      "load": "We couldn't load this booking. Check your connection and try again.",
+      "notFound": "We couldn't find this booking. Check your bookings list.",
+      "payment": "We couldn't start your payment. Nothing was charged — please try again.",
+      "selectReceipt": "Choose a receipt file first, then upload it.",
+      "upload": "We couldn't upload your receipt. Check the file and try again."
+    }
   }
 }

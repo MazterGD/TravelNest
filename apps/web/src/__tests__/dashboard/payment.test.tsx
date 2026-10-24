@@ -11,6 +11,8 @@ configure({ asyncUtilTimeout: 5000 });
 const h = vi.hoisted(() => ({
   push: vi.fn(),
   guard: { isLoading: false },
+  t: (key: string, values?: Record<string, unknown>) =>
+    values ? `${key}:${JSON.stringify(values)}` : key,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -19,6 +21,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
   useParams: () => ({ locale: "en" }),
 }));
+vi.mock("next-intl", () => ({ useTranslations: () => h.t }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a>,
 }));
@@ -62,7 +65,7 @@ const booking = (payment: Record<string, any> = {}) => ({
 const renderPayment = async (data: any = booking()) => {
   getById.mockResolvedValue(data);
   render(<PaymentPageContent bookingId="b1" locale="en" />);
-  await screen.findByText("Choose a payment method");
+  await screen.findByText("chooseMethod");
 };
 
 let submitSpy: any;
@@ -88,13 +91,15 @@ describe("PaymentPageContent", () => {
 
   it("shows the summary with the outstanding amount", async () => {
     await renderPayment({ booking: booking() });
-    expect(screen.getByText("Booking reference: BK-001")).toBeTruthy();
-    expect(screen.getAllByText("Pending").length).toBe(2);
-    expect(screen.getByText("LKR 50,000")).toBeTruthy();
-    expect(screen.getByText("LKR 10,000")).toBeTruthy();
-    expect(screen.getByText("LKR 40,000")).toBeTruthy();
-    expect(screen.getByText("Complete payment to confirm your booking.")).toBeTruthy();
-    expect(screen.getByText("Card details are processed securely by PayHere.")).toBeTruthy();
+    expect(screen.getByText('reference:{"ref":"BK-001"}')).toBeTruthy();
+    expect(screen.getAllByText("status.pending").length).toBe(2);
+    expect(screen.getByText('amount:{"amount":"50,000"}')).toBeTruthy();
+    expect(screen.getByText('amount:{"amount":"10,000"}')).toBeTruthy();
+    expect(screen.getByText('amount:{"amount":"40,000"}')).toBeTruthy();
+    expect(screen.getByText("completeToConfirm")).toBeTruthy();
+    expect(screen.getByText("cardSecure")).toBeTruthy();
+    expect(screen.getByText("cardRedirect")).toBeTruthy();
+    expect(screen.queryByPlaceholderText("1234 5678 9012 3456")).toBeNull();
   });
 
   it("hands card payments off to PayHere via an auto-submitted form", async () => {
@@ -103,7 +108,7 @@ describe("PaymentPageContent", () => {
       payhere: { actionUrl: "https://sandbox.payhere.lk/pay/checkout", payload: { merchant_id: "M1", order_id: "BK-001" } },
     });
     await renderPayment();
-    fireEvent.click(screen.getByText("Pay Now"));
+    fireEvent.click(screen.getByText("payNow"));
     await waitFor(() => expect(submitSpy).toHaveBeenCalled());
     expect(intent).toHaveBeenCalledWith("b1", "CARD");
     const form = document.querySelector('form[method="POST"]') as HTMLFormElement;
@@ -115,77 +120,77 @@ describe("PaymentPageContent", () => {
     intent.mockResolvedValue({ payment: { id: "p9" } });
     upload.mockResolvedValue({});
     await renderPayment(booking({ id: null, receiptUrl: "https://r/1" }));
-    fireEvent.click(screen.getByText("Bank Transfer"));
+    fireEvent.click(screen.getByText("tabs.bank"));
     await waitFor(() => expect(screen.getByText("BOC")).toBeTruthy());
-    expect(screen.getByText("Account Name: TraveNest")).toBeTruthy();
-    expect(screen.getByText("Account Number: 123")).toBeTruthy();
-    expect(screen.getByText("Branch: Colombo")).toBeTruthy();
-    expect(screen.getByText("View uploaded receipt").getAttribute("href")).toBe("https://r/1");
-    const uploadBtn = screen.getByText("Upload Receipt").closest("button")!;
+    expect(screen.getByText('accountName:{"value":"TraveNest"}')).toBeTruthy();
+    expect(screen.getByText('accountNumber:{"value":"123"}')).toBeTruthy();
+    expect(screen.getByText('branch:{"value":"Colombo"}')).toBeTruthy();
+    expect(screen.getByText("viewReceipt").getAttribute("href")).toBe("https://r/1");
+    const uploadBtn = screen.getByText("uploadReceipt").closest("button")!;
     expect(uploadBtn.disabled).toBe(true);
     getById.mockResolvedValue(booking({ id: "p9", receiptUrl: "https://r/1" }));
-    fireEvent.click(screen.getByText("Pay Now"));
-    expect(await screen.findByText(/Bank transfer instructions are ready/)).toBeTruthy();
+    fireEvent.click(screen.getByText("payNow"));
+    expect(await screen.findByText("bankReady")).toBeTruthy();
     expect(intent).toHaveBeenCalledWith("b1", "BANK_TRANSFER");
     expect(getById).toHaveBeenCalledTimes(2);
-    fireEvent.click(screen.getByText("Bank Transfer"));
+    fireEvent.click(screen.getByText("tabs.bank"));
     fireEvent.click(screen.getByText("choose-receipt"));
     expect(screen.getByText("receipt.pdf")).toBeTruthy();
-    fireEvent.click(screen.getByText("Upload Receipt"));
-    expect(await screen.findByText("Receipt uploaded. We will confirm your payment soon.")).toBeTruthy();
+    fireEvent.click(screen.getByText("uploadReceipt"));
+    expect(await screen.findByText("receiptUploaded")).toBeTruthy();
     expect(upload).toHaveBeenCalledWith("p9", expect.any(File));
   });
 
   it("surfaces payment intent errors", async () => {
     intent.mockRejectedValueOnce(new ApiError(400, "Booking already paid")).mockRejectedValueOnce(new Error("x"));
     await renderPayment();
-    fireEvent.click(screen.getByText("Pay Now"));
+    fireEvent.click(screen.getByText("payNow"));
     expect(await screen.findByText("Booking already paid")).toBeTruthy();
-    fireEvent.click(screen.getByText("Pay Now"));
-    expect(await screen.findByText("Payment failed")).toBeTruthy();
+    fireEvent.click(screen.getByText("payNow"));
+    expect(await screen.findByText("errors.payment")).toBeTruthy();
   });
 
   it("surfaces receipt upload errors", async () => {
     upload.mockRejectedValueOnce(new ApiError(413, "File too large")).mockRejectedValueOnce(new Error("x"));
     await renderPayment();
-    fireEvent.click(screen.getByText("Bank Transfer"));
+    fireEvent.click(screen.getByText("tabs.bank"));
     fireEvent.click(screen.getByText("choose-receipt"));
-    fireEvent.click(screen.getByText("Upload Receipt"));
+    fireEvent.click(screen.getByText("uploadReceipt"));
     expect(await screen.findByText("File too large")).toBeTruthy();
-    fireEvent.click(screen.getByText("Upload Receipt"));
-    expect(await screen.findByText("Receipt upload failed")).toBeTruthy();
+    fireEvent.click(screen.getByText("uploadReceipt"));
+    expect(await screen.findByText("errors.upload")).toBeTruthy();
   });
 
   it("falls back to generic bank details when none are configured or the call fails", async () => {
     bank.mockResolvedValueOnce({});
     await renderPayment(booking({ paid: 0 }));
-    fireEvent.click(screen.getByText("Bank Transfer"));
-    expect(await screen.findByText("Bank details")).toBeTruthy();
-    expect(screen.getByText("Use your booking reference as the payment note.")).toBeTruthy();
-    expect(screen.getAllByText("LKR 50,000").length).toBe(2);
+    fireEvent.click(screen.getByText("tabs.bank"));
+    expect(await screen.findByText("bankDetails")).toBeTruthy();
+    expect(screen.getByText("referenceHint")).toBeTruthy();
+    expect(screen.getAllByText('amount:{"amount":"50,000"}').length).toBe(2);
   });
 
   it("keeps the fallback bank details when the bank-details call fails", async () => {
     bank.mockRejectedValueOnce(new Error("x"));
     await renderPayment();
-    fireEvent.click(screen.getByText("Bank Transfer"));
-    expect(await screen.findByText("Bank details")).toBeTruthy();
+    fireEvent.click(screen.getByText("tabs.bank"));
+    expect(await screen.findByText("bankDetails")).toBeTruthy();
   });
 
   it("refreshes the status on demand and shows a confirmed payment", async () => {
     await renderPayment();
     getById.mockResolvedValue(booking({ status: "COMPLETED", paid: 50000 }));
-    fireEvent.click(screen.getByText("Refresh status"));
-    expect(await screen.findByText("Your payment is confirmed.")).toBeTruthy();
-    expect(screen.getByText("Paid", { selector: "button" }).closest("button")!.disabled).toBe(true);
-    expect(screen.getAllByText("Completed").length).toBe(2);
+    fireEvent.click(screen.getByText("refresh"));
+    expect(await screen.findByText("confirmed")).toBeTruthy();
+    expect(screen.getByText("paid", { selector: "button" }).closest("button")!.disabled).toBe(true);
+    expect(screen.getAllByText("status.completed").length).toBe(2);
   });
 
   it.each([
-    ["processing", "Processing"],
-    ["failed", "Failed"],
-    ["refunded", "Refunded"],
-    ["weird", "Pending"],
+    ["processing", "status.processing"],
+    ["failed", "status.failed"],
+    ["refunded", "status.refunded"],
+    ["weird", "status.pending"],
   ])("labels a %s payment as %s", async (status: string, label: string) => {
     await renderPayment(booking({ status }));
     expect(screen.getAllByText(label).length).toBe(2);
@@ -215,11 +220,11 @@ describe("PaymentPageContent", () => {
     getById.mockRejectedValueOnce(new ApiError(404, "Booking missing"));
     const first = render(<PaymentPageContent bookingId="b1" locale="en" />);
     expect(await screen.findByText("Booking missing")).toBeTruthy();
-    fireEvent.click(await screen.findByText("Go to Bookings"));
+    fireEvent.click(await screen.findByText("goToBookings"));
     expect(h.push).toHaveBeenCalledWith("/en/dashboard/bookings");
     first.unmount();
     getById.mockRejectedValueOnce(new Error("x"));
     render(<PaymentPageContent bookingId="b1" locale="en" />);
-    expect(await screen.findByText("Failed to load booking")).toBeTruthy();
+    expect(await screen.findByText("errors.load")).toBeTruthy();
   });
 });

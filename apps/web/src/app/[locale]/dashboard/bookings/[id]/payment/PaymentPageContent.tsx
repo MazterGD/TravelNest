@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Badge,
   Button,
@@ -11,13 +12,12 @@ import {
   CardHeader,
   CardTitle,
   FileUpload,
-  Input,
   LoadingSpinner,
   TabsList,
 } from "@/components/ui";
 import { useProtectedRoute } from "@/hooks";
 import { bookingService, paymentService, ApiError } from "@/lib/api";
-import { ArrowLeft, CheckCircle, Clock, CreditCard, AlertTriangle, Lock, Banknote, University } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, CreditCard, AlertTriangle, Lock, University } from "lucide-react";
 
 interface BookingPaymentDetails {
   id: string;
@@ -56,44 +56,25 @@ const fallbackBankDetails = {
   accountName: "",
   accountNumber: "",
   branch: "",
-  referenceHint: "Use your booking reference as the payment note.",
+  referenceHint: "",
 };
 
 const statusConfig: Record<
   string,
-  { label: string; icon: typeof Clock; className: string }
+  { icon: typeof Clock; variant: "warning" | "info" | "success" | "danger" | "secondary" }
 > = {
-  pending: {
-    label: "Pending",
-    icon: Clock,
-    className: "bg-yellow-100 text-yellow-800",
-  },
-  processing: {
-    label: "Processing",
-    icon: Clock,
-    className: "bg-blue-100 text-blue-800",
-  },
-  completed: {
-    label: "Completed",
-    icon: CheckCircle,
-    className: "bg-green-100 text-green-800",
-  },
-  failed: {
-    label: "Failed",
-    icon: AlertTriangle,
-    className: "bg-red-100 text-red-800",
-  },
-  refunded: {
-    label: "Refunded",
-    icon: CheckCircle,
-    className: "bg-purple-100 text-purple-800",
-  },
+  pending: { icon: Clock, variant: "warning" },
+  processing: { icon: Clock, variant: "info" },
+  completed: { icon: CheckCircle, variant: "success" },
+  failed: { icon: AlertTriangle, variant: "danger" },
+  refunded: { icon: CheckCircle, variant: "secondary" },
 };
 
 export default function PaymentPageContent({
   bookingId,
   locale,
 }: PaymentPageContentProps) {
+  const t = useTranslations("bookingPayment");
   const router = useRouter();
   const { isLoading: guardLoading } = useProtectedRoute();
 
@@ -155,7 +136,7 @@ export default function PaymentPageContent({
       setCurrentPaymentId(data.payment.id || null);
     } catch (err) {
       const message =
-        err instanceof ApiError ? err.message : "Failed to load booking";
+        err instanceof ApiError ? err.message : t("errors.load");
       setError(message);
     } finally {
       if (!silent) setLoading(false);
@@ -163,7 +144,9 @@ export default function PaymentPageContent({
   };
 
   const paymentStatus = booking?.payment?.status?.toLowerCase() || "pending";
-  const statusMeta = statusConfig[paymentStatus] || statusConfig.pending;
+  const statusKey = statusConfig[paymentStatus] ? paymentStatus : "pending";
+  const statusMeta = statusConfig[statusKey];
+  const statusLabel = t(`status.${statusKey}`);
   const StatusIcon = statusMeta.icon;
 
   const dueAmount = useMemo(() => {
@@ -199,13 +182,11 @@ export default function PaymentPageContent({
         return;
       }
 
-      setStatusMessage(
-        "Bank transfer instructions are ready. Use your booking reference for the transfer.",
-      );
+      setStatusMessage(t("bankReady"));
 
       await fetchBooking();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Payment failed";
+      const message = err instanceof ApiError ? err.message : t("errors.payment");
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -220,7 +201,7 @@ export default function PaymentPageContent({
 
   const handleUploadReceipt = async () => {
     if (!receiptFile || !currentPaymentId) {
-      setError("Select a receipt file first");
+      setError(t("errors.selectReceipt"));
       return;
     }
 
@@ -228,12 +209,12 @@ export default function PaymentPageContent({
     setError(null);
     try {
       await paymentService.uploadReceipt(currentPaymentId, receiptFile.file);
-      setStatusMessage("Receipt uploaded. We will confirm your payment soon.");
+      setStatusMessage(t("receiptUploaded"));
       setReceiptFile(null);
       await fetchBooking(true);
     } catch (err) {
       const message =
-        err instanceof ApiError ? err.message : "Receipt upload failed";
+        err instanceof ApiError ? err.message : t("errors.upload");
       setError(message);
     } finally {
       setIsUploadingReceipt(false);
@@ -263,9 +244,9 @@ export default function PaymentPageContent({
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">{error || "Booking not found"}</p>
+          <p role="alert" className="text-[var(--color-text-secondary)] mb-4">{error || t("errors.notFound")}</p>
           <Button onClick={() => router.push(`/${locale}/dashboard/bookings`)}>
-            Go to Bookings
+            {t("goToBookings")}
           </Button>
         </div>
       </div>
@@ -275,39 +256,40 @@ export default function PaymentPageContent({
   const tabs = [
     {
       id: "card",
-      label: "Credit/Debit Card",
-      icon: <CreditCard className="text-sm" />,
+      label: t("tabs.card"),
+      icon: <CreditCard className="h-4 w-4" aria-hidden="true" />,
     },
     {
       id: "bank",
-      label: "Bank Transfer",
-      icon: <University className="text-sm" />,
+      label: t("tabs.bank"),
+      icon: <University className="h-4 w-4" aria-hidden="true" />,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      <div className="bg-white border-b border-gray-200">
+    <div className="min-h-screen bg-[var(--color-bg-surface)] pb-12">
+      <div className="bg-[var(--color-bg-base)] border-b border-[var(--color-border-default)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Link
                 href={`/${locale}/dashboard/bookings/${booking.id}`}
-                className="text-gray-600 hover:text-[#20B0E9] transition-colors"
+                aria-label={t("backToBooking")}
+                className="flex h-11 w-11 items-center justify-center rounded-xl text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-action-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)]"
               >
-                <ArrowLeft className="text-xl" />
+                <ArrowLeft className="h-6 w-6" aria-hidden="true" />
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Payment</h1>
-                <p className="text-sm text-gray-600 mt-1">
-                  Booking reference: {booking.bookingRef}
+                <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">{t("title")}</h1>
+                <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+                  {t("reference", { ref: booking.bookingRef })}
                 </p>
               </div>
             </div>
-            <Badge className={statusMeta.className}>
+            <Badge variant={statusMeta.variant}>
               <span className="inline-flex items-center gap-2">
-                <StatusIcon className="text-sm" />
-                {statusMeta.label}
+                <StatusIcon className="h-4 w-4" aria-hidden="true" />
+                {statusLabel}
               </span>
             </Badge>
           </div>
@@ -319,7 +301,7 @@ export default function PaymentPageContent({
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Choose a payment method</CardTitle>
+                <CardTitle>{t("chooseMethod")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <TabsList
@@ -330,65 +312,57 @@ export default function PaymentPageContent({
                 />
 
                 {activeTab === "card" && (
-                  <div className="space-y-4">
-                    <Input label="Cardholder Name" placeholder="Name on card" />
-                    <Input
-                      label="Card Number"
-                      placeholder="1234 5678 9012 3456"
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input label="Expiry Date" placeholder="MM/YY" />
-                      <Input label="CVC" placeholder="123" />
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Lock className="text-[#20B0E9]" />
-                      Card details are processed securely by PayHere.
+                  <div className="space-y-4 text-sm text-[var(--color-text-secondary)]">
+                    <p>{t("cardRedirect")}</p>
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-5 w-5 shrink-0" aria-hidden="true" />
+                      {t("cardSecure")}
                     </div>
                   </div>
                 )}
 
                 {activeTab === "bank" && (
                   <div className="space-y-4">
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                      <p className="font-semibold text-gray-900">
-                        {bankDetails.bankName || "Bank details"}
+                    <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4">
+                      <p className="font-semibold text-[var(--color-text-primary)]">
+                        {bankDetails.bankName || t("bankDetails")}
                       </p>
                       {bankDetails.accountName && (
-                        <p className="text-sm text-gray-600">
-                          Account Name: {bankDetails.accountName}
+                        <p className="text-sm text-[var(--color-text-secondary)]">
+                          {t("accountName", { value: bankDetails.accountName })}
                         </p>
                       )}
                       {bankDetails.accountNumber && (
-                        <p className="text-sm text-gray-600">
-                          Account Number: {bankDetails.accountNumber}
+                        <p className="text-sm text-[var(--color-text-secondary)]">
+                          {t("accountNumber", { value: bankDetails.accountNumber })}
                         </p>
                       )}
                       {bankDetails.branch && (
-                        <p className="text-sm text-gray-600">
-                          Branch: {bankDetails.branch}
+                        <p className="text-sm text-[var(--color-text-secondary)]">
+                          {t("branch", { value: bankDetails.branch })}
                         </p>
                       )}
                     </div>
-                    <div className="text-sm text-gray-600">
-                      {bankDetails.referenceHint}
+                    <div className="text-sm text-[var(--color-text-secondary)]">
+                      {bankDetails.referenceHint || t("referenceHint")}
                     </div>
 
                     <FileUpload
-                      label="Upload payment receipt"
+                      label={t("receiptLabel")}
                       value={receiptFile}
                       onChange={setReceiptFile}
-                      helpText="Upload a PDF, JPG, or PNG receipt."
+                      helpText={t("receiptHelp")}
                       accept=".pdf,.jpg,.jpeg,.png"
                     />
 
                     {booking.payment.receiptUrl && (
                       <a
                         href={booking.payment.receiptUrl}
-                        className="text-sm text-[#20B0E9] hover:underline"
+                        className="text-sm text-[var(--color-action-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)]"
                         target="_blank"
                         rel="noreferrer"
                       >
-                        View uploaded receipt
+                        {t("viewReceipt")}
                       </a>
                     )}
 
@@ -398,19 +372,19 @@ export default function PaymentPageContent({
                       onClick={handleUploadReceipt}
                       disabled={!currentPaymentId || !receiptFile}
                     >
-                      Upload Receipt
+                      {t("uploadReceipt")}
                     </Button>
                   </div>
                 )}
 
                 {statusMessage && (
-                  <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                  <div role="status" className="rounded-xl border border-[var(--color-success-border)] bg-[var(--color-success-bg)] p-4 text-sm text-[var(--color-success-text)]">
                     {statusMessage}
                   </div>
                 )}
 
                 {error && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                  <div role="alert" className="rounded-xl border border-[var(--color-error-border)] bg-[var(--color-error-bg)] p-4 text-sm text-[var(--color-error-text)]">
                     {error}
                   </div>
                 )}
@@ -422,26 +396,26 @@ export default function PaymentPageContent({
                   onClick={handlePayNow}
                   disabled={paymentStatus === "completed"}
                 >
-                  {paymentStatus === "completed" ? "Paid" : "Pay Now"}
+                  {paymentStatus === "completed" ? t("paid") : t("payNow")}
                 </Button>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Payment status</CardTitle>
+                <CardTitle>{t("paymentStatus")}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm text-gray-600">
+              <CardContent className="space-y-3 text-sm text-[var(--color-text-secondary)]">
                 <div className="flex items-center gap-3">
-                  <StatusIcon className="text-[#20B0E9]" />
+                  <StatusIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
                   <div>
-                    <p className="font-medium text-gray-900">
-                      {statusMeta.label}
+                    <p className="font-medium text-[var(--color-text-primary)]">
+                      {statusLabel}
                     </p>
                     <p>
                       {paymentStatus === "completed"
-                        ? "Your payment is confirmed."
-                        : "Complete payment to confirm your booking."}
+                        ? t("confirmed")
+                        : t("completeToConfirm")}
                     </p>
                   </div>
                 </div>
@@ -451,7 +425,7 @@ export default function PaymentPageContent({
                   isLoading={isRefreshing}
                   onClick={handleRefreshStatus}
                 >
-                  Refresh status
+                  {t("refresh")}
                 </Button>
               </CardContent>
             </Card>
@@ -460,25 +434,25 @@ export default function PaymentPageContent({
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Payment summary</CardTitle>
+                <CardTitle>{t("summary")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Total amount</span>
-                  <span className="font-medium text-gray-900">
-                    LKR {booking.payment.total.toLocaleString()}
+                <div className="flex items-center justify-between text-sm text-[var(--color-text-secondary)]">
+                  <span>{t("total")}</span>
+                  <span className="font-medium text-[var(--color-text-primary)]">
+                    {t("amount", { amount: booking.payment.total.toLocaleString() })}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Paid</span>
-                  <span className="font-medium text-gray-900">
-                    LKR {(booking.payment.paid || 0).toLocaleString()}
+                <div className="flex items-center justify-between text-sm text-[var(--color-text-secondary)]">
+                  <span>{t("paidAmount")}</span>
+                  <span className="font-medium text-[var(--color-text-primary)]">
+                    {t("amount", { amount: (booking.payment.paid || 0).toLocaleString() })}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Amount due</span>
-                  <span className="font-semibold text-gray-900">
-                    LKR {dueAmount.toLocaleString()}
+                <div className="flex items-center justify-between text-sm text-[var(--color-text-secondary)]">
+                  <span>{t("due")}</span>
+                  <span className="font-semibold text-[var(--color-text-primary)]">
+                    {t("amount", { amount: dueAmount.toLocaleString() })}
                   </span>
                 </div>
               </CardContent>
@@ -486,16 +460,16 @@ export default function PaymentPageContent({
 
             <Card>
               <CardHeader>
-                <CardTitle>Security</CardTitle>
+                <CardTitle>{t("security")}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm text-gray-600">
+              <CardContent className="space-y-3 text-sm text-[var(--color-text-secondary)]">
                 <div className="flex items-center gap-2">
-                  <Lock className="text-[#20B0E9]" />
-                  PCI compliant payment processing
+                  <Lock className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {t("pci")}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Lock className="text-[#20B0E9]" />
-                  Encrypted checkout powered by PayHere
+                  <Lock className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  {t("encrypted")}
                 </div>
               </CardContent>
             </Card>
