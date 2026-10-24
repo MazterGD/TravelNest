@@ -67,7 +67,8 @@ export function useProtectedRoute(
 
     // Not authenticated - redirect to login
     if (!isAuthenticated || !user) {
-      const returnUrl = encodeURIComponent(pathname);
+      const query = typeof window !== "undefined" ? window.location.search : "";
+      const returnUrl = encodeURIComponent(`${pathname}${query}`);
       router.replace(`${loginRedirect}?returnUrl=${returnUrl}`);
       return;
     }

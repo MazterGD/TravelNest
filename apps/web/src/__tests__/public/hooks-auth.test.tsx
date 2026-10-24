@@ -142,6 +142,13 @@ describe("useProtectedRoute", () => {
     expect(router.replace).toHaveBeenLastCalledWith(
       "/si/login?returnUrl=%2Fen%2Fdashboard%2Ftrips",
     );
+
+    window.history.pushState({}, "", "/en/dashboard/packages?book=pkg1");
+    renderHook(() => useProtectedRoute());
+    expect(router.replace).toHaveBeenLastCalledWith(
+      "/en/login?returnUrl=%2Fen%2Fdashboard%2Ftrips%3Fbook%3Dpkg1",
+    );
+    window.history.pushState({}, "", "/");
   });
 
   it("authorizes matching roles and redirects the wrong role", () => {

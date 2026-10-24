@@ -102,6 +102,23 @@ describe("login page", () => {
     expect(screen.getByText("500+")).toBeTruthy();
   });
 
+  it.each([
+    ["/en/dashboard/packages?book=pkg1", "/en/dashboard/packages?book=pkg1"],
+    ["https://evil.example.com/steal", "/en/dashboard"],
+    ["//evil.example.com", "/en/dashboard"],
+    ["/si/dashboard", "/en/dashboard"],
+  ])("after sign-in, returnUrl %s leads to %s", async (returnUrl, destination) => {
+    nav.search = new URLSearchParams({ returnUrl });
+    authService.login.mockResolvedValue({ user: customer, accessToken: "tok" });
+    await renderLogin();
+    type("emailOrPhonePlaceholder", "nimal@x.lk");
+    type("passwordPlaceholder", "Secret123");
+
+    await submit();
+
+    expect(router.push).toHaveBeenCalledWith(destination);
+  });
+
   it("signs in with a password, honouring remember-me, and redirects by role", async () => {
     authService.login.mockResolvedValue({ user: customer, accessToken: "tok" });
     await renderLogin();

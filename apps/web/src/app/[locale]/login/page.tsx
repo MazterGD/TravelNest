@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Chrome, Facebook, Eye, EyeOff, Mail, Lock, Bus, Users, Star } from 'lucide-react';
@@ -22,6 +22,19 @@ export default function LoginPage() {
   const t = useTranslations("auth.login");
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Back to the page that asked for sign-in, but only a path on this site in
+  // this locale: anything else could send the user to another origin.
+  const destinationFor = (user: Parameters<typeof getDashboardUrl>[0]) => {
+    const returnUrl = searchParams?.get("returnUrl");
+    const isSafe =
+      !!returnUrl &&
+      returnUrl.startsWith(`/${locale}/`) &&
+      !returnUrl.startsWith("//") &&
+      !returnUrl.includes("\\");
+    return isSafe ? returnUrl : getDashboardUrl(user, locale);
+  };
   const locale = params.locale as string;
   const { login } = useAuthStore();
 
@@ -147,7 +160,7 @@ export default function LoginPage() {
 
         setRemembered(true);
         login(verificationResult.user, verificationResult.accessToken);
-        router.push(getDashboardUrl(verificationResult.user, locale));
+        router.push(destinationFor(verificationResult.user));
         return;
       }
 
@@ -164,7 +177,7 @@ export default function LoginPage() {
       login(response.user, response.accessToken);
 
       // Redirect to role-specific dashboard
-      router.push(getDashboardUrl(response.user, locale));
+      router.push(destinationFor(response.user));
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setError(t("errors.rateLimited"));
