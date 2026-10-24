@@ -11,6 +11,7 @@ import {
   removalStamp,
   withRemovedSuffix,
 } from "../../utils/softDelete.js";
+import { recordAuditLog } from "../admin/audit/audit.service.js";
 
 /**
  * Platform-set base pricing per vehicle type. Surfaced read-only to owners so
@@ -1017,6 +1018,7 @@ export const toggleVehicleStatus = async (
   ownerId: string,
   isActive: boolean,
   isAdmin = false,
+  reason?: string,
 ) => {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id },
@@ -1036,10 +1038,36 @@ export const toggleVehicleStatus = async (
     );
   }
 
-  const updated = await prisma.vehicle.update({
-    where: { id },
-    data: { isActive },
+  if (!isAdmin) {
+    return prisma.vehicle.update({ where: { id }, data: { isActive } });
+  }
+
+  // ownerId is the acting admin here.
+  const updated = await prisma.$transaction(async (tx) => {
+    const record = await tx.vehicle.update({ where: { id }, data: { isActive } });
+    if (!isActive) {
+      await tx.notification.create({
+        data: {
+          userId: vehicle.ownerId,
+          type: "vehicle_suspended",
+          category: "System",
+          title: "Vehicle suspended",
+          message: `${vehicle.name} (${vehicle.licensePlate}) was suspended by TraveNest${reason ? `: ${reason}` : "."}`,
+          data: { vehicleId: id, ...(reason ? { reason } : {}) },
+        },
+      });
+    }
+    return record;
   });
+
+  await recordAuditLog(
+    ownerId,
+    isActive ? "ACTIVATE" : "SUSPEND",
+    "VEHICLE",
+    id,
+    { previousIsActive: vehicle.isActive, isActive, ...(reason ? { reason } : {}) },
+    `Vehicle ${vehicle.licensePlate} ${isActive ? "reactivated" : "suspended"}`,
+  );
 
   return updated;
 };

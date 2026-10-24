@@ -354,7 +354,7 @@ export const toggleAvailability = async (req: Request, res: Response) => {
 export const toggleStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
   const ownerId = req.user!.id;
-  const { isActive } = req.body;
+  const { isActive, reason } = req.body;
   const isAdmin = req.user!.role === "ADMIN";
 
   const vehicle = await vehicleService.toggleVehicleStatus(
@@ -362,6 +362,7 @@ export const toggleStatus = async (req: Request, res: Response) => {
     ownerId,
     isActive,
     isAdmin,
+    reason,
   );
 
   return ResponseHelper.success(

@@ -3685,8 +3685,8 @@ export const adminService = {
     return api.get<AdminVehiclesResponse>(`/admin/vehicles${query}`);
   },
 
-  suspendVehicle: (vehicleId: string) =>
-    api.patch(`/vehicles/${vehicleId}/status`, { isActive: false }),
+  suspendVehicle: (vehicleId: string, reason?: string) =>
+    api.patch(`/vehicles/${vehicleId}/status`, { isActive: false, reason }),
 
   activateVehicle: (vehicleId: string) =>
     api.patch(`/vehicles/${vehicleId}/status`, { isActive: true }),

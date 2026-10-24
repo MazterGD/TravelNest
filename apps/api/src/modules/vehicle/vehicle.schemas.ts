@@ -206,6 +206,7 @@ export const toggleAvailabilitySchema = z.object({
 export const toggleStatusSchema = z.object({
   body: z.object({
     isActive: z.boolean({ required_error: "isActive is required" }),
+    reason: z.string().trim().max(500).optional(),
   }),
 });
 

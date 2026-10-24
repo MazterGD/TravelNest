@@ -1,4 +1,5 @@
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
+import { requireAdminPermission } from "../admin/admin.middleware.js";
 import multer from "multer";
 import {
   authenticate,
@@ -25,6 +26,16 @@ import {
 import { config } from "../../config/index.js";
 
 const router = Router();
+
+// Admins reactivate or suspend through the verification permissions, not by
+// role alone; owners pass straight through to the service's own checks.
+const adminVehicleStatusPermission: RequestHandler = (req, res, next) => {
+  if (req.user?.role !== "ADMIN") return next();
+  const permission = req.body?.isActive
+    ? "admin.verifications.approve"
+    : "admin.verifications.reject";
+  return requireAdminPermission(permission)(req, res, next);
+};
 
 const photoUpload = multer({
   storage: multer.memoryStorage(),
@@ -195,6 +206,7 @@ router.patch(
   csrfProtection,
   authorize("owner", "admin"),
   validate(toggleStatusSchema),
+  adminVehicleStatusPermission,
   asyncHandler(vehicleController.toggleStatus),
 );
 

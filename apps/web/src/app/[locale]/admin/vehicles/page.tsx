@@ -259,7 +259,7 @@ export default function AdminVehiclesPage() {
       variant: "danger",
     });
     if (reason) {
-      await suspendVehicle(vehicle.id);
+      await suspendVehicle(vehicle.id, reason);
     }
   };
 

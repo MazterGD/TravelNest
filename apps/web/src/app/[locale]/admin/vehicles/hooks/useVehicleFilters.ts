@@ -19,7 +19,7 @@ interface UseVehicleFiltersResult {
   setFilters: (next: Partial<AdminVehiclesQuery>) => void;
   selectVehicle: (vehicle: AdminVehicleRecord) => void;
   clearSelectedVehicle: () => void;
-  suspendVehicle: (vehicleId: string) => Promise<void>;
+  suspendVehicle: (vehicleId: string, reason?: string) => Promise<void>;
   activateVehicle: (vehicleId: string) => Promise<void>;
   refetch: () => Promise<void>;
 }
@@ -102,9 +102,9 @@ export const useVehicleFilters = (): UseVehicleFiltersResult => {
   );
 
   const suspendVehicle = useCallback(
-    async (vehicleId: string) => {
+    async (vehicleId: string, reason?: string) => {
       await withMutation(async () => {
-        await adminService.suspendVehicle(vehicleId);
+        await adminService.suspendVehicle(vehicleId, reason);
         // Update selected vehicle in-place if it's the one being suspended
         setSelectedVehicle((prev) =>
           prev?.id === vehicleId ? { ...prev, isActive: false } : prev,

@@ -208,7 +208,7 @@ describe("AdminVehiclesPage", () => {
       target: { value: "Expired insurance" },
     });
     await act(async () => fireEvent.click(within(lastDialog()).getByText("Suspend")));
-    await waitFor(() => expect(svc.suspendVehicle).toHaveBeenCalledWith("veh-1"));
+    await waitFor(() => expect(svc.suspendVehicle).toHaveBeenCalledWith("veh-1", "Expired insurance"));
 
     fireEvent.click(screen.getByLabelText("Reactivate Hill Rider"));
     await screen.findByText("Reactivate Vehicle");
@@ -220,8 +220,6 @@ describe("AdminVehiclesPage", () => {
     await act(async () => fireEvent.click(within(lastDialog()).getByText("cancel")));
     expect(svc.activateVehicle).toHaveBeenCalledTimes(1);
   });
-
-  it.todo("sends the admin's suspension reason to the API when suspending a vehicle");
 
   it("shows mutation errors", async () => {
     svc.activateVehicle.mockRejectedValue(new Error("Owner unverified"));
@@ -307,7 +305,7 @@ describe("AdminVehiclesPage", () => {
       target: { value: "Inspection" },
     });
     await act(async () => fireEvent.click(within(lastDialog()).getByText("Suspend")));
-    await waitFor(() => expect(svc.suspendVehicle).toHaveBeenCalledWith("veh-1"));
+    await waitFor(() => expect(svc.suspendVehicle).toHaveBeenCalledWith("veh-1", "Inspection"));
     // the selected vehicle flips to suspended in place
     expect(await within(screen.getByRole("dialog")).findByText("Reactivate Vehicle")).toBeTruthy();
   });
