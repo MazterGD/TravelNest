@@ -422,7 +422,10 @@ describe("owner registration", () => {
       year: 2020,
       seatingCapacity: 45,
       acType: "FULL_AC",
+      color: "Blue",
     });
+    expect(payload.vehicles[0].description).toBeUndefined();
+    expect(payload.vehicles[0].amenities).toBeUndefined();
     expect(payload.vehicles[0].photos[0]).toMatchObject({ isPrimary: true, tag: "EXTERIOR", url: "storage://vehicle-photos/bus0.jpg" });
     expect(useAuthStore.getState().token).toBe("tok");
     expect(router.push).toHaveBeenCalledWith("/en/owner/pending-approval");
@@ -511,7 +514,4 @@ describe("owner registration", () => {
     log.mockRestore();
   });
 
-  it.todo(
-    "submits each vehicle's colour (required), condition, description, driver allowance and amenities — register/owner/page.tsx:642-653 drops them and the API owner schema does not accept them",
-  );
 });

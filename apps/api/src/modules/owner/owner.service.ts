@@ -296,6 +296,11 @@ export const registerOwner = async (data: OwnerRegistrationInput) => {
           licensePlate: xss(vehicleData.registrationNumber.trim()),
           seats: vehicleData.seatingCapacity,
           acType: mapAcType(vehicleData.acType),
+          color: vehicleData.color ? xss(vehicleData.color) : null,
+          condition: vehicleData.condition ? xss(vehicleData.condition) : null,
+          description: vehicleData.description ? xss(vehicleData.description) : null,
+          driverAllowance: vehicleData.driverAllowance ?? null,
+          amenities: (vehicleData.amenities ?? []).map((amenity) => xss(amenity)),
           fuelType: "DIESEL", // Default for buses
           transmission: "MANUAL", // Default for buses
           location: data.address.baseLocation,

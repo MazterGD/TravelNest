@@ -334,6 +334,11 @@ export interface OwnerRegistrationVehicle {
   year: number;
   seatingCapacity: number; // Maps to seats in DB
   acType: "FULL_AC" | "AC" | "NON_AC";
+  color?: string;
+  condition?: string;
+  description?: string;
+  driverAllowance?: number;
+  amenities?: string[];
   photos?: OwnerRegistrationVehiclePhoto[];
   documents: OwnerRegistrationVehicleDocument[];
 }

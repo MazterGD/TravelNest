@@ -39,6 +39,12 @@ const vehicleSchema = z.object({
     .min(1, "Seating capacity must be at least 1")
     .max(100),
   acType: z.enum(["FULL_AC", "AC", "NON_AC"]),
+  color: z.string().trim().max(30).optional(),
+  // Options come from the admin-managed registration config.
+  condition: z.string().trim().max(30).optional(),
+  description: z.string().trim().max(1000).optional(),
+  driverAllowance: z.number().min(0).max(100000).optional(),
+  amenities: z.array(z.string().trim().min(1).max(50)).max(30).optional(),
   photos: z.array(vehiclePhotoSchema).optional().default([]),
   documents: z
     .array(vehicleDocumentSchema)

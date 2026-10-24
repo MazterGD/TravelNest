@@ -157,6 +157,36 @@ describe("POST /owner/register - Successful Registration", () => {
     expect(response.body.data.user).not.toHaveProperty("password");
   });
 
+  it("keeps each vehicle's colour, condition, description, allowance and amenities", async () => {
+    const response = await request(app)
+      .post(`${API_BASE}/owner/register`)
+      .send(
+        withRegistrationProof({
+          ...validOwnerData,
+          vehicles: [
+            {
+              ...validOwnerData.vehicles[0],
+              color: "Blue",
+              condition: "excellent",
+              description: "Reclining <b>seats</b><script>x</script>",
+              driverAllowance: 3500,
+              amenities: ["wifi", "usb"],
+            },
+          ],
+        }),
+      );
+
+    expect(response.status).toBe(201);
+    const vehicle = await prisma.vehicle.findFirst({ where: { licensePlate: "TEST-1234" } });
+    expect(vehicle).toMatchObject({
+      color: "Blue",
+      condition: "excellent",
+      driverAllowance: 3500,
+      amenities: ["wifi", "usb"],
+    });
+    expect(vehicle?.description).not.toContain("<script>");
+  });
+
   it("should register owner with multiple vehicles", async () => {
     const dataWithMultipleVehicles = {
       ...validOwnerData,

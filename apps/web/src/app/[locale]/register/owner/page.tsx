@@ -649,6 +649,11 @@ export default function OwnerRegistrationPage() {
             year: parseInt(v.year),
             seatingCapacity: parseInt(v.seatingCapacity),
             acType: v.acType as "FULL_AC" | "AC" | "NON_AC",
+            color: v.color.trim() || undefined,
+            condition: v.condition || undefined,
+            description: v.description.trim() || undefined,
+            driverAllowance: v.driverAllowance ? parseFloat(v.driverAllowance) : undefined,
+            amenities: v.amenities.length > 0 ? v.amenities : undefined,
             photos,
             documents,
           };
