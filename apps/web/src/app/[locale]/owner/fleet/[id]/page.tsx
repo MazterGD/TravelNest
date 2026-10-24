@@ -219,11 +219,15 @@ export default function OwnerFleetVehicleDetailsPage() {
     try {
       await vehicleService.delete(vehicle.id);
       window.location.href = `/${locale}/owner/fleet`;
-    } catch {
+    } catch (err) {
       setIsDeleting(false);
       setConfirmDelete(false);
+      setToast({
+        message: err instanceof ApiError ? err.message : t("deleteError"),
+        type: "error",
+      });
     }
-  }, [vehicle, locale]);
+  }, [vehicle, locale, t]);
 
   // Single handler used after ConfirmDialog confirmed; action is already set
   const handleToggle = useCallback(async () => {

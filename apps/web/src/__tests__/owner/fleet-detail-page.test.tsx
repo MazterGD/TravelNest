@@ -294,11 +294,11 @@ describe("OwnerFleetVehicleDetailsPage", () => {
     await confirmIn("actionDelete");
     expect(vehicles.delete).toHaveBeenCalledWith("veh-1");
     await waitFor(() => expect(screen.queryByText("confirmDeleteTitle")).toBeNull());
+    expect(screen.getByText("deleteError")).toBeTruthy();
 
     fireEvent.click(screen.getByLabelText("actionDelete"));
     await confirmIn("actionDelete");
     expect(vehicles.delete).toHaveBeenCalledTimes(2);
   });
 
-  it.todo("tells the owner when deleting a vehicle fails (the dialog currently just closes silently)");
 });
