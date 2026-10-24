@@ -40,6 +40,9 @@ export default function SentQuotationsPage() {
   const [activeTab, setActiveTab] = useState<QuotationStatus>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dateRangeDays, setDateRangeDays] = useState("all");
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
   const [vehicleTypeOptions, setVehicleTypeOptions] = useState<
@@ -81,19 +84,49 @@ export default function SentQuotationsPage() {
     fetchConfig();
   }, []);
 
-  const filteredQuotations = quotations.filter((quot) => {
-    const matchesTab =
-      activeTab === "all" || (quot.status as string) === activeTab;
-    const matchesSearch =
-      searchQuery === "" ||
-      `${quot.customer?.firstName || ""} ${quot.customer?.lastName || ""}`
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      quot.quotationId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quot.pickupLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quot.dropoffLocation.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
+  const sentTime = (quot: Quotation) =>
+    quot.sentAt ? new Date(quot.sentAt).getTime() : 0;
+  const expiryTime = (quot: Quotation) =>
+    quot.sentAt && quot.validityDays
+      ? sentTime(quot) + quot.validityDays * 24 * 60 * 60 * 1000
+      : Number.POSITIVE_INFINITY;
+  const query = searchQuery.toLowerCase();
+  const sentAfter =
+    dateRangeDays === "all"
+      ? 0
+      : Date.now() - Number(dateRangeDays) * 24 * 60 * 60 * 1000;
+
+  const filteredQuotations = quotations
+    .filter((quot) => {
+      const matchesTab =
+        activeTab === "all" || (quot.status as string) === activeTab;
+      const matchesSearch =
+        query === "" ||
+        `${quot.customer?.firstName || ""} ${quot.customer?.lastName || ""}`
+          .toLowerCase()
+          .includes(query) ||
+        quot.quotationId.toLowerCase().includes(query) ||
+        (quot.pickupLocation || "").toLowerCase().includes(query) ||
+        (quot.dropoffLocation || "").toLowerCase().includes(query);
+      const matchesDate = sentAfter === 0 || sentTime(quot) >= sentAfter;
+      const matchesType =
+        vehicleTypeFilter === "all" || quot.vehicleType === vehicleTypeFilter;
+      return matchesTab && matchesSearch && matchesDate && matchesType;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "oldest":
+          return sentTime(a) - sentTime(b);
+        case "amountHigh":
+          return (b.totalAmount || 0) - (a.totalAmount || 0);
+        case "amountLow":
+          return (a.totalAmount || 0) - (b.totalAmount || 0);
+        case "expiring":
+          return expiryTime(a) - expiryTime(b);
+        default:
+          return sentTime(b) - sentTime(a);
+      }
+    });
 
   const tabCounts: Record<QuotationStatus, number> = {
     all: quotations.length,
@@ -222,23 +255,33 @@ export default function SentQuotationsPage() {
             {showFilters && (
               <div className="mt-4 grid gap-4 border-t border-border pt-4 md:grid-cols-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label htmlFor="sent-filter-date" className="mb-2 block text-sm font-medium text-foreground">
                     {t("filterPanel.dateRange")}
                   </label>
-                  <select className="h-11 w-full appearance-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <option>{t("filterPanel.allTime")}</option>
-                    <option>{t("filterPanel.last7Days")}</option>
-                    <option>{t("filterPanel.last30Days")}</option>
-                    <option>{t("filterPanel.last3Months")}</option>
+                  <select
+                    id="sent-filter-date"
+                    value={dateRangeDays}
+                    onChange={(e) => setDateRangeDays(e.target.value)}
+                    className="h-11 w-full appearance-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="all">{t("filterPanel.allTime")}</option>
+                    <option value="7">{t("filterPanel.last7Days")}</option>
+                    <option value="30">{t("filterPanel.last30Days")}</option>
+                    <option value="90">{t("filterPanel.last3Months")}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label htmlFor="sent-filter-type" className="mb-2 block text-sm font-medium text-foreground">
                     {t("filterPanel.vehicleType")}
                   </label>
-                  <select className="h-11 w-full appearance-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <option>{t("filterPanel.allTypes")}</option>
+                  <select
+                    id="sent-filter-type"
+                    value={vehicleTypeFilter}
+                    onChange={(e) => setVehicleTypeFilter(e.target.value)}
+                    className="h-11 w-full appearance-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="all">{t("filterPanel.allTypes")}</option>
                     {vehicleTypeOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
@@ -248,15 +291,20 @@ export default function SentQuotationsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label htmlFor="sent-filter-sort" className="mb-2 block text-sm font-medium text-foreground">
                     {t("filterPanel.sortBy")}
                   </label>
-                  <select className="h-11 w-full appearance-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <option>{t("filterPanel.newestFirst")}</option>
-                    <option>{t("filterPanel.oldestFirst")}</option>
-                    <option>{t("filterPanel.amountHighLow")}</option>
-                    <option>{t("filterPanel.amountLowHigh")}</option>
-                    <option>{t("filterPanel.expiringSoon")}</option>
+                  <select
+                    id="sent-filter-sort"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="h-11 w-full appearance-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="newest">{t("filterPanel.newestFirst")}</option>
+                    <option value="oldest">{t("filterPanel.oldestFirst")}</option>
+                    <option value="amountHigh">{t("filterPanel.amountHighLow")}</option>
+                    <option value="amountLow">{t("filterPanel.amountLowHigh")}</option>
+                    <option value="expiring">{t("filterPanel.expiringSoon")}</option>
                   </select>
                 </div>
               </div>

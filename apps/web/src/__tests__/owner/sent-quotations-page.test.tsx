@@ -147,8 +147,35 @@ describe("SentQuotationsPage", () => {
     expect(screen.queryByText("filterPanel.allTime")).toBeNull();
   });
 
-  it.todo("applies the date range, vehicle type and sort selections in the filter panel (they are unbound and do nothing)");
-  it.todo("searches without crashing when a sent quotation has no dropoff location (dropoffLocation.toLowerCase on null)");
+  it("applies the date range, vehicle type and sort selections", async () => {
+    await renderPage();
+    fireEvent.click(screen.getByText("filters"));
+    await screen.findByText("Ordinary");
+
+    fireEvent.change(screen.getByLabelText("filterPanel.dateRange"), { target: { value: "7" } });
+    expect(screen.getByText('quotationCount:{"count":3}')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("filterPanel.dateRange"), { target: { value: "all" } });
+    fireEvent.change(screen.getByLabelText("filterPanel.sortBy"), { target: { value: "amountLow" } });
+    const ids = () => screen.getAllByText(/^QUO-\d$/).map((el) => el.textContent);
+    expect(ids()[0]).toBe("QUO-3");
+    fireEvent.change(screen.getByLabelText("filterPanel.sortBy"), { target: { value: "oldest" } });
+    expect(ids()[0]).toBe("QUO-6");
+    fireEvent.change(screen.getByLabelText("filterPanel.sortBy"), { target: { value: "expiring" } });
+    expect(ids()[ids().length - 1]).toBe("QUO-6");
+
+    fireEvent.change(screen.getByLabelText("filterPanel.vehicleType"), { target: { value: "ORDINARY" } });
+    expect(screen.getByText('quotationCount:{"count":0}')).toBeTruthy();
+  });
+
+  it("searches without crashing when a quotation has no dropoff", async () => {
+    quotes.getOwnerSentQuotations.mockResolvedValue({ quotations: [quotation("7", { dropoffLocation: null })] });
+    await renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText("searchPlaceholder"), { target: { value: "kandy" } });
+
+    expect(screen.getByText('quotationCount:{"count":0}')).toBeTruthy();
+  });
 
   it("tolerates load and config failures", async () => {
     quotes.getOwnerSentQuotations.mockRejectedValue(new Error("x"));
