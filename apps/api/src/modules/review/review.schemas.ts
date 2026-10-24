@@ -2,8 +2,10 @@ import { z } from "zod";
 
 const dimensionRating = z
   .number({
-    required_error: "All five category ratings are required",
-    invalid_type_error: "Category ratings must be numbers",
+    error: (issue) =>
+      issue.input === undefined
+        ? "All five category ratings are required"
+        : "Category ratings must be numbers",
   })
   .int("Rating must be a whole number")
   .min(1, "Rating must be between 1 and 5")
@@ -40,7 +42,7 @@ export const updateReviewSchema = z.object({
 
 export const respondToReviewSchema = z.object({
   body: z.object({
-    response: z.string({ required_error: "Response is required" }).max(1000),
+    response: z.string({ error: (issue) => (issue.input === undefined ? "Response is required" : undefined) }).max(1000),
   }),
 });
 

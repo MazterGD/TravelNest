@@ -72,7 +72,7 @@ export default function CustomerRegistrationPage() {
   const validateField = (name: string, value: string | boolean, schema: z.ZodTypeAny) => {
     const result = schema.safeParse(value);
     if (!result.success) {
-      setFieldErrors((prev) => ({ ...prev, [name]: result.error.errors[0].message }));
+      setFieldErrors((prev) => ({ ...prev, [name]: result.error.issues[0].message }));
     } else {
       setFieldErrors((prev) => {
         const newErrors = { ...prev };

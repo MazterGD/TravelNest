@@ -55,7 +55,7 @@ export const adminBookingsQuerySchema = z.object({
 
 export const fromQuotationSchema = z.object({
   body: z.object({
-    quotationId: z.string({ required_error: "Quotation ID is required" }).min(1),
+    quotationId: z.string({ error: (issue) => (issue.input === undefined ? "Quotation ID is required" : undefined) }).min(1),
   }),
 });
 

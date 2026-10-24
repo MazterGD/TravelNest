@@ -90,7 +90,7 @@ export const createVehicleSchema = z.object({
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
     amenities: z.array(z.string()).optional(),
-    features: z.record(z.boolean()).optional(),
+    features: z.record(z.string(), z.boolean()).optional(),
   }),
 });
 
@@ -128,7 +128,7 @@ export const updateVehicleSchema = z.object({
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
     amenities: z.array(z.string()).optional(),
-    features: z.record(z.boolean()).optional(),
+    features: z.record(z.string(), z.boolean()).optional(),
     isAvailable: z.boolean().optional(),
     isActive: z.boolean().optional(),
   }),
@@ -199,13 +199,13 @@ export const getVehicleAvailabilitySchema = z.object({
 
 export const toggleAvailabilitySchema = z.object({
   body: z.object({
-    available: z.boolean({ required_error: "available is required" }),
+    available: z.boolean({ error: (issue) => (issue.input === undefined ? "available is required" : undefined) }),
   }),
 });
 
 export const toggleStatusSchema = z.object({
   body: z.object({
-    isActive: z.boolean({ required_error: "isActive is required" }),
+    isActive: z.boolean({ error: (issue) => (issue.input === undefined ? "isActive is required" : undefined) }),
     reason: z.string().trim().max(500).optional(),
   }),
 });

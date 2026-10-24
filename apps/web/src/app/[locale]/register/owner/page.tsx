@@ -462,7 +462,7 @@ export default function OwnerRegistrationPage() {
   const validateField = (field: string, value: string | number, schema: z.ZodTypeAny) => {
     const result = schema.safeParse(value);
     if (!result.success) {
-      setFieldErrors((prev) => ({ ...prev, [field]: result.error.errors[0].message }));
+      setFieldErrors((prev) => ({ ...prev, [field]: result.error.issues[0].message }));
     } else {
       setFieldErrors((prev) => {
         const newErrors = { ...prev };

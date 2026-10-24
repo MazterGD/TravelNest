@@ -106,7 +106,7 @@ export class ApiError extends Error {
  * Format Zod validation errors into standard format
  */
 const formatZodError = (error: ZodError): ValidationError[] => {
-  return error.errors.map((err) => ({
+  return error.issues.map((err) => ({
     field: err.path.join("."),
     message: err.message,
     code: err.code,

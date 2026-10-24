@@ -220,6 +220,6 @@ export type UpsertBankAccountInput = z.infer<
 
 export const verifyOwnerSchema = z.object({
   body: z.object({
-    isVerified: z.boolean({ required_error: "isVerified is required" }),
+    isVerified: z.boolean({ error: (issue) => (issue.input === undefined ? "isVerified is required" : undefined) }),
   }),
 });
