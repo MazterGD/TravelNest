@@ -75,17 +75,5 @@ export { StarRating } from "./StarRating";
 // Stat Card - for dashboard statistics
 export { StatCard } from "./StatCard";
 
-// Step Card - for process/how-it-works steps
-export { StepCard, StepCardGrid } from "./StepCard";
-
-// Feature Card - for feature lists
-export { FeatureCard, FeatureCardGrid } from "./FeatureCard";
-
-// Info Item - for contact info and detail lists
-export { InfoItem, InfoItemList } from "./InfoItem";
-
-// Quick Action Card - for dashboard quick actions
-export { QuickActionCard, QuickActionGrid } from "./QuickActionCard";
-
 // Map Component - for interactive routing and location selection
 export { InteractiveMap } from "./DynamicMap";

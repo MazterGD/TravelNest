@@ -18,7 +18,6 @@ import { OtpVerificationModal } from "@/components/ui/OtpVerificationModal";
 import { Select } from "@/components/ui/Select";
 import { Tabs, TabsList } from "@/components/ui/Tabs";
 import { StarRating } from "@/components/ui/StarRating";
-import { QuickActionCard, QuickActionGrid } from "@/components/ui/QuickActionCard";
 import { DatePicker, DateTimePicker, TimePicker } from "@/components/ui/DatePicker";
 import { LocationAutocomplete } from "@/components/ui/LocationAutocomplete";
 import {
@@ -37,9 +36,6 @@ import {
   SkeletonProfile,
   SkeletonTable,
 } from "@/components/ui/Skeleton";
-import { FeatureCard, FeatureCardGrid } from "@/components/ui/FeatureCard";
-import { StepCard, StepCardGrid } from "@/components/ui/StepCard";
-import { InfoItem, InfoItemList } from "@/components/ui/InfoItem";
 import { Icons, StarIcon } from "@/components/ui/Icons";
 
 const IconCmp = ({ className }: { className?: string }) => (
@@ -459,45 +455,6 @@ describe("StarRating", () => {
   });
 });
 
-describe("QuickActionCard", () => {
-  it("fires onClick via click, Enter and Space", () => {
-    const onClick = vi.fn();
-    render(<QuickActionCard label="New" icon={IconCmp} variant="success" onClick={onClick} className="q" />);
-    const card = screen.getByRole("button", { name: "New" });
-    expect(card.getAttribute("tabindex")).toBe("0");
-    fireEvent.click(card);
-    fireEvent.keyDown(card, { key: "Enter" });
-    fireEvent.keyDown(card, { key: " " });
-    fireEvent.keyDown(card, { key: "a" });
-    expect(onClick).toHaveBeenCalledTimes(3);
-    expect(screen.getByTestId("icon-cmp").getAttribute("class")).toContain("w-6");
-  });
-
-  it("is inert when disabled and supports node icons without onClick", () => {
-    const onClick = vi.fn();
-    const { rerender } = render(<QuickActionCard label="Off" icon={<b>i</b>} variant="warning" disabled onClick={onClick} />);
-    const card = screen.getByRole("button");
-    expect(card.getAttribute("tabindex")).toBe("-1");
-    expect(card.className).toContain("cursor-not-allowed");
-    fireEvent.click(card);
-    fireEvent.keyDown(card, { key: "Enter" });
-    expect(onClick).not.toHaveBeenCalled();
-    rerender(<QuickActionCard label="NoHandler" icon={<b>i</b>} variant="info" />);
-    fireEvent.keyDown(screen.getByRole("button"), { key: "Enter" });
-    expect(screen.getByText("NoHandler")).toBeTruthy();
-  });
-
-  it.each([2, 3, 4] as const)("QuickActionGrid with %s columns", (columns: any) => {
-    const { container } = render(<QuickActionGrid columns={columns}>x</QuickActionGrid>);
-    expect(container.firstElementChild?.className).toContain("grid-cols-2");
-  });
-
-  it("QuickActionGrid defaults to 4 columns", () => {
-    const { container } = render(<QuickActionGrid>x</QuickActionGrid>);
-    expect(container.firstElementChild?.className).toContain("md:grid-cols-4");
-  });
-});
-
 describe("DatePicker family", () => {
   it.each([
     [DatePicker, "date"],
@@ -651,62 +608,6 @@ describe("Skeletons", () => {
     const d = render(<SkeletonDashboard />);
     expect(d.container.querySelectorAll(".rounded-xl").length).toBeGreaterThan(4);
     render(<SkeletonCard className="k" />);
-  });
-});
-
-describe("FeatureCard / StepCard / InfoItem", () => {
-  it("FeatureCard handles component and node icons and clicks", () => {
-    const onClick = vi.fn();
-    const { rerender } = render(
-      <FeatureCard title="Fast" description="Quick quotes" icon={IconCmp} variant="elevated" onClick={onClick} />,
-    );
-    expect(screen.getByRole("heading", { name: "Fast" })).toBeTruthy();
-    expect(screen.getByTestId("icon-cmp")).toBeTruthy();
-    fireEvent.click(screen.getByText("Quick quotes"));
-    expect(onClick).toHaveBeenCalled();
-    rerender(<FeatureCard title="F" description="D" icon={<b>node</b>} variant="default" />);
-    expect(screen.getByText("node")).toBeTruthy();
-    rerender(<FeatureCard title="F" description="D" icon={<b>node</b>} />);
-  });
-
-  it.each([2, 3, 4, undefined] as const)("FeatureCardGrid/StepCardGrid columns %s", (columns: any) => {
-    const { container } = render(
-      <>
-        <FeatureCardGrid columns={columns as any}>a</FeatureCardGrid>
-        <StepCardGrid columns={columns as any}>b</StepCardGrid>
-      </>,
-    );
-    expect(container.children[0].className).toContain("sm:grid-cols-2");
-    expect(container.children[1].className).toContain("md:grid-cols-2");
-  });
-
-  it("StepCard renders number, connector and both icon kinds", () => {
-    const { container, rerender } = render(
-      <StepCard stepNumber={2} title="Quote" description="Get prices" icon={IconCmp} showConnector variant="secondary" />,
-    );
-    expect(screen.getByText("2").className).toContain("bg-secondary");
-    expect(container.querySelector(".lg\\:block")).toBeTruthy();
-    rerender(<StepCard stepNumber={1} title="S" description="D" icon={<b>n</b>} />);
-    expect(screen.getByText("1").className).toContain("bg-primary");
-    expect(container.querySelector(".lg\\:block")).toBeNull();
-  });
-
-  it("InfoItem renders default, horizontal, compact and link variants", () => {
-    const { rerender, container } = render(<InfoItem title="Email" value="a@b.lk" icon={IconCmp} href="mailto:a@b.lk" />);
-    expect(screen.getByRole("link").getAttribute("href")).toBe("mailto:a@b.lk");
-    expect(screen.getByTestId("icon-cmp").getAttribute("class")).toContain("h-5");
-    rerender(<InfoItem title="Phone" value="077" icon={IconCmp} variant="compact" />);
-    expect(screen.getByTestId("icon-cmp").getAttribute("class")).toContain("h-4");
-    expect(screen.queryByRole("link")).toBeNull();
-    rerender(<InfoItem title="Addr" value="Colombo" icon={<b>n</b>} variant="horizontal" className="h" />);
-    expect(container.firstElementChild?.className).toContain("gap-4");
-    rerender(<InfoItem title="Addr" value="Colombo" icon={<b>n</b>} variant="compact" />);
-    expect(screen.getByText("n").parentElement?.className).toContain("text-sm");
-  });
-
-  it.each(["sm", "md", "lg", undefined] as const)("InfoItemList spacing %s", (spacing: any) => {
-    const { container } = render(<InfoItemList spacing={spacing as any}>x</InfoItemList>);
-    expect(container.firstElementChild?.className).toMatch(/space-y-\d/);
   });
 });
 
