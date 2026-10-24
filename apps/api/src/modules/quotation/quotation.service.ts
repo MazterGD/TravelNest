@@ -637,6 +637,12 @@ export const getQuotationById = async (
             estimatedDuration: true,
           },
         },
+        // The booking an accepted quotation turned into, for the owner's link to it.
+        bookings: {
+          select: { id: true, status: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
     }),
     prisma.$queryRawUnsafe<any[]>(`SELECT "id", "stopOrder", "locationName", ST_AsGeoJSON(coordinates) as coordinates FROM "itinerary_stops" WHERE "quotationId" = $1 ORDER BY "stopOrder" ASC`, quotationId).catch(() => []),

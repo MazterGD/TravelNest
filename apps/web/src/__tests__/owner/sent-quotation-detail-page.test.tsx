@@ -140,8 +140,30 @@ describe("Owner QuotationDetailPage", () => {
     expect(screen.getByText('detail.validity.daysRemaining:{"days":2}')).toBeTruthy();
   });
 
-  it.todo("links accepted quotations to an existing owner route (currently /owner/bookings/create, which does not exist)");
-  it.todo("shows the vehicle's real seat capacity on the sent quotation detail (capacity is hard-coded to 0)");
+  it("links an accepted quotation to the booking it created, or the bookings list", async () => {
+    quotes.getById.mockResolvedValue({
+      quotation: quotation({ status: "ACCEPTED", respondedAt: "2026-10-03T08:00:00.000Z", bookings: [{ id: "bk-9", status: "PENDING" }] }),
+    });
+    await renderPage();
+    const link = (await screen.findByText("detail.accepted.createBooking")).closest("a")!;
+    expect(link.getAttribute("href")).toBe("/en/owner/bookings/bk-9");
+  });
+
+  it("falls back to the bookings list when no booking is linked", async () => {
+    quotes.getById.mockResolvedValue({
+      quotation: quotation({ status: "ACCEPTED", respondedAt: "2026-10-03T08:00:00.000Z" }),
+    });
+    await renderPage();
+    const link = (await screen.findByText("detail.accepted.createBooking")).closest("a")!;
+    expect(link.getAttribute("href")).toBe("/en/owner/bookings");
+  });
+
+  it("passes the vehicle's real seat count to the quotation view", async () => {
+    quotes.getById.mockResolvedValue({ quotation: quotation({ vehicle: { licensePlate: "NB-1234", seats: 45 } }) });
+    await renderPage();
+    expect(await screen.findByText("NB-1234")).toBeTruthy();
+    expect(document.body.textContent).toContain("45");
+  });
 
   it("shows the rejection reason and sparse fallbacks for a rejected quotation", async () => {
     quotes.getById.mockResolvedValue({

@@ -234,6 +234,7 @@ export interface Quotation {
   // Relations
   customer?: Partial<User>;
   vehicle?: Partial<Vehicle>;
+  bookings?: Array<{ id: string; status: string }>;
   // Itinery
   itineraryRoute?: string;
   itineraryStops?: string[];

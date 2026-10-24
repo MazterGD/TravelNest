@@ -221,6 +221,13 @@ describe("Booking API", () => {
       await expect
         .poll(() => prisma.notification.count({ where: { userId: users.owner } }))
         .toBeGreaterThan(0);
+
+      const detail = await request(app)
+        .get(`${API_BASE}/quotations/${quotation.id}`)
+        .set(auth("customer"));
+      expect(detail.body.data.quotation.bookings).toEqual([
+        { id: res.body.data.booking.id, status: "PENDING" },
+      ]);
     });
 
     it("refuses a second booking for the same dates", async () => {

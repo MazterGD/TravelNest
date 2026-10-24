@@ -30,6 +30,7 @@ import {
 interface QuotationDetail {
   id: string;
   quotationId: string;
+  bookingId: string | null;
   customer: {
     name: string;
     email: string;
@@ -106,6 +107,7 @@ export default function QuotationDetailPage({
         setQuotation({
           id: data.id,
           quotationId: data.quotationId,
+          bookingId: data.bookings?.[0]?.id ?? null,
           customer: {
             name: `${data.customer?.firstName || ""} ${data.customer?.lastName || ""}`.trim(),
             email: data.customer?.email || "",
@@ -126,7 +128,7 @@ export default function QuotationDetailPage({
           vehicle: {
             name: data.vehicle?.licensePlate || data.vehicleType,
             type: data.vehicleType,
-            capacity: 0,
+            capacity: data.vehicle?.seats || 0,
           },
           pricing: {
             vehicleRentalCost: data.vehicleRentalCost || 0,
@@ -606,7 +608,11 @@ export default function QuotationDetailPage({
                       {t("detail.accepted.description")}
                     </p>
                     <Link
-                      href={`/${locale}/owner/bookings/create?quotation=${quotation.id}`}
+                      href={
+                        quotation.bookingId
+                          ? `/${locale}/owner/bookings/${quotation.bookingId}`
+                          : `/${locale}/owner/bookings`
+                      }
                       className="block w-full rounded-md bg-primary px-4 py-2 text-center text-sm font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {t("detail.accepted.createBooking")}
