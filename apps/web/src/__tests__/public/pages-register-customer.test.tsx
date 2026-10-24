@@ -199,6 +199,9 @@ describe("customer registration", () => {
       firstName: "Nimal",
       lastName: "Perera",
       phone: "0771234567",
+      address: "12 Temple Road",
+      city: "Kandy",
+      postalCode: undefined,
       role: "customer",
     });
     expect(useAuthStore.getState().token).toBe("tok");
@@ -273,7 +276,4 @@ describe("customer registration", () => {
     expect(authService.register.mock.calls[0][0].phone).toBeUndefined();
   });
 
-  it.todo(
-    "sends the required address/city (and optional postal code) with the registration — register/customer/page.tsx:54-63 drops them and the API register schema has no fields for them",
-  );
 });

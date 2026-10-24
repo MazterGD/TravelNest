@@ -59,6 +59,9 @@ export default function CustomerRegistrationPage() {
       firstName: formData.firstName,
       lastName: formData.lastName,
       phone: formData.phone || undefined,
+      address: formData.address.trim() || undefined,
+      city: formData.city.trim() || undefined,
+      postalCode: formData.postalCode.trim() || undefined,
       role: "customer",
     });
 

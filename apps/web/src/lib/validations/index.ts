@@ -27,6 +27,9 @@ export const registerSchema = z
       .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number")
       .optional()
       .or(z.literal("")),
+    address: z.string().max(200).optional(),
+    city: z.string().max(100).optional(),
+    postalCode: z.string().max(20).optional(),
     role: z.enum(["customer", "owner"]).default("customer"),
   })
   .refine((data) => data.password === data.confirmPassword, {

@@ -107,7 +107,7 @@ describe("login page", () => {
     ["https://evil.example.com/steal", "/en/dashboard"],
     ["//evil.example.com", "/en/dashboard"],
     ["/si/dashboard", "/en/dashboard"],
-  ])("after sign-in, returnUrl %s leads to %s", async (returnUrl, destination) => {
+  ])("after sign-in, returnUrl %s leads to %s", async (returnUrl: string, destination: string) => {
     nav.search = new URLSearchParams({ returnUrl });
     authService.login.mockResolvedValue({ user: customer, accessToken: "tok" });
     await renderLogin();
