@@ -2418,7 +2418,10 @@
     "dataDeletionSubmit": "ඉල්ලීම යවන්න",
     "dataDeletionRequested": "ඔබේ දත්ත මැකීමේ ඉල්ලීම යවා ඇත. ඔබේ යොමු අංකය {reference} — සහාය අමතන්නේ නම් එය තබා ගන්න.",
     "dataDeletionFailed": "ඔබේ ඉල්ලීම යැවීමට නොහැකි විය. කරුණාකර ඔබේ සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.",
-    "delete": "මකන්න"
+    "delete": "මකන්න",
+    "address": "ලිපිනය",
+    "city": "නගරය",
+    "postalCode": "තැපැල් කේතය"
   },
   "fileUpload": {
     "uploaded": "උඩුගත කරන ලදී",

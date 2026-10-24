@@ -28,8 +28,8 @@ export const registerSchema = z
       .optional()
       .or(z.literal("")),
     address: z.string().max(200).optional(),
-    city: z.string().max(100).optional(),
-    postalCode: z.string().max(20).optional(),
+    city: z.string().max(50).optional(),
+    postalCode: z.string().max(10).optional(),
     role: z.enum(["customer", "owner"]).default("customer"),
   })
   .refine((data) => data.password === data.confirmPassword, {

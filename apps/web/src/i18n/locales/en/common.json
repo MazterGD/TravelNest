@@ -2308,7 +2308,10 @@
     "dataDeletionSubmit": "Send request",
     "dataDeletionRequested": "Your data deletion request has been sent. Your reference is {reference} — keep it handy if you contact support.",
     "dataDeletionFailed": "We couldn't send your request. Please check your connection and try again.",
-    "delete": "Delete"
+    "delete": "Delete",
+    "address": "Address",
+    "city": "City",
+    "postalCode": "Postal code"
   },
   "landing": {
     "searchSection": {

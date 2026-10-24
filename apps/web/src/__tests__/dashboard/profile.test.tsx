@@ -26,7 +26,13 @@ vi.mock("@/components/features/account/AccountDangerZone", () => ({
 }));
 vi.mock("@/lib/api", async (importOriginal: any) => ({
   ...(await importOriginal()),
-  userService: { getProfile: vi.fn(), uploadAvatar: vi.fn(), deleteAvatar: vi.fn(), updatePersonalInfo: vi.fn() },
+  userService: {
+    getProfile: vi.fn(),
+    uploadAvatar: vi.fn(),
+    deleteAvatar: vi.fn(),
+    updatePersonalInfo: vi.fn(),
+    updateAddress: vi.fn(),
+  },
 }));
 
 import { ProfilePageContent } from "@/app/[locale]/dashboard/profile/ProfilePageContent";
@@ -55,6 +61,7 @@ const chooseFile = (file: File) => fireEvent.change(fileInput(), { target: { fil
 beforeEach(() => {
   vi.clearAllMocks();
   h.store.user = user();
+  svc.updateAddress.mockResolvedValue({ address: "12 Temple Rd", city: "Kandy", postalCode: "20000" });
 });
 
 describe("ProfilePageContent", () => {
@@ -123,10 +130,16 @@ describe("ProfilePageContent", () => {
     fireEvent.change(inputByLabel("firstName"), { target: { value: " Kamal " } });
     fireEvent.change(inputByLabel("lastName"), { target: { value: "Perera" } });
     fireEvent.change(inputByLabel("phone"), { target: { value: "0711111111" } });
+    fireEvent.change(inputByLabel("address"), { target: { value: " 12 Temple Rd " } });
+    fireEvent.change(inputByLabel("city"), { target: { value: "Kandy" } });
+    fireEvent.change(inputByLabel("postalCode"), { target: { value: "20000" } });
     fireEvent.click(screen.getByText("saveChanges"));
     expect((await screen.findByRole("status")).textContent).toBe("profileUpdated");
     expect(svc.updatePersonalInfo).toHaveBeenCalledWith({ firstName: "Kamal", lastName: "Perera", phone: "0711111111" });
-    expect(h.store.setUser).toHaveBeenCalledWith(expect.objectContaining({ firstName: "Kamal", email: "nimal@example.lk" }));
+    expect(svc.updateAddress).toHaveBeenCalledWith({ address: "12 Temple Rd", city: "Kandy", postalCode: "20000" });
+    expect(h.store.setUser).toHaveBeenCalledWith(
+      expect.objectContaining({ firstName: "Kamal", email: "nimal@example.lk", city: "Kandy" }),
+    );
     expect(screen.getByText("edit")).toBeTruthy();
   });
 

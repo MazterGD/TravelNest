@@ -24,9 +24,10 @@ export const registerSchema = z.object({
       .max(50, "Last name must be at most 50 characters"),
     phone: z.string().optional(),
     address: z.string().trim().max(200).optional(),
-    city: z.string().trim().max(100).optional(),
-    district: z.string().trim().max(100).optional(),
-    postalCode: z.string().trim().max(20).optional(),
+    // Same limits as PATCH /users/profile/address so the profile can edit them.
+    city: z.string().trim().max(50).optional(),
+    district: z.string().trim().max(50).optional(),
+    postalCode: z.string().trim().max(10).optional(),
     // Issued by POST /auth/otp/verify (REGISTRATION) for this email
     registrationToken: z.string().min(1, "Verify your email before registering"),
     role: z.enum(["customer", "owner"]).default("customer"),

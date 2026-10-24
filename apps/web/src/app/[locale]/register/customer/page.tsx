@@ -104,7 +104,7 @@ export default function CustomerRegistrationPage() {
       case "email": schema = z.string().email("Invalid email address").max(254); break;
       case "phone": schema = z.string().min(10, t("errors.requiredField")).max(20); break;
       case "address": schema = z.string().min(5, t("errors.requiredField")).max(255); break;
-      case "city": schema = z.string().min(2, t("errors.requiredField")).max(100); break;
+      case "city": schema = z.string().min(2, t("errors.requiredField")).max(50); break;
       case "password": schema = z.string().min(8, t("errors.requiredField")).max(128).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Must contain uppercase, lowercase, and number"); break;
       case "confirmPassword": 
         if (value !== formData.password) {

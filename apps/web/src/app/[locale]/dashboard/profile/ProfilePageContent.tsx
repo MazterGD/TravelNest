@@ -46,6 +46,9 @@ export function ProfilePageContent({
     firstName: "",
     lastName: "",
     phone: "",
+    address: "",
+    city: "",
+    postalCode: "",
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -57,6 +60,9 @@ export function ProfilePageContent({
           firstName: profile.firstName || "",
           lastName: profile.lastName || "",
           phone: profile.phone || "",
+          address: profile.address || "",
+          city: profile.city || "",
+          postalCode: profile.postalCode || "",
         });
         setProfileAvatar(profile.avatar || null);
         setUser(profile);
@@ -76,6 +82,9 @@ export function ProfilePageContent({
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         phone: user.phone || "",
+        address: user.address || "",
+        city: user.city || "",
+        postalCode: user.postalCode || "",
       });
       setProfileAvatar(user.avatar || null);
       setIsLoading(false);
@@ -178,6 +187,11 @@ export function ProfilePageContent({
         lastName: formData.lastName.trim(),
         phone: formData.phone.trim(),
       });
+      const withAddress = await userService.updateAddress({
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        postalCode: formData.postalCode.trim(),
+      });
 
       if (user) {
         setUser({
@@ -185,6 +199,9 @@ export function ProfilePageContent({
           firstName: updatedUser.firstName,
           lastName: updatedUser.lastName,
           phone: updatedUser.phone,
+          address: withAddress.address,
+          city: withAddress.city,
+          postalCode: withAddress.postalCode,
         });
       }
 
@@ -206,6 +223,9 @@ export function ProfilePageContent({
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
       phone: user?.phone || "",
+      address: user?.address || "",
+      city: user?.city || "",
+      postalCode: user?.postalCode || "",
     });
     setFormErrors({});
     setError(null);
@@ -427,6 +447,27 @@ export function ProfilePageContent({
               label={t("phone")}
               disabled={!isEditing}
               error={formErrors.phone}
+            />
+            <Input
+              value={formData.address}
+              onChange={(e) => updateField("address", e.target.value)}
+              label={t("address")}
+              disabled={!isEditing}
+              maxLength={200}
+            />
+            <Input
+              value={formData.city}
+              onChange={(e) => updateField("city", e.target.value)}
+              label={t("city")}
+              disabled={!isEditing}
+              maxLength={50}
+            />
+            <Input
+              value={formData.postalCode}
+              onChange={(e) => updateField("postalCode", e.target.value)}
+              label={t("postalCode")}
+              disabled={!isEditing}
+              maxLength={10}
             />
           </div>
 
