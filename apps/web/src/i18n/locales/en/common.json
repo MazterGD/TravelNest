@@ -3776,5 +3776,48 @@
       "details": "We couldn't load this package. Please try again.",
       "update": "We couldn't save your changes. Please try again."
     }
+  },
+  "bookingConfirm": {
+    "back": "Back",
+    "goBack": "Go back",
+    "title": "Confirm booking",
+    "subtitle": "Check your trip details before you confirm.",
+    "vehicleDetails": "Vehicle details",
+    "busType": "{type} bus",
+    "licensePlate": "Licence plate: {plate}",
+    "year": "Year: {year}",
+    "passengerCount": "{count, plural, one {# passenger} other {# passengers}}",
+    "vehicleTypes": {
+      "ORDINARY": "Ordinary",
+      "SEMI_LUXURY": "Semi-luxury",
+      "LUXURY_AC": "Luxury AC"
+    },
+    "tripDetails": "Trip details",
+    "pickup": "Pickup location",
+    "dropoff": "Drop-off location",
+    "duration": "Duration",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "startTime": "Start time: {time}",
+    "passengers": "Passengers",
+    "specialRequests": "Special requests",
+    "owner": "Vehicle owner",
+    "notes": "Additional notes",
+    "priceSummary": "Price summary",
+    "vehicleRental": "Vehicle rental",
+    "driverCost": "Driver cost",
+    "fuelCost": "Fuel cost",
+    "tolls": "Toll charges",
+    "tax": "Tax",
+    "total": "Total amount",
+    "amount": "Rs. {amount}",
+    "confirm": "Confirm booking",
+    "creating": "Creating your booking…",
+    "cancel": "Cancel",
+    "errors": {
+      "noQuotation": "We couldn't find which quotation to book. Open it again from your quotations.",
+      "load": "We couldn't load this quotation. Check your connection and try again.",
+      "notFound": "We couldn't find this quotation. It may have been withdrawn — check your quotations.",
+      "create": "We couldn't create your booking. Please try again in a moment."
+    }
   }
 }

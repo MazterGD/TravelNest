@@ -14,6 +14,8 @@ const h = vi.hoisted(() => ({
   router: null as any,
   params: new URLSearchParams(),
   guard: { isLoading: false },
+  t: (key: string, values?: Record<string, unknown>) =>
+    values ? `${key}:${JSON.stringify(values)}` : key,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -22,10 +24,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/en/dashboard/bookings/confirm",
   useParams: () => ({ locale: "en" }),
 }));
-vi.mock("next/link", () => ({
-  default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a>,
-}));
-vi.mock("@/components/layout/MainLayout", () => ({ MainLayout: ({ children }: any) => <>{children}</> }));
+vi.mock("next-intl", () => ({ useTranslations: () => h.t }));
 vi.mock("@/hooks", async (importOriginal: any) => ({
   ...(await importOriginal()),
   useProtectedRoute: () => h.guard,
@@ -69,7 +68,7 @@ const quotation = (over: Record<string, any> = {}) => ({
 const renderConfirm = async (data: any = quotation()) => {
   getById.mockResolvedValue(data);
   render(<BookingConfirmPageContent locale="en" />);
-  await screen.findByText("Confirm Booking", { selector: "button" });
+  await screen.findByText("confirm", { selector: "button" });
 };
 
 beforeEach(() => {
@@ -87,17 +86,22 @@ describe("BookingConfirmPageContent", () => {
     expect(getById).not.toHaveBeenCalled();
   });
 
+  it("labels unknown vehicle types by their raw name", async () => {
+    await renderConfirm(quotation({ vehicleType: "DOUBLE_DECKER" }));
+    expect(screen.getByText('busType:{"type":"DOUBLE DECKER"}')).toBeTruthy();
+  });
+
   it("summarises the quotation for review", async () => {
     await renderConfirm({ data: { quotation: quotation() } });
     expect(getById).toHaveBeenCalledWith("q1");
-    expect(screen.getByText("LUXURY AC Bus")).toBeTruthy();
-    expect(screen.getByText("License Plate: NB-1234")).toBeTruthy();
-    expect(screen.getAllByText("(2 days)").length).toBeGreaterThan(0);
+    expect(screen.getByText('busType:{"type":"vehicleTypes.LUXURY_AC"}')).toBeTruthy();
+    expect(screen.getByText('licensePlate:{"plate":"NB-1234"}')).toBeTruthy();
+    expect(screen.getAllByText('(days:{"count":2})').length).toBeGreaterThan(0);
     expect(screen.getByText("Roof rack")).toBeTruthy();
     expect(screen.getByText("0771234567")).toBeTruthy();
-    expect(screen.getByText("Additional Notes")).toBeTruthy();
-    expect(screen.getByText("Rs. 700")).toBeTruthy();
-    expect(screen.getByText("Rs. 55,000")).toBeTruthy();
+    expect(screen.getByText("notes")).toBeTruthy();
+    expect(screen.getByText('amount:{"amount":"700"}')).toBeTruthy();
+    expect(screen.getByText('amount:{"amount":"55,000"}')).toBeTruthy();
   });
 
   it("handles a single-day trip without optional details", async () => {
@@ -107,16 +111,16 @@ describe("BookingConfirmPageContent", () => {
         vehicle: { licensePlate: "X", year: 2020, owner: { firstName: "A", lastName: "B" } },
       }),
     });
-    expect(screen.getAllByText("(1 day)").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Special Requirements")).toBeNull();
-    expect(screen.queryByText("Additional Notes")).toBeNull();
-    expect(screen.queryByText("Rs. 0")).toBeNull();
+    expect(screen.getAllByText('(days:{"count":1})').length).toBeGreaterThan(0);
+    expect(screen.queryByText("specialRequests")).toBeNull();
+    expect(screen.queryByText("notes")).toBeNull();
+    expect(screen.queryByText('amount:{"amount":"0"}')).toBeNull();
   });
 
   it("accepts the quotation and opens the new booking", async () => {
     respond.mockResolvedValue({ quotation: { booking: { id: "b1" } } });
     await renderConfirm();
-    fireEvent.click(screen.getByText("Confirm Booking", { selector: "button" }));
+    fireEvent.click(screen.getByText("confirm", { selector: "button" }));
     await waitFor(() => expect(h.push).toHaveBeenCalledWith("/en/dashboard/bookings/b1"));
     expect(respond).toHaveBeenCalledWith("q1", { status: "ACCEPTED" });
   });
@@ -124,36 +128,36 @@ describe("BookingConfirmPageContent", () => {
   it("falls back to the top-level booking id, then to the bookings list", async () => {
     respond.mockResolvedValueOnce({ booking: { id: "b2" } }).mockResolvedValueOnce({});
     await renderConfirm();
-    fireEvent.click(screen.getByText("Confirm Booking", { selector: "button" }));
+    fireEvent.click(screen.getByText("confirm", { selector: "button" }));
     await waitFor(() => expect(h.push).toHaveBeenCalledWith("/en/dashboard/bookings/b2"));
     // A successful accept keeps the button in its "creating" state until navigation.
-    expect(screen.getByText("Creating Booking...")).toBeTruthy();
+    expect(screen.getByText("creating")).toBeTruthy();
     cleanup();
     await renderConfirm();
-    fireEvent.click(screen.getByText("Confirm Booking", { selector: "button" }));
+    fireEvent.click(screen.getByText("confirm", { selector: "button" }));
     await waitFor(() => expect(h.push).toHaveBeenCalledWith("/en/dashboard/bookings"));
   });
 
   it("shows the accept error and lets the customer go back", async () => {
     respond.mockRejectedValueOnce(new Error("Quotation expired"));
     await renderConfirm();
-    fireEvent.click(screen.getByText("Confirm Booking", { selector: "button" }));
+    fireEvent.click(screen.getByText("confirm", { selector: "button" }));
     expect(await screen.findByText("Quotation expired")).toBeTruthy();
-    fireEvent.click(screen.getByText("Go Back"));
+    fireEvent.click(screen.getByText("goBack"));
     expect(h.back).toHaveBeenCalled();
   });
 
   it("uses a generic message when accepting fails without one", async () => {
     respond.mockRejectedValueOnce({});
     await renderConfirm();
-    fireEvent.click(screen.getByText("Confirm Booking", { selector: "button" }));
-    expect(await screen.findByText("Failed to create booking")).toBeTruthy();
+    fireEvent.click(screen.getByText("confirm", { selector: "button" }));
+    expect(await screen.findByText("errors.create")).toBeTruthy();
   });
 
   it("Back and Cancel return to the previous page", async () => {
     await renderConfirm();
-    fireEvent.click(screen.getByText("Back"));
-    fireEvent.click(screen.getByText("Cancel"));
+    fireEvent.click(screen.getByText("back"));
+    fireEvent.click(screen.getByText("cancel"));
     expect(h.back).toHaveBeenCalledTimes(2);
   });
 
@@ -164,7 +168,7 @@ describe("BookingConfirmPageContent", () => {
     first.unmount();
     getById.mockRejectedValueOnce({});
     render(<BookingConfirmPageContent locale="en" />);
-    expect(await screen.findByText("Failed to load quotation details")).toBeTruthy();
+    expect(await screen.findByText("errors.load")).toBeTruthy();
   });
 
   it("explains a missing quotation id instead of loading forever", async () => {
@@ -172,7 +176,7 @@ describe("BookingConfirmPageContent", () => {
 
     render(<BookingConfirmPageContent locale="en" />);
 
-    expect(await screen.findByText("No quotation ID provided")).toBeTruthy();
+    expect(await screen.findByText("errors.noQuotation")).toBeTruthy();
     expect(getById).not.toHaveBeenCalled();
   });
 
