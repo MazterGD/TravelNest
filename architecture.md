@@ -157,7 +157,7 @@ Deployment notes:
 
 ### Primary Domain Entities
 
-The Prisma schema (`packages/database/prisma/schema.prisma`) has 42 models. Table names are snake_case via `@@map`. `User`, `Vehicle`, `VehiclePhoto`, `VehicleDocument`, `OwnerDocument`, `OwnerBankAccount`, `Driver`, `TripPackage`, `Review`, `Notification`, `Faq` and `Testimonial` carry `isRemoved` / `removedAt` for soft delete (ADR-006); a removed user's email and a removed vehicle's licence plate get a `#removed-<id>` suffix so they can be registered again.
+The Prisma schema (`packages/database/prisma/schema.prisma`) has 42 models. Table names are snake_case via `@@map`. `User`, `Vehicle`, `VehiclePhoto`, `VehicleDocument`, `OwnerDocument`, `OwnerBankAccount`, `VehicleAvailability` (owner-released blocks), `Driver`, `TripPackage`, `Review`, `Notification`, `Faq` and `Testimonial` carry `isRemoved` / `removedAt` for soft delete (ADR-006); a removed user's email and a removed vehicle's licence plate get a `#removed-<id>` suffix so they can be registered again.
 
 **Identity & Access**
 - `User` (`users`): single identity table for all roles. `role`: `CUSTOMER | VEHICLE_OWNER | ADMIN`; `adminRole`: `SUPER_ADMIN | MODERATOR | FINANCE_ADMIN | SUPPORT_ADMIN`; `status`: `ACTIVE | INACTIVE | SUSPENDED | PENDING_VERIFICATION`. Owner business fields (`businessName`, `businessRegNumber`, `tinNumber`) and verification fields (`verifiedAt`, `rejectionReason`) live on the user row. Security fields: `tokenVersion`, `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`.
