@@ -218,6 +218,12 @@ describe("ProfilePageContent", () => {
     expect(screen.queryByLabelText("avatarDelete")).toBeNull();
   });
 
-  it.todo("'Change password' opens the change-password flow (button currently has no handler)");
-  it.todo("'Enable' two-factor opens the 2FA setup flow (button currently has no handler)");
+  it("sends 'Change password' to the settings form and offers no unbuilt 2FA", () => {
+    render(<ProfilePageContent locale="en" />);
+
+    expect(screen.getByText("changePassword").closest("a")!.getAttribute("href")).toBe(
+      "/en/dashboard/settings#change-password",
+    );
+    expect(screen.queryByText("twoFactor")).toBeNull();
+  });
 });

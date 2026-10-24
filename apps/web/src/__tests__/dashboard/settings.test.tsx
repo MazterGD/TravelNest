@@ -100,15 +100,11 @@ describe("CustomerSettingsPage", () => {
     expect(h.push).toHaveBeenCalledWith("/si/dashboard/settings");
   });
 
-  it("falls back to the prop locale and toggles email notifications", () => {
+  it("falls back to the prop locale and shows no unsaved notification toggle", () => {
     h.params = {};
     render(<CustomerSettingsPage params={{ locale: "ta" }} />);
     expect((screen.getByLabelText("language") as HTMLSelectElement).value).toBe("ta");
-    const toggle = screen.getByLabelText("emailNotifications") as HTMLInputElement;
-    expect(toggle.checked).toBe(true);
-    fireEvent.click(toggle);
-    expect(toggle.checked).toBe(false);
+    expect(screen.queryByLabelText("emailNotifications")).toBeNull();
+    expect(document.getElementById("change-password")).not.toBeNull();
   });
-
-  it.todo("persists the email-notification preference to the API (the toggle is currently local state only and resets on reload)");
 });

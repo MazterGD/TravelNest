@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -486,38 +487,12 @@ export function ProfilePageContent({
                 </p>
               </div>
             </div>
-            <button
-              type="button"
+            <Link
+              href={`/${_locale}/dashboard/settings#change-password`}
               className={`inline-flex min-h-[44px] items-center rounded-xl border border-[var(--color-border-default)] px-3 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)] ${focusRing}`}
             >
               {t("changePassword")}
-            </button>
-          </div>
-
-          {/* 2FA row */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-bg-surface)]">
-                <ShieldCheck
-                  className="h-5 w-5 text-[var(--color-text-secondary)]"
-                  aria-hidden="true"
-                />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                  {t("twoFactor")}
-                </p>
-                <p className="text-xs text-[var(--color-text-secondary)]">
-                  {t("twoFactorDescription")}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              className={`inline-flex min-h-[44px] items-center rounded-xl border border-[var(--color-border-default)] px-3 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)] ${focusRing}`}
-            >
-              {t("enable")}
-            </button>
+            </Link>
           </div>
         </div>
       </section>
