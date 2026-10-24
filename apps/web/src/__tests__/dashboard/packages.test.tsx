@@ -12,13 +12,14 @@ const h = vi.hoisted(() => ({
   t: (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
   push: vi.fn(),
+  search: new URLSearchParams(),
 }));
 
 vi.mock("next-intl", () => ({ useTranslations: () => h.t, useLocale: () => "en" }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: h.push }),
   usePathname: () => "/en/dashboard/packages",
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => h.search,
   useParams: () => ({ locale: "en" }),
 }));
 vi.mock("@/components/features/customer", () => ({
@@ -50,7 +51,7 @@ vi.mock("@/components/ui", async (importOriginal: any) => ({
 }));
 vi.mock("@/lib/api", async (importOriginal: any) => ({
   ...(await importOriginal()),
-  tripPackageService: { getAll: vi.fn(), book: vi.fn() },
+  tripPackageService: { getAll: vi.fn(), book: vi.fn(), getById: vi.fn() },
 }));
 
 import { PackagesPageContent } from "@/app/[locale]/dashboard/packages/packages-page-content";
@@ -91,10 +92,28 @@ const renderPage = async () => {
 beforeEach(() => {
   vi.clearAllMocks();
   getAll.mockResolvedValue({ packages });
+  h.search = new URLSearchParams();
   vi.spyOn(window, "alert").mockImplementation(() => undefined);
 });
 
 describe("PackagesPageContent", () => {
+  it("opens the booking form for the package named in ?book=", async () => {
+    h.search = new URLSearchParams("book=c");
+    await renderPage();
+
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("dialog").textContent).toContain("Hill Country");
+  });
+
+  it("fetches a package named in ?book= that is not in the list", async () => {
+    (tripPackageService.getById as any).mockResolvedValue({ tripPackage: pkg("z", { title: "Hidden Gem" }) });
+    h.search = new URLSearchParams("book=z");
+    await renderPage();
+
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("dialog").textContent).toContain("Hidden Gem");
+  });
+
   it("loads active packages", async () => {
     render(<PackagesPageContent locale="en" />);
     expect(screen.getByText("loading")).toBeTruthy();

@@ -326,7 +326,8 @@ describe("package detail page", () => {
     expect(screen.getByText("Tea estates")).toBeTruthy();
     expect(screen.getByText("detail.verifiedOwner")).toBeTruthy();
     expect(screen.getByAltText("Hill Country Tour").getAttribute("src")).toBe("/hero.webp");
-    expect(container.querySelector('a[href="/en/search?package=pkg1"]')).toBeTruthy();
+    expect(container.querySelector('a[href="/en/dashboard/packages?book=pkg1"]')).toBeTruthy();
+    expect(container.querySelector("a button")).toBeNull();
   });
 
   it("uses fallbacks for missing description, image and unverified owner", async () => {

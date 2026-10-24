@@ -382,7 +382,4 @@ describe("search page", () => {
     expect(screen.queryByText("errors.fetchVehicles")).toBeNull();
   });
 
-  it.todo(
-    "pre-selects the trip package when opened from a package's 'Book this package' link (?package=<id>)",
-  );
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   PageHeader,
@@ -23,6 +23,8 @@ interface PackagesPageContentProps {
 export function PackagesPageContent({ locale }: PackagesPageContentProps) {
   const t = useTranslations("packages");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const packageToBook = searchParams?.get("book") ?? null;
   const [packages, setPackages] = useState<TripPackage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +67,24 @@ export function PackagesPageContent({ locale }: PackagesPageContentProps) {
   useEffect(() => {
     fetchPackages();
   }, []);
+
+  // "Book this package" on the public package page lands here with ?book=<id>.
+  useEffect(() => {
+    if (!packageToBook || isLoading) return;
+    const listed = packages.find((pkg) => pkg.id === packageToBook);
+    if (listed) {
+      openBookingModal(listed);
+      return;
+    }
+    tripPackageService
+      .getById(packageToBook)
+      .then((response) => {
+        if (response.tripPackage) openBookingModal(response.tripPackage);
+      })
+      .catch(() => setError(t("errors.fetchPackages")));
+    // Open once per arrival; the modal manages itself afterwards.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [packageToBook, isLoading]);
 
   const filteredPackages = useMemo(() => {
     let list = [...packages];

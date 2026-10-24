@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { MapPin, Clock, Users, Car, Calendar, Star, Info } from "lucide-react";
-import { Button } from "@/components/ui";
+import { CTAButton } from "@/components/ui";
 import { tripPackageService } from "@/lib/api";
 import type { TripPackage } from "@/types";
 import { localizePlaceName } from "@/lib/i18n/placeName";
@@ -72,9 +71,7 @@ export default function PackageDetailPage() {
           <p className="text-gray-500 mb-6">
             {error || t("detail.notFoundMessage")}
           </p>
-          <Link href={`/${locale}/search`}>
-            <Button>{t("detail.exploreOtherPackages")}</Button>
-          </Link>
+          <CTAButton href={`/${locale}/search`}>{t("detail.exploreOtherPackages")}</CTAButton>
         </div>
       </MainLayout>
     );
@@ -238,14 +235,13 @@ export default function PackageDetailPage() {
               </div>
 
               <div className="space-y-3">
-                <Link
-                  href={`/${locale}/search?package=${tripPackage.id}`}
-                  className="block w-full"
+                <CTAButton
+                  href={`/${locale}/dashboard/packages?book=${tripPackage.id}`}
+                  size="lg"
+                  fullWidth
                 >
-                  <Button className="w-full py-6 text-lg rounded-2xl shadow-lg shadow-primary/30 font-bold group">
-                    {t("detail.bookThisPackage")}
-                  </Button>
-                </Link>
+                  {t("detail.bookThisPackage")}
+                </CTAButton>
                 <p className="text-xs text-center text-gray-500 flex items-center justify-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block mr-1"></span>
                   {t("detail.freeCancellation")}
