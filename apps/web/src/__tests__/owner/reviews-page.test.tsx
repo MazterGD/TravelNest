@@ -9,8 +9,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   guard: { isLoading: false, isAuthorized: true },
   search: "",
-  t: (key: string, values?: Record<string, unknown>) =>
-    values ? `${key}:${JSON.stringify(values)}` : key,
+  t: Object.assign(
+    (key: string, values?: Record<string, unknown>) =>
+      values ? `${key}:${JSON.stringify(values)}` : key,
+    { rich: (key: string, values: Record<string, unknown>) => `${key}:${values.vehicle}` },
+  ),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -164,18 +167,18 @@ describe("OwnerReviewsPage", () => {
   it("filters to a vehicle from the query string", async () => {
     state.search = "vehicleId=veh-2";
     await renderPage();
-    expect(screen.getAllByText("Hill Rider").length).toBe(2);
+    expect(screen.getAllByText("Hill Rider").length).toBe(1);
     expect(screen.queryByText("Driver was lovely")).toBeNull();
-    expect(screen.getByText("View all").getAttribute("href")).toBe("/en/owner/reviews");
+    expect(screen.getByText("vehicleFilter.viewAll").getAttribute("href")).toBe("/en/owner/reviews");
+    expect(screen.getByText("vehicleFilter.showing:Hill Rider")).toBeTruthy();
   });
 
-  it("falls back to a generic vehicle label when nothing matches", async () => {
+  it("falls back to a generic vehicle label and an empty state when nothing matches", async () => {
     state.search = "vehicleId=veh-9";
     await renderPage();
-    expect(screen.getByText("this vehicle")).toBeTruthy();
+    expect(screen.getByText("vehicleFilter.showing:vehicleFilter.thisVehicle")).toBeTruthy();
+    expect(screen.getByText("vehicleFilter.emptyTitle")).toBeTruthy();
   });
-
-  it.todo("shows an empty state when a vehicle filter matches no reviews (the list is currently blank)");
 
   it("responds to a review and updates the summary", async () => {
     await renderPage();

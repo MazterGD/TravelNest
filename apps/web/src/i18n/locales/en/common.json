@@ -368,6 +368,13 @@
       "loadFailedServer": "Reviews are temporarily unavailable. Please try again shortly.",
       "tryAgain": "Try again",
       "respondFailed": "Could not submit your response. Please try again."
+    },
+    "vehicleFilter": {
+      "showing": "Showing reviews for <strong>{vehicle}</strong>",
+      "thisVehicle": "this vehicle",
+      "viewAll": "View all",
+      "emptyTitle": "No reviews for this vehicle yet",
+      "emptyDescription": "Reviews appear here once customers rate their trips on this vehicle."
     }
   },
   "ownerAnalytics": {

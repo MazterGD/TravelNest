@@ -435,16 +435,16 @@ export default function OwnerReviewsPage() {
           {vehicleIdFilter && (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
               <p className="text-caption text-[var(--color-text-primary)]">
-                Showing reviews for{" "}
-                <strong className="font-semibold">
-                  {vehicleNameFilter ?? "this vehicle"}
-                </strong>
+                {t.rich("vehicleFilter.showing", {
+                  vehicle: vehicleNameFilter ?? t("vehicleFilter.thisVehicle"),
+                  strong: (chunks) => <strong className="font-semibold">{chunks}</strong>,
+                })}
               </p>
               <Link
                 href={`/${locale}/owner/reviews`}
                 className="text-caption font-medium text-primary hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                View all
+                {t("vehicleFilter.viewAll")}
               </Link>
             </div>
           )}
@@ -653,6 +653,17 @@ export default function OwnerReviewsPage() {
           )}
 
           {/* Empty state */}
+          {!isLoading && !loadError && reviews.length > 0 && displayedReviews.length === 0 && (
+            <div className="flex flex-col items-center rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] px-8 py-16 text-center">
+              <h2 className="mb-2 text-heading-md font-semibold text-[var(--color-text-primary)]">
+                {t("vehicleFilter.emptyTitle")}
+              </h2>
+              <p className="max-w-sm text-body text-[var(--color-text-secondary)]">
+                {t("vehicleFilter.emptyDescription")}
+              </p>
+            </div>
+          )}
+
           {!isLoading && !loadError && reviews.length === 0 && (
             <div className="flex flex-col items-center rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] px-8 py-16 text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-bg-surface)] border border-[var(--color-border-default)]">
