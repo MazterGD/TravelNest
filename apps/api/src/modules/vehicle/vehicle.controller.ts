@@ -413,9 +413,36 @@ export const getVehicleAvailability = async (req: Request, res: Response) => {
   const availability = await vehicleService.getVehicleAvailability(
     String(id),
     month,
+    req.user?.id,
   );
 
   return ResponseHelper.success(res, availability);
+};
+
+/**
+ * Block dates on the owner's vehicle
+ * POST /api/v1/vehicles/:id/availability/blocks
+ */
+export const createAvailabilityBlock = async (req: Request, res: Response) => {
+  const block = await vehicleService.createAvailabilityBlock(
+    String(req.params.id),
+    req.user!.id,
+    req.body,
+  );
+  return ResponseHelper.created(res, { block }, "Dates blocked");
+};
+
+/**
+ * Release owner-blocked dates
+ * DELETE /api/v1/vehicles/:id/availability/blocks/:blockId
+ */
+export const removeAvailabilityBlock = async (req: Request, res: Response) => {
+  const result = await vehicleService.removeAvailabilityBlock(
+    String(req.params.id),
+    String(req.params.blockId),
+    req.user!.id,
+  );
+  return ResponseHelper.success(res, result, "Blocked dates released");
 };
 
 /**

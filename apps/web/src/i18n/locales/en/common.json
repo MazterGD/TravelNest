@@ -3113,7 +3113,10 @@
     "modalCancel": "Cancel",
     "modalConfirm": "Confirm Block",
     "errorNotFound": "Vehicle not found",
-    "errorLoad": "Failed to load availability data"
+    "errorLoad": "Failed to load availability data",
+    "removeBlock": "Remove blocked period",
+    "blockError": "We couldn't block these dates. Please try again.",
+    "removeBlockError": "We couldn't release these dates. Please try again."
   },
   "messages": {
     "title": "Messages",

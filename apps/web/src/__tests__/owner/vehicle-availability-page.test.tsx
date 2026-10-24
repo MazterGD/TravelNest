@@ -32,7 +32,10 @@ vi.mock("@/hooks", () => ({ useOwnerGuard: () => state.guard }));
 vi.mock("@/store", () => ({ useAuthStore: () => ({ user: state.user }) }));
 vi.mock("@/lib/api", () => {
   class ApiError extends Error {}
-  return { ApiError, vehicleService: { getById: vi.fn(), getAvailability: vi.fn() } };
+  return {
+    ApiError,
+    vehicleService: { getById: vi.fn(), getAvailability: vi.fn(), blockDates: vi.fn(), releaseBlockedDates: vi.fn() },
+  };
 });
 
 import { ApiError, vehicleService } from "@/lib/api";
@@ -149,19 +152,51 @@ describe("VehicleAvailabilityPage", () => {
     expect(confirm.disabled).toBe(true);
     fireEvent.change(document.querySelector("select") as HTMLSelectElement, { target: { value: "Repairs" } });
     fireEvent.change(screen.getByPlaceholderText("modalNotesPlaceholder"), { target: { value: "Engine work" } });
-    fireEvent.click(confirm);
+    vehicles.blockDates.mockImplementation(async (_id: string, body: { startDate: string; endDate: string }) => {
+      vehicles.getAvailability.mockResolvedValue({
+        blocked: [{ id: "blk-1", startDate: body.startDate, endDate: body.endDate, reason: "Repairs", notes: "Engine work" }],
+        booked: [],
+      });
+      return {};
+    });
+    await act(async () => fireEvent.click(confirm));
 
-    expect(screen.getByText("blockedPeriodsTitle")).toBeTruthy();
+    expect(vehicles.blockDates).toHaveBeenCalledWith(
+      "veh-1",
+      expect.objectContaining({ reason: "Repairs", notes: "Engine work" }),
+    );
+    expect(await screen.findByText("blockedPeriodsTitle")).toBeTruthy();
     expect(screen.getByText("Repairs")).toBeTruthy();
     expect(screen.getByText("Engine work")).toBeTruthy();
     expect(day(15).className).toContain("bg-muted");
     expect(screen.queryByText(/blockDates \(/)).toBeNull();
 
-    fireEvent.click(screen.getByLabelText("Remove block"));
-    expect(screen.queryByText("blockedPeriodsTitle")).toBeNull();
+    vehicles.releaseBlockedDates.mockResolvedValue({});
+    vehicles.getAvailability.mockResolvedValue({ blocked: [], booked: [] });
+    await act(async () => fireEvent.click(screen.getByLabelText("removeBlock")));
+    expect(vehicles.releaseBlockedDates).toHaveBeenCalledWith("veh-1", "blk-1");
+    await waitFor(() => expect(screen.queryByText("blockedPeriodsTitle")).toBeNull());
   });
 
-  it.todo("persists blocked periods (and their removal) to the API instead of only updating local state");
+  it("explains failed saves and removals", async () => {
+    vehicles.getAvailability.mockResolvedValue({
+      blocked: [{ id: "blk-1", startDate: "2026-10-12", endDate: "2026-10-13", reason: "Repairs" }],
+      booked: [],
+    });
+    vehicles.blockDates.mockRejectedValueOnce(new Error("x"));
+    vehicles.releaseBlockedDates.mockRejectedValueOnce(new (ApiError as any)("Held by a booking"));
+    await renderPage();
+
+    fireEvent.click(day(20));
+    fireEvent.click(screen.getByText(/blockDates \(1\)/));
+    fireEvent.change(document.querySelector("select") as HTMLSelectElement, { target: { value: "Repairs" } });
+    await act(async () => fireEvent.click(screen.getByText("modalConfirm")));
+    expect(screen.getByRole("alert").textContent).toBe("blockError");
+
+    fireEvent.click(screen.getByText("modalCancel"));
+    await act(async () => fireEvent.click(screen.getByLabelText("removeBlock")));
+    expect(await screen.findByText("Held by a booking")).toBeTruthy();
+  });
 
   it("accepts an array id param", async () => {
     state.params = { locale: "en", id: ["veh-9", "x"] };

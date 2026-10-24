@@ -146,6 +146,7 @@ const prismaWithExtensions = prismaClient.$extends({
     vehicleDocument: excludeRemoved,
     ownerDocument: excludeRemoved,
     ownerBankAccount: excludeRemoved,
+    vehicleAvailability: excludeRemoved,
     driver: excludeRemoved,
     tripPackage: excludeRemoved,
     review: excludeRemoved,

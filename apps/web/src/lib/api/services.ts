@@ -536,6 +536,7 @@ export const vehicleService = {
         startDate: string;
         endDate: string;
         reason?: string | null;
+        notes?: string | null;
       }>;
       booked: Array<{
         id: string;
@@ -545,6 +546,18 @@ export const vehicleService = {
       }>;
     }>(`/vehicles/${id}/availability${query}`);
   },
+
+  blockDates: (
+    id: string,
+    data: { startDate: string; endDate: string; reason: string; notes?: string },
+  ) =>
+    api.post<{ block: { id: string; startDate: string; endDate: string; reason: string | null } }>(
+      `/vehicles/${id}/availability/blocks`,
+      data,
+    ),
+
+  releaseBlockedDates: (id: string, blockId: string) =>
+    api.delete(`/vehicles/${id}/availability/blocks/${blockId}`),
 
   getSimilarVehicles: (id: string, limit = 4) =>
     api.get<{ vehicles: Vehicle[] }>(`/vehicles/${id}/similar?limit=${limit}`),

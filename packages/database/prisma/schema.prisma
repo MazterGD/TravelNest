@@ -521,7 +521,10 @@ model VehicleAvailability {
   endDate     DateTime
   isBlocked   Boolean  @default(false)
   reason      String?
+  notes       String?
   createdAt   DateTime @default(now())
+  isRemoved   Boolean  @default(false) // Soft delete (ADR-006): owner-removed blocks are kept
+  removedAt   DateTime?
 
   // Relations
   vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)

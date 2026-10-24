@@ -12,6 +12,7 @@ import {
   withRemovedSuffix,
 } from "../../utils/softDelete.js";
 import { recordAuditLog } from "../admin/audit/audit.service.js";
+import { lockVehicleForBooking } from "../../utils/locks.js";
 
 /**
  * Platform-set base pricing per vehicle type. Surfaced read-only to owners so
@@ -1182,10 +1183,11 @@ export const cancelVehicleActivation = async (id: string, ownerId: string) => {
 export const getVehicleAvailability = async (
   vehicleId: string,
   month?: string,
+  requesterId?: string,
 ) => {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: vehicleId },
-    select: { id: true },
+    select: { id: true, ownerId: true },
   });
 
   if (!vehicle) {
@@ -1213,6 +1215,8 @@ export const getVehicleAvailability = async (
         startDate: true,
         endDate: true,
         reason: true,
+        // Private notes are for the owner's own calendar only.
+        notes: requesterId === vehicle.ownerId,
       },
       orderBy: { startDate: "asc" },
     }),
@@ -1238,6 +1242,76 @@ export const getVehicleAvailability = async (
     blocked,
     booked,
   };
+};
+
+/**
+ * Owner-blocked dates (maintenance, private hire). A block may not cover days
+ * that already carry an active booking.
+ */
+export const createAvailabilityBlock = async (
+  vehicleId: string,
+  ownerId: string,
+  data: { startDate: string; endDate: string; reason: string; notes?: string },
+) => {
+  await assertVehicleOwner(vehicleId, ownerId);
+
+  // Whole local days: from the start day's first moment to the end day's last.
+  const startDate = new Date(`${data.startDate}T00:00:00`);
+  const endDate = new Date(`${data.endDate}T23:59:59.999`);
+
+  return prisma.$transaction(async (tx) => {
+    await lockVehicleForBooking(tx, vehicleId);
+    const clash = await tx.booking.findFirst({
+      where: {
+        vehicleId,
+        status: { in: ["PENDING", "CONFIRMED", "ONGOING"] },
+        startDate: { lte: endDate },
+        endDate: { gte: startDate },
+      },
+      select: { id: true },
+    });
+    if (clash) {
+      throw ApiError.conflict("These dates already have a booking.");
+    }
+
+    return tx.vehicleAvailability.create({
+      data: {
+        vehicleId,
+        startDate,
+        endDate,
+        isBlocked: true,
+        reason: xss(data.reason),
+        notes: data.notes ? xss(data.notes) : null,
+      },
+      select: { id: true, startDate: true, endDate: true, reason: true, notes: true },
+    });
+  });
+};
+
+export const removeAvailabilityBlock = async (
+  vehicleId: string,
+  blockId: string,
+  ownerId: string,
+) => {
+  await assertVehicleOwner(vehicleId, ownerId);
+
+  const block = await prisma.vehicleAvailability.findFirst({
+    where: { id: blockId, vehicleId, isBlocked: true },
+    select: { id: true, reason: true },
+  });
+  if (!block) {
+    throw ApiError.notFound("Blocked period not found");
+  }
+  // Paid bookings hold their dates with a block of their own (payment.service).
+  if (block.reason?.startsWith("Booking ")) {
+    throw ApiError.badRequest("Dates held by a booking are released by cancelling the booking.");
+  }
+
+  await prisma.vehicleAvailability.update({
+    where: { id: blockId },
+    data: removalStamp(),
+  });
+  return { removed: true };
 };
 
 export const getSimilarVehicles = async (vehicleId: string, limit = 4) => {

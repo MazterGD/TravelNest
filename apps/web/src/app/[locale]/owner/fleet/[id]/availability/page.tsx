@@ -44,6 +44,8 @@ export default function VehicleAvailabilityPage() {
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [blockReason, setBlockReason] = useState("");
   const [blockNotes, setBlockNotes] = useState("");
+  const [isSavingBlock, setIsSavingBlock] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
   const [vehicle, setVehicle] = useState<VehicleSummary | null>(null);
@@ -83,6 +85,7 @@ export default function VehicleAvailabilityPage() {
             startDate: b.startDate,
             endDate: b.endDate,
             reason: b.reason || "",
+            notes: b.notes || undefined,
           })),
         );
 
@@ -169,32 +172,45 @@ export default function VehicleAvailabilityPage() {
     );
   };
 
-  const confirmBlock = () => {
-    if (!selectedDates.length) return;
-
-    const sorted = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
-    const start = sorted[0] ? toLocalDateStr(sorted[0]) : "";
-    const end = sorted[sorted.length - 1] ? toLocalDateStr(sorted[sorted.length - 1]!) : "";
-
-    setBlockedDates((prev) => [
-      ...prev,
-      {
-        id: `local-${Date.now()}`,
-        startDate: start,
-        endDate: end,
-        reason: blockReason,
-        notes: blockNotes || undefined,
-      },
-    ]);
-
-    setShowBlockModal(false);
-    setSelectedDates([]);
-    setBlockReason("");
-    setBlockNotes("");
+  const reloadMonth = () => {
+    const year = selectedMonth.getFullYear();
+    const month = String(selectedMonth.getMonth() + 1).padStart(2, "0");
+    return fetchAvailabilityData(`${year}-${month}`);
   };
 
-  const removeBlock = (id: string) => {
-    setBlockedDates((prev) => prev.filter((b) => b.id !== id));
+  const confirmBlock = async () => {
+    if (!selectedDates.length || !vehicleId) return;
+
+    const sorted = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
+    setIsSavingBlock(true);
+    setBlockError(null);
+    try {
+      await vehicleService.blockDates(vehicleId, {
+        startDate: toLocalDateStr(sorted[0]!),
+        endDate: toLocalDateStr(sorted[sorted.length - 1]!),
+        reason: blockReason,
+        notes: blockNotes || undefined,
+      });
+      setShowBlockModal(false);
+      setSelectedDates([]);
+      setBlockReason("");
+      setBlockNotes("");
+      await reloadMonth();
+    } catch (error) {
+      setBlockError(error instanceof ApiError ? error.message : t("blockError"));
+    } finally {
+      setIsSavingBlock(false);
+    }
+  };
+
+  const removeBlock = async (id: string) => {
+    if (!vehicleId) return;
+    try {
+      await vehicleService.releaseBlockedDates(vehicleId, id);
+      await reloadMonth();
+    } catch (error) {
+      setPageError(error instanceof ApiError ? error.message : t("removeBlockError"));
+    }
   };
 
   const WEEK_DAYS = [
@@ -420,11 +436,11 @@ export default function VehicleAvailabilityPage() {
                           )}
                           <button
                             type="button"
-                            aria-label="Remove block"
-                            onClick={() => removeBlock(block.id)}
-                            className="shrink-0 text-muted-foreground transition-colors hover:text-error-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            aria-label={t("removeBlock")}
+                            onClick={() => void removeBlock(block.id)}
+                            className="-m-3 inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-error-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
-                            <X className="h-3.5 w-3.5" />
+                            <X className="h-4 w-4" aria-hidden="true" />
                           </button>
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -512,6 +528,12 @@ export default function VehicleAvailabilityPage() {
                 />
               </div>
 
+              {blockError && (
+                <p role="alert" className="mb-4 rounded-md border border-[var(--color-error-border)] bg-[var(--color-error-bg)] p-3 text-sm text-[var(--color-error-text)]">
+                  {blockError}
+                </p>
+              )}
+
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -522,8 +544,8 @@ export default function VehicleAvailabilityPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={confirmBlock}
-                  disabled={!blockReason}
+                  onClick={() => void confirmBlock()}
+                  disabled={!blockReason || isSavingBlock}
                   className="flex flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Check className="h-4 w-4" />

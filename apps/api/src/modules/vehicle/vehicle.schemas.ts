@@ -210,6 +210,34 @@ export const toggleStatusSchema = z.object({
   }),
 });
 
+const dayString = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Dates must be in YYYY-MM-DD format");
+
+export const createAvailabilityBlockSchema = z.object({
+  params: z.object({
+    id: z.string().cuid("Invalid vehicle ID"),
+  }),
+  body: z
+    .object({
+      startDate: dayString,
+      endDate: dayString,
+      reason: z.string().trim().min(1, "A reason is required").max(200),
+      notes: z.string().trim().max(500).optional(),
+    })
+    .refine((value) => value.endDate >= value.startDate, {
+      message: "End date must be on or after the start date",
+      path: ["endDate"],
+    }),
+});
+
+export const removeAvailabilityBlockSchema = z.object({
+  params: z.object({
+    id: z.string().cuid("Invalid vehicle ID"),
+    blockId: z.string().cuid("Invalid block ID"),
+  }),
+});
+
 export const getSimilarVehiclesSchema = z.object({
   params: z.object({
     id: z.string().cuid("Invalid vehicle ID"),

@@ -22,6 +22,8 @@ import {
   uploadDocumentsSchema,
   toggleAvailabilitySchema,
   toggleStatusSchema,
+  createAvailabilityBlockSchema,
+  removeAvailabilityBlockSchema,
 } from "./vehicle.schemas.js";
 import { config } from "../../config/index.js";
 
@@ -187,6 +189,25 @@ router.post(
   authorize("owner", "admin"),
   validate(uploadDocumentsSchema),
   asyncHandler(vehicleController.uploadDocumentsMetadata),
+);
+
+// Owner-blocked dates
+router.post(
+  "/:id/availability/blocks",
+  authenticate,
+  csrfProtection,
+  authorize("owner"),
+  validate(createAvailabilityBlockSchema),
+  asyncHandler(vehicleController.createAvailabilityBlock),
+);
+
+router.delete(
+  "/:id/availability/blocks/:blockId",
+  authenticate,
+  csrfProtection,
+  authorize("owner"),
+  validate(removeAvailabilityBlockSchema),
+  asyncHandler(vehicleController.removeAvailabilityBlock),
 );
 
 // Toggle vehicle availability
