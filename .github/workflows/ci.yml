@@ -27,7 +27,7 @@ concurrency:
     cancel-in-progress: true
 
 env:
-    NODE_VERSION: "20"
+    NODE_VERSION: "24"
 
 jobs:
     # ===========================================================================
@@ -298,7 +298,7 @@ jobs:
             - name: Start API and Web
               run: |
                   pnpm start:api > api.log 2>&1 &
-                  pnpm start:web > web.log 2>&1 &
+                  NODE_ENV=production pnpm start:web > web.log 2>&1 &
                   for url in http://localhost:5000/health http://localhost:3000/en; do
                     for i in $(seq 1 60); do
                       curl -sf -o /dev/null "$url" && break
