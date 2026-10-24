@@ -249,8 +249,10 @@ describe("Owner BookingDetailsPage", () => {
     await screen.findByText("TN-BK-001");
     await act(async () => fireEvent.click(screen.getByText("changeDriver")));
     expect(drivers.getAvailable).toHaveBeenCalledWith(expect.any(String), expect.any(String), "bk-1");
-    expect((screen.getAllByRole("radio")[0] as HTMLInputElement).checked).toBe(true);
-    fireEvent.click(screen.getAllByRole("radio")[1]);
+    // [unassign, current driver, other driver]: the current driver starts selected.
+    const radios = screen.getAllByRole("radio") as HTMLInputElement[];
+    expect(radios.map((r) => r.checked)).toEqual([false, true, false]);
+    fireEvent.click(radios[2]);
     await act(async () => fireEvent.click(screen.getByText("driverModal.confirm")));
     expect(drivers.assignToBooking).toHaveBeenCalledWith("bk-1", "drv-2");
     expect(screen.queryByText("driverModal.title")).toBeNull();
@@ -292,9 +294,17 @@ describe("Owner BookingDetailsPage", () => {
     expect(screen.queryByText("driverModal.title")).toBeNull();
   });
 
-  it.todo(
-    "offers 'unassign driver' in the modal for bookings whose API payload has driver{} but no top-level driverName (the modal checks booking.driverName, which the booking detail endpoint never returns)",
-  );
+  it("offers unassign for a booking whose driver arrives as a nested object", async () => {
+    bookings.getById.mockResolvedValue(booking({ driverName: undefined }));
+    drivers.getAvailable.mockResolvedValue({ drivers: [] });
+    await renderPage();
+    await screen.findByText("TN-BK-001");
+
+    await act(async () => fireEvent.click(screen.getByText("changeDriver")));
+
+    expect(screen.getByText("driverModal.unassign")).toBeTruthy();
+    expect(screen.queryByText("driverModal.noDrivers")).toBeNull();
+  });
 
   it("generates an invoice and navigates to disputes", async () => {
     await renderPage();

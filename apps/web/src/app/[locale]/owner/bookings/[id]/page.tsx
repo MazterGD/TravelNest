@@ -808,14 +808,14 @@ export default function BookingDetailsPage({
                 <div className="flex min-h-[100px] items-center justify-center">
                   <LoadingSpinner size="md" />
                 </div>
-              ) : availableDrivers.length === 0 && !booking.driverName ? (
+              ) : availableDrivers.length === 0 && !booking.driver ? (
                 <p className="py-4 text-center text-sm text-muted-foreground">
                   {t("driverModal.noDrivers")}
                 </p>
               ) : (
                 <div className="mb-5 space-y-2 max-h-64 overflow-y-auto">
                   {/* Unassign option */}
-                  {booking.driverName && (
+                  {booking.driver && (
                     <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                       <input
                         type="radio"
@@ -862,19 +862,19 @@ export default function BookingDetailsPage({
                 </button>
                 <button
                   onClick={
-                    selectedDriverId === "" && booking.driverName
+                    selectedDriverId === "" && booking.driver
                       ? handleUnassignDriver
                       : handleAssignDriver
                   }
                   disabled={
                     assigningDriver ||
                     driversLoading ||
-                    (selectedDriverId === "" && !booking.driverName)
+                    (selectedDriverId === "" && !booking.driver)
                   }
                   className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                 >
                   {assigningDriver ? <LoadingSpinner size="sm" /> : null}
-                  {selectedDriverId === "" && booking.driverName
+                  {selectedDriverId === "" && booking.driver
                     ? t("driverModal.confirmUnassign")
                     : t("driverModal.confirm")}
                 </button>
