@@ -249,6 +249,28 @@ export function NewQuotationPageContent({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [draftSaveSuccess, setDraftSaveSuccess] = useState(false);
 
+  // Bring back a draft saved with "Save draft" on an earlier visit.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("quotation-draft");
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.pickupLocation !== undefined) setPickupLocation(draft.pickupLocation);
+      if (draft.dropoffLocation !== undefined) setDropoffLocation(draft.dropoffLocation);
+      if (draft.intermediateStops !== undefined) setIntermediateStops(draft.intermediateStops);
+      if (draft.pickupDate !== undefined) setPickupDate(draft.pickupDate);
+      if (draft.returnDate !== undefined) setReturnDate(draft.returnDate);
+      if (draft.pickupTime !== undefined) setPickupTime(draft.pickupTime);
+      if (draft.passengerCount !== undefined) setPassengerCount(draft.passengerCount);
+      if (draft.vehicleType !== undefined) setVehicleType(draft.vehicleType);
+      if (draft.needsAC !== undefined) setNeedsAC(draft.needsAC);
+      if (draft.specialRequirements !== undefined) setSpecialRequirements(draft.specialRequirements);
+      if (draft.isRoundTrip !== undefined) setIsRoundTrip(draft.isRoundTrip);
+    } catch {
+      // A missing or unreadable draft just means starting fresh.
+    }
+  }, []);
+
   useEffect(() => {
     const fetchPublicConfig = async () => {
       try {

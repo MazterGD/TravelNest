@@ -2,7 +2,7 @@
  * New quotation request form: trip-attachment chooser, location/stop editing,
  * route estimates, validation, draft saving and submission routing.
  */
-import { configure, act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { configure, act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Generous async timeout: these suites run alongside other heavy jsdom suites.
@@ -430,5 +430,18 @@ describe("NewQuotationPageContent", () => {
   });
 
   it.todo("sends the customer's selected 'Required Amenities' with the quotation request (currently collected but dropped from the payload)");
-  it.todo("restores a saved quotation draft from localStorage when the form re-opens (Save draft currently has no restore path)");
+  it("restores a saved draft when the form re-opens, and ignores an unreadable one", async () => {
+    localStorage.setItem(
+      "quotation-draft",
+      JSON.stringify({ passengerCount: 30, specialRequirements: "Roof rack", pickupTime: "07:30" }),
+    );
+    await renderForm();
+    expect((screen.getByPlaceholderText("specialRequestsPlaceholder") as HTMLTextAreaElement).value).toBe("Roof rack");
+    expect((screen.getByLabelText("Passenger count") as HTMLInputElement).value).toBe("30");
+    cleanup();
+
+    localStorage.setItem("quotation-draft", "{not json");
+    await renderForm();
+    expect((screen.getByPlaceholderText("specialRequestsPlaceholder") as HTMLTextAreaElement).value).toBe("");
+  });
 });

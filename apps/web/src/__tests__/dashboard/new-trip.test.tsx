@@ -288,5 +288,11 @@ describe("NewTripPageContent", () => {
     expect(screen.getByText("newTitle")).toBeTruthy();
   });
 
-  it.todo("restores a saved trip draft from localStorage when the form re-opens (Save draft currently has no restore path)");
+  it("restores a saved trip draft when the form re-opens", async () => {
+    localStorage.setItem("trip-draft", JSON.stringify({ title: "Office outing", specialRequirements: "Wheelchair" }));
+    await renderForm();
+
+    expect((screen.getByPlaceholderText("titlePlaceholder") as HTMLInputElement).value).toBe("Office outing");
+    expect((screen.getByPlaceholderText("specialRequestsPlaceholder") as HTMLTextAreaElement).value).toBe("Wheelchair");
+  });
 });
