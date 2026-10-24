@@ -24,8 +24,6 @@ import AdminAmenitiesPage from "@/app/[locale]/admin/amenities/page";
 
 const svc = adminService as any;
 
-// Stable object references: the hook re-fetches whenever the selected
-// amenity object changes identity (see the it.todo below).
 const wifi = { id: "a1", code: "WIFI", name: "Wi-Fi", description: "On-board internet", icon: "wifi", sortOrder: 1, isActive: true };
 const tv = { id: "a2", code: "TV", name: "Television", description: null, icon: null, sortOrder: 2, isActive: false };
 const listResponse = { items: [wifi, tv], total: 2, page: 1, limit: 20, totalPages: 1 };
@@ -149,7 +147,19 @@ describe("AdminAmenitiesPage", () => {
     expect(await screen.findByText(/Amenity action failed/)).toBeTruthy();
   });
 
-  it.todo(
-    "does not refetch in a loop after selecting an amenity when the API returns fresh objects (fetchAmenities depends on selectedAmenity and re-selects a new object each fetch)",
-  );
+  it("does not refetch in a loop when every fetch returns fresh objects", async () => {
+    svc.getAmenities.mockImplementation(async () => ({
+      ...listResponse,
+      items: listResponse.items.map((item) => ({ ...item })),
+    }));
+    await renderPage();
+    fireEvent.click(screen.getByLabelText("Edit Wi-Fi"));
+    const callsAfterSelect = svc.getAmenities.mock.calls.length;
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    expect(svc.getAmenities.mock.calls.length).toBe(callsAfterSelect);
+  });
 });

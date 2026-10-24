@@ -51,10 +51,11 @@ export const useAmenitiesManagement = (): UseAmenitiesManagementResult => {
 
       setAmenitiesData(data);
 
-      if (selectedAmenity) {
-        const refreshed = data.items.find((item) => item.id === selectedAmenity.id) || null;
-        setSelectedAmenity(refreshed);
-      }
+      // Functional update: depending on selectedAmenity would refetch forever,
+      // since every fetch selects a fresh object.
+      setSelectedAmenity((current) =>
+        current ? data.items.find((item) => item.id === current.id) || null : current,
+      );
     } catch (fetchError) {
       const message =
         fetchError instanceof Error
@@ -64,7 +65,7 @@ export const useAmenitiesManagement = (): UseAmenitiesManagementResult => {
     } finally {
       setIsLoading(false);
     }
-  }, [filters, selectedAmenity]);
+  }, [filters]);
 
   useEffect(() => {
     void fetchAmenities();
