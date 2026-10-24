@@ -2,11 +2,18 @@
 
 **Sri Lanka's multi-vendor bus charter marketplace.**
 
+[![CI](https://github.com/MazterGD/TravelNest/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MazterGD/TravelNest/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/MazterGD/TravelNest/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/MazterGD/TravelNest/actions/workflows/codeql.yml)
+![API coverage](https://img.shields.io/badge/API%20coverage-93%25%20lines-brightgreen)
+![Web coverage](https://img.shields.io/badge/web%20coverage-99%25%20lines-brightgreen)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Node.js 24](https://img.shields.io/badge/node-24%20LTS-339933)
+
 TraveNest connects independent bus owners with groups who need a bus: schools, religious organisations, companies and event planners. Customers plan a trip, collect itemised quotations from verified owners, compare them, then book and pay online. Owners manage their fleet, drivers, quotations and earnings. Admins run verification, disputes, payouts and site content.
 
 It is a mobile-first Progressive Web App available in English, Sinhala and Tamil.
 
-> Full documentation: [`context.md`](context.md) (scope and features), [`architecture.md`](architecture.md) (technical design), [`TravelNest-Design-System.md`](TravelNest-Design-System.md) (UI rules).
+> Documentation: [`context.md`](context.md) (scope and features), [`architecture.md`](architecture.md) (technical design), [`TravelNest-Design-System.md`](TravelNest-Design-System.md) (UI rules), [`DEPLOYMENT.md`](DEPLOYMENT.md) (production deployment), [`.github/CICD.md`](.github/CICD.md) (pipelines).
 
 ---
 
@@ -21,7 +28,7 @@ It is a mobile-first Progressive Web App available in English, Sinhala and Tamil
 | Payments | PayHere (card), bank transfer, cash |
 | Email | Brevo SMTP via `nodemailer` |
 | Storage | Supabase Storage |
-| Testing | Vitest (API: Vitest + Supertest; web: Testing Library) |
+| Testing | Vitest + Supertest (API, against a real PostGIS database), Vitest + Testing Library (web), Playwright (end-to-end smoke) |
 
 Every external service has a free-forever tier. See `architecture.md § Infrastructure & DevOps`.
 
@@ -36,8 +43,7 @@ travenest/
 ├── packages/
 │   ├── database/         # Prisma schema, migrations, seed, backfills (@travenest/database)
 │   └── shared-types/     # Shared TypeScript types       (@travenest/shared-types)
-├── docs/                 # Portal architecture notes and review reports
-└── .github/workflows/    # CI (ci.yml, pr.yml) and CD (cd.yml)
+└── .github/workflows/    # CI (ci.yml, pr.yml, codeql.yml) and CD (cd.yml)
 ```
 
 ---
@@ -46,7 +52,7 @@ travenest/
 
 ### 1. Prerequisites
 
-- **Node.js** 20 (≥ 18 supported) and **pnpm** 10 (`npm install -g pnpm`)
+- **Node.js** 24 LTS (22 also works) and **pnpm** 10 (`corepack enable`)
 - **PostgreSQL 16 with the PostGIS extension** (local install, Docker `postgis/postgis:16-3.4`, or a free Supabase/Neon database)
 - **Docker**, to run OSRM for route and distance calculation
 - Optional, for full functionality: a Supabase project (storage), a Brevo account (email), PayHere sandbox merchant credentials, and Google/Facebook OAuth apps
@@ -54,7 +60,7 @@ travenest/
 ### 2. Install
 
 ```bash
-git clone https://github.com/MazterGD/TraveNest.git
+git clone https://github.com/MazterGD/TravelNest.git TraveNest
 cd TraveNest
 pnpm install
 ```
@@ -189,12 +195,25 @@ pnpm --filter @travenest/database backfill:settlement-bank-encryption
 | `pnpm lint` | ESLint across workspaces |
 | `pnpm typecheck` | `tsc --noEmit` across workspaces |
 | `pnpm test` / `test:watch` / `test:coverage` | API test suite (Vitest + Supertest) |
-| `pnpm --filter @travenest/web test` | Web test suite |
+| `pnpm --filter @travenest/web test` / `test:coverage` | Web test suite |
+| `pnpm --filter @travenest/web test:e2e` | Playwright smoke suite (needs running API and web) |
 | `pnpm ci` | lint + typecheck + test + build |
 | `pnpm clean` | Remove `node_modules`, `.next`, `dist` |
 | `pnpm db:generate` / `db:migrate` / `db:migrate:deploy` / `db:push` / `db:seed` / `db:studio` | Prisma commands |
 
-> API tests run against the database in `DATABASE_URL`. Set test-only environment variables in `apps/api/tests/setup.ts`.
+> API tests run against the database in `DATABASE_URL`. Point it at a throwaway database, not your development data. Set test-only environment variables in `apps/api/tests/setup.ts`.
+
+---
+
+## Testing
+
+| Suite | Where | What it covers | Coverage (Oct 2026) |
+|---|---|---|---|
+| API unit + integration | `apps/api/tests` | 1,050 tests over every module, run against a migrated PostgreSQL + PostGIS database | 93% statements, 79% branches, 97% functions, 94% lines |
+| Web unit + component | `apps/web/src/__tests__` | Pages, components, hooks, stores and the API client in jsdom | 99% statements, 96% branches, 99% functions, 99% lines |
+| End-to-end smoke | `apps/web/e2e` | Production builds on a mobile viewport: public pages in all three languages, search, and sign-in for each role | 10 scenarios |
+
+CI enforces coverage floors (API 92/78/95/92, web 98/94/98/98 for statements/branches/functions/lines), so coverage cannot quietly drop. Reports are uploaded as workflow artifacts on every run.
 
 ---
 
@@ -235,7 +254,25 @@ The UI follows [`TravelNest-Design-System.md`](TravelNest-Design-System.md): the
 
 ## Deployment
 
-The planned free-tier deployment is the web app on **Vercel Hobby**, and the API plus OSRM on an **Oracle Cloud Always Free VM** (PM2 or Docker, with Caddy for TLS). The database is a free Postgres with PostGIS (Supabase or Neon). The API must stay a single long-running instance because it hosts Socket.IO and in-process background jobs. CI runs on GitHub Actions; the CD deploy step is still a placeholder. See `architecture.md § Deployment Topology`.
+TraveNest runs entirely on free-forever tiers: the web app on **Vercel Hobby**, the API and OSRM on an **Oracle Cloud Always Free** Ampere VM behind Caddy, PostgreSQL + PostGIS and file storage on **Supabase**, and email through **Brevo**. The only cost is a domain name. The API must stay a single long-running instance because it hosts Socket.IO and in-process background jobs.
+
+Step-by-step instructions: **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+
+---
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork the repository and create a branch from `staging`.
+2. Read [`context.md`](context.md), [`architecture.md`](architecture.md) and [`TravelNest-Design-System.md`](TravelNest-Design-System.md): changes must fit the documented scope, architecture and design tokens.
+3. Keep changes focused, add or update tests, and make sure `pnpm lint`, `pnpm typecheck` and both test suites pass. CI also checks schema drift, coverage floors and production dependency advisories.
+4. Schema changes need a migration in `packages/database/prisma/migrations` (use `pnpm db:migrate`, never `db push`).
+5. Open a pull request describing what changed and why.
+
+## Security
+
+Please do not open public issues for vulnerabilities. Report them privately through GitHub's **Security → Report a vulnerability** on this repository, or email [support@travenest.lk](mailto:support@travenest.lk). Known, accepted gaps are listed in `architecture.md § Known Gaps`.
 
 ## License
 
