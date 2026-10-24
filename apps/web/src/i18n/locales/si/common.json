@@ -120,7 +120,11 @@
       "allTitle": "ගිණුම් ඉල්ලීම් නැත",
       "allDescription": "දැනට ගිණුම් ඉල්ලීම් නොමැත."
     },
-    "unknownCustomer": "නොහඳුනාගත්"
+    "unknownCustomer": "නොහඳුනාගත්",
+    "vehicleFilter": {
+      "showing": "මෙම වාහනය සඳහා ඉල්ලීම් පෙන්වයි",
+      "viewAll": "සියලු ඉල්ලීම් බලන්න"
+    }
   },
   "sendQuotation": {
     "title": "ගිණුම යවන්න",

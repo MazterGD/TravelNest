@@ -120,7 +120,11 @@
       "allTitle": "No quotation requests",
       "allDescription": "No quotation requests at the moment."
     },
-    "unknownCustomer": "Unknown"
+    "unknownCustomer": "Unknown",
+    "vehicleFilter": {
+      "showing": "Showing requests for this vehicle",
+      "viewAll": "View all requests"
+    }
   },
   "sendQuotation": {
     "title": "Send Quotation",

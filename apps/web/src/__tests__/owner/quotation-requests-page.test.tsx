@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   guard: { isLoading: false, isAuthorized: true },
   user: { firstName: "Kamal" } as any,
+  search: "",
   t: (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
 }));
@@ -17,7 +18,7 @@ vi.mock("next/navigation", () => ({
   useParams: () => ({ locale: "en" }),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => "/en/owner/quotations",
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(state.search),
 }));
 vi.mock("next-intl", () => ({ useTranslations: () => state.t, useLocale: () => "en" }));
 vi.mock("next/link", () => ({
@@ -73,6 +74,7 @@ describe("QuotationRequestsPage", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     state.guard = { isLoading: false, isAuthorized: true };
     state.user = { firstName: "Kamal" };
+    state.search = "";
     landing.getPublicConfig.mockResolvedValue({ options: { vehicleTypes: [{ value: "LUXURY_AC", label: "Luxury AC" }] } });
     quotes.getOwnerRequests.mockResolvedValue({
       quotations: [
@@ -192,5 +194,14 @@ describe("QuotationRequestsPage", () => {
     expect(document.querySelectorAll("select")[0].querySelectorAll("option").length).toBe(1);
   });
 
-  it.todo("pre-filters requests by ?vehicleId= when arriving from the fleet detail quick-nav (the param is ignored)");
+  it("shows only requests for the vehicle in ?vehicleId=", async () => {
+    quotes.getOwnerRequests.mockResolvedValue({
+      quotations: [request("1", { vehicleId: "veh-1" }), request("2", { vehicleId: "veh-2" }), request("3")],
+    });
+    state.search = "vehicleId=veh-1";
+    await renderPage();
+
+    expect(screen.getByText('ownerQuotations.requestCount:{"count":1}')).toBeTruthy();
+    expect(screen.getByText("ownerQuotations.vehicleFilter.viewAll").getAttribute("href")).toBe("/en/owner/quotations");
+  });
 });

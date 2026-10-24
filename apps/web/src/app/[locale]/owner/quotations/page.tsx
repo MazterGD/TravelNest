@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button, CTAButton, Input, LoadingSpinner } from "@/components/ui";
 import { useAuthStore } from "@/store";
@@ -107,6 +107,8 @@ export default function QuotationRequestsPage() {
   const { user } = useAuthStore();
   const params = useParams();
   const locale = params.locale as string;
+  const searchParams = useSearchParams();
+  const vehicleIdFilter = searchParams?.get("vehicleId") ?? null;
   const [activeTab, setActiveTab] = useState<"PENDING" | "all">("PENDING");
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -183,10 +185,14 @@ export default function QuotationRequestsPage() {
   }, []);
 
   const filteredRequests = useMemo(() => {
-    if (!searchQuery) return requests;
+    // Arriving from a fleet detail page: only requests aimed at that vehicle.
+    const scoped = vehicleIdFilter
+      ? requests.filter((request) => request.vehicleId === vehicleIdFilter)
+      : requests;
+    if (!searchQuery) return scoped;
 
     const query = searchQuery.toLowerCase();
-    return requests.filter((request) => {
+    return scoped.filter((request) => {
       const customerName = `${request.customer?.firstName || ""} ${
         request.customer?.lastName || ""
       }`
@@ -203,7 +209,7 @@ export default function QuotationRequestsPage() {
         quotationId.includes(query)
       );
     });
-  }, [requests, searchQuery]);
+  }, [requests, searchQuery, vehicleIdFilter]);
 
   const tabCounts = {
     PENDING: requests.filter((r) => r.status === "PENDING").length,
@@ -288,6 +294,17 @@ export default function QuotationRequestsPage() {
                     count: filteredRequests.length,
                   })}
                 </p>
+                {vehicleIdFilter && (
+                  <p className="mt-1 text-caption text-muted-foreground">
+                    {t("ownerQuotations.vehicleFilter.showing")}{" "}
+                    <Link
+                      href={`/${locale}/owner/quotations`}
+                      className="font-medium text-primary hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {t("ownerQuotations.vehicleFilter.viewAll")}
+                    </Link>
+                  </p>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <CTAButton
