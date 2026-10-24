@@ -277,6 +277,7 @@ describe("AdminSettingsPage", () => {
     svc.updatePlatformSettings.mockRejectedValue("x");
     fireEvent.change(screen.getByDisplayValue("TraveNest"), { target: { value: "TN" } });
     await act(async () => fireEvent.click(getSaveButton()));
-    expect(await screen.findByText("Failed to update platform settings")).toBeTruthy();
+    expect(await screen.findByText("errors.saveFailed")).toBeTruthy();
+    expect(screen.queryByText("badges.saved")).toBeNull();
   });
 });

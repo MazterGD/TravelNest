@@ -58,6 +58,8 @@ export const usePlatformSettings = (): UsePlatformSettingsResult => {
             ? updateError.message
             : "Failed to update platform settings";
         setError(message);
+        // The settings form shows its own error and must not report "Saved".
+        throw updateError;
       } finally {
         setIsSaving(false);
       }
