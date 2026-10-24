@@ -59,6 +59,7 @@ interface FleetStats {
 
 interface QuotationRequest {
   id: string;
+  receivedAt: string;
   customer: string;
   route: string;
   date: string;
@@ -323,6 +324,18 @@ export default function OwnerDashboardPage() {
 
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
 
+  // All listed requests await a reply: "new" ones arrived in the last day,
+  // "pending" ones have been waiting longer.
+  const isNewRequest = (request: QuotationRequest) =>
+    Date.now() - new Date(request.receivedAt).getTime() < 24 * 60 * 60 * 1000;
+  const visibleRequests = quotationRequests.filter((request) =>
+    quotationFilter === "all"
+      ? true
+      : quotationFilter === "new"
+        ? isNewRequest(request)
+        : !isNewRequest(request),
+  );
+
   useEffect(() => {
     const calculateExpiresIn = (quotation: {
       createdAt?: string;
@@ -399,6 +412,7 @@ export default function OwnerDashboardPage() {
         setQuotationRequests(
           quotes.map((q: any) => ({
             id: q.id,
+            receivedAt: q.createdAt ?? "",
             customer:
               `${q.customer?.firstName ?? ""} ${q.customer?.lastName ?? ""}`.trim() ||
               "Unknown",
@@ -862,9 +876,9 @@ export default function OwnerDashboardPage() {
                         </div>
                       ))}
                     </div>
-                  ) : quotationRequests.length > 0 ? (
+                  ) : visibleRequests.length > 0 ? (
                     <div className="space-y-4">
-                      {quotationRequests.map((request) => (
+                      {visibleRequests.map((request) => (
                         <div
                           key={request.id}
                           className="rounded-md border border-[--color-border-default] p-4 transition-colors hover:bg-muted"

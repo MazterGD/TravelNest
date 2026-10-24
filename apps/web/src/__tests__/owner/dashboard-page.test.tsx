@@ -187,7 +187,22 @@ describe("OwnerDashboardPage", () => {
     expect(screen.getByText("ownerDashboard.filterAll").className).toContain("border-transparent");
   });
 
-  it.todo("filters the quotation request list when the New / Pending Response tabs are selected (tabs currently do not change the list)");
+  it("lists only recent requests under New and older ones under Pending Response", async () => {
+    render(<OwnerDashboardPage />);
+    await screen.findByText("Nimal Perera");
+
+    fireEvent.click(screen.getByText("ownerDashboard.filterNew"));
+    expect(screen.getByText("A")).toBeTruthy();
+    expect(screen.queryByText("Nimal Perera")).toBeNull();
+
+    fireEvent.click(screen.getByText("ownerDashboard.filterPending"));
+    expect(screen.getByText("Nimal Perera")).toBeTruthy();
+    expect(screen.queryByText("A")).toBeNull();
+
+    fireEvent.click(screen.getByText("ownerDashboard.filterAll"));
+    expect(screen.getByText("A")).toBeTruthy();
+    expect(screen.getByText("Nimal Perera")).toBeTruthy();
+  });
 
   it("shows the pending verification banner and empty states", async () => {
     state.user = { firstName: "Kamal", isVerified: false };
