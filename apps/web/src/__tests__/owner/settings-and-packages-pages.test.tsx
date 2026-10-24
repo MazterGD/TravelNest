@@ -185,23 +185,23 @@ describe("OwnerPackagesPage", () => {
   it("lists packages with images, status and links", async () => {
     render(<OwnerPackagesPage />);
     expect(await screen.findByText("Package 1")).toBeTruthy();
-    expect(screen.getByText("3 packages")).toBeTruthy();
+    expect(screen.getByText('count:{"count":3}')).toBeTruthy();
     expect(screen.getByAltText("Lanka Cruiser").getAttribute("src")).toBe("https://img/p1.webp");
-    expect(screen.getAllByAltText("Vehicle")[0].getAttribute("src")).toBe("https://img/legacy.jpg");
-    expect(screen.getByText("Inactive")).toBeTruthy();
+    expect(screen.getAllByAltText("vehicleFallback")[0].getAttribute("src")).toBe("https://img/legacy.jpg");
+    expect(screen.getByText("inactive")).toBeTruthy();
     expect(screen.getAllByText("LKR 150,000").length).toBe(3);
-    expect(screen.getAllByText("Edit")[0].closest("a")?.getAttribute("href")).toBe("/en/owner/packages/1/edit");
+    expect(screen.getAllByText("edit")[0].closest("a")?.getAttribute("href")).toBe("/en/owner/packages/1/edit");
   });
 
   it("shows the empty state, singular count and load errors", async () => {
     packages.getMyPackages.mockResolvedValueOnce({});
     const first = render(<OwnerPackagesPage />);
-    expect(await screen.findByText(/No packages yet/)).toBeTruthy();
+    expect(await screen.findByText("empty")).toBeTruthy();
     first.unmount();
 
     packages.getMyPackages.mockResolvedValueOnce({ packages: [pkg("1")] });
     const second = render(<OwnerPackagesPage />);
-    expect(await screen.findByText("1 package")).toBeTruthy();
+    expect(await screen.findByText('count:{"count":1}')).toBeTruthy();
     second.unmount();
 
     packages.getMyPackages.mockRejectedValueOnce(new Err("Packages offline"));
@@ -211,29 +211,29 @@ describe("OwnerPackagesPage", () => {
 
     packages.getMyPackages.mockRejectedValueOnce(new Error("x"));
     render(<OwnerPackagesPage />);
-    expect(await screen.findByText("Failed to load trip packages")).toBeTruthy();
+    expect(await screen.findByText("errors.load")).toBeTruthy();
   });
 
-  it("deletes after confirmation and alerts on failure", async () => {
+  it("deletes after confirmation and explains failures on the page", async () => {
     packages.delete.mockRejectedValueOnce(new Err("Package has bookings")).mockRejectedValueOnce(new Error("x"));
     render(<OwnerPackagesPage />);
     await screen.findByText("Package 1");
     const confirmDelete = async () => {
-      fireEvent.click(screen.getAllByText("Delete", { selector: "button" })[0]);
+      fireEvent.click(screen.getAllByText("delete")[0].closest("button")!);
       const dialog = await screen.findByRole("dialog");
-      await act(async () => fireEvent.click(within(dialog).getByText("Delete", { selector: "button" })));
+      await act(async () => fireEvent.click(within(dialog).getByText("delete", { selector: "button" })));
     };
     await confirmDelete();
-    expect(window.alert).toHaveBeenCalledWith("Package has bookings");
+    expect(screen.getByRole("alert").textContent).toBe("Package has bookings");
     await confirmDelete();
-    expect(window.alert).toHaveBeenCalledWith("Failed to delete package");
+    expect(screen.getByRole("alert").textContent).toBe("errors.delete");
     await confirmDelete();
     expect(packages.delete).toHaveBeenLastCalledWith("1");
     expect(packages.getMyPackages).toHaveBeenCalledTimes(2);
 
-    fireEvent.click(screen.getAllByText("Delete", { selector: "button" })[0]);
+    fireEvent.click(screen.getAllByText("delete")[0].closest("button")!);
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(within(dialog).getByText("Cancel"));
+    fireEvent.click(within(dialog).getByText("cancel"));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 });
@@ -248,8 +248,8 @@ describe("NewTripPackagePage", () => {
   it("asks for a vehicle first when the fleet is empty", async () => {
     vehicles.getMyVehicles.mockResolvedValue({});
     render(<NewTripPackagePage />);
-    expect(await screen.findByText(/Add at least one vehicle/)).toBeTruthy();
-    expect(screen.getByText("Add Vehicle").closest("a")?.getAttribute("href")).toBe("/en/owner/fleet/add");
+    expect(await screen.findByText("needVehicle")).toBeTruthy();
+    expect(screen.getByText("addVehicle").closest("a")?.getAttribute("href")).toBe("/en/owner/fleet/add");
   });
 
   it("shows vehicle load errors", async () => {
@@ -259,19 +259,19 @@ describe("NewTripPackagePage", () => {
     first.unmount();
     vehicles.getMyVehicles.mockRejectedValueOnce(new Error("x"));
     render(<NewTripPackagePage />);
-    expect(await screen.findByText("Failed to load vehicles")).toBeTruthy();
+    expect(await screen.findByText("errors.vehicles")).toBeTruthy();
   });
 
-  it("creates a package and redirects, alerting on failures", async () => {
+  it("creates a package and redirects, explaining failures on the page", async () => {
     vehicles.getMyVehicles.mockResolvedValue({ vehicles: [{ id: "veh-1" }] });
     packages.create.mockRejectedValueOnce(new Err("Title taken")).mockRejectedValueOnce(new Error("x")).mockResolvedValue({});
     render(<NewTripPackagePage />);
     expect(await screen.findByTestId("package-form")).toBeTruthy();
     expect(state.formProps.vehicles).toEqual([{ id: "veh-1" }]);
     await act(async () => state.formProps.onSubmit(pkgData));
-    expect(window.alert).toHaveBeenCalledWith("Title taken");
+    expect(screen.getByRole("alert").textContent).toBe("Title taken");
     await act(async () => state.formProps.onSubmit(pkgData));
-    expect(window.alert).toHaveBeenCalledWith("Failed to create package");
+    expect(screen.getByRole("alert").textContent).toBe("errors.create");
     await act(async () => state.formProps.onSubmit(pkgData));
     expect(packages.create).toHaveBeenLastCalledWith(pkgData);
     expect(state.push).toHaveBeenCalledWith("/en/owner/packages");
@@ -294,9 +294,9 @@ describe("EditTripPackagePage", () => {
     expect(packages.getById).toHaveBeenCalledWith("pkg-1");
     expect(state.formProps.vehicles).toEqual([]);
     await act(async () => state.formProps.onSubmit(pkgData));
-    expect(window.alert).toHaveBeenCalledWith("Invalid price");
+    expect(screen.getByRole("alert").textContent).toBe("Invalid price");
     await act(async () => state.formProps.onSubmit(pkgData));
-    expect(window.alert).toHaveBeenCalledWith("Failed to update package");
+    expect(screen.getByRole("alert").textContent).toBe("errors.update");
     await act(async () => state.formProps.onSubmit(pkgData));
     expect(packages.update).toHaveBeenLastCalledWith("pkg-1", pkgData);
     expect(state.push).toHaveBeenCalledWith("/en/owner/packages");
@@ -306,7 +306,7 @@ describe("EditTripPackagePage", () => {
     vehicles.getMyVehicles.mockResolvedValue({ vehicles: [] });
     packages.getById.mockResolvedValueOnce({ tripPackage: null });
     const first = render(<EditTripPackagePage />);
-    expect(await screen.findByText("Package not found.")).toBeTruthy();
+    expect(await screen.findByText("notFound")).toBeTruthy();
     first.unmount();
 
     packages.getById.mockRejectedValueOnce(new Err("Not yours"));
@@ -316,6 +316,6 @@ describe("EditTripPackagePage", () => {
 
     packages.getById.mockRejectedValueOnce(new Error("x"));
     render(<EditTripPackagePage />);
-    expect(await screen.findByText("Failed to load package details")).toBeTruthy();
+    expect(await screen.findByText("errors.details")).toBeTruthy();
   });
 });

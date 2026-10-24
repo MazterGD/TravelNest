@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Button,
   Input,
@@ -37,6 +38,7 @@ export function TripPackageForm({
   isLoading = false,
   onSubmit,
 }: TripPackageFormProps) {
+  const t = useTranslations("tripPackageForm");
   const [formData, setFormData] = useState({
     vehicleId: initialData?.vehicleId || "",
     title: initialData?.title || "",
@@ -54,25 +56,25 @@ export function TripPackageForm({
 
   const vehicleOptions = vehicles.map((vehicle) => ({
     value: vehicle.id,
-    label: `${vehicle.name} (${vehicle.seats} seats)`,
+    label: t("vehicleOption", { name: vehicle.name, seats: vehicle.seats }),
   }));
 
   const validateForm = () => {
     const nextErrors: Record<string, string> = {};
 
-    if (!formData.vehicleId) nextErrors.vehicleId = "Select a vehicle";
-    if (!formData.title.trim()) nextErrors.title = "Title is required";
+    if (!formData.vehicleId) nextErrors.vehicleId = t("errors.vehicle");
+    if (!formData.title.trim()) nextErrors.title = t("errors.title");
     if (!formData.startLocation.trim())
-      nextErrors.startLocation = "Start location is required";
+      nextErrors.startLocation = t("errors.startLocation");
     if (!formData.endLocation.trim())
-      nextErrors.endLocation = "End location is required";
+      nextErrors.endLocation = t("errors.endLocation");
     if (formData.durationDays < 1)
-      nextErrors.durationDays = "Duration must be at least 1 day";
-    if (formData.price <= 0) nextErrors.price = "Price must be positive";
+      nextErrors.durationDays = t("errors.durationDays");
+    if (formData.price <= 0) nextErrors.price = t("errors.price");
     if (formData.minPassengers < 1)
-      nextErrors.minPassengers = "Minimum passengers required";
+      nextErrors.minPassengers = t("errors.minPassengers");
     if (formData.maxPassengers < formData.minPassengers)
-      nextErrors.maxPassengers = "Max passengers must be >= min passengers";
+      nextErrors.maxPassengers = t("errors.maxPassengers");
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -100,48 +102,48 @@ export function TripPackageForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Package Details</CardTitle>
+          <CardTitle className="text-lg">{t("detailsTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Select
-            label="Vehicle"
+            label={t("vehicle")}
             options={vehicleOptions}
             value={formData.vehicleId}
             onChange={(value) =>
               setFormData((prev) => ({ ...prev, vehicleId: value }))
             }
             error={errors.vehicleId}
-            placeholder="Select a vehicle"
+            placeholder={t("selectVehicle")}
           />
 
           <Input
-            label="Package Title"
+            label={t("title")}
             value={formData.title}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, title: e.target.value }))
             }
             error={errors.title}
-            placeholder="Colombo to Kandy 2-Day Tour"
+            placeholder={t("titlePlaceholder")}
           />
 
           <TextArea
-            label="Description"
+            label={t("description")}
             value={formData.description}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, description: e.target.value }))
             }
-            placeholder="Include itinerary highlights and what is covered"
+            placeholder={t("descriptionPlaceholder")}
           />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Route & Duration</CardTitle>
+          <CardTitle className="text-lg">{t("routeTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <Input
-            label="Start Location"
+            label={t("startLocation")}
             value={formData.startLocation}
             onChange={(e) =>
               setFormData((prev) => ({
@@ -152,7 +154,7 @@ export function TripPackageForm({
             error={errors.startLocation}
           />
           <Input
-            label="End Location"
+            label={t("endLocation")}
             value={formData.endLocation}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, endLocation: e.target.value }))
@@ -160,7 +162,7 @@ export function TripPackageForm({
             error={errors.endLocation}
           />
           <Input
-            label="Duration (days)"
+            label={t("durationDays")}
             type="number"
             min={1}
             value={formData.durationDays}
@@ -173,7 +175,7 @@ export function TripPackageForm({
             error={errors.durationDays}
           />
           <Input
-            label="Package Price (LKR)"
+            label={t("price")}
             type="number"
             min={0}
             value={formData.price}
@@ -190,11 +192,11 @@ export function TripPackageForm({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Passenger Limits</CardTitle>
+          <CardTitle className="text-lg">{t("passengersTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <Input
-            label="Minimum Passengers"
+            label={t("minPassengers")}
             type="number"
             min={1}
             value={formData.minPassengers}
@@ -207,7 +209,7 @@ export function TripPackageForm({
             error={errors.minPassengers}
           />
           <Input
-            label="Maximum Passengers"
+            label={t("maxPassengers")}
             type="number"
             min={1}
             value={formData.maxPassengers}
@@ -224,7 +226,7 @@ export function TripPackageForm({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Availability</CardTitle>
+          <CardTitle className="text-lg">{t("availabilityTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <label className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -236,14 +238,14 @@ export function TripPackageForm({
               }
               className="h-4 w-4"
             />
-            Package is active and visible to customers
+            {t("isActive")}
           </label>
         </CardContent>
       </Card>
 
       <div className="flex justify-end gap-3">
         <Button type="submit" isLoading={isLoading}>
-          Save Package
+          {t("save")}
         </Button>
       </div>
     </form>

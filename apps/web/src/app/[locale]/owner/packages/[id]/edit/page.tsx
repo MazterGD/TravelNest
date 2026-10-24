@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { LoadingSpinner } from "@/components/ui";
 import { useOwnerGuard } from "@/hooks";
 import { vehicleService, tripPackageService, ApiError } from "@/lib/api";
@@ -13,6 +14,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function EditTripPackagePage() {
   const params = useParams();
   const locale = params.locale as string;
+  const t = useTranslations("ownerPackages");
   const id = params.id as string;
   const router = useRouter();
   const { isLoading: guardLoading, isAuthorized } = useOwnerGuard();
@@ -36,7 +38,7 @@ export default function EditTripPackagePage() {
         setTripPackage(packageResponse.tripPackage);
       } catch (err) {
         if (err instanceof ApiError) setError(err.message);
-        else setError("Failed to load package details");
+        else setError(t("errors.details"));
       } finally {
         setIsLoading(false);
       }
@@ -64,11 +66,7 @@ export default function EditTripPackagePage() {
       await tripPackageService.update(id, data);
       router.push(`/${locale}/owner/packages`);
     } catch (err) {
-      if (err instanceof ApiError) {
-        alert(err.message);
-      } else {
-        alert("Failed to update package");
-      }
+      setError(err instanceof ApiError ? err.message : t("errors.update"));
     } finally {
       setIsSaving(false);
     }
@@ -83,25 +81,25 @@ export default function EditTripPackagePage() {
   }
 
   return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="border-b border-gray-200 bg-white">
+      <div className="min-h-screen bg-[var(--color-bg-surface)]">
+        <header className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-base)]">
           <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6 lg:px-8">
             <Link
               href={`/${locale}/owner/packages`}
-              className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+              className="mb-3 flex min-h-[44px] items-center gap-2 rounded-xl text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-focus)]"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Packages
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              {t("backToPackages")}
             </Link>
-            <h1 className="text-xl font-semibold text-gray-900">
-              Edit Trip Package
+            <h1 className="text-heading-md font-semibold text-[var(--color-text-primary)]">
+              {t("editTitle")}
             </h1>
           </div>
         </header>
 
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           {error && (
-            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div role="alert" className="mb-6 rounded-xl border border-[var(--color-error-border)] bg-[var(--color-error-bg)] p-4 text-sm text-[var(--color-error-text)]">
               {error}
             </div>
           )}
@@ -118,8 +116,8 @@ export default function EditTripPackagePage() {
               onSubmit={handleSubmit}
             />
           ) : (
-            <div className="rounded-lg border border-gray-200 bg-white p-10 text-center">
-              <p className="text-sm text-gray-600">Package not found.</p>
+            <div className="rounded-[20px] border border-[var(--color-border-default)] bg-[var(--color-bg-base)] p-10 text-center">
+              <p className="text-sm text-[var(--color-text-secondary)]">{t("notFound")}</p>
             </div>
           )}
         </div>

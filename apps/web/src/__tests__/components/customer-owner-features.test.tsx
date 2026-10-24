@@ -317,41 +317,41 @@ describe("TripPackageForm", () => {
   it("validates every field", async () => {
     const onSubmit = vi.fn();
     const { container } = render(<TripPackageForm vehicles={vehicles} onSubmit={onSubmit} />);
-    fireEvent.change(screen.getByLabelText("Duration (days)"), { target: { value: "0" } });
-    fireEvent.change(screen.getByLabelText("Minimum Passengers"), { target: { value: "0" } });
-    fireEvent.change(screen.getByLabelText("Maximum Passengers"), { target: { value: "-1" } });
+    fireEvent.change(screen.getByLabelText("durationDays"), { target: { value: "0" } });
+    fireEvent.change(screen.getByLabelText("minPassengers"), { target: { value: "0" } });
+    fireEvent.change(screen.getByLabelText("maxPassengers"), { target: { value: "-1" } });
     await act(async () => {
       fireEvent.submit(container.querySelector("form")!);
     });
     for (const msg of [
-      "Title is required",
-      "Start location is required",
-      "End location is required",
-      "Duration must be at least 1 day",
-      "Price must be positive",
-      "Minimum passengers required",
-      "Max passengers must be >= min passengers",
+      "errors.title",
+      "errors.startLocation",
+      "errors.endLocation",
+      "errors.durationDays",
+      "errors.price",
+      "errors.minPassengers",
+      "errors.maxPassengers",
     ]) {
       expect(screen.getByText(msg)).toBeTruthy();
     }
-    expect(screen.getAllByText("Select a vehicle").length).toBeGreaterThan(1);
+    expect(screen.getByText("errors.vehicle")).toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it("submits a valid package with numeric coercion", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const { container } = render(<TripPackageForm vehicles={vehicles} onSubmit={onSubmit} />);
-    pickListOption(screen.getByRole("button", { name: /Select a vehicle/ }), "Lanka Coach (45 seats)");
-    fireEvent.change(screen.getByLabelText("Package Title"), { target: { value: "Hill Tour" } });
-    fireEvent.change(screen.getByLabelText("Start Location"), { target: { value: "Colombo" } });
-    fireEvent.change(screen.getByLabelText("End Location"), { target: { value: "Ella" } });
-    fireEvent.change(screen.getByLabelText("Duration (days)"), { target: { value: "3" } });
-    fireEvent.change(screen.getByLabelText("Package Price (LKR)"), { target: { value: "150000" } });
-    fireEvent.change(screen.getByLabelText("Minimum Passengers"), { target: { value: "10" } });
-    fireEvent.change(screen.getByLabelText("Maximum Passengers"), { target: { value: "40" } });
+    pickListOption(screen.getByRole("button", { name: /selectVehicle/ }), 'vehicleOption:{"name":"Lanka Coach","seats":45}');
+    fireEvent.change(screen.getByLabelText("title"), { target: { value: "Hill Tour" } });
+    fireEvent.change(screen.getByLabelText("startLocation"), { target: { value: "Colombo" } });
+    fireEvent.change(screen.getByLabelText("endLocation"), { target: { value: "Ella" } });
+    fireEvent.change(screen.getByLabelText("durationDays"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("price"), { target: { value: "150000" } });
+    fireEvent.change(screen.getByLabelText("minPassengers"), { target: { value: "10" } });
+    fireEvent.change(screen.getByLabelText("maxPassengers"), { target: { value: "40" } });
     fireEvent.click(container.querySelector('input[type="checkbox"]')!);
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Save Package" }));
+      fireEvent.click(screen.getByRole("button", { name: "save" }));
     });
     expect(onSubmit).toHaveBeenCalledWith({
       vehicleId: "v1",
@@ -377,8 +377,8 @@ describe("TripPackageForm", () => {
         initialData={{ vehicleId: "v1", title: "T", description: "Itinerary", startLocation: "A", endLocation: "B", durationDays: 2, price: 500, minPassengers: 2, maxPassengers: 5, isActive: false } as any}
       />,
     );
-    expect((screen.getByLabelText("Description") as HTMLTextAreaElement).value).toBe("Itinerary");
-    fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Updated" } });
+    expect((screen.getByLabelText("description") as HTMLTextAreaElement).value).toBe("Itinerary");
+    fireEvent.change(screen.getByLabelText("description"), { target: { value: "Updated" } });
     expect(screen.getByText("Loading...")).toBeTruthy();
     await act(async () => {
       fireEvent.submit(screen.getByText("Loading...").closest("form")!);
@@ -386,5 +386,4 @@ describe("TripPackageForm", () => {
     expect(onSubmit.mock.calls[0][0]).toMatchObject({ description: "Updated", isActive: false, price: 500 });
   });
 
-  it.todo("TripPackageForm user-facing strings are translated via next-intl (TripPackageForm.tsx hardcodes English labels and validation messages)");
 });
