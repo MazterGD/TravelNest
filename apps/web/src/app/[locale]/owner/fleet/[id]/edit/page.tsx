@@ -321,8 +321,13 @@ export default function EditVehiclePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError(null);
+    // Checked before anything is saved, so a rejected edit changes nothing.
+    if (existingPhotos.length === 0 && photos.length === 0) {
+      setError(t("errorPhotosRequired"));
+      return;
+    }
+    setIsSubmitting(true);
 
     try {
       const updateData = {
@@ -372,12 +377,6 @@ export default function EditVehiclePage() {
         });
       if (docsToUpload.length > 0) {
         await vehicleService.uploadDocuments(vehicleId, docsToUpload);
-      }
-
-      if (existingPhotos.length === 0 && photos.length === 0) {
-        setError(t("errorPhotosRequired"));
-        setIsSubmitting(false);
-        return;
       }
 
       // Delete staged photo removals

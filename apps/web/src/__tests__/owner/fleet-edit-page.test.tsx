@@ -325,6 +325,8 @@ describe("EditVehiclePage", () => {
     await act(async () => fireEvent.submit(form()));
     expect(screen.getAllByText("errorPhotosRequired").length).toBe(2);
     expect(vehicles.deletePhoto).not.toHaveBeenCalled();
+    expect(vehicles.update).not.toHaveBeenCalled();
+    expect(vehicles.uploadDocuments).not.toHaveBeenCalled();
     expect(state.push).not.toHaveBeenCalled();
 
     const input = document.getElementById("photo-upload-edit") as HTMLInputElement;
@@ -333,8 +335,6 @@ describe("EditVehiclePage", () => {
     expect(vehicles.deletePhoto).toHaveBeenCalledTimes(2);
     expect(vehicles.uploadPhotos.mock.calls[0][1][0]).toMatchObject({ isPrimary: true, tag: "EXTERIOR" });
   });
-
-  it.todo("validates that at least one photo remains before persisting vehicle and document changes");
 
   it("manages amenities and GPS, and reports save errors", async () => {
     vehicles.update.mockRejectedValueOnce(new (ApiError as any)("Plate already registered")).mockRejectedValueOnce("x");
