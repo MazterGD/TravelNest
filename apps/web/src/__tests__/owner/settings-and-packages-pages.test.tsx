@@ -143,7 +143,7 @@ describe("OwnerSettingsPage", () => {
     expect(screen.getByText(/errors.unexpected/)).toBeTruthy();
   });
 
-  it("switches language, toggles notifications and renders the danger zone", async () => {
+  it("switches language, offers no unsaved preferences and renders the danger zone", async () => {
     state.params = { locale: "en" };
     state.pathname = "/en/owner/settings";
     render(<OwnerSettingsPage />);
@@ -152,10 +152,8 @@ describe("OwnerSettingsPage", () => {
     expect(state.push).not.toHaveBeenCalled();
     await act(async () => fireEvent.change(language, { target: { value: "si" } }));
     expect(state.push).toHaveBeenCalledWith("/si/owner/settings");
-    const toggle = screen.getByLabelText("emailNotifications") as HTMLInputElement;
-    expect(toggle.checked).toBe(true);
-    fireEvent.click(toggle);
-    expect(toggle.checked).toBe(false);
+    expect(screen.queryByLabelText("emailNotifications")).toBeNull();
+    expect(screen.queryByLabelText("currency")).toBeNull();
     expect(screen.getByTestId("danger-zone").textContent).toBe("en");
   });
 

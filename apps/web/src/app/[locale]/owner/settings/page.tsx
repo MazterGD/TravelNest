@@ -11,7 +11,7 @@ import {
   Button,
   LoadingSpinner,
 } from "@/components/ui";
-import { Lock, Bell, Globe } from "lucide-react";
+import { Lock, Globe } from "lucide-react";
 import { authService, ApiError } from "@/lib/api";
 import { LOCALE_LABELS } from "@/constants";
 import { AccountDangerZone } from "@/components/features/account/AccountDangerZone";
@@ -36,7 +36,6 @@ export default function OwnerSettingsPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
-  const [emailNotifications, setEmailNotifications] = useState(true);
 
   const handleLocaleChange = (newLocale: string) => {
     if (newLocale === currentLocale) return;
@@ -214,57 +213,6 @@ export default function OwnerSettingsPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-4 border-t border-[var(--color-border-default)]">
-                <div>
-                  <h4 className="text-sm font-medium text-[var(--color-text-primary)]">
-                    {t("currency")}
-                  </h4>
-                  <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
-                    {t("currencyDescription")}
-                  </p>
-                </div>
-                <select className={selectClass} aria-label={t("currency")}>
-                  <option value="LKR">LKR (Rs)</option>
-                  <option value="USD">USD ($)</option>
-                </select>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Notifications */}
-        <div className="space-y-8">
-          <Card>
-            <CardHeader className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-surface)] pb-4">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-[var(--color-text-primary)]">
-                <Bell
-                  className="w-5 h-5 text-[var(--color-text-tertiary)]"
-                  aria-hidden="true"
-                />
-                {t("notifications")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <h4 className="text-sm font-medium text-[var(--color-text-primary)]">
-                    {t("emailNotifications")}
-                  </h4>
-                  <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
-                    {t("emailNotificationsDesc")}
-                  </p>
-                </div>
-                <label className="relative inline-flex shrink-0 items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={emailNotifications}
-                    onChange={(e) => setEmailNotifications(e.target.checked)}
-                    aria-label={t("emailNotifications")}
-                  />
-                  <div className="w-11 h-6 bg-[var(--color-border-default)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-action-focus)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--color-border-default)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-action-primary)]" />
-                </label>
               </div>
             </CardContent>
           </Card>
