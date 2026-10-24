@@ -18,14 +18,23 @@ interface CTAButtonBaseProps {
 
 interface CTAButtonLinkProps extends CTAButtonBaseProps {
   href: string;
+  asSpan?: undefined;
+}
+
+// Inside a card that is already a link, a real button would nest
+// interactive elements; render the same look as plain text instead.
+interface CTAButtonSpanProps extends CTAButtonBaseProps {
+  asSpan: true;
+  href?: undefined;
 }
 
 interface CTAButtonNativeProps
   extends CTAButtonBaseProps, React.ButtonHTMLAttributes<HTMLButtonElement> {
   href?: undefined;
+  asSpan?: undefined;
 }
 
-type CTAButtonProps = CTAButtonLinkProps | CTAButtonNativeProps;
+type CTAButtonProps = CTAButtonLinkProps | CTAButtonSpanProps | CTAButtonNativeProps;
 
 const variantClasses: Record<CTAButtonVariant, string> = {
   primary:
@@ -71,6 +80,10 @@ export function CTAButton({
       ) : null}
     </>
   );
+
+  if ("asSpan" in props && props.asSpan) {
+    return <span className={classes}>{content}</span>;
+  }
 
   if ("href" in props && props.href) {
     return (

@@ -146,7 +146,12 @@ describe("PopularRoutes", () => {
     expect(screen.getAllByText("subtitle").length).toBe(2);
   });
 
-  it.todo("route cards do not nest a <button> (CTAButton) inside a link (PopularRoutes.tsx:112, PopularPackages.tsx:108, FeaturedVehicles.tsx:162)");
+  it("never nests a button inside a route card link", () => {
+    const { container } = render(<PopularRoutes searchHref="/en/search" routes={routes as any} />);
+
+    expect(container.querySelector("a button")).toBeNull();
+    expect(screen.getAllByText("viewBuses").length).toBeGreaterThan(0);
+  });
 });
 
 describe("PopularPackages", () => {
@@ -169,6 +174,7 @@ describe("PopularPackages", () => {
     expect(screen.getByText("10-40 capacityLabel")).toBeTruthy();
     expect(screen.getByText(/LKR\s?15,000/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "viewAllPackages" }).getAttribute("href")).toBe("/en/packages");
+    expect(document.querySelector("a button")).toBeNull();
   });
 });
 
@@ -189,6 +195,7 @@ describe("FeaturedVehicles", () => {
     expect(screen.getByText("Mirissa")).toBeTruthy();
     expect(screen.getByAltText("Mini").getAttribute("src")).toContain("unsplash");
     expect(screen.getByText("(12)")).toBeTruthy();
+    expect(document.querySelector("a button")).toBeNull();
   });
 
   it("prefers localized message overrides", () => {

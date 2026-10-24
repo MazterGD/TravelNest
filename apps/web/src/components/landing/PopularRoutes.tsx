@@ -109,7 +109,7 @@ export function PopularRoutes({ searchHref, routes }: PopularRoutesProps) {
                       {formatCurrency(primaryRoute.avgPrice)}
                     </div>
                   </div>
-                  <CTAButton size="sm">{t("viewBuses")}</CTAButton>
+                  <CTAButton asSpan size="sm">{t("viewBuses")}</CTAButton>
                 </div>
               </div>
             </Link>

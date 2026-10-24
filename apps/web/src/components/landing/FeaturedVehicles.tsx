@@ -159,7 +159,7 @@ export function FeaturedVehicles({
                     <span className="text-[20px] font-bold text-foreground">
                       {formatCurrency(vehicle.pricePerDay)} {tCommon("perDay")}
                     </span>
-                    <CTAButton size="sm" className="px-3">
+                    <CTAButton asSpan size="sm" className="px-3">
                       {t("viewDetails")}
                     </CTAButton>
                   </div>

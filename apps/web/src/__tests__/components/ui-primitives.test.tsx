@@ -88,6 +88,14 @@ describe("Button", () => {
 });
 
 describe("CTAButton", () => {
+  it("renders as plain styled text inside cards that are already links", () => {
+    const { container } = render(<CTAButton asSpan size="sm">View</CTAButton>);
+
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(container.firstElementChild!.tagName).toBe("SPAN");
+    expect(screen.getByText("View")).toBeTruthy();
+  });
+
   it("renders a native type=button by default with icons", () => {
     const onClick = vi.fn();
     render(

@@ -105,7 +105,7 @@ export function PopularPackages({ packagesHref, packages }: PopularPackagesProps
                         </span>
                       </div>
                     </div>
-                    <CTAButton size="sm" className="px-3">
+                    <CTAButton asSpan size="sm" className="px-3">
                       {t("viewDetails")}
                     </CTAButton>
                   </div>
