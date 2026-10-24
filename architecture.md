@@ -2,7 +2,7 @@
 
 TravelNest operates as a **modular monolith**: a single deployable Express backend with internally separated domain modules, fronted by a Next.js PWA. The choice reflects the solo-developer constraint and a **zero-cost (free-forever tier) infrastructure requirement**, while keeping the option of extracting modules into independent services later.
 
-The codebase is a **pnpm monorepo** (pnpm 10, Node.js ≥ 18; CI runs Node 20):
+The codebase is a **pnpm monorepo** (pnpm 10, Node.js ≥ 22; CI and production run Node 24 LTS):
 
 ```
 /
@@ -83,13 +83,13 @@ The frontend serves three portal contexts from one Next.js application: the cust
 
 | Component | Technology | Notes |
 |---|---|---|
-| Runtime | Node.js (ESM, `tsx` in dev, `tsc` build) | |
+| Runtime | Node.js 24 LTS (ESM, `tsx` in dev, `tsc` build) | Production runs `node --import tsx dist/index.js`: `@travenest/database` ships TypeScript sources, so `tsx` is a runtime dependency |
 | Framework | Express 4 | |
-| ORM | Prisma 6 | 42 models, 27 enums, 32 migrations (Jan–Oct 2026); soft-delete read filter in `packages/database/src/index.ts` |
+| ORM | Prisma 6 | 42 models, 27 enums, 35 migrations (Jan–Oct 2026); soft-delete read filter in `packages/database/src/index.ts` |
 | Authentication | JWT (`jsonwebtoken`) access + refresh tokens with `tokenVersion` | Tokens in cookies; refresh rotation |
 | OAuth | Hand-rolled OAuth 2.0 code flow for Google and Facebook | JWT-signed `state` (`OAUTH_STATE_SECRET`); **no Passport.js** |
 | Password hashing | `bcryptjs` | Account lockout via `failedLoginAttempts` / `lockedUntil` |
-| Validation | Zod via `middleware/validate.ts` | Applied on most modules; see Known Gaps |
+| Validation | Zod 4 via `middleware/validate.ts` | Applied on every module |
 | Sanitization | `xss` | User-supplied text in auth/profile flows |
 | Security middleware | Helmet (CSP), CORS with credentials, double-submit CSRF, `express-rate-limit` | See Security |
 | Uploads | `multer` (memory storage) → Supabase Storage | 5 MB default limit |
@@ -127,6 +127,8 @@ The frontend serves three portal contexts from one Next.js application: the cust
 ---
 
 ## Deployment Topology (planned)
+
+Step-by-step instructions for this topology are in [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ```
                  ┌──────────────────────────┐

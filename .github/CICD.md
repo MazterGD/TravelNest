@@ -6,7 +6,7 @@ This document describes the Continuous Integration and Continuous Deployment (CI
 
 > **Current status:** CI (`ci.yml`) and PR (`pr.yml`) checks run. In CD (`cd.yml`), only the `validate` job is active; the deploy, migrate and health-check steps are commented-out placeholders. The planned target is the web app on **Vercel Hobby**, and the API + OSRM on an **Oracle Cloud Always Free VM** (see `architecture.md § Deployment Topology`).
 >
-> **Test database:** workflows start a `postgis/postgis:16-3.4-alpine` service and run `pnpm db:migrate:deploy` (PostGIS extension, triggers and GIST indexes live in raw-SQL migrations, so `db push` is never used). CI also fails if `schema.prisma` drifts from the migrations. The pnpm version comes from the root `packageManager` field.
+> **Test database:** workflows start a `postgis/postgis:16-3.4-alpine` service and run `pnpm db:migrate:deploy` (PostGIS extension, triggers and GIST indexes live in raw-SQL migrations, so `db push` is never used). CI also fails if `schema.prisma` drifts from the migrations. The pnpm version comes from the root `packageManager` field, and every workflow runs on Node.js 24 LTS. The e2e job starts the compiled API exactly as production does (`pnpm start:api`, which loads `tsx` so the TypeScript-only database package resolves) and the web app with `NODE_ENV=production`. Deployment steps for the target platforms are in [`DEPLOYMENT.md`](../DEPLOYMENT.md).
 
 ## Pipeline Structure
 

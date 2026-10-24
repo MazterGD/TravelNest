@@ -10,7 +10,7 @@ Run from the repository root:
 
 ```bash
 pnpm dev:api                                    # tsx watch on http://localhost:5000
-pnpm build:api && pnpm start:api                # production build / run
+pnpm build:api && pnpm start:api                # production build / run (node --import tsx dist/index.js)
 pnpm test                                       # Vitest + Supertest suite (uses DATABASE_URL)
 pnpm --filter @travenest/api lint
 pnpm --filter @travenest/api payhere:simulate <bookingId>   # complete a PayHere payment locally
