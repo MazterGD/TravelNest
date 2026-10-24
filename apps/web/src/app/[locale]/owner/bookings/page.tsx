@@ -83,6 +83,32 @@ function getPaymentStatusClasses(status: PaymentStatus): string {
   }
 }
 
+// Leading = + - @ would run as a formula when the file is opened in a spreadsheet.
+const csvCell = (value: unknown) => {
+  const text = String(value ?? "");
+  const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${safe.replace(/"/g, '""')}"`;
+};
+
+const bookingsToCsv = (rows: Booking[]) =>
+  [
+    ["Booking Ref", "Status", "Customer", "Vehicle", "Route", "Start Date", "End Date", "Passengers", "Total (LKR)", "Payment Status"],
+    ...rows.map((b) => [
+      b.bookingRef,
+      b.status,
+      b.customer.name,
+      b.vehicle.registration,
+      b.trip.route,
+      b.trip.startDate,
+      b.trip.endDate,
+      b.trip.passengers,
+      b.payment.total,
+      b.payment.status,
+    ]),
+  ]
+    .map((row) => row.map(csvCell).join(","))
+    .join("\n");
+
 export default function BookingsManagementPage() {
   const t = useTranslations("bookingsManagement");
   const tMsg = useTranslations("messages");
@@ -126,6 +152,16 @@ export default function BookingsManagementPage() {
     return matchesTab && matchesSearch;
   });
 
+  const handleExport = () => {
+    const blob = new Blob([bookingsToCsv(filteredBookings)], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `bookings-${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const tabCounts = {
     upcoming: bookings.filter((b) => mapDbStatusToUi(b.status) === "upcoming").length,
     "in-progress": bookings.filter((b) => mapDbStatusToUi(b.status) === "in-progress").length,
@@ -168,8 +204,11 @@ export default function BookingsManagementPage() {
                 </p>
               </div>
               <button
+                type="button"
+                onClick={handleExport}
+                disabled={filteredBookings.length === 0}
                 aria-label={t("exportBtn")}
-                className="flex min-h-[44px] items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                className="flex min-h-[44px] items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
               >
                 <Upload className="h-4 w-4" />
                 {t("exportBtn")}

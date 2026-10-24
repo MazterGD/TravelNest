@@ -143,7 +143,28 @@ describe("Owner BookingsManagementPage", () => {
     expect(refs()).toContain("TN-1");
   });
 
-  it.todo("exports the bookings list when the Export button is clicked (the button has no handler)");
+  it("exports the visible bookings as CSV with formula-safe cells", async () => {
+    let exported: Blob | undefined;
+    const createObjectURL = vi.fn((blob: Blob) => {
+      exported = blob;
+      return "blob:csv";
+    });
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    bookings.getOwnerBookings.mockResolvedValue({
+      bookings: [booking("1", "CONFIRMED", { customer: { name: "=HYPERLINK(1)", phone: "", email: "" } })],
+    });
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "exportBtn" }));
+
+    expect(click).toHaveBeenCalled();
+    const csv = await exported!.text();
+    expect(csv.split("\n")[0]).toContain('"Booking Ref"');
+    expect(csv).toContain('"TN-1"');
+    expect(csv).toContain(`"'=HYPERLINK(1)"`);
+    vi.unstubAllGlobals();
+  });
 
   it("shows API and generic errors", async () => {
     bookings.getOwnerBookings.mockRejectedValueOnce(new (ApiError as any)("Bookings offline"));
