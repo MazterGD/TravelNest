@@ -97,8 +97,7 @@ describe("Driver roster", () => {
     path: string,
     token = tokens.owner,
   ) =>
-    request(app)
-      [method](`${API_BASE}/drivers${path}`)
+    request(app)[method](`${API_BASE}/drivers${path}`)
       .set("Authorization", `Bearer ${token}`);
 
   beforeAll(async () => {
